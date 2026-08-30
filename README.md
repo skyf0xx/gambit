@@ -1,4 +1,4 @@
-![Gambit](assets/banner.png)
+![Gambit](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/banner.png)
 
 ## You have something you want to make happen
 
@@ -18,7 +18,7 @@ Figure out:
 
 ## Gambit under the hood
 
-<img src="assets/strategy-plan.png" alt="A strategic execution plan annotated with leverage points, dependencies, and constraints" width="500">
+<img src="https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/strategy-plan.png" alt="A strategic execution plan annotated with leverage points, dependencies, and constraints" width="500">
 
 Gambit combines established frameworks for:
 
@@ -31,3 +31,11 @@ Gambit combines established frameworks for:
 * **Experimentation & after-action review**
 
 Use Gambit for: **better thinking, clearer decisions, and a plan you can actually get done.**
+
+## Install
+
+```bash
+npx @skyf0xx/gambit init
+```
+
+Then ask your agent to run the `onboard` skill.
