@@ -70,6 +70,16 @@ INSTEAD OF: [what this deliberately deprioritises — naming the cost makes the 
 
 Diffusion across many priorities is the default failure mode. Naming one focus is the point of this skill.
 
+A Schwerpunkt is a state to reach, not a task to perform. "Report incidents," "send the
+email," "have the conversation" are actions — legitimate as the mechanism, but naming the
+mechanism as the focus skips the actual strategic step: what change in the world does
+that action need to cause before the goal moves? An action-shaped focus is seductive
+because it's concrete and immediately actionable, but concreteness is not the same as
+leverage. Before writing FOCUS, ask what the named action is *for* — the answer is
+usually the real Schwerpunkt, and the action becomes one line under WHY or belongs in
+`plan` instead. This failure compounds with the recency trap below: the most available
+action in front of you is also the easiest to mistake for the target.
+
 If people are involved (see `## People` in `GOAL.md`), say plainly what this focus means for them — who you need to talk to, recruit, redirect, or stand down — but you do the talking. This skill does not send messages on your behalf.
 
 Be wary of a specific trap on a thin log (one entry, or a first session): recency is not

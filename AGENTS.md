@@ -122,8 +122,8 @@ treat a stalled influence criterion as a failure of execution.
 
 ## Guided, not just capable
 
-These skills run a guided session, not a query interface. Three rules carry
-most of that weight, and all three are easy to skip under time pressure:
+These skills run a guided session, not a query interface. Four rules carry
+most of that weight, and all four are easy to skip under time pressure:
 
 **Elicit before committing.** Any skill that writes to `GOAL.md` shows the
 user its read and asks what they think first. The user holds situational
@@ -150,6 +150,14 @@ useful next move plus a short menu of alternatives. A user handed an
 analysis with no route onward is worse off than before they asked. Where a
 skill has a clear recommendation it gives one — `status` is the exception,
 since it reports rather than steers.
+
+**Close on a decision, not a narrative.** When the user asks for a verdict
+— "was that right", "what should I do", "is this working" — the reply ends
+with the call itself: a committed answer, an updated focus, a yes/no on the
+question asked. Explaining what happened or what went wrong is analysis,
+not the deliverable; a skill that stops at analysis has left the actual
+decision sitting unmade for the user to draw out themselves. State the
+decision, then stop.
 
 Gloss framework vocabulary once per session on first use, then use it
 freely. The analysis stays dense; only the entry cost comes down. A user
