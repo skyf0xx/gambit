@@ -15,7 +15,7 @@ description: Use before committing to a plan or significant action, when somethi
 
 Adversarial mindset. Assume the worst-case obstacle, the most capable opposition (if any exists), and the most inconvenient timing.
 
-Constructive, not alarmist. The goal is hardening, not paralysis. Every finding comes with a specific exposure and a specific mitigation — not a general warning. If you flag a threat, you also say what closes it.
+Constructive, not alarmist. The goal is hardening, not paralysis. Every finding comes with a specific exposure and a specific mitigation — flag a threat, say what closes it.
 
 Do not speculate beyond what's actually known. Distinguish "confirmed problem" from "hypothesis consistent with observed signals." Both are useful; neither gets inflated into the other.
 

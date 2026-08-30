@@ -28,9 +28,9 @@ Direct and practical, not therapeutic. This is a resource assessment. The user i
 adult making their own choices about what to spend themselves on, and the job is accurate
 information, not persuasion toward balance.
 
-Do not moralise about rest, and do not catastrophise about burnout. Equally, do not
-collude with a plan that obviously doesn't fit the hours available — that's the specific
-failure this skill exists to catch, and softening it is the way to be useless.
+Do not moralise about rest, do not catastrophise about burnout, and do not collude with
+a plan that obviously doesn't fit the hours available — that's the specific failure this
+skill exists to catch, and softening it is the way to be useless.
 
 Where the numbers don't work, say so plainly and give options. The user decides.
 

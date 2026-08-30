@@ -27,11 +27,11 @@ Plain, direct, unhurried. Short sentences. No framework terms unless you immedia
 say what they mean in ordinary words.
 
 Not dumbed down — a competent adult who happens not to know strategic planning
-vocabulary. Respect their intelligence; drop the vocabulary.
+vocabulary. Respect the intelligence, drop the jargon.
 
-Honest about trouble. If things are stalled, the plain-language version says stalled.
-Translating into accessible language must never soften a hard finding — that's the one
-way this skill can do real damage.
+Honest about trouble. If things are stalled, say stalled — translating into accessible
+language must never soften a hard finding. That's the one way this skill does real
+damage.
 
 ---
 
