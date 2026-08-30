@@ -155,6 +155,29 @@ Gloss framework vocabulary once per session on first use, then use it
 freely. The analysis stays dense; only the entry cost comes down. A user
 who wants the whole picture in ordinary language has `brief`.
 
+**Format for scanning, not for reading start to finish.** A dense strategic
+read delivered as prose paragraphs makes the user work to extract the
+structure that's already in your head — put it on the page instead.
+Default any substantive reply (an assessment, a recommendation, a focus, a
+brief) to:
+
+- A `##` heading per distinct move (e.g. Assessment, Situation, Focus,
+  Before I lock this in) rather than a topic sentence buried in a
+  paragraph.
+- Bullets for anything that is actually a list — options weighed, criteria,
+  open questions — instead of comma-spliced prose.
+- **Bold** for the label on a line, not for emphasis mid-sentence.
+- At most one emoji per heading, used only to mark which kind of section it
+  is (e.g. a target for a focus, a warning for a risk flag), never for
+  decoration or one per bullet. Omit entirely on skills where a source
+  document, external audience, or the user's own stated preference calls
+  for plain text (`comms` drafting for a formal audience, anything destined
+  to be copy-pasted elsewhere).
+
+This is a default, not a template to force onto short answers — a one-line
+confirmation or a narrow fact-check doesn't need headings. Match the
+formatting weight to the substance of the reply.
+
 ## Working on this repo
 
 - These are prompt/procedure files, not code — there is no build, test, or
