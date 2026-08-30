@@ -72,6 +72,14 @@ Diffusion across many priorities is the default failure mode. Naming one focus i
 
 If people are involved (see `## People` in `GOAL.md`), say plainly what this focus means for them — who you need to talk to, recruit, redirect, or stand down — but you do the talking. This skill does not send messages on your behalf.
 
+Be wary of a specific trap on a thin log (one entry, or a first session): recency is not
+the same as leverage. The most recent action is vivid — it's the only thing in front of
+you — but that vividness is not evidence it's the highest-leverage thing to concentrate
+on. Don't default to "double down on whatever just happened" just because it's the only
+candidate that comes easily to mind. If the candidate focus is built around continuing or
+capitalising on the user's most recent move, treat that as one hypothesis to test in 4b,
+not a conclusion — its own recency is exactly what makes it easy to overweight.
+
 ### 4b. Test the Focus Before Committing It
 
 The user knows things about their situation that aren't in `GOAL.md`. Surface them
@@ -84,15 +92,39 @@ That's my read. Before I lock it in:
   - Is there anything blocking it that I don't know about?
 ```
 
+If the focus concentrates on the user's most recent action specifically — "keep working
+X," "double down on Y" — add a third question that checks the assumption directly, rather
+than letting recency stand in for leverage unchallenged:
+
+```
+  - How much conviction do you actually have in [that action]? Was it a considered bet,
+    or a low-conviction test you're not ready to commit further effort behind yet?
+```
+
+A low-conviction answer means the recommended focus was built on an unexamined
+assumption — treat it the same as disagreement (see below), not as a minor caveat to
+note and proceed past.
+
 Then act on the answer:
 
 - **They agree** → record it and move on. Don't belabour agreement.
-- **They disagree** → take it seriously. They may be seeing a constraint you can't. Ask
-  what they'd focus on instead and why. If their reasoning holds, adopt it and say so
-  plainly. If it doesn't, say where you think it's wrong — once — then defer. It's their
-  operation.
-- **They surface a blocker** → that blocker may *be* the focus. Reassess before writing.
-- **They're unsure between two** → hand off to `decide` rather than picking for them.
+- **They disagree, or conviction in the underlying action turns out to be low** — this
+  is still your job, not theirs. You are the one being consulted for the read; do not
+  hand the strategic question back with "what would you focus on instead?" — that
+  defeats the purpose of the skill. Re-run step 4 with the new information they just
+  gave you (the constraint, the low conviction, whatever surfaced) and come back with a
+  **new recommendation**, reasoned the same way as the first: situation, options
+  weighed, one committed answer. Only ask a further question if it is narrow and
+  fact-checking (confirming a specific detail your new read depends on) — never a
+  second open "what do you think" in place of doing the reasoning yourself. If they
+  push back on the second recommendation too, say once where you think they're wrong,
+  then defer — it's their operation, but "defer" means adopting their stated reasoning,
+  not silently reflecting the question back to them.
+- **They surface a blocker** → that blocker may *be* the focus. Reassess before writing,
+  same rule: come back with a recommendation, not a question.
+- **They're unsure between two candidate focuses themselves** (not you) → hand off to
+  `decide` rather than picking for them. This is the one case where handing the choice
+  back is correct — because the user, not you, is the one holding two live options.
 
 Do not turn this into a negotiation. One exchange, then commit.
 

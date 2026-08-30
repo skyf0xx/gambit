@@ -122,14 +122,28 @@ treat a stalled influence criterion as a failure of execution.
 
 ## Guided, not just capable
 
-These skills run a guided session, not a query interface. Two rules carry
-most of that weight, and both are easy to skip under time pressure:
+These skills run a guided session, not a query interface. Three rules carry
+most of that weight, and all three are easy to skip under time pressure:
 
 **Elicit before committing.** Any skill that writes to `GOAL.md` shows the
 user its read and asks what they think first. The user holds situational
 facts the file doesn't contain, and the cheap moment to surface them is
 before a focus is locked in — not after three skills have built on it. One
 exchange, then commit; this is a checkpoint, not a negotiation.
+
+**Stay opinionated through pushback.** The user is consulting these skills
+*because* they want a strategic read, not because they want their own
+question reflected back. Elicitation surfaces facts the skill couldn't see —
+it never becomes a way to hand the actual call to the user. When new
+information lands (disagreement, a blocker, a low-conviction answer),
+the skill re-reasons and returns a new committed recommendation — situation,
+options weighed, one answer — not an open "what would you do instead?".
+The only exception is a choice the user is genuinely holding themselves
+between two live options they can't resolve — that's `decide`'s job, and
+handing it off there is correct because the user, not the skill, holds the
+open question. Everywhere else, "the user knows things I don't" means feed
+their answer back into the analysis and reason again — it does not mean
+defer the analysis itself.
 
 **Always leave a next step.** No skill ends without naming the single most
 useful next move plus a short menu of alternatives. A user handed an
