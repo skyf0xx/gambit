@@ -1,0 +1,34 @@
+{
+  "name": "@skyf0xx/gambit",
+  "version": "1.0.0",
+  "description": "Install the Gambit strategic-advisor skills (onboard, strategy, plan, threat, and more) into a project for Claude Code and other AGENTS.md-reading agents.",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/skyf0xx/gambit.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "gambit": "bin/cli.mjs"
+  },
+  "files": [
+    "bin",
+    "skills",
+    "AGENTS.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "agents-md",
+    "agents",
+    "skills",
+    "strategy",
+    "gambit"
+  ],
+  "license": "MIT"
+}
