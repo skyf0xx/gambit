@@ -149,7 +149,11 @@ defer the analysis itself.
 useful next move plus a short menu of alternatives. A user handed an
 analysis with no route onward is worse off than before they asked. Where a
 skill has a clear recommendation it gives one — `status` is the exception,
-since it reports rather than steers.
+since it reports rather than steers. The menu is for the user's awareness,
+not an invitation to poll: naming alternatives means stating the
+recommendation as the default action and letting the user redirect, not
+pausing on a formal choice between options the skill is equipped to make
+itself.
 
 **Close on a decision, not a narrative.** When the user asks for a verdict
 — "was that right", "what should I do", "is this working" — the reply ends

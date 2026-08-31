@@ -25,19 +25,31 @@ When something is blocked, state what's blocked, what's blocking it, and what un
 
 Read `GOAL.md`. Note the current focus (Schwerpunkt) if `strategy` has set one, the success criteria, the deadline, the current posture level if set, and who's involved from `## People` if that section exists.
 
+**Check `## Systems notes`.** If the section is absent, its Schwerpunkt confidence was recorded as `low`, or it clearly predates the current focus (goal or focus changed since), the critical path you're about to build may rest on an unverified premise about how a third party or system responds. Flag this before building the graph rather than after:
+
+```
+No systems read backs this focus (or confidence was low / stale). The plan
+below will assume it holds. Run systems first, or proceed anyway?
+```
+
+Proceed only on explicit confirmation. If the user proceeds without resolving it, carry the caveat into the plan itself (see step 2) rather than dropping it.
+
 ### 2. Build the Dependency Graph
 
-Enumerate the concrete actions needed, and their dependencies. If an action belongs to someone specific, name them:
+Enumerate the concrete actions needed, and their dependencies. If an action belongs to someone specific, name them. If an action's payoff depends on an unverified premise about how a third party or system will behave — not just whether the user can do it, but whether doing it produces the intended effect — flag that node explicitly rather than sequencing it at face value:
 
 ```
 Action A — no dependencies — can start immediately — [you | person's name/role]
 Action B — depends on: A — [...]
-Action C — depends on: A — [...]
+Action C — depends on: A — [ASSUMPTION: {premise} — unverified] — insert cheap
+  verification step before committing to the expensive steps that follow it
 Action D — depends on: B, C — [...]
 
 Critical path: A → B → D (or A → C → D)
 Parallel opportunity: B and C once A is done
 ```
+
+Don't let an unverified assumption sit silently inside an otherwise-confident-looking graph — a flagged node changes what "next action" should be (verify the premise cheaply) versus an unflagged one (execute the expensive step directly).
 
 ### 3. Identify the Critical Path
 
