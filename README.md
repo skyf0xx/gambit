@@ -1,6 +1,6 @@
 ![Gambit](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/banner.png)
 
-## You have something you want to make happen
+## Plan your next move
 
 Maybe you're starting a business, getting a
 campaign off the ground or just trying to get your own life in order.
