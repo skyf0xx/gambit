@@ -1,4 +1,5 @@
-![Gambit](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/banner.png)
+# G A M B I T
+![Gambit](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/banner.jpg)
 
 ## You have something you want to make happen
 
