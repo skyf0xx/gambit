@@ -19,7 +19,7 @@ Figure out:
 
 ## Gambit under the hood
 
-<img src="https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/strategy-plan.png" alt="A strategic execution plan annotated with leverage points, dependencies, and constraints" width="500">
+<img src="https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/plan.jpg" alt="A strategic execution plan annotated with leverage points, dependencies, and constraints">
 
 Gambit combines established frameworks for:
 
