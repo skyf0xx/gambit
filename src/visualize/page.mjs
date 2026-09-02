@@ -50,26 +50,28 @@ export function renderPage(goal) {
       --accent: #7ea6e0; }
   }
   * { box-sizing: border-box; }
-  body { margin: 0; padding: 2rem; background: var(--bg); color: var(--text);
+  body { margin: 0; padding: 1.5rem 1.75rem; background: var(--bg); color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-  header { margin-bottom: 2rem; }
-  h1 { font-size: 1.4rem; margin: 0 0 0.3rem; }
-  .meta { color: var(--muted); font-size: 0.9rem; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.2rem; }
-  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px;
-    padding: 1.2rem 1.4rem; }
-  .card h2 { font-size: 1rem; margin: 0 0 0.8rem; color: var(--muted); text-transform: uppercase;
+  header { margin-bottom: 1.25rem; }
+  h1 { font-size: 1.25rem; margin: 0 0 0.25rem; }
+  .meta { color: var(--muted); font-size: 0.85rem; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0.9rem; }
+  .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.9rem 1.1rem; }
+  .card h2 { font-size: 0.85rem; margin: 0 0 0.6rem; color: var(--muted); text-transform: uppercase;
     letter-spacing: 0.03em; }
-  .focus { background: var(--card-bg); border: 1px solid var(--accent); border-radius: 10px;
-    padding: 1rem 1.4rem; margin-bottom: 1.2rem; font-size: 1.05rem; display: flex;
-    align-items: baseline; gap: 0.8rem; }
-  .focus-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em;
+  .focus { background: var(--card-bg); border: 1px solid var(--accent); border-radius: 8px;
+    padding: 0.7rem 1.1rem; margin-bottom: 0.9rem; font-size: 1rem; display: flex;
+    align-items: baseline; gap: 0.7rem; }
+  .focus-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em;
     color: var(--accent); font-weight: 600; white-space: nowrap; }
-  .criteria { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px;
-    padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; }
-  .criteria h3 { margin: 0 0 0.6rem; font-size: 0.95rem; color: var(--muted); }
-  .criteria ul { margin: 0; padding-left: 1.2rem; }
-  .kind-tag { font-size: 0.7rem; color: var(--muted); border: 1px solid var(--border);
+  .criteria { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.9rem 1.1rem; margin-bottom: 0.9rem; }
+  .criteria h3 { margin: 0 0 0.5rem; font-size: 0.85rem; color: var(--muted); }
+  .criteria ul { margin: 0; padding-left: 1.1rem; font-size: 0.92rem; }
+  .criteria li { padding: 0.15rem 0; }
+  .kind-tag { font-size: 0.68rem; color: var(--muted); border: 1px solid var(--border);
     border-radius: 4px; padding: 0 0.3rem; margin-right: 0.4rem; }
   ul.checklist { list-style: none; margin: 0; padding: 0; }
   ul.checklist li { display: flex; align-items: center; gap: 0.6rem; padding: 0.35rem 0;
@@ -93,7 +95,7 @@ export function renderPage(goal) {
 <div class="disconnected" id="disconnected">Reconnecting…</div>
 <header>
   <h1>${escapeHtml(goal.shortTitle)}</h1>
-  <div class="meta">${goal.deadline ? `Deadline: ${escapeHtml(goal.deadline)}` : 'No deadline set'}${goal.lastLogLine ? ` · ${escapeHtml(goal.lastLogLine)}` : ''}</div>
+  <div class="meta"${goal.lastLogFull ? ` title="${escapeHtml(goal.lastLogFull)}"` : ''}>${goal.deadline ? `Deadline: ${escapeHtml(goal.deadline)}` : 'No deadline set'}${goal.lastLogLine ? ` · ${escapeHtml(goal.lastLogLine)}` : ''}</div>
 </header>
 ${focusHtml(goal.focus)}
 ${criteriaHtml(goal.criteria)}

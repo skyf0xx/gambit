@@ -33,19 +33,21 @@ function parseCriteria(criteriaBody) {
     .map((m) => ({ text: m[1].trim(), kind: m[2].toLowerCase() }));
 }
 
-// Log entries are `- ` bullets that can wrap across several physical
-// lines (continuation lines have no leading `- `). Groups the raw lines
-// back into whole entries before scanning, so a wrapped entry's Focus:
-// isn't missed and a continuation fragment is never mistaken for the
-// most recent entry.
+// Log entries are top-level (column 0) `- ` bullets that can wrap across
+// several physical lines, including further indented `- ` sub-bullets —
+// continuation lines have either no leading `-` or a leading `-` that's
+// indented relative to column 0. Groups the raw lines back into whole
+// entries before scanning, so a wrapped entry's Focus: isn't missed and
+// a continuation fragment (top-level or nested) is never mistaken for
+// the most recent entry.
 function parseLogEntries(logBody) {
   const lines = logBody.split('\n');
   const entries = [];
   for (const raw of lines) {
-    const line = raw.trim();
-    if (!line) continue;
-    if (/^-\s+/.test(line)) entries.push(line.replace(/^-\s+/, ''));
-    else if (entries.length) entries[entries.length - 1] += ` ${line}`;
+    if (!raw.trim()) continue;
+    const isTopLevel = /^-\s+/.test(raw);
+    if (isTopLevel) entries.push(raw.replace(/^-\s+/, ''));
+    else if (entries.length) entries[entries.length - 1] += ` ${raw.trim()}`;
   }
   return entries;
 }
@@ -83,10 +85,11 @@ export function parseGoalMd(rawBody) {
   const bodySections = sections.filter((s) => !excluded.has(s.heading) && s.body.length > 0);
 
   const logEntries = parseLogEntries(byHeading.get('Log') ?? '');
-  const lastLogLine = logEntries.length ? logEntries[logEntries.length - 1] : null;
+  const lastLogFull = logEntries.length ? logEntries[logEntries.length - 1] : null;
+  const lastLogLine = lastLogFull ? shorten(lastLogFull, 120) : null;
   const focus = extractFocus(logEntries);
 
-  return { title, shortTitle: shorten(title), criteria, deadline, sections: bodySections, lastLogLine, focus };
+  return { title, shortTitle: shorten(title), criteria, deadline, sections: bodySections, lastLogLine, lastLogFull, focus };
 }
 
 // A goal's `# Goal` body is often a full multi-sentence description — fine

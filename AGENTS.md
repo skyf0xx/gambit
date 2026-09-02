@@ -89,6 +89,8 @@ skills/
   review/SKILL.md       after-action review of a completed event — expected vs actual
 
   _shared/RESOLVING.md  the GOAL.md resolution rule — no SKILL.md, not a skill itself
+  _shared/HUMANIZE.md   writing-voice rules applied to skill output and Log entries
+  _shared/NO_HISTORY.md current-state-only rule for every GOAL.md write
 ```
 
 The set draws on several domains deliberately, and the divisions matter when
@@ -203,6 +205,34 @@ question asked. Explaining what happened or what went wrong is analysis,
 not the deliverable; a skill that stops at analysis has left the actual
 decision sitting unmade for the user to draw out themselves. State the
 decision, then stop.
+
+**Write like a person, not a template.** Apply
+`skills/_shared/HUMANIZE.md` to any prose a skill produces and to every
+`## Log` entry it appends: vary sentence rhythm, use the plain verb,
+commit to specific checkable claims over safe generic ones, and cut
+padded transitions and unearned rule-of-three lists. It doesn't override
+the structural formatting rules below (headings, bullets, bold labels)
+— those are scanning aids, not the padding this rule targets.
+
+**No history in the output itself.** Apply
+`skills/_shared/NO_HISTORY.md` on every write to `GOAL.md`. Every section
+but `## Log` reads as current state only — no "(updated)" labels, no
+"originally X, now Y" narration, no trace of a prior version. `## Log` is
+still the one append-only section (the sequence of entries is the
+history, by design), but each individual entry states what's true as of
+that entry, not a replay of the discussion that produced it — a decision
+gets its outcome and rationale, not the back-and-forth.
+
+**Write GOAL.md like a plan, not an essay.** This governs every write to
+`GOAL.md` only — your own replies to the user in conversation stay normal
+prose. Inside the file: signal-dense, verbosity-light. Max ~5 words per
+line item. Few sentences, not one long one. Bullets, short labels, and
+arrow chains over paragraphs — a human planning by hand writes a mind
+map, not an essay, and every owned section (Plan, Systems notes, Risk
+notes, Decisions, Stakeholders, Exposure, Capacity, Forecasts,
+Experiments, Criteria status) follows that, including each individual
+`## Log` entry a skill appends. Cut the field down to the fact; drop the
+clause explaining it unless the fact is unreadable without it.
 
 Gloss framework vocabulary once per session on first use, then use it
 freely. The analysis stays dense; only the entry cost comes down. A user

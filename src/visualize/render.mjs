@@ -62,6 +62,7 @@ export function renderGoal(rawBody) {
     deadline: parsed.deadline,
     criteria: parsed.criteria,
     lastLogLine: parsed.lastLogLine,
+    lastLogFull: parsed.lastLogFull,
     focus: parsed.focus,
     cards,
   };
