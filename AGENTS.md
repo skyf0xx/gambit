@@ -6,14 +6,51 @@ involves coordinating other people.
 
 ## Start of session
 
-Before the first substantive reply in any session, check whether `GOAL.md`
-exists in the user's working directory and read it if so. This is silent
+Before the first substantive reply in any session, resolve `GOAL.md` per
+the rule below and read it if resolution finds one. This is silent
 context-loading, not a skill invocation — don't narrate it, don't run
 `onboard` or `strategy` unprompted, and don't treat it as green light to
 take action. It exists so the agent already knows the goal, current
 posture, plan, and log the moment the user says anything, instead of
-asking them to re-explain state they already recorded. If `GOAL.md` doesn't
-exist, say nothing about it until a skill (typically `onboard`) needs it.
+asking them to re-explain state they already recorded. If resolution finds
+no goal, say nothing about it until a skill (typically `onboard`) needs it.
+
+## Resolving GOAL.md
+
+Gambit holds state for many goals at once, one active at a time, in a
+global store outside any project directory:
+
+```
+~/.gambit/                      the global store (goal state)
+  gambit.db                     index only — rebuildable, see below
+  active                        one line: slug of the active goal
+  goals/
+    park-cleanup/GOAL.md        a full GOAL.md, format unchanged
+    job-search/GOAL.md
+```
+
+`~/.gambit` is `$GAMBIT_HOME` if set, else `$XDG_DATA_HOME/gambit`, else
+the literal path `~/.gambit`. `gambit.db` is an index, not the source of
+truth — goal state is the markdown in `goals/<slug>/GOAL.md`; the database
+exists only so the CLI can list, switch, and search across goals quickly.
+Deleting it and running `gambit reindex` loses nothing.
+
+Which file "`GOAL.md`" means, for any skill, is decided by one precedence
+rule, spelled out in full in `skills/_shared/RESOLVING.md`:
+
+1. `GOAL.md` in the current working directory → use it. A repo-local goal
+   always wins, so existing per-project installs keep working unchanged.
+2. Otherwise, the goal named by `~/.gambit/active` → its `GOAL.md` in the
+   store.
+3. Otherwise, if exactly one goal exists in the store → use it, and set it
+   active.
+4. Otherwise, if no goals exist anywhere → `onboard` runs first-contact
+   intake.
+5. Otherwise (several goals, none active) → `onboard` lists them and asks
+   which. This is the only case in the rule that asks anything.
+
+Skills reference this rule rather than restating it — see
+`skills/_shared/RESOLVING.md` for the canonical text.
 
 ## Repository structure
 
@@ -50,6 +87,8 @@ skills/
   ASSESS
   eval/SKILL.md         independent audit of progress against the goal
   review/SKILL.md       after-action review of a completed event — expected vs actual
+
+  _shared/RESOLVING.md  the GOAL.md resolution rule — no SKILL.md, not a skill itself
 ```
 
 The set draws on several domains deliberately, and the divisions matter when
@@ -88,11 +127,12 @@ that natively auto-load a `skills/` directory.
 
 ## The GOAL.md contract
 
-Every skill reads and writes a single file, `GOAL.md`, in the user's working
-directory (not this repo). It holds the goal, success criteria, deadline,
-current plan, an optional `## People` and `## Posture` section, and a
-running log. `strategy` creates it on first use if it doesn't exist. See
-`skills/strategy/SKILL.md` for the exact format.
+Every skill reads and writes a single file, `GOAL.md` — resolved per the
+rule above, not assumed to be in any fixed location (not this repo). It
+holds the goal, success criteria, deadline, current plan, an optional
+`## People` and `## Posture` section, and a running log. `strategy` creates
+it on first use if it doesn't exist. See `skills/strategy/SKILL.md` for the
+exact format.
 
 `GOAL.md` should always read as current state, not a history of how it got
 there — skills update sections in place rather than appending "(updated)"

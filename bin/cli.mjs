@@ -16,12 +16,28 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, relative } from 'node:path';
 
+// node:sqlite emits an ExperimentalWarning the instant it's imported (Node
+// 22.23.2, verified locally) — before any code in that module runs, so
+// filtering process.emitWarning from inside src/store/db.mjs is too late.
+// The store is imported dynamically, after the filter below is installed,
+// so the warning never reaches the user on every CLI invocation.
+const prevEmitWarning = process.emitWarning;
+process.emitWarning = (warning, ...rest) => {
+  const type = typeof rest[0] === 'string' ? rest[0] : rest[0]?.type;
+  if (type === 'ExperimentalWarning' && String(warning).includes('SQLite')) return;
+  prevEmitWarning.call(process, warning, ...rest);
+};
+
+const store = await import('../src/store/index.mjs');
+const { goalFile } = await import('../src/store/paths.mjs');
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PKG_ROOT = join(__dirname, '..');
 const SRC_SKILLS = join(PKG_ROOT, 'skills');
 const CWD = process.cwd();
 const DEST_SKILLS = join(CWD, '.claude', 'skills');
 const DEST_AGENTS_MD = join(CWD, 'AGENTS.md');
+const CWD_GOAL_MD = join(CWD, 'GOAL.md');
 
 const MARKER_START = '<!-- gambit:skills start -->';
 const MARKER_END = '<!-- gambit:skills end -->';
@@ -30,9 +46,18 @@ function help() {
   console.log(`
 Gambit — strategic-advisor skills for an AI agent working a goal.
 
-Usage:
+Legacy per-project install:
   npx @skyf0xx/gambit init [--force]   install skills into ./.claude/skills
   npx @skyf0xx/gambit update           re-copy skills from the installed package version
+
+Global goal store (~/.gambit, or $GAMBIT_HOME):
+  npx @skyf0xx/gambit list             goals, with active marked
+  npx @skyf0xx/gambit new <title>      create a goal, make it active
+  npx @skyf0xx/gambit switch <slug>    set the active goal
+  npx @skyf0xx/gambit path             print the resolved GOAL.md path
+  npx @skyf0xx/gambit reindex          rebuild gambit.db from goals/
+  npx @skyf0xx/gambit adopt [path]     move an existing ./GOAL.md into the store
+
   npx @skyf0xx/gambit --help           show this message
 
 Without --force, init will not overwrite a skill file that already
@@ -40,15 +65,121 @@ differs from the package's copy — pass --force to sync anyway.
 `);
 }
 
+function formatGoalRow(g, activeSlug) {
+  const mark = g.slug === activeSlug ? '*' : ' ';
+  const deadline = g.deadline ? ` — due ${g.deadline}` : '';
+  return `${mark} ${g.slug}  ${g.title}${deadline}`;
+}
+
+async function storeList() {
+  const goals = store.list();
+  const activeSlug = store.resolveActive();
+  if (goals.length === 0) {
+    console.log('No goals yet. Create one with: gambit new "<title>"');
+    return;
+  }
+  for (const g of goals) console.log(formatGoalRow(g, activeSlug));
+}
+
+async function storeNew(title) {
+  if (!title) {
+    console.error('Usage: gambit new "<title>"');
+    process.exitCode = 1;
+    return;
+  }
+  const slug = store.create(title);
+  console.log(`Created goal "${title}" (${slug}) and made it active.`);
+  console.log(goalFile(slug));
+}
+
+async function storeSwitch(slug) {
+  if (!slug) {
+    console.error('Usage: gambit switch <slug>');
+    process.exitCode = 1;
+    return;
+  }
+  try {
+    store.setActive(slug);
+    console.log(`Active goal: ${slug}`);
+  } catch (err) {
+    console.error(err.message);
+    process.exitCode = 1;
+  }
+}
+
+async function storePath() {
+  if (existsSync(CWD_GOAL_MD)) {
+    console.log(CWD_GOAL_MD);
+    return;
+  }
+  const slug = store.resolveActive();
+  if (!slug) {
+    console.error('No GOAL.md in the working directory and no active goal in the store.');
+    process.exitCode = 1;
+    return;
+  }
+  console.log(goalFile(slug));
+}
+
+async function storeReindex() {
+  store.reindex();
+  console.log('Reindexed.');
+}
+
+async function storeAdopt(pathArg) {
+  const src = pathArg ? join(CWD, pathArg) : CWD_GOAL_MD;
+  if (!existsSync(src)) {
+    console.error(`No GOAL.md found at ${src}`);
+    process.exitCode = 1;
+    return;
+  }
+  const body = await readFile(src, 'utf8');
+  const titleMatch = body.match(/^#\s*Goal\s*\n+([^\n]+)/m);
+  const title = titleMatch ? titleMatch[1].trim() : 'Adopted goal';
+
+  const slug = store.create(title);
+  await writeFile(goalFile(slug), body);
+  store.reindex();
+  store.setActive(slug);
+
+  console.log(`Adopted ${relative(CWD, src)} into the store as "${slug}".`);
+  console.log(`The original file at ${relative(CWD, src)} was left in place —`);
+  console.log(`remove it yourself once you've confirmed the store copy is correct.`);
+}
+
 async function listSkillDirs() {
   const entries = await readdir(SRC_SKILLS, { withFileTypes: true });
-  return entries.filter((e) => e.isDirectory()).map((e) => e.name);
+  const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+  // skills/_shared/ holds RESOLVING.md, not a SKILL.md — it's referenced by
+  // other skills, not a skill to install itself.
+  const checks = await Promise.all(dirs.map((name) => stat(join(SRC_SKILLS, name, 'SKILL.md')).then(() => true, () => false)));
+  return dirs.filter((_, i) => checks[i]);
 }
 
 async function filesDiffer(src, dest) {
   if (!existsSync(dest)) return true;
   const [ca, cb] = await Promise.all([readFile(src, 'utf8'), readFile(dest, 'utf8')]);
   return ca !== cb;
+}
+
+// Copies one file from the package into DEST_SKILLS, honoring --force the
+// same way for every payload file (a SKILL.md or the shared resolution
+// doc). Returns 'written', 'skipped', or 'unchanged'.
+async function copyOne(relPath, { force }) {
+  const srcPath = join(SRC_SKILLS, relPath);
+  const destPath = join(DEST_SKILLS, relPath);
+  const differs = await filesDiffer(srcPath, destPath);
+
+  if (existsSync(destPath) && !differs) return 'unchanged';
+  if (existsSync(destPath) && differs && !force) {
+    console.log(`  skip   ${relative(CWD, destPath)} (differs from package — use --force to overwrite)`);
+    return 'skipped';
+  }
+
+  await mkdir(dirname(destPath), { recursive: true });
+  await cp(srcPath, destPath);
+  console.log(`  write  ${relative(CWD, destPath)}`);
+  return 'written';
 }
 
 async function copySkills({ force }) {
@@ -58,22 +189,17 @@ async function copySkills({ force }) {
   let skipped = 0;
 
   for (const name of names) {
-    const srcDir = join(SRC_SKILLS, name, 'SKILL.md');
-    const destDir = join(DEST_SKILLS, name, 'SKILL.md');
-    const differs = await filesDiffer(srcDir, destDir);
-
-    if (existsSync(destDir) && !differs) continue;
-    if (existsSync(destDir) && differs && !force) {
-      console.log(`  skip   ${relative(CWD, destDir)} (differs from package — use --force to overwrite)`);
-      skipped++;
-      continue;
-    }
-
-    await mkdir(dirname(destDir), { recursive: true });
-    await cp(srcDir, destDir);
-    console.log(`  write  ${relative(CWD, destDir)}`);
-    written++;
+    const result = await copyOne(join(name, 'SKILL.md'), { force });
+    if (result === 'written') written++;
+    if (result === 'skipped') skipped++;
   }
+
+  // The four skills that reference the resolution rule (onboard, strategy,
+  // status, brief) point at skills/_shared/RESOLVING.md by path — a
+  // per-project install has to carry it too, or those references dangle.
+  const sharedResult = await copyOne(join('_shared', 'RESOLVING.md'), { force });
+  if (sharedResult === 'written') written++;
+  if (sharedResult === 'skipped') skipped++;
 
   return { written, skipped, total: names.length };
 }
@@ -167,6 +293,36 @@ async function main() {
 
   if (cmd === 'update') {
     await update();
+    return;
+  }
+
+  if (cmd === 'list') {
+    await storeList();
+    return;
+  }
+
+  if (cmd === 'new') {
+    await storeNew(args.slice(1).join(' '));
+    return;
+  }
+
+  if (cmd === 'switch') {
+    await storeSwitch(args[1]);
+    return;
+  }
+
+  if (cmd === 'path') {
+    await storePath();
+    return;
+  }
+
+  if (cmd === 'reindex') {
+    await storeReindex();
+    return;
+  }
+
+  if (cmd === 'adopt') {
+    await storeAdopt(args[1]);
     return;
   }
 

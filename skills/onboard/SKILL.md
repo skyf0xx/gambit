@@ -1,13 +1,16 @@
 ---
 name: onboard
-description: Use at the start of any session touching a goal — a vague first message ("I want to...", "help me with...", "what's going on with this"), or any time it's unclear whether GOAL.md exists yet. Checks for GOAL.md and branches to a guided one-question-at-a-time intake for a new goal, or a welcome-back snapshot for a returning one, then hands off to strategy.
+description: Use at the start of any session touching a goal — a vague first message ("I want to...", "help me with...", "help me plan...", "what's going on with this"), or any time it's unclear whether GOAL.md exists yet. Not a coding task even if the phrasing sounds like one ("help me plan" here means a life/business/campaign goal, not a software plan). Checks for GOAL.md and branches to a guided one-question-at-a-time intake for a new goal, or a welcome-back snapshot for a returning one, then hands off to strategy.
 ---
 
 # Skill: onboard
 
 **Trigger**: The front door. Use whenever a session starts on a goal and it isn't
 already clear whether `GOAL.md` exists — a vague opening ("I want to do something about
-X", "help me organise Y"), or simply returning to work without naming a skill.
+X", "help me organise Y", "help me plan Z"), or simply returning to work without naming
+a skill. "Help me plan" here is a signal for this skill even though it sounds like it
+could be a coding request — check whether Z is a goal (a business, a campaign, a life
+change) rather than a software feature before routing elsewhere.
 
 **Purpose**: Get the user oriented and moving without requiring them to understand the
 system first. A user arrives with a desire, not a formed goal. This skill works out
@@ -32,12 +35,38 @@ words ("let me work out where the leverage is"), not by naming the file.
 
 ## Execution Sequence
 
-### 1. Check for GOAL.md
+### 1. Resolve the goal
 
-Look for `GOAL.md` in the working directory.
+Apply the resolution rule in `skills/_shared/RESOLVING.md`:
 
-- **Not found** → **2. New Goal Intake**
-- **Found** → **4. Returning User**
+- **Case 1 (cwd `GOAL.md`) or case 2 (active goal in the store) resolves to a
+  file** → **4. Returning User**
+- **Case 3 (exactly one goal in the store, none active)** → resolution sets
+  it active silently → **4. Returning User**
+- **Case 4 (no goals exist anywhere)** → **2. New Goal Intake**
+- **Case 5 (several goals, none active)** → **1a. Which Goal**
+
+---
+
+### 1a. Which Goal
+
+Several goals exist in the store and none is active — the only case in the resolution
+rule that asks the user anything. List them (`gambit list`, or the equivalent read of
+`~/.gambit/goals/*/GOAL.md`) and ask plainly:
+
+```
+You've got a few goals going:
+
+  1. [title] — last touched [date]
+  2. [title] — last touched [date]
+  ...
+
+Which one, or a new one?
+```
+
+On an answer, set it active (`gambit switch <slug>`) and go to **4. Returning User**. If
+they want a new goal instead, go to **2. New Goal Intake** — skip the introduction (2a):
+the user is clearly already oriented, mid-multi-goal, not a first-time visitor.
 
 ---
 
@@ -45,10 +74,13 @@ Look for `GOAL.md` in the working directory.
 
 #### 2a. Introduce, then frame
 
-This is the very first contact — no `GOAL.md` exists anywhere yet for this user. Open
-with a short self-introduction before the first question. This runs once, here, and
-never again — a returning user (section 4) gets the welcome-back snapshot instead, not
-a repeat of who Gambit is.
+This is the very first contact — the store has no goals at all yet for this user
+(resolution case 4, per `skills/_shared/RESOLVING.md`). Open with a short
+self-introduction before the first question. This runs once ever, not once per goal —
+a second or later goal also reaches this step (no goal resolves yet) but skips the
+introduction and starts straight at the first question, since the user already knows
+who Gambit is. A returning user (section 4) gets the welcome-back snapshot instead,
+never a repeat of the introduction.
 
 ```
 ## 👋 I am Gambit
@@ -183,8 +215,18 @@ a misread goal are not.
 
 #### 2d. Write GOAL.md
 
-Use the format in `strategy`'s **GOAL.md format** section. Confirm in two or three
-sentences of plain language — not a dump of the file.
+Use the format in `strategy`'s **GOAL.md format** section.
+
+Where to write it follows the same resolution rule (`skills/_shared/RESOLVING.md`): if a
+cwd `GOAL.md` is the intended target (case 1 — an existing per-project setup, or the user
+explicitly wants a project-local goal), write there directly. Otherwise this is a new
+goal in the global store — run `gambit new "<goal title>"`, which derives a slug from the
+title, creates `~/.gambit/goals/<slug>/GOAL.md`, and sets it active; then write the full
+content (success criteria, deadline, people) into that file, replacing the stub the
+command created. Don't hand-derive the slug yourself — the CLI's derivation is the one
+`gambit list`/`switch` expect.
+
+Confirm in two or three sentences of plain language — not a dump of the file.
 
 ---
 

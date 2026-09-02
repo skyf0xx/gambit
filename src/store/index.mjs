@@ -1,0 +1,144 @@
+// Store operations: list, create, switch, and keep the SQLite index in
+// sync with the GOAL.md files that are the actual source of truth.
+
+import { readFileSync, writeFileSync, existsSync, statSync, readdirSync, mkdirSync } from 'node:fs';
+import { openDb, withDb, inTransaction, ensureStoreDirs } from './db.mjs';
+import { goalsDir, goalDir, goalFile, activeFile } from './paths.mjs';
+
+function slugify(title) {
+  const base = title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60);
+  return base || 'goal';
+}
+
+function uniqueSlug(base) {
+  if (!existsSync(goalFile(base))) return base;
+  let n = 2;
+  while (existsSync(goalFile(`${base}-${n}`))) n++;
+  return `${base}-${n}`;
+}
+
+// Parses the title (`# Goal` heading's following line) and deadline
+// (`## Deadline` heading's following line) out of a GOAL.md body — the
+// same two fields the format spec in skills/strategy/SKILL.md declares.
+function parseGoalMd(body) {
+  const titleMatch = body.match(/^#\s*Goal\s*\n+([^\n]+)/m);
+  const deadlineMatch = body.match(/^##\s*Deadline\s*\n+([^\n]+)/m);
+  const title = titleMatch ? titleMatch[1].trim() : '(untitled goal)';
+  const deadlineRaw = deadlineMatch ? deadlineMatch[1].trim() : null;
+  const deadline = deadlineRaw && !/^none$/i.test(deadlineRaw) ? deadlineRaw : null;
+  return { title, deadline };
+}
+
+function listSlugsOnDisk() {
+  if (!existsSync(goalsDir())) return [];
+  return readdirSync(goalsDir(), { withFileTypes: true })
+    .filter((e) => e.isDirectory() && existsSync(goalFile(e.name)))
+    .map((e) => e.name);
+}
+
+// Rebuilds both tables from goals/*/GOAL.md. Preserves status, created_at,
+// and last_active for slugs the index already knew about; anything no
+// longer on disk is dropped.
+export function reindex() {
+  ensureStoreDirs();
+  const slugs = listSlugsOnDisk();
+
+  withDb((db) => {
+    inTransaction(db, () => {
+      const existing = new Map(
+        db.prepare('SELECT slug, status, created_at, last_active FROM goals').all().map((r) => [r.slug, r])
+      );
+
+      db.exec('DELETE FROM goals');
+      db.exec('DELETE FROM goals_fts');
+
+      const insertGoal = db.prepare(
+        `INSERT INTO goals (slug, title, deadline, status, created_at, last_active, indexed_mtime)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      );
+      const insertFts = db.prepare('INSERT INTO goals_fts (slug, body) VALUES (?, ?)');
+
+      for (const slug of slugs) {
+        const body = readFileSync(goalFile(slug), 'utf8');
+        const { title, deadline } = parseGoalMd(body);
+        const prior = existing.get(slug);
+        const status = prior?.status ?? 'active';
+        const createdAt = prior?.created_at ?? new Date().toISOString();
+        const lastActive = prior?.last_active ?? createdAt;
+        const mtime = Math.floor(statSync(goalFile(slug)).mtimeMs);
+        insertGoal.run(slug, title, deadline, status, createdAt, lastActive, mtime);
+        insertFts.run(slug, body);
+      }
+    });
+  });
+}
+
+// Reindexes whenever the on-disk goal set has drifted from the index: a
+// slug added or removed, or a GOAL.md hand-edited (mtime newer than the
+// mtime recorded at last index time). Cheap on the common case — one
+// query plus one stat() per goal, no reindex — so every read path can
+// call it unconditionally.
+export function ensureIndexFresh() {
+  ensureStoreDirs();
+  const slugs = listSlugsOnDisk();
+
+  const indexed = withDb((db) => db.prepare('SELECT slug, indexed_mtime FROM goals').all());
+  const indexedMtimes = new Map(indexed.map((r) => [r.slug, r.indexed_mtime]));
+
+  const staleSlugCount = slugs.length !== indexed.length;
+  const staleMtime = slugs.some((slug) => {
+    const recorded = indexedMtimes.get(slug);
+    if (recorded == null) return true;
+    return Math.floor(statSync(goalFile(slug)).mtimeMs) > recorded;
+  });
+
+  if (staleSlugCount || staleMtime) reindex();
+}
+
+export function list() {
+  ensureIndexFresh();
+  return withDb((db) =>
+    db.prepare('SELECT slug, title, deadline, status, last_active FROM goals ORDER BY last_active DESC').all()
+  );
+}
+
+export function create(title) {
+  ensureStoreDirs();
+  const slug = uniqueSlug(slugify(title));
+  mkdirSync(goalDir(slug), { recursive: true });
+
+  const body = `# Goal\n\n${title}\n\n## Success criteria\n- \n\n## Deadline\nnone\n\n## Log\n`;
+  writeFileSync(goalFile(slug), body);
+
+  reindex();
+  setActive(slug);
+  return slug;
+}
+
+export function resolveActive() {
+  ensureIndexFresh();
+  if (!existsSync(activeFile())) return null;
+  const slug = readFileSync(activeFile(), 'utf8').trim();
+  if (!slug || !existsSync(goalFile(slug))) return null;
+  return slug;
+}
+
+export function setActive(slug) {
+  if (!existsSync(goalFile(slug))) {
+    throw new Error(`No such goal: ${slug}`);
+  }
+  ensureStoreDirs();
+  writeFileSync(activeFile(), `${slug}\n`);
+  touch(slug);
+}
+
+export function touch(slug) {
+  withDb((db) => {
+    db.prepare("UPDATE goals SET last_active = datetime('now') WHERE slug = ?").run(slug);
+  });
+}

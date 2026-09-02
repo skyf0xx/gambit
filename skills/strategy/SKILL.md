@@ -23,7 +23,7 @@ Present the situation, the options, and your recommendation — in that order, b
 
 ### 1. Load Context
 
-Read `GOAL.md` in the working directory. If it does not exist, stop and use `onboard` instead — it handles first-contact intake one question at a time. Don't interrogate the user for goal, success criteria, deadline, and people all at once here.
+Resolve `GOAL.md` per `skills/_shared/RESOLVING.md` and read it. If resolution finds no goal, stop and use `onboard` instead — it handles first-contact intake one question at a time (and, with several goals and none active, asks which). Don't interrogate the user for goal, success criteria, deadline, and people all at once here.
 
 ### 2. Assess Progress
 
@@ -249,4 +249,4 @@ Sections are written in place, not appended to. Every skill that owns a section
 replaces its own content rather than accumulating history. The log is the only
 append-only section.
 
-If `GOAL.md` doesn't exist yet, create it in the working directory after confirming the goal and success criteria with the user. Only include `## People` and `## Posture` if they're actually relevant — don't force structure the goal doesn't need.
+If `GOAL.md` doesn't exist yet, create it at the location resolution would use (typically that means `onboard` ran first and already created it — see `skills/_shared/RESOLVING.md`) after confirming the goal and success criteria with the user. Only include `## People` and `## Posture` if they're actually relevant — don't force structure the goal doesn't need.

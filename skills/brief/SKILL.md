@@ -39,15 +39,16 @@ damage.
 
 ### 1. Load Context
 
-Read `GOAL.md` in full.
+Resolve `GOAL.md` per `skills/_shared/RESOLVING.md` and read it in full.
 
-If it doesn't exist: say there's nothing set up yet, and point to `onboard` to start.
-Stop there.
+If resolution finds no goal: say there's nothing set up yet, and point to `onboard` to
+start (it also handles several goals with none active). Stop there.
 
 ### 2. Write the Brief
 
-Prose, not a template. Roughly this shape, in this order, adapted to what's actually in
-the file:
+Prose, not a template. If more than one goal exists in the store, open by naming which
+one this brief is for — one plain clause is enough, not a heading. Roughly this shape,
+in this order, adapted to what's actually in the file:
 
 **What you're trying to do** — the goal, in one or two sentences, as a person would say
 it out loud.

@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+# SessionStart hook for the Gambit plugin.
+#
+# Restores the silent GOAL.md preload that AGENTS.md requires but that the
+# legacy `gambit init` installer never propagated (it only injects a
+# skills-list stanza into the project's own AGENTS.md). This hook resolves
+# the active goal per the precedence rule in skills/_shared/RESOLVING.md
+# and, when one exists, injects its title/focus/last log line/deadline plus
+# the four "Guided, not just capable" rules — the parts of AGENTS.md that a
+# session outside this repo would otherwise never see.
+#
+# Must exit 0 and stay silent when no goal resolves.
+
+set -euo pipefail
+
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
+STORE_ROOT="${GAMBIT_HOME:-${XDG_DATA_HOME:+$XDG_DATA_HOME/gambit}}"
+STORE_ROOT="${STORE_ROOT:-$HOME/.gambit}"
+
+# --- resolve GOAL.md per skills/_shared/RESOLVING.md ---
+GOAL_MD=""
+if [ -f "${PROJECT_DIR}/GOAL.md" ]; then
+    GOAL_MD="${PROJECT_DIR}/GOAL.md"
+elif [ -f "${STORE_ROOT}/active" ]; then
+    slug="$(tr -d '\r\n' < "${STORE_ROOT}/active")"
+    if [ -n "$slug" ] && [ -f "${STORE_ROOT}/goals/${slug}/GOAL.md" ]; then
+        GOAL_MD="${STORE_ROOT}/goals/${slug}/GOAL.md"
+    fi
+elif [ -d "${STORE_ROOT}/goals" ]; then
+    # Exactly-one-goal case (resolution case 3). This hook only reads — it
+    # does not write ~/.gambit/active, since that's the CLI/skill's job the
+    # next time a skill actually resolves the goal; the hook just needs to
+    # know what a session would see.
+    count=0
+    only=""
+    for d in "${STORE_ROOT}"/goals/*/; do
+        [ -f "${d}GOAL.md" ] || continue
+        count=$((count + 1))
+        only="${d}GOAL.md"
+    done
+    if [ "$count" -eq 1 ]; then
+        GOAL_MD="$only"
+    fi
+fi
+
+[ -n "$GOAL_MD" ] || exit 0
+[ -f "$GOAL_MD" ] || exit 0
+
+# JSON-escape via bash parameter substitution.
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+emit_context() {
+    local escaped
+    escaped=$(escape_for_json "$1")
+
+    if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+        printf '{
+  "additional_context": "%s"
+}
+' "$escaped"
+    elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -z "${COPILOT_CLI:-}" ]; then
+        printf '{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "%s"
+  }
+}
+' "$escaped"
+    else
+        printf '{
+  "additionalContext": "%s"
+}
+' "$escaped"
+    fi
+}
+
+# --- pull title / focus / deadline / last log line out of GOAL.md ---
+# awk rather than sed: portable across BSD (macOS) and GNU without dialect
+# differences in address-range/quit syntax. Each extractor finds a heading,
+# then prints the first non-blank line after it and stops.
+first_line_after() {
+    # $1: heading regex (matched via awk's ~), $2: file
+    awk -v pat="$1" '
+        found && NF { print; exit }
+        $0 ~ pat { found = 1 }
+    ' "$2"
+}
+
+title="$(first_line_after '^#[[:space:]]*Goal[[:space:]]*$' "$GOAL_MD")"
+title="$(printf '%s' "$title" | awk '{$1=$1;print}')"
+[ -n "$title" ] || title="(untitled goal)"
+
+deadline="$(first_line_after '^##[[:space:]]*Deadline[[:space:]]*$' "$GOAL_MD")"
+deadline="$(printf '%s' "$deadline" | awk '{$1=$1;print}')"
+[ -n "$deadline" ] || deadline="none"
+
+focus="$(grep -m1 '^FOCUS:' "$GOAL_MD" 2>/dev/null | sed 's/^FOCUS:[[:space:]]*//' || true)"
+[ -n "$focus" ] || focus="nothing set yet"
+
+last_log="$(awk '
+    /^##[[:space:]]*Log[[:space:]]*$/ { found = 1; next }
+    found && /^##/ { exit }
+    found && /^- / { line = $0 }
+    END { print line }
+' "$GOAL_MD" || true)"
+last_log="${last_log#- }"
+[ -n "$last_log" ] || last_log="no log entries yet"
+
+read -r -d '' context_text <<CTX || true
+# Active goal (Gambit)
+
+GOAL: ${title}
+FOCUS: ${focus}
+LAST LOG: ${last_log}
+DEADLINE: ${deadline}
+
+This is silent context-loading, not a skill invocation — don't narrate having
+read this, don't run \`onboard\` or \`strategy\` unprompted, and don't treat it
+as a green light to take action. It exists so you already know the goal,
+focus, and last log entry the moment the user says anything.
+
+Four rules govern every Gambit skill and apply to this session generally when
+acting on this goal:
+
+**Elicit before committing.** Any skill that writes to GOAL.md shows the user
+its read and asks what they think first, before a focus is locked in — one
+exchange, then commit; a checkpoint, not a negotiation.
+
+**Stay opinionated through pushback.** Elicitation surfaces facts a skill
+couldn't see — it never becomes a way to hand the actual call to the user.
+New information means re-reasoning to a new committed recommendation, not an
+open "what would you do instead?" — except when the user is genuinely
+holding an open choice between two live options themselves, which is
+\`decide\`'s job.
+
+**Always leave a next step.** No skill ends without naming the single most
+useful next move plus a short menu of alternatives.
+
+**Close on a decision, not a narrative.** When asked for a verdict, end with
+the call itself — a committed answer, not just analysis of what happened.
+CTX
+
+emit_context "$context_text"
+
+exit 0

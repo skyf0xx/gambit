@@ -1,0 +1,15 @@
+{
+  "name": "gambit",
+  "description": "Marketplace for the Gambit plugin",
+  "owner": { "name": "skyf0xx" },
+  "plugins": [
+    {
+      "name": "gambit",
+      "description": "Strategic advisor skills for working a goal — assess, plan, red-team, decide.",
+      "version": "2.0.0",
+      "source": "./",
+      "skills": ["./skills/"],
+      "author": { "name": "skyf0xx" }
+    }
+  ]
+}

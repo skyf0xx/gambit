@@ -1,4 +1,5 @@
 # G A M B I T
+
 ![Gambit](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/banner.jpg)
 
 ## Plan your next move
@@ -23,20 +24,39 @@ Figure out:
 
 Gambit combines established frameworks for:
 
-* **Strategy & systems thinking**
-* **Decision-making & forecasting**
-* **Research & intelligence**
-* **Risk & red-teaming**
-* **Stakeholder analysis & negotiation**
-* **Planning & execution**
-* **Experimentation & after-action review**
+- **Strategy & systems thinking**
+- **Decision-making & forecasting**
+- **Research & intelligence**
+- **Risk & red-teaming**
+- **Stakeholder analysis & negotiation**
+- **Planning & execution**
+- **Experimentation & after-action review**
 
 Use Gambit for: **better thinking, clearer decisions, and a plan you can actually get done.**
 
 ## Install
 
+**Claude Code, Cursor and Gemini CLI** (global install)
+
+```bash
+/plugin marketplace add skyf0xx/gambit
+/plugin install gambit@gambit
+```
+
+**Any other AGENTS.md-reading agent** (local install)
+
 ```bash
 npx @skyf0xx/gambit init
 ```
 
-Then ask your agent to run the `onboard` skill.
+Then just tell your agent what's on your mind e.g. "help me plan... [your goal]"
+
+## Managing multiple goals
+
+```bash
+npx @skyf0xx/gambit list             # goals, with the active one marked
+npx @skyf0xx/gambit new "<title>"    # create a goal, make it active
+npx @skyf0xx/gambit switch <slug>    # change the active goal
+npx @skyf0xx/gambit path             # print the resolved GOAL.md path
+npx @skyf0xx/gambit adopt            # move an existing ./GOAL.md into the store
+```

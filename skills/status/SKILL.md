@@ -19,10 +19,12 @@ Read-only reporting layer. Factual and terse — numbers and states, not interpr
 
 ## Execution Sequence
 
-Read `GOAL.md` and output:
+Resolve `GOAL.md` per `skills/_shared/RESOLVING.md` and read it. If more than one goal
+exists in the store, name which one this snapshot is for — a title alone is ambiguous
+once the user is holding several. Output:
 
 ```
-STATUS [date]
+STATUS [date] — [goal title, if more than one goal exists in the store]
 
 GOAL
   [description, truncated if long]
@@ -59,5 +61,6 @@ Next: [strategy to reset focus | plan to sequence | brief for the plain-language
 Recommend nothing. This skill reports; it doesn't steer — that's the distinction from
 `strategy`. Just make the routes visible.
 
-If `GOAL.md` doesn't exist: say so and point to `onboard` to start one — it handles
-first-contact intake properly, one question at a time.
+If resolution finds no goal: say so and point to `onboard` — it handles first-contact
+intake properly, one question at a time, and also handles the case where several goals
+exist and none is active.

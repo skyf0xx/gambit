@@ -1,7 +1,7 @@
 {
   "name": "@skyf0xx/gambit",
-  "version": "1.0.0",
-  "description": "Install the Gambit strategic-advisor skills (onboard, strategy, plan, threat, and more) into a project for Claude Code and other AGENTS.md-reading agents.",
+  "version": "2.0.0",
+  "description": "Strategic-advisor skills (onboard, strategy, plan, threat, and more) for Claude Code, Cursor, Gemini CLI, and other AGENTS.md-reading agents — installable globally with multi-goal support, or per-project.",
   "type": "module",
   "repository": {
     "type": "git",
@@ -13,13 +13,19 @@
   "bin": {
     "gambit": "bin/cli.mjs"
   },
+  "scripts": {
+    "check": "node scripts/check.mjs"
+  },
   "files": [
     "bin",
     "skills",
-    "AGENTS.md"
+    "src/store",
+    "hooks",
+    "AGENTS.md",
+    "GEMINI.md"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=22.5.0"
   },
   "keywords": [
     "claude",
