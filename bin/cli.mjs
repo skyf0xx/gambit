@@ -63,6 +63,8 @@ Global goal store (~/.gambit, or $GAMBIT_HOME):
   gambit switch <slug>    set the active goal
   gambit path             print the resolved GOAL.json path
   gambit reindex          rebuild gambit.db from goals/
+  gambit check            validate the resolved GOAL.json against the
+                          schema — run after any skill writes it
   gambit adopt [path]     move an existing ./GOAL.json into the store
   gambit delete <slug> --force   delete one goal (GOAL.json + index row)
   gambit delete --all --force    delete every goal in the store
@@ -120,18 +122,54 @@ async function storeSwitch(slug) {
   }
 }
 
-async function storePath() {
-  if (existsSync(CWD_GOAL_JSON)) {
-    console.log(CWD_GOAL_JSON);
-    return;
-  }
+// Same precedence rule documented in AGENTS.md / RESOLVING.md: a
+// CWD-local GOAL.json wins, otherwise the active goal in the store.
+// Returns null (after printing the same "no goal" message) if neither
+// exists, so callers share one error path instead of repeating it.
+function resolveGoalPath() {
+  if (existsSync(CWD_GOAL_JSON)) return CWD_GOAL_JSON;
   const slug = store.resolveActive();
-  if (!slug) {
+  if (!slug) return null;
+  return goalFile(slug);
+}
+
+async function storePath() {
+  const path = resolveGoalPath();
+  if (!path) {
     console.error('No GOAL.json in the working directory and no active goal in the store.');
     process.exitCode = 1;
     return;
   }
-  console.log(goalFile(slug));
+  console.log(path);
+}
+
+// Validates the resolved GOAL.json against the schema — the same check
+// the visualizer and `adopt` run, but on demand, right after a skill
+// writes the file, instead of only surfacing at the next visualize/adopt.
+async function storeCheck() {
+  const path = resolveGoalPath();
+  if (!path) {
+    console.error('No GOAL.json in the working directory and no active goal in the store.');
+    process.exitCode = 1;
+    return;
+  }
+
+  if (!existsSync(path)) {
+    console.error(`${path} does not exist.`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const body = await readFile(path, 'utf8');
+  const result = safeParseGoalJson(body);
+  if (!result.success) {
+    console.error(`${path} does not match the schema — fix it by hand and save.`);
+    console.error(result.error);
+    process.exitCode = 1;
+    return;
+  }
+
+  console.log(`${path} is valid.`);
 }
 
 async function storeReindex() {
@@ -381,6 +419,11 @@ async function main() {
 
   if (cmd === 'reindex') {
     await storeReindex();
+    return;
+  }
+
+  if (cmd === 'check') {
+    await storeCheck();
     return;
   }
 

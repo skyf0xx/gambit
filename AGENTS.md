@@ -143,11 +143,16 @@ schema-default stub (every array empty, every optional key `null`).
 
 Skills write to `GOAL.json` with their own file-edit tool, the same
 mechanism used for the old Markdown file — there is no CLI subcommand for
-writing individual fields. Schema validation happens on the read path
-(`gambit check`, the visualize server, other CLI commands), not enforced
-at write time by a wrapper, so a skill must actually honor the field
-shapes and constraints described in its own `SKILL.md` rather than relying
-on something else to catch a mistake.
+writing individual fields, and nothing enforces field shapes or length
+caps at write time. A skill must honor the constraints described in its
+own `SKILL.md` when it writes, then immediately run `gambit check` — it
+validates the resolved `GOAL.json` against `goalSchema` and exits nonzero
+with the offending paths if it doesn't match, the same check the
+visualize server and `adopt` run, but on demand right after the write
+instead of only surfacing the next time someone opens the visualizer. If
+`gambit check` fails, fix the reported fields and re-run it before ending
+the turn — don't leave a skill-writing turn on a file that fails
+`gambit check`.
 
 `GOAL.json` should always read as current state, not a history of how it
 got there — skills replace a key's value in place rather than layering
@@ -234,6 +239,16 @@ still the one append-only array (the sequence of entries is the
 history, by design), but each individual entry states what's true as of
 that entry, not a replay of the discussion that produced it — a decision
 gets its outcome and rationale, not the back-and-forth.
+
+**Validate every write.** Nothing enforces `goalSchema`'s field shapes,
+length caps, or enums at write time — a skill that writes a sentence
+past a 120-character cap, or the wrong enum value into a `source` or
+`status` field, produces a file that looks fine in the conversation and
+only fails later, in the visualizer or `gambit check`, disconnected from
+the write that caused it. Immediately after any write to `GOAL.json`, run
+`gambit check`. If it reports a mismatch, fix the reported fields and
+re-run it before ending the turn — don't hand back a turn that leaves
+`GOAL.json` failing `gambit check`.
 
 **Write GOAL.json fields like a plan, not an essay.** This governs every
 write to `GOAL.json` only — your own replies to the user in conversation

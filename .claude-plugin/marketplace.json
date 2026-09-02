@@ -6,7 +6,7 @@
     {
       "name": "gambit",
       "description": "Strategic advisor skills for working a goal — assess, plan, red-team, decide.",
-      "version": "4.0.0",
+      "version": "4.0.1",
       "source": "./",
       "skills": ["./skills/"],
       "author": { "name": "skyf0xx" }
