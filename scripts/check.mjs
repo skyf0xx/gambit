@@ -130,7 +130,7 @@ const skillsDir = join(__dirname, '..', 'skills');
 const skillNames = readdirSync(skillsDir, { withFileTypes: true })
   .filter((e) => e.isDirectory() && e.name !== '_shared')
   .map((e) => e.name);
-const validRenderers = new Set(['lines-of-operation', 'checklist', 'network', 'timeline', 'decision-fork', 'plain-card']);
+const validRenderers = new Set(['ordered-list', 'checklist', 'network', 'risk-list', 'timeline', 'decision-fork', 'plain-card']);
 let missingDisplay = 0;
 let invalidDisplay = 0;
 for (const name of skillNames) {
@@ -140,8 +140,8 @@ for (const name of skillNames) {
   else if (!validRenderers.has(match[1])) invalidDisplay++;
 }
 check('every skill declares a display type', missingDisplay === 0);
-check('every declared display type is one of the six renderers', invalidDisplay === 0);
-check('registry only maps to the six renderer types', Object.values(SECTION_RENDERERS).every((r) => validRenderers.has(r)));
+check('every declared display type is one of the seven renderers', invalidDisplay === 0);
+check('registry only maps to the seven renderer types', Object.values(SECTION_RENDERERS).every((r) => validRenderers.has(r)));
 
 console.log('\nvisualize: schema keys <-> skills cross-check:');
 const schemaKeys = new Set(Object.keys(goalSchema.shape));
@@ -214,10 +214,10 @@ check('focus is most recent non-null log entry focus', parsed.focus === 'concent
 
 const rendered = renderGoal(fixture);
 const byTitle = Object.fromEntries(rendered.cards.map((c) => [c.title, c]));
-check('Plan renders as mermaid lines-of-operation', byTitle['Plan']?.kind === 'mermaid' && byTitle['Plan'].body.includes('flowchart LR'));
+check('Plan renders as html ordered-list', byTitle['Plan']?.kind === 'html' && byTitle['Plan'].body.includes('ordered-list'));
 check('Criteria status renders as html checklist', byTitle['Criteria status']?.kind === 'html' && byTitle['Criteria status'].body.includes('checklist'));
 check('Stakeholders renders as mermaid network', byTitle['Stakeholders']?.kind === 'mermaid' && byTitle['Stakeholders'].body.includes('center'));
-check('Risk notes renders as mermaid network', byTitle['Risk notes']?.kind === 'mermaid');
+check('Risk notes renders as html risk-list', byTitle['Risk notes']?.kind === 'html' && byTitle['Risk notes'].body.includes('risk-list'));
 check('Decisions renders as mermaid decision-fork', byTitle['Decisions']?.kind === 'mermaid' && byTitle['Decisions'].body.includes('Decision'));
 check('no card exceeds a sane line count (stays legible, not overdrawn)', rendered.cards.every((c) => c.body.split('\n').length <= 20));
 
