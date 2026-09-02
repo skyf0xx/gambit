@@ -32,3 +32,7 @@ export function activeFile() {
 export function dbPath() {
   return join(storeRoot(), 'gambit.db');
 }
+
+export function updateCheckFile() {
+  return join(storeRoot(), 'update-check.json');
+}

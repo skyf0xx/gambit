@@ -32,6 +32,7 @@ process.emitWarning = (warning, ...rest) => {
 const store = await import('../src/store/index.mjs');
 const { goalFile } = await import('../src/store/paths.mjs');
 const { safeParseGoalJson } = await import('../src/store/schema.mjs');
+const { printNoticeIfDue } = await import('../src/store/updateCheck.mjs');
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PKG_ROOT = join(__dirname, '..');
@@ -339,6 +340,13 @@ async function main() {
   if (!cmd || cmd === '--help' || cmd === '-h') {
     help();
     return;
+  }
+
+  try {
+    const pkg = JSON.parse(await readFile(join(PKG_ROOT, 'package.json'), 'utf8'));
+    printNoticeIfDue(pkg.version);
+  } catch {
+    // Never let the update check block or fail a real command.
   }
 
   if (cmd === 'init') {
