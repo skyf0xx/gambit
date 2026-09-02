@@ -22,7 +22,7 @@ export function goalDir(slug) {
 }
 
 export function goalFile(slug) {
-  return join(goalDir(slug), 'GOAL.md');
+  return join(goalDir(slug), 'GOAL.json');
 }
 
 export function activeFile() {

@@ -1,6 +1,6 @@
 ---
 name: forecast
-description: Use when the plan rests on a belief about what will happen — turnout, a vote, a decision, a response, a timeline. Converts vague expectations into dated, falsifiable predictions with explicit probabilities, then scores them once the outcome is known so the user finds out whether their judgment is actually calibrated.
+description: Use when the plan rests on a belief about what will happen — turnout, a vote, a decision, a response, a timeline. Converts vague expectations into dated, falsifiable predictions with explicit probabilities, then scores them once the outcome is known so the user finds out whether their judgment is actually calibrated. Writes to GOAL.json's forecasts key.
 display: checklist
 ---
 
@@ -42,7 +42,7 @@ rather than explained away.
 
 ### 1. Load Context
 
-Read `GOAL.md` — goal, `## Plan`, and any existing `## Forecasts` section. Check first
+Read `GOAL.json` — goal, the `plan` key, and the `forecasts` array. Check first
 whether any recorded forecast has now resolved; if so, go to **6. Score** before making
 new ones.
 
@@ -138,19 +138,44 @@ CALIBRATION SO FAR
 This is the output the whole skill exists for. A named systematic bias is worth more than
 any individual forecast.
 
-### 7. Update GOAL.md
+### 7. Update GOAL.json
 
-Maintain a `## Forecasts` section — open forecasts with dates, and resolved ones with
-verdicts, kept brief:
+Append new forecasts to the `forecasts` array, or update existing entries once they resolve. Each entry must have `statement`, `probability` (0-100 integer), `resolvesBy` (YYYY-MM-DD), `resolvesVia` (one short label, the specific source that settles it), and `resolved` (boolean). Once a forecast resolves, set `outcome` ('yes' or 'no'), `verdict` (e.g., "well-called", "overconfident"), and `resolved: true`.
 
+New unresolved forecast:
+```json
+{
+  "forecasts": [
+    {
+      "statement": "Will 2,000+ people attend per police estimate or two media reports",
+      "probability": 65,
+      "resolvesBy": "2026-10-30",
+      "resolvesVia": "police estimate or media report",
+      "resolved": false
+    }
+  ]
+}
 ```
-## Forecasts
-- [ ] [statement] — [N]% — resolves [date] by [source]
-- [x] [statement] — predicted [N]% — [outcome] — [verdict]
+
+Resolved forecast (update the same entry):
+```json
+{
+  "forecasts": [
+    {
+      "statement": "Will 2,000+ people attend per police estimate or two media reports",
+      "probability": 65,
+      "resolvesBy": "2026-10-30",
+      "resolvesVia": "police estimate or media report",
+      "resolved": true,
+      "outcome": "yes",
+      "verdict": "well-called"
+    }
+  ]
+}
 ```
 
-Keep resolved entries; they're the calibration record and the only reason the section has
-long-term value. Trim once the pattern is established and logged.
+Keep resolved entries; they're the calibration record and the only reason the array has
+long-term value.
 
 ### 8. Name the Next Step
 

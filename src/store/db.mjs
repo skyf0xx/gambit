@@ -1,5 +1,5 @@
 // The Gambit store index — see AGENTS.md, "SQLite is an index, not the
-// source of truth". Goal state lives in GOAL.md files under goals/<slug>/;
+// source of truth". Goal state lives in GOAL.json files under goals/<slug>/;
 // this schema records only what's needed to list, switch, and search
 // across goals. Deleting gambit.db and running `gambit reindex` loses
 // nothing.
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS goals (
               CHECK (status IN ('active','done','abandoned','paused')),
   created_at  TEXT NOT NULL DEFAULT (datetime('now')),
   last_active TEXT NOT NULL DEFAULT (datetime('now')),
-  -- Epoch millis of the GOAL.md mtime at the moment this row was written.
+  -- Epoch millis of the GOAL.json mtime at the moment this row was written.
   -- Compared against the file's current mtime to decide staleness —
   -- separate from last_active, which tracks goal *usage*, not indexing.
   indexed_mtime INTEGER NOT NULL DEFAULT 0

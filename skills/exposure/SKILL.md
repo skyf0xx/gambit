@@ -45,7 +45,7 @@ you flagged, record it and back the decision.
 
 ### 1. Load Context
 
-Read `GOAL.md` — goal, `## Plan`, `## People`, `## Posture`, `## Risk notes`. Note the
+Read `GOAL.json` — goal, `plan` key, `people` key, `posture` key, `riskNotes` key. Note the
 jurisdiction if it's stated; if it isn't, ask, because almost nothing here generalises
 across jurisdictions.
 
@@ -131,7 +131,7 @@ it there and don't answer it yourself.
 
 ### 5. Check the People, Not Just the User
 
-If `## People` lists others, their exposure is also the user's concern — practically and
+If the `people` key in `GOAL.json` lists others, their exposure is also the user's concern — practically and
 ethically.
 
 ```
@@ -157,16 +157,26 @@ Only what you're comfortable saying. It affects the advice, but it's yours.
 Ask once, accept a non-answer, and don't press. Some of this is genuinely private and the
 user is entitled to withhold it; the assessment is partial where they do.
 
-### 7. Update GOAL.md
+### 7. Update GOAL.json
 
-Add a `## Exposure` section with the must-handle items as open actions and anything the
+Replace the `exposure` array with the must-handle items as open actions and anything the
 user explicitly chose to accept — so later sessions don't re-raise a settled decision.
 Where an item is a real blocker on a plan step, say so and hand to `plan` to resequence.
 
-```
-## Exposure
-- [item] — must handle before [action] — [status]
-- [item] — accepted [date] — [why]
+Each exposure entry must have:
+- `item` (required, max 120 chars): the exposure, item, or risk
+- `status` (required): 'open' or 'accepted'
+- `mustHandleBefore` (optional, max 40 chars): action or timeline this blocks
+- `acceptedDate` (optional, YYYY-MM-DD format): when this was accepted
+- `why` (optional, max 120 chars): rationale for accepting or handling approach
+
+```json
+{
+  "exposure": [
+    { "item": "...", "status": "open", "mustHandleBefore": "..." },
+    { "item": "...", "status": "accepted", "acceptedDate": "YYYY-MM-DD", "why": "..." }
+  ]
+}
 ```
 
 Log a one-line summary.

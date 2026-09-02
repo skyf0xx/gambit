@@ -5,58 +5,22 @@
 
 const MAX_STEPS = 6;
 
-function sanitizeId(s, i) {
-  return `n${i}`;
-}
-
 function sanitizeLabel(s) {
   const cleaned = s.replace(/["`]/g, "'").replace(/\s+/g, ' ').trim();
   if (cleaned.length <= 60) return cleaned;
   return `${cleaned.slice(0, 57).replace(/\s+\S*$/, '')}…`;
 }
 
-// Parses a "Critical path: [A] → [B] → [D]" statement, joining any wrapped
-// continuation lines (soft-wrapped prose, not a new bullet/heading) so a
-// long critical path split across physical lines still parses as one.
-function parseCriticalPath(body) {
-  const lines = body.split('\n');
-  const startIdx = lines.findIndex((l) => /critical path/i.test(l));
-  if (startIdx === -1) return null;
-
-  const block = [lines[startIdx]];
-  for (let i = startIdx + 1; i < lines.length; i++) {
-    const l = lines[i];
-    if (/^\s*$/.test(l) || /^\s*(-|\d+\.|##)/.test(l)) break;
-    block.push(l);
-  }
-
-  const steps = [...block.join(' ').matchAll(/\[([^\]]+)\]/g)].map((m) => m[1]);
-  return steps.length > 1 ? steps : null;
-}
-
-// Falls back to one node per top-level bullet if there's no explicit
-// "Critical path: A → B" line (e.g. Systems notes' lines of effort).
-function parseBullets(body) {
-  return body
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => /^-\s+/.test(l))
-    .map((l) => l.replace(/^-\s+/, ''))
-    .slice(0, MAX_STEPS);
-}
-
-export function renderLinesOfOperation(sectionBody) {
-  const steps = parseCriticalPath(sectionBody) ?? parseBullets(sectionBody);
-
-  if (!steps.length) return null;
+// steps: a plain string array — plan.criticalPath or systemsNotes.topFindings.
+export function renderLinesOfOperation(steps) {
+  if (!steps || !steps.length) return null;
 
   const capped = steps.slice(0, MAX_STEPS);
   const lines = ['flowchart LR'];
 
   capped.forEach((step, i) => {
-    const id = sanitizeId(step, i);
-    lines.push(`  ${id}["${sanitizeLabel(step)}"]`);
-    if (i > 0) lines.push(`  n${i - 1} --> ${id}`);
+    lines.push(`  n${i}["${sanitizeLabel(step)}"]`);
+    if (i > 0) lines.push(`  n${i - 1} --> n${i}`);
   });
 
   // No terminal "goal" node — the goal is already the page header above

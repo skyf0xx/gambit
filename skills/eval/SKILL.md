@@ -1,6 +1,6 @@
 ---
 name: eval
-description: Use for a periodic check-in or an honest audit of progress against GOAL.md's success criteria, including whether people involved are actually delivering. Scores each criterion, detects busy-work drift, checks the deadline, and appends a findings entry to the log.
+description: Use for a periodic check-in or an honest audit of progress against GOAL.json's success criteria, including whether people involved are actually delivering. Scores each criterion, detects busy-work drift, checks the deadline, and appends a findings entry to the log.
 display: checklist
 ---
 
@@ -14,7 +14,7 @@ display: checklist
 
 ## Voice & Tone
 
-Senior independent auditor: measured, exact, no editorializing. You don't soften findings to spare feelings, and you're not punitive either — proportionate to the evidence, honest about what it shows. Every claim traces to something in `GOAL.md`'s log.
+Senior independent auditor: measured, exact, no editorializing. You don't soften findings to spare feelings, and you're not punitive either — proportionate to the evidence, honest about what it shows. Every claim traces to something in `GOAL.json`'s `log`.
 
 ---
 
@@ -22,7 +22,7 @@ Senior independent auditor: measured, exact, no editorializing. You don't soften
 
 ### 1. Load Context
 
-Read `GOAL.md` in full — goal, success criteria, deadline, plan, and the complete log history since the goal was set (or since the last eval entry).
+Read `GOAL.json` in full — goal, success criteria, deadline, plan, and the complete log history since the goal was set (or since the last eval entry).
 
 ### 2. Score Progress
 
@@ -43,7 +43,7 @@ have actually moved, and say which conditions you're using.
 Reporting "stalled" on an influence criterion because the external decision hasn't
 landed yet is a false finding. It reads as failure when the real question is whether the
 pressure being built is the kind that eventually moves the decision. If a criterion isn't
-marked either way in `GOAL.md`, judge which it is and say so.
+marked either way in `GOAL.json`, judge which it is and say so.
 
 ### 3. Detect Drift
 
@@ -55,7 +55,7 @@ If there's a deadline, is the current pace realistic against the remaining work?
 
 ### 5. People Check
 
-If `## People` in `GOAL.md` lists anyone, assess follow-through against what was logged:
+If the `people` key in `GOAL.json` lists anyone, assess follow-through against what was logged:
 - Anyone marked confirmed who's gone quiet or missed a commitment — flag by name/role
 - Anyone tentative who's now blocking the critical path — this needs resolving, not carrying forward indefinitely
 
@@ -64,7 +64,7 @@ PEOPLE
   {name/role} — {on_track|at_risk|not_delivering} — {evidence}
 ```
 
-Skip this section if `## People` is absent.
+Skip this section if `people` is empty.
 
 ### 6. Report
 
@@ -79,20 +79,27 @@ Overall: on_track | at_risk | stalled | regressing
 {If clean: "No issues. N criteria assessed, all on_track."}
 ```
 
-### 7. Update GOAL.md
+### 7. Update GOAL.json
 
-Replace the `## Criteria status` section with one line per success criterion,
-scored this run:
+Replace the `criteriaStatus` key with one entry per success criterion, scored this run. `text` must match `successCriteria[].text` verbatim so it can be matched back — this is step 2's scoring, persisted rather than only spoken, since the visual layer and future eval runs both read it.
 
+```json
+{
+  "criteriaStatus": [
+    { "text": "...", "kind": "control", "status": "on_track" }
+  ]
+}
 ```
-- [criterion text, verbatim from ## Success criteria] — [control|influence] — [on_track|at_risk|stalled|regressing]
+
+Then append the eval result as a `log` entry, with `source: "eval"`. This is the one skill that should never soften its own entry to make the log look better than it is.
+
+```json
+{
+  "log": [
+    { "date": "YYYY-MM-DD", "assessment": "on_track", "focus": null, "notes": ["..."], "source": "eval" }
+  ]
+}
 ```
-
-This is step 2's scoring, persisted rather than only spoken — the visual
-layer and future eval runs both read it, so keep the criterion text verbatim
-so it can be matched back to `## Success criteria`.
-
-Then append the eval result to the log. This is the one skill that should never soften its own entry to make the log look better than it is.
 
 ### 8. Name the Next Step
 

@@ -38,7 +38,7 @@ user wants the whole picture in plain language, that's `brief`.
 
 ### 1. Load Context
 
-Read `GOAL.md` — the goal, success criteria, deadline, current plan, current focus, posture if set, `## People` if present, and log.
+Read `GOAL.json` — the goal, success criteria, deadline, current plan, current focus, posture if set, `people` key if non-empty, and log.
 
 Steps 2-4 (CoG, PMESII, ASCOPE) are independent lenses over the same frozen snapshot
 from step 1 — none depends on another's output. Where the executing agent can run
@@ -47,7 +47,7 @@ which synthesizes across all three. Steps 5 onward are sequential.
 
 ### 2. Center of Gravity Analysis
 
-Produce a CoG assessment for the friendly system — the user, plus anyone in `## People`, and the capability that combination actually drives progress toward the goal — and, if identifiable, any opposing system (a competitor, institution, deadline pressure, or force working against the goal).
+Produce a CoG assessment for the friendly system — the user, plus anyone in the `people` key, and the capability that combination actually drives progress toward the goal — and, if identifiable, any opposing system (a competitor, institution, deadline pressure, or force working against the goal).
 
 For each system:
 
@@ -180,9 +180,25 @@ If the user pushes back on a factual premise, treat that as a correction to the 
 not a disagreement about the analysis — rerun the affected step rather than defending
 the conclusion.
 
-### 10. Update GOAL.md
+### 10. Update GOAL.json
 
-Replace the `## Systems notes` section in `GOAL.md` with the Schwerpunkt recommendation and any critical findings (top CV, top second/third order risk, culminating point if visible). Log a one-line summary in the log. Keep the full assessment in the conversation — `GOAL.md` holds the current read, not the whole analysis.
+Replace the `systemsNotes` key with the Schwerpunkt recommendation and any critical findings (top CV, top second/third order risk, culminating point if visible). Log a one-line summary in the log. Keep the full assessment in the conversation — `GOAL.json` holds the current read, not the whole analysis.
+
+- `schwerpunkt` (required, max 120 chars): the single point of leverage and why
+- `rationale` (optional, max 120 chars): one sentence on what CV this attacks or what CC this builds
+- `confidence` (required): 'high', 'moderate', or 'low'
+- `topFindings` (required, max 5 items, each max 120 chars): critical findings from CoG/PMESII/ASCOPE
+
+```json
+{
+  "systemsNotes": {
+    "schwerpunkt": "...",
+    "rationale": "...",
+    "confidence": "high",
+    "topFindings": ["...", "..."]
+  }
+}
+```
 
 ### 11. Name the Next Step
 

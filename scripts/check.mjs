@@ -26,6 +26,7 @@ process.env.GAMBIT_HOME = tmpRoot;
 
 const store = await import('../src/store/index.mjs');
 const { goalFile, activeFile } = await import('../src/store/paths.mjs');
+const { goalSchema, safeParseGoalJson } = await import('../src/store/schema.mjs');
 
 let failures = 0;
 function check(label, cond) {
@@ -56,9 +57,21 @@ check('list identical after reindex', goals.length === 1 && goals[0].slug === sl
 
 console.log('\nhand-edit detection (ensureIndexFresh):');
 const before = store.list()[0].title;
-writeFileSync(goalFile(slug), readFileSync(goalFile(slug), 'utf8').replace('Test goal', 'Renamed goal'));
+const stubBody = JSON.parse(readFileSync(goalFile(slug), 'utf8'));
+stubBody.goal = 'Renamed goal';
+writeFileSync(goalFile(slug), JSON.stringify(stubBody, null, 2) + '\n');
 const after = store.list()[0].title;
 check('title picked up without explicit reindex', before === 'Test goal' && after === 'Renamed goal');
+
+console.log('\ninvalid GOAL.json is skipped, not fatal:');
+const slugBad = store.create('Bad goal');
+writeFileSync(goalFile(slugBad), JSON.stringify({ schemaVersion: 1, goal: 'Bad goal', deadline: 'next month' }, null, 2));
+store.reindex();
+const goalsAfterBad = store.list();
+check('reindex does not throw on an invalid GOAL.json', true);
+check('invalid goal skipped from the index', goalsAfterBad.every((g) => g.slug !== slugBad));
+check('other goals still listed', goalsAfterBad.some((g) => g.slug === slug));
+store.remove(slugBad);
 
 console.log('\nsecond goal + switch:');
 const slug2 = store.create('Second goal');
@@ -92,6 +105,24 @@ check('goal dirs removed', !existsSync(goalFile(slugA)) && !existsSync(goalFile(
 
 rmSync(tmpRoot, { recursive: true, force: true });
 
+console.log('\nschema validation:');
+check(
+  'invalid deadline rejected',
+  !safeParseGoalJson({ schemaVersion: 1, goal: 'x', successCriteria: [{ text: 'y', kind: 'control' }], deadline: 'next month', people: [], posture: null, plan: null, systemsNotes: null, riskNotes: [], criteriaStatus: [], stakeholders: [], exposure: [], capacity: null, forecasts: [], experiments: [], decisions: [], log: [] }).success
+);
+check(
+  'invalid deadline error mentions the field',
+  safeParseGoalJson({ schemaVersion: 1, goal: 'x', successCriteria: [{ text: 'y', kind: 'control' }], deadline: 'next month', people: [], posture: null, plan: null, systemsNotes: null, riskNotes: [], criteriaStatus: [], stakeholders: [], exposure: [], capacity: null, forecasts: [], experiments: [], decisions: [], log: [] }).error.includes('deadline')
+);
+check(
+  'unreal calendar date rejected',
+  !safeParseGoalJson({ schemaVersion: 1, goal: 'x', successCriteria: [{ text: 'y', kind: 'control' }], deadline: '2026-02-30', people: [], posture: null, plan: null, systemsNotes: null, riskNotes: [], criteriaStatus: [], stakeholders: [], exposure: [], capacity: null, forecasts: [], experiments: [], decisions: [], log: [] }).success
+);
+check(
+  'invalid enum value rejected',
+  !safeParseGoalJson({ schemaVersion: 1, goal: 'x', successCriteria: [{ text: 'y', kind: 'sideways' }], deadline: null, people: [], posture: null, plan: null, systemsNotes: null, riskNotes: [], criteriaStatus: [], stakeholders: [], exposure: [], capacity: null, forecasts: [], experiments: [], decisions: [], log: [] }).success
+);
+
 console.log('\nvisualize: registry <-> SKILL.md frontmatter consistency:');
 const { SECTION_RENDERERS } = await import('../src/visualize/registry.mjs');
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -112,51 +143,74 @@ check('every skill declares a display type', missingDisplay === 0);
 check('every declared display type is one of the six renderers', invalidDisplay === 0);
 check('registry only maps to the six renderer types', Object.values(SECTION_RENDERERS).every((r) => validRenderers.has(r)));
 
+console.log('\nvisualize: schema keys <-> skills cross-check:');
+const schemaKeys = new Set(Object.keys(goalSchema.shape));
+let undeclaredKeys = 0;
+for (const name of skillNames) {
+  const body = readFileSync(join(skillsDir, name, 'SKILL.md'), 'utf8');
+  // Every fenced ```json block under an "Update GOAL.json" step declares the
+  // key(s) it owns as top-level object keys — cross-check those against the
+  // schema so a skill can't silently drift out of sync with it.
+  const blocks = [...body.matchAll(/```json\n([\s\S]*?)\n```/g)].map((m) => m[1]);
+  for (const block of blocks) {
+    try {
+      const obj = JSON.parse(block);
+      for (const key of Object.keys(obj)) {
+        if (!schemaKeys.has(key)) {
+          console.error(`  FAIL  ${name}/SKILL.md declares undeclared schema key "${key}"`);
+          undeclaredKeys++;
+        }
+      }
+    } catch {
+      // Not every fenced json block is a strict single-object example
+      // (some show partial/illustrative shapes) — skip ones that don't parse.
+    }
+  }
+}
+check('every skill-declared JSON key exists in goalSchema', undeclaredKeys === 0);
+
 console.log('\nvisualize: parse + render against representative fixtures:');
 const { parseGoalMd } = await import('../src/visualize/parse.mjs');
 const { renderGoal } = await import('../src/visualize/render.mjs');
 
-const fixture = `# Goal
-
-A short test goal for the visualize smoke test.
-
-## Success criteria
-- First criterion — control
-- Second criterion — influence
-
-## Deadline
-2026-12-31
-
-## Plan
-Critical path: [A] → [B] → [C]
-
-## Criteria status
-- First criterion — control — on_track
-- Second criterion — influence — at_risk
-
-## Stakeholders
-- Ally org — power: high — stance: supportive → supportive — via nothing
-
-## Risk notes
-- Some risk — likelihood: low — mitigation: none needed
-
-## Decisions
-- [2026-01-01] Chose X over Y — reverse if: Z happens
-
-## Log
-- 2026-01-01 on_track — Focus: concentrate on the wrapped focus line that
-  continues here — Why: tests multi-line log entry folding
-- 2026-01-02 at_risk — a later entry with no Focus: mentioned at all
-`;
+const fixtureObj = {
+  schemaVersion: 1,
+  goal: 'A short test goal for the visualize smoke test.',
+  successCriteria: [
+    { text: 'First criterion', kind: 'control' },
+    { text: 'Second criterion', kind: 'influence' },
+  ],
+  deadline: '2026-12-31',
+  people: [],
+  posture: null,
+  plan: { criticalPath: ['A', 'B', 'C'], nextActions: [] },
+  systemsNotes: null,
+  riskNotes: [{ item: 'Some risk', detail: 'likelihood low', source: 'threat', accepted: false }],
+  criteriaStatus: [
+    { text: 'First criterion', kind: 'control', status: 'on_track' },
+    { text: 'Second criterion', kind: 'influence', status: 'at_risk' },
+  ],
+  stakeholders: [
+    { name: 'Ally org', power: 'high', stanceCurrent: 'supportive', stanceTarget: 'supportive', via: 'nothing' },
+  ],
+  exposure: [],
+  capacity: null,
+  forecasts: [],
+  experiments: [],
+  decisions: [{ date: '2026-01-01', choice: 'Chose X over Y', reverseIf: 'Z happens' }],
+  log: [
+    { date: '2026-01-01', assessment: 'on_track', focus: 'concentrate on the wrapped focus line', notes: ['tests log entry'] },
+    { date: '2026-01-02', assessment: 'at_risk', focus: null, notes: ['a later entry with no focus'] },
+  ],
+};
+const fixture = JSON.stringify(fixtureObj);
 
 const parsed = parseGoalMd(fixture);
-check('title parsed', parsed.title.startsWith('A short test goal'));
-check('shortTitle set and bounded', typeof parsed.shortTitle === 'string' && parsed.shortTitle.length <= 81);
+check('title parsed', parsed.title === fixtureObj.goal);
 check('deadline parsed', parsed.deadline === '2026-12-31');
 check('criteria parsed with control/influence', parsed.criteria.length === 2 && parsed.criteria[0].kind === 'control' && parsed.criteria[1].kind === 'influence');
-check('log/deadline/criteria excluded from body sections', parsed.sections.every((s) => !['Success criteria', 'Deadline', 'Log'].includes(s.heading)));
-check('focus extracted from a wrapped log entry, most recent Focus: wins over a later entry with none', parsed.focus === 'concentrate on the wrapped focus line that continues here');
-check('log entries excluded from visualizer output entirely (internal, not for display)', parsed.lastLogLine === undefined && parsed.lastLogFull === undefined);
+check('sections exclude empty/null owned keys', parsed.sections.every((s) => s.data != null && (Array.isArray(s.data) ? s.data.length > 0 : true)));
+check('focus is most recent non-null log entry focus', parsed.focus === 'concentrate on the wrapped focus line');
 
 const rendered = renderGoal(fixture);
 const byTitle = Object.fromEntries(rendered.cards.map((c) => [c.title, c]));

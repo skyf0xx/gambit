@@ -1,6 +1,6 @@
 ---
 name: strategy
-description: Use when the user wants direction on a GOAL.md goal that already exists — starting a work session, asking "what should I focus on", or after a setback, new fact, deadline change, or escalation. Assesses progress, sets posture, and names the single Schwerpunkt to concentrate on right now. If GOAL.md doesn't exist yet, use onboard first.
+description: Use when the user wants direction on a GOAL.json goal that already exists — starting a work session, asking "what should I focus on", or after a setback, new fact, deadline change, or escalation. Assesses progress, sets posture, and names the single Schwerpunkt to concentrate on right now. If GOAL.json doesn't exist yet, use onboard first.
 display: lines-of-operation
 ---
 
@@ -8,7 +8,7 @@ display: lines-of-operation
 
 **Trigger**: You want direction — "what should I focus on", "where am I", starting a work session, or after something has changed (a setback, a new fact, a deadline moved, an escalation).
 
-**Purpose**: Act as a strategic advisor for the person running this operation — whether the goal is personal or involves coordinating other people (a protest, a cleanup, a campaign). Read `GOAL.md`, assess progress, set posture, identify the one thing worth concentrating on right now (Schwerpunkt), and update the file.
+**Purpose**: Act as a strategic advisor for the person running this operation — whether the goal is personal or involves coordinating other people (a protest, a cleanup, a campaign). Read `GOAL.json`, assess progress, set posture, identify the one thing worth concentrating on right now (Schwerpunkt), and update the file.
 
 ---
 
@@ -24,11 +24,11 @@ Present the situation, the options, and your recommendation — in that order, b
 
 ### 1. Load Context
 
-Resolve `GOAL.md` per `skills/_shared/RESOLVING.md` and read it. If resolution finds no goal, stop and use `onboard` instead — it handles first-contact intake one question at a time (and, with several goals and none active, asks which). Don't interrogate the user for goal, success criteria, deadline, and people all at once here.
+Resolve `GOAL.json` per `skills/_shared/RESOLVING.md` and read it. If resolution finds no goal, stop and use `onboard` instead — it handles first-contact intake one question at a time (and, with several goals and none active, asks which). Don't interrogate the user for goal, success criteria, deadline, and people all at once here.
 
 ### 2. Assess Progress
 
-From the log section of `GOAL.md`:
+From the `log` key of `GOAL.json`:
 - What has actually moved since the last entry?
 - Is progress on_track, at_risk, stalled, or regressing?
 - Is there a stall — no real movement across the last 2+ sessions?
@@ -37,7 +37,7 @@ State this plainly. Do not soften a stall.
 
 ### 3. Check Posture
 
-If `GOAL.md` has a `## Posture` section, read the current level. Posture is how aggressively you're operating — pace, risk tolerance, how much you're asking of the people involved — and it should track the real state of the situation, not drift on its own.
+If `GOAL.json`'s `posture` key is set, read the current level. Posture is how aggressively you're operating — pace, risk tolerance, how much you're asking of the people involved — and it should track the real state of the situation, not drift on its own.
 
 Assess whether current conditions justify a change:
 - Escalate if: a deadline compressed, a trigger condition in the posture table was met, or the situation on the ground has intensified (e.g. opposition organizing, a cleanup deadline moved up, a legal risk increased)
@@ -48,7 +48,7 @@ POSTURE: [level] — [label]
 Change: [none | escalate to N — reason | de-escalate to N — reason]
 ```
 
-If no `## Posture` section exists yet, this step is optional — only introduce posture levels if the goal genuinely has phases of intensity (most personal goals don't need this; most multi-person operations do).
+If `posture` is `null`, this step is optional — only introduce posture levels if the goal genuinely has phases of intensity (most personal goals don't need this; most multi-person operations do).
 
 Before escalating posture, check it against real capacity. An escalation the user can't
 sustain is a decision to burn reserves, and it should be made knowingly — if capacity
@@ -81,7 +81,7 @@ usually the real Schwerpunkt, and the action becomes one line under WHY or belon
 `plan` instead. This failure compounds with the recency trap below: the most available
 action in front of you is also the easiest to mistake for the target.
 
-If people are involved (see `## People` in `GOAL.md`), say plainly what this focus means for them — who you need to talk to, recruit, redirect, or stand down — but you do the talking. This skill does not send messages on your behalf.
+If people are involved (see the `people` key in `GOAL.json`), say plainly what this focus means for them — who you need to talk to, recruit, redirect, or stand down — but you do the talking. This skill does not send messages on your behalf.
 
 Be wary of a specific trap on a thin log (one entry, or a first session): recency is not
 the same as leverage. The most recent action is vivid — it's the only thing in front of
@@ -93,7 +93,7 @@ not a conclusion — its own recency is exactly what makes it easy to overweight
 
 ### 4b. Test the Focus Before Committing It
 
-The user knows things about their situation that aren't in `GOAL.md`. Surface them
+The user knows things about their situation that aren't in `GOAL.json`. Surface them
 before writing, not after.
 
 ```
@@ -146,9 +146,22 @@ If a deadline is close relative to remaining work, if the plan depends on someth
 If the focus rests on something unverified, say so explicitly and offer `research`
 before the user acts on it.
 
-### 6. Update GOAL.md
+### 6. Update GOAL.json
 
-Append a log entry (timestamp, assessment, posture if changed, focus set) to `GOAL.md`. Keep it to a few lines — this is a running log, not a transcript.
+If posture changed, replace `posture.current` (`{level, label}`) — leave `posture.levels` and `posture.triggers` as they are unless the phases of intensity themselves changed.
+
+Append an object to `log` — date, assessment, and the focus just set. Keep `notes` to a few short entries — this is a running log, not a transcript.
+
+```json
+{
+  "posture": { "current": { "level": 2, "label": "Heightened" } },
+  "log": [
+    { "date": "YYYY-MM-DD", "assessment": "on_track", "focus": "...", "notes": ["..."] }
+  ]
+}
+```
+
+`focus` on the log entry is the one place Schwerpunkt is persisted — the visual layer and the next session's context both read the most recent non-null `focus` across `log`, not a separate field.
 
 ### 7. Name the Next Step
 
@@ -172,86 +185,75 @@ for direction.
 
 ---
 
-## GOAL.md format
+## GOAL.json format
 
-```markdown
-# Goal
+The authoritative shape is the Zod schema at `src/store/schema.mjs` (`goalSchema`) —
+every reader (the CLI, `gambit check`, the visualize server) validates through it.
+This section is a human-readable summary of that schema, not a second spec — if the
+two ever disagree, the schema wins.
 
-[One or two sentence description]
-
-## Success criteria
-- [specific, measurable condition] — [control | influence]
-- [specific, measurable condition] — [control | influence]
-
-Mark each criterion `control` (you can cause it directly) or `influence` (it depends on
-a decision someone else makes). Influence criteria are legitimate, but progress against
-them is measured differently — see `eval`.
-
-## Deadline
-[date or none]
-
-## People
-(omit this section entirely if the goal is purely personal)
-- [name/role] — [status: confirmed|tentative|lead] — [what they're doing]
-- ...
-
-## Posture
-(omit this section entirely if the goal doesn't have real phases of intensity)
-Current: [level] — [label, e.g. "1 — Normal", "2 — Heightened"]
-Levels:
-  1 — Normal      [what this means for pace/risk/ask of people]
-  2 — Heightened  [...]
-  3 — Elevated     [...]
-Triggers: [conditions that would force a change, if known]
-
-## Plan
-(written by `plan`; omit until a plan exists)
-Critical path: [A] → [B] → [D]
-Next actions:
-  1. [action] — [who] — [when]
-
-## Systems notes
-(written by `systems`; omit until run)
-
-## Risk notes
-(written by `threat`; omit until run)
-
-## Criteria status
-(written by `eval`; omit until run)
-- [criterion text, verbatim from ## Success criteria] — [control|influence] — [on_track|at_risk|stalled|regressing]
-
-## Stakeholders
-(written by `stakeholders`; omit until run)
-- [name/role] — power: [high|med|low] — stance: [current] → [target] — via [lever]
-
-## Exposure
-(written by `exposure`; omit until run)
-- [item] — must handle before [action] — [status]
-
-## Capacity
-(written by `capacity`; omit until run)
-Available: [N hrs/week] — Runway: [until date/condition]
-
-## Forecasts
-(written by `forecast`; omit until run)
-- [ ] [statement] — [N]% — resolves [date] by [source]
-
-## Experiments
-(written by `experiment`; omit until run)
-- [ ] [assumption] — test: [what] — pass if [threshold] — by [date]
-
-## Decisions
-(written by `decide`; omit until one is recorded)
-- [YYYY-MM-DD] [what was chosen] — reverse if: [observable signal]
-
-## Log
-- [YYYY-MM-DD] [assessment: on_track|at_risk|stalled|regressing] — Focus: [...]
-- ...
+```json
+{
+  "schemaVersion": 1,
+  "goal": "[one or two sentence description, max ~200 chars]",
+  "successCriteria": [
+    { "text": "[specific, measurable condition]", "kind": "control" },
+    { "text": "[specific, measurable condition]", "kind": "influence" }
+  ],
+  "deadline": "YYYY-MM-DD or null",
+  "people": [
+    { "name": "[name/role]", "status": "confirmed", "doing": "[what they're doing]" }
+  ],
+  "posture": {
+    "current": { "level": 1, "label": "Normal" },
+    "levels": [
+      { "level": 1, "label": "Normal", "meaning": "[pace/risk/ask of people]" },
+      { "level": 2, "label": "Heightened" }
+    ],
+    "triggers": ["[conditions that would force a change, if known]"]
+  },
+  "plan": {
+    "criticalPath": ["A", "B", "D"],
+    "nextActions": [{ "action": "...", "who": "...", "when": "..." }]
+  },
+  "systemsNotes": { "schwerpunkt": "...", "confidence": "high", "topFindings": ["..."] },
+  "riskNotes": [{ "item": "...", "source": "threat", "accepted": false }],
+  "criteriaStatus": [
+    { "text": "[verbatim from successCriteria]", "kind": "control", "status": "on_track" }
+  ],
+  "stakeholders": [
+    { "name": "...", "power": "high", "stanceCurrent": "...", "stanceTarget": "...", "via": "..." }
+  ],
+  "exposure": [{ "item": "...", "status": "open", "mustHandleBefore": "..." }],
+  "capacity": { "availableHrsPerWeek": 10, "runway": "[until date/condition]" },
+  "forecasts": [
+    { "statement": "...", "probability": 70, "resolvesBy": "YYYY-MM-DD", "resolvesVia": "...", "resolved": false }
+  ],
+  "experiments": [
+    { "assumption": "...", "test": "...", "passIf": "...", "by": "YYYY-MM-DD", "done": false }
+  ],
+  "decisions": [
+    { "date": "YYYY-MM-DD", "choice": "[what was chosen]", "reverseIf": "[observable signal]" }
+  ],
+  "log": [
+    { "date": "YYYY-MM-DD", "assessment": "on_track", "focus": "...", "notes": ["..."] }
+  ]
+}
 ```
 
-Sections are written in place, not appended to. Every skill that owns a section
-(`plan` → `## Plan`, `systems` → `## Systems notes`, `threat` → `## Risk notes`,
-`eval` → `## Criteria status`) replaces its own content rather than
-accumulating history. The log is the only append-only section.
+Mark each success criterion `control` (you can cause it directly) or `influence`
+(it depends on a decision someone else makes). Influence criteria are legitimate, but
+progress against them is measured differently — see `eval`.
 
-If `GOAL.md` doesn't exist yet, create it at the location resolution would use (typically that means `onboard` ran first and already created it — see `skills/_shared/RESOLVING.md`) after confirming the goal and success criteria with the user. Only include `## People` and `## Posture` if they're actually relevant — don't force structure the goal doesn't need.
+Every key has exactly one owning skill (`plan` → `plan`, `systemsNotes` → `systems`,
+`riskNotes` → `threat`, `criteriaStatus` → `eval`, and so on), which replaces its own
+key's value wholesale rather than accumulating history. `log` is the only append-only
+array. Leave `posture`, `plan`, `systemsNotes`, and `capacity` as `null`, and the
+array-valued keys as `[]`, until the owning skill has actually run — don't force
+structure the goal doesn't need. Only include `people` entries and a non-null
+`posture` if they're actually relevant to this goal.
+
+If `GOAL.json` doesn't exist yet, create it at the location resolution would use
+(typically that means `onboard` ran first via `gambit new`, which writes a
+schema-default stub — see `skills/_shared/RESOLVING.md`) after confirming the goal
+and success criteria with the user.

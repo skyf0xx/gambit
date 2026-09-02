@@ -57,8 +57,8 @@ Then just tell your agent what's on your mind e.g. "help me plan... [your goal]"
 npx @skyf0xx/gambit list             # goals, with the active one marked
 npx @skyf0xx/gambit new "<title>"    # create a goal, make it active
 npx @skyf0xx/gambit switch <slug>    # change the active goal
-npx @skyf0xx/gambit path             # print the resolved GOAL.md path
-npx @skyf0xx/gambit adopt            # move an existing ./GOAL.md into the store
+npx @skyf0xx/gambit path             # print the resolved GOAL.json path
+npx @skyf0xx/gambit adopt            # move an existing ./GOAL.json into the store
 npx @skyf0xx/gambit delete <slug> --force   # permanently delete one goal
 npx @skyf0xx/gambit delete --all --force    # permanently delete every goal
 npx @skyf0xx/gambit visualize        # open a local, auto-refreshing diagram view of the active goal

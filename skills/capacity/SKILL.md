@@ -1,6 +1,6 @@
 ---
 name: capacity
-description: Use when the plan assumes more time, money, or personal energy than actually exists — or periodically on any sustained effort. Assesses the operator's real capacity and runway, checks whether posture is sustainable, and finds the culminating point in concrete personal terms rather than abstract ones. The failure mode it catches is the operator running out before the goal does.
+description: Use when the plan assumes more time, money, or personal energy than actually exists — or periodically on any sustained effort. Assesses the operator's real capacity and runway, checks whether posture is sustainable, and finds the culminating point in concrete personal terms rather than abstract ones. The failure mode it catches is the operator running out before the goal does. Writes to GOAL.json's capacity key.
 display: checklist
 ---
 
@@ -41,7 +41,7 @@ Where the numbers don't work, say so plainly and give options. The user decides.
 
 ### 1. Load Context
 
-Read `GOAL.md` — goal, deadline, `## Plan`, `## Posture`, `## People`, and the log. Look
+Read `GOAL.json` — goal, deadline, the `plan` key, the `posture` key, the `people` key, and the log. Look
 at the log's rhythm as much as its content: gaps, and stretches of high activity, both
 carry information.
 
@@ -92,7 +92,7 @@ resolves by changing the plan.
 
 ### 4. Check Posture Against Capacity
 
-If `## Posture` is in use:
+If the `posture` key is set:
 
 ```
 POSTURE vs CAPACITY
@@ -118,7 +118,7 @@ Almost always, too much stops. That's diagnostic rather than damning, but it's w
 seeing concretely. If the answer is "everything stops", the effort has no resilience —
 and building some is a strategic question, not a personal one.
 
-Where `## People` exists, ask what could be handed over. The usual blocker isn't
+Where the `people` key is non-empty, ask what could be handed over. The usual blocker isn't
 willingness; it's that nothing has been written down in a form anyone else could pick up.
 
 ### 6. The Honest Culminating Point
@@ -161,18 +161,25 @@ open-ended one nobody has measured. Make it a choice rather than a drift.
 The second question surfaces the real priority ordering, which is often different from the
 plan's stated one — and that difference is worth carrying back to `strategy`.
 
-### 9. Update GOAL.md
+### 9. Update GOAL.json
 
-Add or replace a `## Capacity` section — the honest hours, the runway, and the culminating
-condition. Keep it short and current.
+Set the `capacity` key with the honest hours per week, the runway, and any specific warning sign to watch:
 
+- `availableHrsPerWeek`: concrete number per week, or `null` if unknown
+- `runway`: when you run short (e.g., "until 2026-10-15", or "6 months at this rate")
+- `watch`: the specific observable warning sign (e.g., "two weeks with no log entry", "missing family dinners three nights running")
+
+```json
+{
+  "capacity": {
+    "availableHrsPerWeek": 15,
+    "runway": "until 2026-11-30",
+    "watch": "log goes quiet or work creeps into evenings regularly"
+  }
+}
 ```
-## Capacity
-Available: [N hrs/week] — Runway: [until date/condition]
-Watch: [the specific warning sign]
-```
 
-Log a one-line summary. If capacity forces a scope change, hand to `plan` or `strategy`
+Append a one-line summary to `log`. If capacity forces a scope change, hand to `plan` or `strategy`
 rather than quietly trimming the plan here.
 
 ### 10. Name the Next Step

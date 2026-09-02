@@ -1,6 +1,6 @@
 ---
 name: experiment
-description: Use when the plan rests on an unproven assumption that could be tested cheaply before committing serious effort — will people turn up, will anyone donate, does this message land, will the partner actually deliver. Designs the smallest test that could falsify the assumption, with a pass/fail line set in advance.
+description: Use when the plan rests on an unproven assumption that could be tested cheaply before committing serious effort — will people turn up, will anyone donate, does this message land, will the partner actually deliver. Designs the smallest test that could falsify the assumption, with a pass/fail line set in advance. Writes to GOAL.json's experiments key.
 display: checklist
 ---
 
@@ -39,7 +39,7 @@ six-week horizon isn't a test.
 
 ### 1. Load Context
 
-Read `GOAL.md` — goal, `## Plan`, `## Forecasts` if present, and any assumption flagged
+Read `GOAL.json` — goal, the `plan` key, the `forecasts` array if present, and any assumption flagged
 as unverified by `systems`, `threat`, `premortem`, or `plan`.
 
 ### 2. Name the Assumption
@@ -129,20 +129,46 @@ proceed deliberately (`decide`) than to dress a commitment up as an enquiry.
 
 ### 7. Record and Run
 
+Append new experiments to the `experiments` array, or update existing entries once they complete. Each entry must have `assumption`, `test`, `passIf`, `by` (YYYY-MM-DD), and `done` (boolean). Once complete, set `done: true`, `result` (outcome), and optionally `changedAsResult` (what changed because of this result).
+
+New unstarted experiment:
+```json
+{
+  "experiments": [
+    {
+      "assumption": "People in the target group will commit if asked directly",
+      "test": "Ask five people from the target group whether they will attend if scheduled",
+      "passIf": "Three or more say yes and confirm availability",
+      "by": "2026-10-15",
+      "done": false
+    }
+  ]
+}
 ```
-## Experiments
-- [ ] [assumption] — test: [what] — pass if [threshold] — by [date]
-- [x] [assumption] — [result] — [pass|fail|ambiguous] — [what changed as a result]
+
+Completed experiment (update the same entry):
+```json
+{
+  "experiments": [
+    {
+      "assumption": "People in the target group will commit if asked directly",
+      "test": "Ask five people from the target group whether they will attend if scheduled",
+      "passIf": "Three or more say yes and confirm availability",
+      "by": "2026-10-15",
+      "done": true,
+      "result": "pass — four of five confirmed",
+      "changedAsResult": "proceed to booking; commit now rather than build interest first"
+    }
+  ]
+}
 ```
 
-Ambiguous is a legitimate outcome and must be recorded as such. The temptation is to read
-an ambiguous result as a pass. Record it as ambiguous and either design a sharper test or
-proceed knowing the assumption is still open.
+Ambiguous is a legitimate outcome and must be recorded as such. Either design a sharper test or proceed knowing the assumption is still open.
 
-### 8. Update GOAL.md and Name the Next Step
+### 8. Update GOAL.json and Name the Next Step
 
-Maintain `## Experiments`. When one resolves, update the assumption's status wherever it
-appears — a falsified assumption sitting unchallenged in `## Systems notes` or `## Plan`
+Update the `experiments` array. When one resolves, update the assumption's status wherever it
+appears — a falsified assumption sitting unchallenged in the `systemsNotes` key or `plan` key
 is worse than one never tested.
 
 ```

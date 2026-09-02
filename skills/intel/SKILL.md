@@ -77,9 +77,19 @@ OVERALL CONFIDENCE: high|moderate|low
 
 **Confidence derivation**: `high` = multiple A/B sources, credibility 1-2, judgments mutually reinforcing. `moderate` = single reliable source or mixed credibility, judgments plausible but not confirmed. `low` = single unreliable source, credibility 3-5, or real contradictions in the raw reporting.
 
-### 5. Update GOAL.md
+### 5. Update GOAL.json
 
-If the finding is load-bearing for the plan or the current focus, append a short note (question, overall confidence, one-line summary) to the log. Don't dump full research transcripts into `GOAL.md` — the full findings belong in the conversation, not the persistent file.
+If the finding is load-bearing for the plan or the current focus, append an entry to the `log` key:
+
+```json
+{
+  "log": [
+    { "date": "YYYY-MM-DD", "focus": null, "notes": ["the question", "overall confidence", "one-line summary"], "source": "intel" }
+  ]
+}
+```
+
+Don't dump full research transcripts into `GOAL.json` — the full findings belong in the conversation, not the persistent file.
 
 ### 6. Name the Next Step
 

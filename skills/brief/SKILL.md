@@ -1,6 +1,6 @@
 ---
 name: brief
-description: Use when the user wants to understand where things stand in plain language rather than in framework terms — returning after a gap, feeling lost, showing the situation to someone else, or asking "so what does all this actually mean". Translates GOAL.md into ordinary prose, explains any jargon it contains, and names the one thing to do next. Read-only.
+description: Use when the user wants to understand where things stand in plain language rather than in framework terms — returning after a gap, feeling lost, showing the situation to someone else, or asking "so what does all this actually mean". Translates GOAL.json into ordinary prose, explains any jargon it contains, and names the one thing to do next. Read-only.
 display: plain-card
 ---
 
@@ -10,7 +10,7 @@ display: plain-card
 break, feeling lost in the analysis, needing to explain the situation to somebody else,
 or asking some version of "so what does all this actually mean".
 
-Also use when `GOAL.md` has accumulated framework vocabulary — Schwerpunkt, CoG, CV,
+Also use when `GOAL.json` has accumulated framework vocabulary — Schwerpunkt, CoG, CV,
 culminating point — and the user shouldn't have to hold a glossary to read their own
 file.
 
@@ -18,7 +18,7 @@ file.
 vocabulary; this gives the same picture the way you'd explain it to a smart friend who
 has no background in any of it.
 
-Read-only. Never writes to `GOAL.md`.
+Read-only. Never writes to `GOAL.json`.
 
 ---
 
@@ -40,7 +40,7 @@ damage.
 
 ### 1. Load Context
 
-Resolve `GOAL.md` per `skills/_shared/RESOLVING.md` and read it in full.
+Resolve `GOAL.json` per `skills/_shared/RESOLVING.md` and read it in full.
 
 If resolution finds no goal: say there's nothing set up yet, and point to `onboard` to
 start (it also handles several goals with none active). Stop there.
@@ -66,10 +66,10 @@ specific about dates. If nothing has moved in a while, say that.
 Say the word once, in parentheses, if it's in the file — the user will see it there and
 should know what it means.
 
-**What could go wrong** — the top one or two risks from `## Risk notes` or
-`## Systems notes`, translated. Not the whole list. The ones that would actually hurt.
+**What could go wrong** — the top one or two risks from the `riskNotes` key or
+the `systemsNotes` key, translated. Not the whole list. The ones that would actually hurt.
 
-**Who's involved** — if `## People` exists: who's committed, who's not confirmed yet,
+**Who's involved** — if the `people` key is non-empty: who's committed, who's not confirmed yet,
 and who the effort would be in trouble without.
 
 **The clock** — deadline, time remaining, and a straight answer on whether the current
@@ -77,7 +77,7 @@ pace fits. Yes, no, or genuinely unclear.
 
 ### 3. Translate the Jargon
 
-Whenever a framework term appears in `GOAL.md`, define it inline the first time, in one
+Whenever a framework term appears in `GOAL.json`, define it inline the first time, in one
 clause:
 
 - **Schwerpunkt** — the one thing worth concentrating on right now

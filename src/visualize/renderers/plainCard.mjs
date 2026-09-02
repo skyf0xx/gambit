@@ -1,20 +1,20 @@
-// No diagram — styled prose. The correct renderer for anything that's
-// already list- or paragraph-shaped (research, intel, comms, exposure,
-// premortem, or any section that doesn't match a more specific type).
-
-export function renderPlainCard(sectionBody) {
-  const escaped = escapeHtml(sectionBody);
-  const withBreaks = escaped
-    .split('\n')
-    .map((l) => (l.trim().startsWith('-') ? `<li>${l.trim().slice(1).trim()}</li>` : l))
-    .join('\n');
-
-  if (withBreaks.includes('<li>')) {
-    return `<ul class="plain-list">${withBreaks}</ul>`;
-  }
-  return `<p>${withBreaks.replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>')}</p>`;
-}
+// No diagram — styled prose. The correct renderer for exposure, the one
+// owned section that's list-shaped but not a checklist/network/fork.
 
 function escapeHtml(s) {
   return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+// exposure: [{ item, status, mustHandleBefore?, acceptedDate?, why? }]
+export function renderPlainCard(exposure) {
+  if (!exposure || !exposure.length) return '<p class="empty">No items yet.</p>';
+
+  const rows = exposure.map((e) => {
+    let line = `${escapeHtml(e.item)} — ${escapeHtml(e.status)}`;
+    if (e.mustHandleBefore) line += ` (before ${escapeHtml(e.mustHandleBefore)})`;
+    if (e.why) line += ` — ${escapeHtml(e.why)}`;
+    return `<li>${line}</li>`;
+  });
+
+  return `<ul class="plain-list">${rows.join('\n')}</ul>`;
 }

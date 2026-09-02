@@ -1,6 +1,6 @@
 ---
 name: negotiate
-description: Use before a conversation where you need someone's agreement — a council, a landlord, a sponsor, a platform, a collaborator, a rival organiser. Preps interests on both sides, your walk-away alternative (BATNA), the zone where a deal exists, concessions ranked by cost, and the traps. Two-way, unlike comms, which prepares outward broadcast.
+description: Use before a conversation where you need someone's agreement — a council, a landlord, a sponsor, a platform, a collaborator, a rival organiser. Preps interests on both sides, your walk-away alternative (BATNA), the zone where a deal exists, concessions ranked by cost, and the traps. Two-way, unlike comms, which prepares outward broadcast. Appends to GOAL.json's log with the agreement and any commitments made.
 display: decision-fork
 ---
 
@@ -39,8 +39,8 @@ most common failure, and it's expensive.
 
 ### 1. Load Context
 
-Read `GOAL.md` — goal, `## Plan`, `## People`, `## Stakeholders` if it exists. If the
-counterparty appears in `## Stakeholders`, pull their recorded interest rather than
+Read `GOAL.json` — goal, the `plan` key, the `people` key, the `stakeholders` array if non-empty. If the
+counterparty appears in the `stakeholders` array, pull their recorded interest rather than
 re-deriving it.
 
 ### 2. Define What You Actually Need
@@ -168,10 +168,24 @@ I ALSO WALK IF: [the relationship or process condition — bad faith, moving ter
 Deciding to walk is nearly impossible in the room, under social pressure, with sunk time
 behind you. Deciding it beforehand is the only reliable way it happens.
 
-### 10. Update GOAL.md and Name the Next Step
+### 10. Update GOAL.json and Name the Next Step
 
-Log the negotiation, what was agreed, and any commitment the user made — a commitment
+Append a `log` entry with the negotiation outcome, what was agreed, and any commitment the user made — a commitment
 given in a conversation and not recorded is one nobody can hold either side to.
+
+```json
+{
+  "log": [
+    {
+      "date": "2026-09-02",
+      "assessment": null,
+      "focus": null,
+      "notes": ["Negotiated with [party]: agreed to [key terms], we commit to [obligation] by [date]"],
+      "source": "negotiate"
+    }
+  ]
+}
+```
 
 If it produced an agreement with obligations, hand to `plan` to sequence them.
 

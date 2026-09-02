@@ -168,10 +168,17 @@ Next: [one of —]
   - Still a gap → [the specific follow-up question]
 ```
 
-### 8. Update GOAL.md
+### 8. Update GOAL.json
 
-Only if the finding is load-bearing for the current plan or focus. Add one line to the
-log: date, the question, overall confidence, and the one-sentence bottom line.
+Only if the finding is load-bearing for the current plan or focus. Append an entry to the `log` key:
 
-Do not paste research transcripts into `GOAL.md`. The file holds current state, not an
+```json
+{
+  "log": [
+    { "date": "YYYY-MM-DD", "focus": null, "notes": ["the question", "overall confidence", "one-sentence bottom line"], "source": "research" }
+  ]
+}
+```
+
+Do not paste research transcripts into `GOAL.json`. The file holds current state, not an
 archive — the full finding lives in the conversation.

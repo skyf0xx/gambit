@@ -30,6 +30,7 @@ process.emitWarning = (warning, ...rest) => {
 
 const store = await import('../src/store/index.mjs');
 const { goalFile } = await import('../src/store/paths.mjs');
+const { safeParseGoalJson } = await import('../src/store/schema.mjs');
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PKG_ROOT = join(__dirname, '..');
@@ -37,7 +38,7 @@ const SRC_SKILLS = join(PKG_ROOT, 'skills');
 const CWD = process.cwd();
 const DEST_SKILLS = join(CWD, '.claude', 'skills');
 const DEST_AGENTS_MD = join(CWD, 'AGENTS.md');
-const CWD_GOAL_MD = join(CWD, 'GOAL.md');
+const CWD_GOAL_JSON = join(CWD, 'GOAL.json');
 
 const MARKER_START = '<!-- gambit:skills start -->';
 const MARKER_END = '<!-- gambit:skills end -->';
@@ -54,15 +55,15 @@ Global goal store (~/.gambit, or $GAMBIT_HOME):
   npx @skyf0xx/gambit list             goals, with active marked
   npx @skyf0xx/gambit new <title>      create a goal, make it active
   npx @skyf0xx/gambit switch <slug>    set the active goal
-  npx @skyf0xx/gambit path             print the resolved GOAL.md path
+  npx @skyf0xx/gambit path             print the resolved GOAL.json path
   npx @skyf0xx/gambit reindex          rebuild gambit.db from goals/
-  npx @skyf0xx/gambit adopt [path]     move an existing ./GOAL.md into the store
-  npx @skyf0xx/gambit delete <slug> --force   delete one goal (GOAL.md + index row)
+  npx @skyf0xx/gambit adopt [path]     move an existing ./GOAL.json into the store
+  npx @skyf0xx/gambit delete <slug> --force   delete one goal (GOAL.json + index row)
   npx @skyf0xx/gambit delete --all --force    delete every goal in the store
 
   npx @skyf0xx/gambit visualize [--port N] [--no-open]
                                         open a local live-updating diagram
-                                        view of the resolved GOAL.md
+                                        view of the resolved GOAL.json
 
   npx @skyf0xx/gambit --help           show this message
 
@@ -114,13 +115,13 @@ async function storeSwitch(slug) {
 }
 
 async function storePath() {
-  if (existsSync(CWD_GOAL_MD)) {
-    console.log(CWD_GOAL_MD);
+  if (existsSync(CWD_GOAL_JSON)) {
+    console.log(CWD_GOAL_JSON);
     return;
   }
   const slug = store.resolveActive();
   if (!slug) {
-    console.error('No GOAL.md in the working directory and no active goal in the store.');
+    console.error('No GOAL.json in the working directory and no active goal in the store.');
     process.exitCode = 1;
     return;
   }
@@ -133,18 +134,25 @@ async function storeReindex() {
 }
 
 async function storeAdopt(pathArg) {
-  const src = pathArg ? join(CWD, pathArg) : CWD_GOAL_MD;
+  const src = pathArg ? join(CWD, pathArg) : CWD_GOAL_JSON;
+
   if (!existsSync(src)) {
-    console.error(`No GOAL.md found at ${src}`);
+    console.error(`No GOAL.json found at ${src}`);
     process.exitCode = 1;
     return;
   }
-  const body = await readFile(src, 'utf8');
-  const titleMatch = body.match(/^#\s*Goal\s*\n+([^\n]+)/m);
-  const title = titleMatch ? titleMatch[1].trim() : 'Adopted goal';
 
-  const slug = store.create(title);
-  await writeFile(goalFile(slug), body);
+  const body = await readFile(src, 'utf8');
+  const result = safeParseGoalJson(body);
+  if (!result.success) {
+    console.error(`Cannot adopt ${relative(CWD, src)} — invalid GOAL.json:`);
+    console.error(`  ${result.error}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const slug = store.create(result.data.goal);
+  await writeFile(goalFile(slug), JSON.stringify(result.data, null, 2) + '\n');
   store.reindex();
   store.setActive(slug);
 
@@ -164,7 +172,7 @@ async function storeDelete(args, { force }) {
   }
 
   if (!force) {
-    console.error('Refusing to delete without --force (this permanently removes GOAL.md and cannot be undone).');
+    console.error('Refusing to delete without --force (this permanently removes GOAL.json and cannot be undone).');
     process.exitCode = 1;
     return;
   }
@@ -257,7 +265,7 @@ function skillsSection(names) {
 ## Gambit skills
 
 This project has [Gambit](https://github.com/skyf0xx/gambit) installed —
-a set of skills for working a goal (\`GOAL.md\`) as a strategic advisor
+a set of skills for working a goal (\`GOAL.json\`) as a strategic advisor
 would: assessing progress, planning, red-teaming, researching, and more.
 Skills live in \`.claude/skills/\` and are self-contained \`SKILL.md\`
 files any capable agent can read directly, not just tools that
@@ -311,7 +319,7 @@ async function init({ force }) {
   if (skipped > 0) {
     console.log(`Run with --force to overwrite skipped files.`);
   }
-  console.log(`\nNext: ask your agent to run the \`onboard\` skill to start a GOAL.md.`);
+  console.log(`\nNext: ask your agent to run the \`onboard\` skill to start a GOAL.json.`);
 }
 
 async function update() {

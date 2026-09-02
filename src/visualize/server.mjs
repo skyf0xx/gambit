@@ -40,16 +40,30 @@ export async function killExistingOnPort(port) {
 
 function currentPageHtml(goalPath) {
   if (!goalPath || !existsSync(goalPath)) {
-    return renderPage({ title: 'No goal found', shortTitle: 'No goal found', deadline: null, criteria: [], focus: null, cards: [] });
+    return renderPage({ title: 'No goal found', deadline: null, criteria: [], focus: null, cards: [] });
   }
   const body = readFileSync(goalPath, 'utf8');
-  return renderPage(renderGoal(body));
+  try {
+    return renderPage(renderGoal(body));
+  } catch (err) {
+    return renderPage({
+      title: 'Invalid GOAL.json',
+      deadline: null,
+      criteria: [],
+      focus: null,
+      cards: [{ kind: 'html', title: 'Schema error', body: `<p class="empty">${goalPath} does not match the schema — fix it by hand and save.<br>${escapeForHtml(err.message)}</p>` }],
+    });
+  }
+}
+
+function escapeForHtml(s) {
+  return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
 export function startServer({ port = 4173, cwd = process.cwd(), open = true } = {}) {
   const goalPath = resolveGoalPath(cwd);
   if (!goalPath) {
-    console.error('No GOAL.md found — nothing to visualize. Run onboard first.');
+    console.error('No GOAL.json found — nothing to visualize. Run onboard first.');
     process.exitCode = 1;
     return null;
   }

@@ -16,7 +16,7 @@ Also use when `threat` returns "no identifiable adversary" but progress is still
 opponent with hostile intent.
 
 **Purpose**: Map the field of people who affect the outcome and can't simply be
-organised or defeated. `## People` in `GOAL.md` tracks your own side's delivery.
+organised or defeated. The `people` key in `GOAL.json` tracks your own side's delivery.
 `threat` models opposition as something to degrade. This covers everyone else — which,
 in most real coordination goals, is where the outcome is actually decided.
 
@@ -44,8 +44,8 @@ interest hasn't been identified yet.
 
 ### 1. Load Context
 
-Read `GOAL.md` — goal, success criteria, `## People`, `## Systems notes` and
-`## Risk notes` if present. Note especially any criterion marked `influence`: whoever
+Read `GOAL.json` — goal, success criteria, `people` key, `systemsNotes` and
+`riskNotes` keys if present. Note especially any criterion marked `influence`: whoever
 makes that decision is by definition a stakeholder, and often the most important one.
 
 ### 2. Enumerate the Field
@@ -137,15 +137,23 @@ Before I write this down:
 History between parties usually outranks the analysis. Take the correction and rerun the
 affected rows rather than defending the grid.
 
-### 8. Update GOAL.md
+### 8. Update GOAL.json
 
-Write or replace a `## Stakeholders` section with the high-power entries, their current
-stance, and the movable middle. Keep it to the ones that matter — the full grid lives in
-the conversation.
+Replace the `stakeholders` array with the high-power entries, their current stance, and the movable middle. Keep it to the ones that matter — the full grid lives in the conversation.
 
-```
-## Stakeholders
-- [name/role] — power: high — stance: [current] → [target] — via [lever]
+Each stakeholder entry must have:
+- `name` (required, max 40 chars): name or role
+- `power` (required): 'high', 'med', or 'low'
+- `stanceCurrent` (required, max 40 chars): current position (e.g., "opposed", "neutral", "supportive")
+- `stanceTarget` (required, max 40 chars): realistic best achievable stance
+- `via` (required, max 120 chars): what would actually move them to target stance
+
+```json
+{
+  "stakeholders": [
+    { "name": "...", "power": "high", "stanceCurrent": "...", "stanceTarget": "...", "via": "..." }
+  ]
+}
 ```
 
 Log a one-line summary.

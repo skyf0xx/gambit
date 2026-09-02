@@ -33,11 +33,11 @@ terms freely. Define, don't teach.
 
 ### 1. Load Context
 
-Read `GOAL.md` — goal, success criteria, current plan (from `plan`), current focus and posture (from `strategy`), any CoG assessment from `systems`, and `## People` if present.
+Read `GOAL.json` — goal, success criteria, current plan (from `plan` key), current focus and posture (from `strategy`), any CoG assessment from `systemsNotes`, and `people` key if non-empty.
 
 ---
 
-Steps 2-7 are independent lenses over the same frozen plan/`GOAL.md`/`## People`
+Steps 2-7 are independent lenses over the same frozen plan/`GOAL.json`/`people`
 snapshot from step 1 — none depends on another's findings. Where the executing agent can
 run independent sub-tasks concurrently, run them in parallel and converge before step 8,
 which triages across all of them.
@@ -85,7 +85,7 @@ Is the plan over-dependent on one thing — one relationship, one platform, one 
 
 ### 5. Network Exposure Assessment
 
-If `## People` in `GOAL.md` lists anyone, assess the network itself for exposure:
+If the `people` key in `GOAL.json` is non-empty, assess the network itself for exposure:
 
 ```
 NETWORK EXPOSURE FINDINGS:
@@ -100,13 +100,13 @@ NETWORK EXPOSURE FINDINGS:
     {name/role or pattern} — {what's off} — {recommend: verify via intel, or hold at arm's length until confirmed}
 ```
 
-Skip this section entirely if `## People` is empty or absent — there's no network to assess.
+Skip this section entirely if `people` is empty — there's no network to assess.
 
 ---
 
 ### 6. Escalation Exposure
 
-If `## Posture` exists in `GOAL.md`: does the current posture level create a signal that's exploitable — does higher tempo or more visible activity give away more than it's worth?
+If the `posture` key in `GOAL.json` is non-null: does the current posture level create a signal that's exploitable — does higher tempo or more visible activity give away more than it's worth?
 
 ```
 POSTURE EXPOSURE:
@@ -116,7 +116,7 @@ POSTURE EXPOSURE:
   Mitigation: {what closes this, if anything}
 ```
 
-Skip if `## Posture` isn't in use.
+Skip if `posture` is null.
 
 ---
 
@@ -161,9 +161,24 @@ Risk tolerance is the user's call, not yours. Where they choose to accept someth
 flagged as high, say what you'd watch for and then back the decision — record it as an
 accepted risk rather than re-raising it every session.
 
-### 9. Update GOAL.md
+### 9. Update GOAL.json
 
-Replace the `## Risk notes` section in `GOAL.md` with the top findings (adversarial CoG if identified, top workstream risks, network exposure if applicable, any single point of failure). Note anything the user explicitly chose to accept, so later sessions don't re-litigate it. Log a one-line summary.
+Replace the `riskNotes` array in `GOAL.json` with the top findings (adversarial CoG if identified, top workstream risks, network exposure if applicable, any single point of failure). Note anything the user explicitly chose to accept, so later sessions don't re-litigate it. Log a one-line summary.
+
+Each entry must have:
+- `item` (required, max 120 chars): the risk or finding
+- `detail` (optional, max 120 chars): additional context on the risk or mitigation
+- `source` (required): must be "threat" for items this skill adds
+- `accepted` (required): boolean; true if user explicitly chose to accept this risk
+
+```json
+{
+  "riskNotes": [
+    { "item": "...", "detail": "...", "source": "threat", "accepted": false },
+    { "item": "...", "source": "threat", "accepted": true }
+  ]
+}
+```
 
 ### 10. Name the Next Step
 

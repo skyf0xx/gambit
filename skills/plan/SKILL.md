@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Use to break a GOAL.md goal or current focus into a sequenced, dependency-aware plan — starting a new push, replanning after a failure, or when the existing plan feels stale. Builds a dependency graph, identifies the critical path, scales pace to posture, and lists the next 3-5 concrete actions.
+description: Use to break a GOAL.json goal or current focus into a sequenced, dependency-aware plan — starting a new push, replanning after a failure, or when the existing plan feels stale. Builds a dependency graph, identifies the critical path, scales pace to posture, and lists the next 3-5 concrete actions.
 display: lines-of-operation
 ---
 
@@ -26,9 +26,9 @@ When something is blocked, state what's blocked, what's blocking it, and what un
 
 ### 1. Load Context
 
-Read `GOAL.md`. Note the current focus (Schwerpunkt) if `strategy` has set one, the success criteria, the deadline, the current posture level if set, and who's involved from `## People` if that section exists.
+Read `GOAL.json`. Note the current focus (Schwerpunkt) if `strategy` has set one, the success criteria, the deadline, the current posture level if set, and who's involved from the `people` key if it's non-empty.
 
-**Check `## Systems notes`.** If the section is absent, its Schwerpunkt confidence was recorded as `low`, or it clearly predates the current focus (goal or focus changed since), the critical path you're about to build may rest on an unverified premise about how a third party or system responds. Flag this before building the graph rather than after:
+**Check the `systemsNotes` key.** If it's `null`, its Schwerpunkt confidence was recorded as `low`, or it clearly predates the current focus (goal or focus changed since), the critical path you're about to build may rest on an unverified premise about how a third party or system responds. Flag this before building the graph rather than after:
 
 ```
 No systems read backs this focus (or confidence was low / stale). The plan
@@ -77,7 +77,7 @@ Blocker (if any): [what's blocking, what resolves it]
 
 ### 4. Apply Posture
 
-If `GOAL.md` has a `## Posture` section, scale the plan to the current level: how many things run in parallel, how much you ask of any one person, how tight the timeline is. Higher posture means more concurrent asks and less margin — say so if the plan is pushing people harder than the posture level implies, or if it's under-using the posture the situation actually calls for.
+If `GOAL.json`'s `posture` key is set, scale the plan to the current level: how many things run in parallel, how much you ask of any one person, how tight the timeline is. Higher posture means more concurrent asks and less margin — say so if the plan is pushing people harder than the posture level implies, or if it's under-using the posture the situation actually calls for.
 
 ### 5. Sequence Next Actions
 
@@ -89,7 +89,7 @@ NEXT
 2. ...
 ```
 
-If an action depends on someone who hasn't confirmed, flag that explicitly — don't plan around a person as if their involvement is settled when `## People` marks them tentative.
+If an action depends on someone who hasn't confirmed, flag that explicitly — don't plan around a person as if their involvement is settled when `people` marks them `tentative`.
 
 ### 5b. Reality-Check the Sequence
 
@@ -112,9 +112,24 @@ and watching it rot. If the whole critical path is unrealistic, that's a signal 
 
 If something in the existing plan has failed or stalled, name it, name the alternative path, and drop the dead branch. If there's no alternative, say so plainly — that's a signal for `strategy` to reassess the focus, not for this skill to paper over.
 
-### 7. Update GOAL.md
+### 7. Update GOAL.json
 
-Replace the `## Plan` section in `GOAL.md` with the current critical path and next actions, rather than accumulating old ones. Log a one-line entry noting the replan if this was a replan.
+Replace the `plan` key in `GOAL.json` with the current critical path and next actions, rather than accumulating old ones. `criticalPath` entries are short labels (max 6 entries, ~5 words each); `nextActions` is capped at 5. Set `status` to `on_schedule`, `at_risk`, or `blocked`, and set `blocker` only when `status` is `blocked`.
+
+```json
+{
+  "plan": {
+    "criticalPath": ["A", "B", "D"],
+    "nextActions": [
+      { "action": "...", "who": "you | name", "when": "today | this week" }
+    ],
+    "status": "on_schedule",
+    "blocker": "..."
+  }
+}
+```
+
+If this was a replan, append a `log` entry noting it.
 
 ### 8. Name the Next Step
 

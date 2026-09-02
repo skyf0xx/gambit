@@ -1,6 +1,6 @@
 {
   "name": "gambit",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Strategic advisor skills for working a goal — assess, plan, red-team, decide.",
   "contextFileName": "GEMINI.md"
 }

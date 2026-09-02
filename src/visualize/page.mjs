@@ -2,6 +2,19 @@ import { escapeHtml } from './render.mjs';
 
 const STATUS_LABEL = { on_track: 'On track', at_risk: 'At risk', stalled: 'Stalled', regressing: 'Regressing' };
 
+// A goal's title is often a full multi-sentence description — fine as the
+// source of truth, too long for a browser tab title or page heading. This
+// is the only place in visualize that truncates for display; parse.mjs
+// passes the title through untouched. Prefers the first sentence; falls
+// back to a word-boundary cut.
+function shorten(title, max = 80) {
+  const firstSentence = title.match(/^(.+?[.!?])(\s|$)/)?.[1];
+  if (firstSentence && firstSentence.length <= max) return firstSentence;
+  const flat = title.replace(/\s+/g, ' ').trim();
+  if (flat.length <= max) return flat;
+  return `${flat.slice(0, max - 1).replace(/\s+\S*$/, '')}…`;
+}
+
 function criteriaHtml(criteria) {
   if (!criteria.length) return '';
   const rows = criteria
@@ -29,14 +42,15 @@ function cardHtml(card, i) {
 export function renderPage(goal) {
   const cardsHtml = goal.cards.length
     ? goal.cards.map(cardHtml).join('\n')
-    : '<p class="empty">No sections yet — run a skill that writes to GOAL.md (plan, systems, strategy...) to see it appear here.</p>';
+    : '<p class="empty">No sections yet — run a skill that writes to GOAL.json (plan, systems, strategy...) to see it appear here.</p>';
+  const shortTitle = shorten(goal.title);
 
   return `<!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escapeHtml(goal.shortTitle)} — Gambit</title>
+<title>${escapeHtml(shortTitle)} — Gambit</title>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <style>
   :root {
@@ -94,7 +108,7 @@ export function renderPage(goal) {
 <body>
 <div class="disconnected" id="disconnected">Reconnecting…</div>
 <header>
-  <h1>${escapeHtml(goal.shortTitle)}</h1>
+  <h1>${escapeHtml(shortTitle)}</h1>
   <div class="meta">${goal.deadline ? `Deadline: ${escapeHtml(goal.deadline)}` : 'No deadline set'}</div>
 </header>
 ${focusHtml(goal.focus)}

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SessionStart hook for the Gambit plugin.
 #
-# Restores the silent GOAL.md preload that AGENTS.md requires but that the
+# Restores the silent GOAL.json preload that AGENTS.md requires but that the
 # legacy `gambit init` installer never propagated (it only injects a
 # skills-list stanza into the project's own AGENTS.md). This hook resolves
 # the active goal per the precedence rule in skills/_shared/RESOLVING.md
@@ -23,14 +23,14 @@ PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$PWD}"
 STORE_ROOT="${GAMBIT_HOME:-${XDG_DATA_HOME:+$XDG_DATA_HOME/gambit}}"
 STORE_ROOT="${STORE_ROOT:-$HOME/.gambit}"
 
-# --- resolve GOAL.md per skills/_shared/RESOLVING.md ---
+# --- resolve GOAL.json per skills/_shared/RESOLVING.md ---
 GOAL_MD=""
-if [ -f "${PROJECT_DIR}/GOAL.md" ]; then
-    GOAL_MD="${PROJECT_DIR}/GOAL.md"
+if [ -f "${PROJECT_DIR}/GOAL.json" ]; then
+    GOAL_MD="${PROJECT_DIR}/GOAL.json"
 elif [ -f "${STORE_ROOT}/active" ]; then
     slug="$(tr -d '\r\n' < "${STORE_ROOT}/active")"
-    if [ -n "$slug" ] && [ -f "${STORE_ROOT}/goals/${slug}/GOAL.md" ]; then
-        GOAL_MD="${STORE_ROOT}/goals/${slug}/GOAL.md"
+    if [ -n "$slug" ] && [ -f "${STORE_ROOT}/goals/${slug}/GOAL.json" ]; then
+        GOAL_MD="${STORE_ROOT}/goals/${slug}/GOAL.json"
     fi
 elif [ -d "${STORE_ROOT}/goals" ]; then
     # Exactly-one-goal case (resolution case 3). This hook only reads — it
@@ -40,9 +40,9 @@ elif [ -d "${STORE_ROOT}/goals" ]; then
     count=0
     only=""
     for d in "${STORE_ROOT}"/goals/*/; do
-        [ -f "${d}GOAL.md" ] || continue
+        [ -f "${d}GOAL.json" ] || continue
         count=$((count + 1))
-        only="${d}GOAL.md"
+        only="${d}GOAL.json"
     done
     if [ "$count" -eq 1 ]; then
         GOAL_MD="$only"
@@ -156,36 +156,57 @@ emit_context() {
 
 goal_context=""
 if [ -n "$GOAL_MD" ]; then
-    # --- pull title / focus / deadline / last log line out of GOAL.md ---
-    # awk rather than sed: portable across BSD (macOS) and GNU without dialect
-    # differences in address-range/quit syntax. Each extractor finds a heading,
-    # then prints the first non-blank line after it and stops.
-    first_line_after() {
-        # $1: heading regex (matched via awk's ~), $2: file
-        awk -v pat="$1" '
-            found && NF { print; exit }
-            $0 ~ pat { found = 1 }
-        ' "$2"
-    }
+    # --- pull title / focus / deadline / last log summary out of GOAL.json ---
+    # Structured reads via the same Zod schema every other reader validates
+    # through (safeParseGoalJson), rather than text-scanning Markdown. Runs
+    # as a subprocess so a bad/invalid file can't crash this hook under
+    # `set -euo pipefail` — output is captured defensively with `|| true`
+    # and empty output falls back to the same placeholder text as before.
+    # Resolved to an absolute path (via node itself, portably) because
+    # $0's directory is relative to the invoker's cwd, not this script's
+    # location — and a relative specifier passed to dynamic import() below
+    # resolves against the node process's cwd, not the script on disk.
+    SCHEMA_MJS="$(cd "$(dirname "$0")/.." >/dev/null 2>&1 && pwd)/src/store/schema.mjs"
 
-    title="$(first_line_after '^#[[:space:]]*Goal[[:space:]]*$' "$GOAL_MD")"
-    title="$(printf '%s' "$title" | awk '{$1=$1;print}')"
+    goal_fields="$(node -e '
+        import(process.argv[1]).then(async ({ safeParseGoalJson }) => {
+            const fs = await import("node:fs");
+            let raw;
+            try {
+                raw = fs.readFileSync(process.argv[2], "utf8");
+            } catch {
+                process.exit(1);
+            }
+            const result = safeParseGoalJson(raw);
+            if (!result.success) process.exit(1);
+            const goal = result.data;
+
+            const title = goal.goal;
+            const deadline = goal.deadline ?? "none";
+            const focus = [...goal.log].reverse().find((e) => e.focus)?.focus ?? "nothing set yet";
+
+            let lastLog = "no log entries yet";
+            if (goal.log.length) {
+                const entry = goal.log[goal.log.length - 1];
+                lastLog = `${entry.date} ${entry.assessment ?? ""}`.trim();
+                if (entry.notes && entry.notes.length) lastLog += ` — ${entry.notes[0]}`;
+            }
+
+            console.log(title);
+            console.log(deadline);
+            console.log(focus);
+            console.log(lastLog);
+        }).catch(() => process.exit(1));
+    ' "$SCHEMA_MJS" "$GOAL_MD" 2>/dev/null || true)"
+
+    title="$(printf '%s\n' "$goal_fields" | sed -n '1p')"
+    deadline="$(printf '%s\n' "$goal_fields" | sed -n '2p')"
+    focus="$(printf '%s\n' "$goal_fields" | sed -n '3p')"
+    last_log="$(printf '%s\n' "$goal_fields" | sed -n '4p')"
+
     [ -n "$title" ] || title="(untitled goal)"
-
-    deadline="$(first_line_after '^##[[:space:]]*Deadline[[:space:]]*$' "$GOAL_MD")"
-    deadline="$(printf '%s' "$deadline" | awk '{$1=$1;print}')"
     [ -n "$deadline" ] || deadline="none"
-
-    focus="$(grep -m1 '^FOCUS:' "$GOAL_MD" 2>/dev/null | sed 's/^FOCUS:[[:space:]]*//' || true)"
     [ -n "$focus" ] || focus="nothing set yet"
-
-    last_log="$(awk '
-        /^##[[:space:]]*Log[[:space:]]*$/ { found = 1; next }
-        found && /^##/ { exit }
-        found && /^- / { line = $0 }
-        END { print line }
-    ' "$GOAL_MD" || true)"
-    last_log="${last_log#- }"
     [ -n "$last_log" ] || last_log="no log entries yet"
 
     read -r -d '' goal_context <<CTX || true
@@ -204,7 +225,7 @@ focus, and last log entry the moment the user says anything.
 Four rules govern every Gambit skill and apply to this session generally when
 acting on this goal:
 
-**Elicit before committing.** Any skill that writes to GOAL.md shows the user
+**Elicit before committing.** Any skill that writes to GOAL.json shows the user
 its read and asks what they think first, before a focus is locked in — one
 exchange, then commit; a checkpoint, not a negotiation.
 

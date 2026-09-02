@@ -1,13 +1,13 @@
 ---
 name: onboard
-description: Use at the start of any session touching a goal — a vague first message ("I want to...", "help me with...", "help me plan...", "what's going on with this"), or any time it's unclear whether GOAL.md exists yet. Not a coding task even if the phrasing sounds like one ("help me plan" here means a life/business/campaign goal, not a software plan). Checks for GOAL.md and branches to a guided one-question-at-a-time intake for a new goal, or a welcome-back snapshot for a returning one, then hands off to strategy.
+description: Use at the start of any session touching a goal — a vague first message ("I want to...", "help me with...", "help me plan...", "what's going on with this"), or any time it's unclear whether GOAL.json exists yet. Not a coding task even if the phrasing sounds like one ("help me plan" here means a life/business/campaign goal, not a software plan). Checks for GOAL.json and branches to a guided one-question-at-a-time intake for a new goal, or a welcome-back snapshot for a returning one, then hands off to strategy.
 display: plain-card
 ---
 
 # Skill: onboard
 
 **Trigger**: The front door. Use whenever a session starts on a goal and it isn't
-already clear whether `GOAL.md` exists — a vague opening ("I want to do something about
+already clear whether `GOAL.json` exists — a vague opening ("I want to do something about
 X", "help me organise Y", "help me plan Z"), or simply returning to work without naming
 a skill. "Help me plan" here is a signal for this skill even though it sounds like it
 could be a coding request — check whether Z is a goal (a business, a campaign, a life
@@ -40,7 +40,7 @@ words ("let me work out where the leverage is"), not by naming the file.
 
 Apply the resolution rule in `skills/_shared/RESOLVING.md`:
 
-- **Case 1 (cwd `GOAL.md`) or case 2 (active goal in the store) resolves to a
+- **Case 1 (cwd `GOAL.json`) or case 2 (active goal in the store) resolves to a
   file** → **4. Returning User**
 - **Case 3 (exactly one goal in the store, none active)** → resolution sets
   it active silently → **4. Returning User**
@@ -53,7 +53,7 @@ Apply the resolution rule in `skills/_shared/RESOLVING.md`:
 
 Several goals exist in the store and none is active — the only case in the resolution
 rule that asks the user anything. List them (`gambit list`, or the equivalent read of
-`~/.gambit/goals/*/GOAL.md`) and ask plainly:
+`~/.gambit/goals/*/GOAL.json`) and ask plainly:
 
 ```
 You've got a few goals going:
@@ -164,12 +164,16 @@ means, and it must be visible from the start, or later audits will report "stall
 something that was never in the user's hands.
 
 Where a criterion isn't directly controllable, ask what the user *can* control that
-makes it more likely, and record both:
+makes it more likely, and record both — these become entries in the `successCriteria`
+key (each `{text, kind: 'control'|'influence'}`):
 
-```
-## Success criteria
-- [outcome — influence: what you're trying to move]
-- [outcome — control: what you can directly cause]
+```json
+{
+  "successCriteria": [
+    { "text": "[outcome you're trying to move]", "kind": "influence" },
+    { "text": "[what you can directly cause]", "kind": "control" }
+  ]
+}
 ```
 
 **3. Deadline.**
@@ -179,17 +183,17 @@ it's fixed and can't be moved.
 
 **4. People.**
 Ask only if the goal doesn't already make it obvious. If it's purely personal, skip it
-and omit `## People` entirely.
+and leave `people` as an empty array.
 
 If people are involved, ask who's actually committed versus who's been mentioned. The
 distinction matters more than the list does — later skills plan differently around a
-confirmed person than a hoped-for one.
+confirmed person than a hoped-for one. Each entry is `{name, status: 'confirmed'|'tentative'|'lead', doing}`.
 
 **5. Posture.**
 Do not ask. It gets introduced later, by `strategy`, only if the goal has real phases of
-intensity. Most first conversations shouldn't mention it.
+intensity. Most first conversations shouldn't mention it — leave `posture` as `null`.
 
-Stop as soon as you have enough for a real `GOAL.md` — a goal description and at least
+Stop as soon as you have enough for a real `GOAL.json` — a goal description and at least
 one concrete success criterion. Don't manufacture structure the goal doesn't need.
 
 #### 2c. Reflect back before writing
@@ -214,17 +218,18 @@ If step 1 reframed an opening activity into an outcome, name that once here too 
 Wait. Corrections at this point are cheap; corrections after three skills have built on
 a misread goal are not.
 
-#### 2d. Write GOAL.md
+#### 2d. Write GOAL.json
 
-Use the format in `strategy`'s **GOAL.md format** section.
+Use the shape in `strategy`'s **GOAL.json format** section.
 
 Where to write it follows the same resolution rule (`skills/_shared/RESOLVING.md`): if a
-cwd `GOAL.md` is the intended target (case 1 — an existing per-project setup, or the user
+cwd `GOAL.json` is the intended target (case 1 — an existing per-project setup, or the user
 explicitly wants a project-local goal), write there directly. Otherwise this is a new
 goal in the global store — run `gambit new "<goal title>"`, which derives a slug from the
-title, creates `~/.gambit/goals/<slug>/GOAL.md`, and sets it active; then write the full
-content (success criteria, deadline, people) into that file, replacing the stub the
-command created. Don't hand-derive the slug yourself — the CLI's derivation is the one
+title, creates `~/.gambit/goals/<slug>/GOAL.json` as a schema-default stub, and sets it
+active; then edit that file's `goal`, `successCriteria`, `deadline`, and `people` keys
+in place with the full intake content, leaving every other key at its stub default
+(`null` or `[]`). Don't hand-derive the slug yourself — the CLI's derivation is the one
 `gambit list`/`switch` expect.
 
 Confirm in two or three sentences of plain language — not a dump of the file.
@@ -238,13 +243,13 @@ Tell them what happens next before it happens:
 > Next I'll work out where to concentrate first — the one thing that moves this most.
 
 Then invoke `strategy`. Don't run `strategy`'s logic from inside this skill — hand off
-cleanly so it reads the fresh `GOAL.md` and does its own assessment.
+cleanly so it reads the fresh `GOAL.json` and does its own assessment.
 
 ---
 
 ### 4. Returning User
 
-`GOAL.md` exists. Do not re-interview — that discards their standing context.
+`GOAL.json` exists. Do not re-interview — that discards their standing context.
 
 #### 4a. Route direct asks straight through
 

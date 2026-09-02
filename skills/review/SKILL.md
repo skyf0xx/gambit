@@ -1,6 +1,6 @@
 ---
 name: review
-description: Use after a discrete event, milestone, or push has completed — successful or not. Runs a structured after-action review — what was expected, what happened, why they differed, what transfers to next time — and converts the findings into concrete changes. Distinct from eval, which audits progress against the goal rather than learning from a completed action.
+description: Use after a discrete event, milestone, or push has completed — successful or not. Runs a structured after-action review — what was expected, what happened, why they differed, what transfers to next time — and converts the findings into concrete changes. Distinct from eval, which audits progress against GOAL.json's success criteria rather than learning from a completed action. Appends to GOAL.json's log and folds findings into the plan.nextActions array.
 display: timeline
 ---
 
@@ -42,7 +42,7 @@ This skill examines the system that let it matter.
 
 ### 1. Load Context
 
-Read `GOAL.md` — the goal, the `## Plan` as it stood, `## People`, `## Risk notes`, and
+Read `GOAL.json` — the goal, the `plan` key as it stood, the `people` key, the `riskNotes` array, and
 the log entries covering the period being reviewed. If a `premortem` was run, pull its
 predicted causes: checking them against what actually happened is one of the most
 valuable comparisons available.
@@ -147,14 +147,41 @@ Does this change anything about what you're actually going for?
 
 If yes, hand to `strategy` — don't renegotiate the goal from inside a review.
 
-### 8. Update GOAL.md
+### 8. Update GOAL.json
 
-Log a compact entry: what was reviewed, the outcome against expectation, and the top one
-or two lessons. Fold "improve" items into `## Plan` as actions where they're concrete.
-Where a predicted risk proved wrong, update `## Risk notes` rather than leaving a stale
-rating standing.
+Append a compact `log` entry: what was reviewed, the outcome against expectation, and the top one
+or two lessons. Fold "improve" items into the `plan.nextActions` array where they're concrete — each as `{ action: "Review: <finding>", who, when }`. Where a predicted risk proved wrong, update the corresponding `riskNotes` array entry's `accepted` field if needed.
 
-Do not paste the full review into `GOAL.md` — the file holds current state, and the
+Example log entry with source="review":
+```json
+{
+  "log": [
+    {
+      "date": "2026-09-02",
+      "assessment": "on_track",
+      "focus": null,
+      "notes": ["Timing lag cost two days; process needs tightening", "Message landed better than expected — repeat that framing"],
+      "source": "review"
+    }
+  ]
+}
+```
+
+Example adding findings to plan.nextActions (preserve existing plan structure, just append to the array):
+```json
+{
+  "plan": {
+    "criticalPath": [...],
+    "nextActions": [
+      { "action": "Review: tighten comms timeline — coordinate internally before external announcement", "who": "you", "when": "before next phase" },
+      { "action": "Review: document the messaging that resonated for reuse", "who": "you", "when": "this week" }
+    ],
+    "status": "on_schedule"
+  }
+}
+```
+
+Do not paste the full review into `GOAL.json` — the file holds current state, and the
 detailed review belongs in the conversation or the user's own notes.
 
 ### 9. Name the Next Step

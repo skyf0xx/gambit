@@ -1,9 +1,10 @@
 // Store operations: list, create, switch, and keep the SQLite index in
-// sync with the GOAL.md files that are the actual source of truth.
+// sync with the GOAL.json files that are the actual source of truth.
 
 import { readFileSync, writeFileSync, existsSync, statSync, readdirSync, mkdirSync, rmSync, unlinkSync } from 'node:fs';
 import { openDb, withDb, inTransaction, ensureStoreDirs } from './db.mjs';
 import { goalsDir, goalDir, goalFile, activeFile } from './paths.mjs';
+import { safeParseGoalJson, stubGoal } from './schema.mjs';
 
 function slugify(title) {
   const base = title
@@ -22,18 +23,6 @@ function uniqueSlug(base) {
   return `${base}-${n}`;
 }
 
-// Parses the title (`# Goal` heading's following line) and deadline
-// (`## Deadline` heading's following line) out of a GOAL.md body — the
-// same two fields the format spec in skills/strategy/SKILL.md declares.
-function parseGoalMd(body) {
-  const titleMatch = body.match(/^#\s*Goal\s*\n+([^\n]+)/m);
-  const deadlineMatch = body.match(/^##\s*Deadline\s*\n+([^\n]+)/m);
-  const title = titleMatch ? titleMatch[1].trim() : '(untitled goal)';
-  const deadlineRaw = deadlineMatch ? deadlineMatch[1].trim() : null;
-  const deadline = deadlineRaw && !/^none$/i.test(deadlineRaw) ? deadlineRaw : null;
-  return { title, deadline };
-}
-
 function listSlugsOnDisk() {
   if (!existsSync(goalsDir())) return [];
   return readdirSync(goalsDir(), { withFileTypes: true })
@@ -41,7 +30,7 @@ function listSlugsOnDisk() {
     .map((e) => e.name);
 }
 
-// Rebuilds both tables from goals/*/GOAL.md. Preserves status, created_at,
+// Rebuilds both tables from goals/*/GOAL.json. Preserves status, created_at,
 // and last_active for slugs the index already knew about; anything no
 // longer on disk is dropped.
 export function reindex() {
@@ -65,7 +54,12 @@ export function reindex() {
 
       for (const slug of slugs) {
         const body = readFileSync(goalFile(slug), 'utf8');
-        const { title, deadline } = parseGoalMd(body);
+        const result = safeParseGoalJson(body);
+        if (!result.success) {
+          console.error(`gambit: skipping "${slug}" — invalid GOAL.json (${result.error})`);
+          continue;
+        }
+        const { goal: title, deadline } = result.data;
         const prior = existing.get(slug);
         const status = prior?.status ?? 'active';
         const createdAt = prior?.created_at ?? new Date().toISOString();
@@ -79,7 +73,7 @@ export function reindex() {
 }
 
 // Reindexes whenever the on-disk goal set has drifted from the index: a
-// slug added or removed, or a GOAL.md hand-edited (mtime newer than the
+// slug added or removed, or a GOAL.json hand-edited (mtime newer than the
 // mtime recorded at last index time). Cheap on the common case — one
 // query plus one stat() per goal, no reindex — so every read path can
 // call it unconditionally.
@@ -112,7 +106,7 @@ export function create(title) {
   const slug = uniqueSlug(slugify(title));
   mkdirSync(goalDir(slug), { recursive: true });
 
-  const body = `# Goal\n\n${title}\n\n## Success criteria\n- \n\n## Deadline\nnone\n\n## Log\n`;
+  const body = JSON.stringify(stubGoal(title), null, 2) + '\n';
   writeFileSync(goalFile(slug), body);
 
   reindex();
@@ -143,7 +137,7 @@ export function touch(slug) {
   });
 }
 
-// Deletes one goal: its goals/<slug>/ directory (GOAL.md and all) and its
+// Deletes one goal: its goals/<slug>/ directory (GOAL.json and all) and its
 // row in the index. If it was the active goal, clears `active` — the next
 // resolution falls through to the single-goal or onboard rule rather than
 // pointing at a slug that no longer exists.

@@ -39,8 +39,8 @@ ceremony.
 
 ### 1. Load Context
 
-Read `GOAL.md` — goal, success criteria, deadline, current focus, plan, people, and any
-`## Systems notes` or `## Risk notes` bearing on the choice.
+Read `GOAL.json` — goal, success criteria, deadline, current focus, plan, people, and any
+`systemsNotes` or `riskNotes` bearing on the choice.
 
 ### 2. State the Decision
 
@@ -77,7 +77,7 @@ sees coming.
 
 ### 4. Test Against the Goal
 
-Score each option against the success criteria in `GOAL.md` — not against how appealing
+Score each option against the success criteria in `GOAL.json` — not against how appealing
 it feels.
 
 ```
@@ -86,7 +86,7 @@ it feels.
   Option B                 neutral         advances        neutral
 ```
 
-If an option advances nothing in `GOAL.md`, name that plainly. It may still be right —
+If an option advances nothing in `GOAL.json`, name that plainly. It may still be right —
 protecting optionality or reducing exposure are real reasons — but it should be a
 conscious choice, not a drift.
 
@@ -101,7 +101,7 @@ Before I give you my read:
 
   - Which of these were you already leaning toward?
   - What's the part that's making you hesitate?
-  - Is there something about your situation that isn't in GOAL.md and should be
+  - Is there something about your situation that isn't in GOAL.json and should be
     weighing on this?
 ```
 
@@ -116,7 +116,7 @@ Then work with the answer:
   stop here and run `research` — an underinformed decision made on schedule is not
   better than a decision made once the fog clears.
 - **They surface new context.** Take it seriously. It usually outranks the analysis,
-  and it belongs in `GOAL.md`.
+  and it belongs in `GOAL.json`.
 
 ### 6. Give Your Read
 
@@ -131,7 +131,7 @@ WHAT WOULD CHANGE MY MIND: [specific, observable condition]
 
 ### 7. Confirm Before Recording
 
-Do not write to `GOAL.md` until the user has actually chosen. Explicitly:
+Do not write to `GOAL.json` until the user has actually chosen. Explicitly:
 
 ```
 Where do you want to land?
@@ -153,11 +153,24 @@ DECIDED [date]: [option chosen]
 `Reverse if` is the most important line. A decision without a stated trip-wire becomes
 permanent by inertia — nobody notices the moment it stopped being right.
 
-### 9. Update GOAL.md and Hand Off
+### 9. Update GOAL.json and Hand Off
 
-Log the decision as one entry: date, what was chosen, and the reverse-if condition.
-If the decision changes the plan, say so and hand off to `plan` to resequence. If it
-changes what matters most, hand off to `strategy` to reset the focus.
+Append the decision to the `decisions` array in `GOAL.json`. Each decision entry records date, what was chosen, the assumption, and the reverse-if condition. If the decision changes the plan, say so and hand off to `plan` to resequence. If it changes what matters most, hand off to `strategy` to reset the focus.
+
+Required fields per decision entry:
+- `date` (required, YYYY-MM-DD format): when this decision was made
+- `choice` (required, max 120 chars): the option chosen
+- `because` (optional, max 120 chars): the user's reasoning
+- `reverseIf` (required, max 120 chars): the specific signal that would reverse it
+- `reviewBy` (optional, YYYY-MM-DD format): when to review whether it's still right
+
+```json
+{
+  "decisions": [
+    { "date": "YYYY-MM-DD", "choice": "...", "because": "...", "reverseIf": "...", "reviewBy": "YYYY-MM-DD" }
+  ]
+}
+```
 
 ```
 Next: [plan to resequence | strategy to reset focus | nothing — this slots into the

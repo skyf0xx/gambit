@@ -42,8 +42,8 @@ Say that at the end, and mean it.
 
 ### 1. Load Context
 
-Read `GOAL.md` — goal, success criteria, deadline, `## Plan`, `## People`,
-`## Risk notes` and `## Systems notes` if present.
+Read `GOAL.json` — goal, success criteria, deadline, `plan` key, `people` key,
+`riskNotes` and `systemsNotes` keys if present.
 
 ### 2. Set the Scene
 
@@ -135,11 +135,23 @@ Two questions:
 The user's gut on which failure "feels real" is signal. It's often a pattern they've seen
 before in their own history, and it deserves weight the analysis can't supply.
 
-### 8. Update GOAL.md
+### 8. Update GOAL.json
 
-Add the fatal causes and their mitigations to `## Risk notes` (the section `threat`
-owns — append to it rather than creating a parallel section, and label them so the source
-is clear). Add any early-warning indicators as watch items. Log a one-line summary.
+Append the fatal causes and their mitigations to the `riskNotes` array (the array `threat` owns — append rather than replace, and label each with `source: "premortem"` so the source is clear). Add any early-warning indicators as watch items. Log a one-line summary.
+
+Each appended entry must have:
+- `item` (required, max 120 chars): the fatal cause or mitigation
+- `detail` (optional, max 120 chars): additional context
+- `source` (required): must be "premortem" for items this skill appends
+- `accepted` (required): boolean; true if user explicitly chose to accept this risk
+
+```json
+{
+  "riskNotes": [
+    { "item": "...", "detail": "...", "source": "premortem", "accepted": false }
+  ]
+}
+```
 
 ### 9. Name the Next Step
 

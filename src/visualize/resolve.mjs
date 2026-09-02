@@ -1,4 +1,4 @@
-// Resolves the same GOAL.md the rest of Gambit would use — mirrors
+// Resolves the same GOAL.json the rest of Gambit would use — mirrors
 // bin/cli.mjs's storePath(), which mirrors skills/_shared/RESOLVING.md.
 
 import { existsSync } from 'node:fs';
@@ -7,7 +7,7 @@ import * as store from '../store/index.mjs';
 import { goalFile } from '../store/paths.mjs';
 
 export function resolveGoalPath(cwd = process.cwd()) {
-  const cwdGoal = join(cwd, 'GOAL.md');
+  const cwdGoal = join(cwd, 'GOAL.json');
   if (existsSync(cwdGoal)) return cwdGoal;
 
   const slug = store.resolveActive();

@@ -1,6 +1,6 @@
 ---
 name: comms
-description: Use when the user needs to draft or sharpen outward communication in service of a GOAL.md goal — a post, pitch, update, or ask to the public or to people on the goal's People list. Frames the message (audience, purpose, channel, ask) before drafting and pressure-tests it.
+description: Use when the user needs to draft or sharpen outward communication in service of a GOAL.json goal — a post, pitch, update, or ask to the public or to people on the goal's people list. Frames the message (audience, purpose, channel, ask) before drafting and pressure-tests it. Appends to GOAL.json's log if the communication is a critical-path step.
 display: plain-card
 ---
 
@@ -8,7 +8,7 @@ display: plain-card
 
 **Trigger**: You need to say something in service of the goal — a post, a pitch, an update, an ask — and want it framed well before you send it.
 
-**Purpose**: Help the user plan and sharpen their own outward communication — to the public, or to specific people involved in the goal (recruiting a volunteer, briefing a collaborator, rallying people already on the `## People` list). This is about what *you* say and to whom, in your own voice.
+**Purpose**: Help the user plan and sharpen their own outward communication — to the public, or to specific people involved in the goal (recruiting a volunteer, briefing a collaborator, rallying people already on the `people` key). This is about what *you* say and to whom, in your own voice.
 
 ---
 
@@ -22,7 +22,7 @@ Adapts to the audience the user is writing for — warm where the audience is wa
 
 ### 1. Load Context
 
-Read `GOAL.md` — goal, success criteria, and current focus. Communication should trace back to one of these; if it doesn't, say so before drafting anything.
+Read `GOAL.json` — goal, success criteria, and current focus (if any). Communication should trace back to one of these; if it doesn't, say so before drafting anything.
 
 ### 2. Frame the Message
 
@@ -65,9 +65,23 @@ A draft that's sharper than the user's natural register will either not get sent
 sent and not sound like them. Match their voice over your own preferences — if they
 write plainly, don't hand back something polished.
 
-### 6. Update GOAL.md
+### 6. Update GOAL.json
 
-If this communication is a meaningful part of the current plan (e.g. a pitch that's a critical-path step), note it briefly in the log once sent. Don't log routine messages — this file tracks the goal, not a comms archive.
+If this communication is a meaningful part of the current plan (e.g. a pitch that's a critical-path step), append a brief entry to the `log` array once sent. Don't log routine messages — this file tracks the goal, not a comms archive.
+
+```json
+{
+  "log": [
+    {
+      "date": "2026-09-02",
+      "assessment": null,
+      "focus": null,
+      "notes": ["Sent pitch to council on [topic]"],
+      "source": "comms"
+    }
+  ]
+}
+```
 
 ### 7. Name the Next Step
 

@@ -1,8 +1,5 @@
-// Mermaid flowchart TD: one decision node, up to 4 option branches, no
-// further nesting. Used for `decide` (a recorded choice + reverse-if) and
-// `negotiate` (BATNA/ZOPA framed as a choice point).
-
-const MAX_OPTIONS = 4;
+// Mermaid flowchart TD: one decision node, the chosen option, and a
+// reverse-if branch. Used for `decide` (a recorded choice + reverse-if).
 
 function sanitizeLabel(s) {
   const cleaned = s.replace(/["`]/g, "'").replace(/\s+/g, ' ').trim();
@@ -10,34 +7,24 @@ function sanitizeLabel(s) {
   return `${cleaned.slice(0, 57).replace(/\s+\S*$/, '')}…`;
 }
 
-// Matches "- [YYYY-MM-DD] what was chosen — reverse if: signal"
-function parseDecisions(body) {
-  return body
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => /^-\s+/.test(l))
-    .map((l) => l.replace(/^-\s+/, ''));
-}
+// decisions: [{ date, choice, because?, reverseIf, reviewBy? }], append-only
+// (oldest first, matching `decide`'s append-to-array behavior and `log`'s
+// convention). Most recent decision only (last element) — a diagram per
+// decision would sprawl, and only the latest one is live; earlier ones are
+// just history.
+export function renderDecisionFork(decisions) {
+  if (!decisions || !decisions.length) return null;
 
-export function renderDecisionFork(sectionBody) {
-  const decisions = parseDecisions(sectionBody);
-  if (!decisions.length) return null;
-
-  // Most recent decision only — a diagram per decision would sprawl, and
-  // only the latest one is live; earlier ones are just history.
-  const latest = decisions[0];
-  const reverseSplit = latest.split(/reverse if:\s*/i);
-  const chosen = reverseSplit[0].replace(/^\[\d{4}-\d{2}-\d{2}\]\s*/, '').replace(/—\s*$/, '').trim();
-  const reverseIf = reverseSplit[1]?.trim();
+  const latest = decisions[decisions.length - 1];
 
   const lines = [
     'flowchart TD',
     `  d{"Decision"}`,
-    `  d --> chosen["${sanitizeLabel(chosen)}"]`,
+    `  d --> chosen["${sanitizeLabel(latest.choice)}"]`,
   ];
 
-  if (reverseIf) {
-    lines.push(`  chosen -.->|"reverses if: ${sanitizeLabel(reverseIf)}"| reversed["revisit"]`);
+  if (latest.reverseIf) {
+    lines.push(`  chosen -.->|"reverses if: ${sanitizeLabel(latest.reverseIf)}"| reversed["revisit"]`);
   }
 
   return lines.join('\n');
