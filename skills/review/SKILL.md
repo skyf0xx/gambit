@@ -149,8 +149,22 @@ If yes, hand to `strategy` — don't renegotiate the goal from inside a review.
 
 ### 8. Update GOAL.json
 
-Append a compact `log` entry: what was reviewed, the outcome against expectation, and the top one
-or two lessons. Fold "improve" items into the `nextActions` array of whichever line of operation the reviewed event belongs to, under `plan.linesOfOperation` — each as `{ action: "Review: <finding>", who, when, status: "pending" }`. If the event doesn't map cleanly to one line (or `plan` has only one), add it there rather than guessing a split. Preserve the `status` already on any existing action in that array — appending new findings is not a reason to touch ones already marked `done` or `dropped`. Where a predicted risk proved wrong, update the corresponding `riskNotes` array entry's `accepted` field if needed.
+Append a `log` entry: what was reviewed, the outcome against expectation, and the lessons —
+`notes` isn't rendered in the visual layer, so list findings freely rather than trimming to
+fit a short list; each entry still has its own 120-char cap, so split a long finding across
+multiple `notes` entries instead of cramming it into one. Fold "improve" items into the
+`nextActions` array of whichever line of operation the reviewed event belongs to, under
+`plan.linesOfOperation` — each as `{ action: "Review: <finding>", who, when, status: "pending" }`.
+`action` is `mediumLabel` (120-char hard cap) and **the `"Review: "` prefix counts against
+that cap** — budget the finding itself to under ~110 chars, not 120, and write it as a short
+label ("tighten comms timeline", not a full sentence explaining why). If the finding doesn't
+fit in that budget, put the label in `action` and the fuller explanation in that action's
+optional `detail` (max 280 chars, hover-only) instead of lengthening `action`. If the event
+doesn't map cleanly to one line (or `plan` has only one), add it there rather than guessing a
+split. Preserve the `status` already on any existing action in that array — appending new
+findings is not a reason to touch ones already marked `done` or `dropped`. Where a predicted
+risk proved wrong, update the corresponding `riskNotes` array entry's `accepted` field if
+needed.
 
 Example log entry with source="review":
 ```json
@@ -176,8 +190,8 @@ Example adding findings to a line's nextActions (preserve existing plan structur
         "label": "Main",
         "criticalPath": [...],
         "nextActions": [
-          { "action": "Review: tighten comms timeline — coordinate internally before external announcement", "who": "you", "when": "before next phase" },
-          { "action": "Review: document the messaging that resonated for reuse", "who": "you", "when": "this week" }
+          { "action": "Review: tighten comms timeline", "detail": "Coordinate internally before external announcement — this round's lag cost two days", "who": "you", "when": "before next phase" },
+          { "action": "Review: document winning message framing", "who": "you", "when": "this week" }
         ],
         "status": "on_schedule"
       }
@@ -188,6 +202,9 @@ Example adding findings to a line's nextActions (preserve existing plan structur
 
 Do not paste the full review into `GOAL.json` — the file holds current state, and the
 detailed review belongs in the conversation or the user's own notes.
+
+Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
+re-run before ending the turn — see AGENTS.md's "Validate every write."
 
 ### 9. Name the Next Step
 

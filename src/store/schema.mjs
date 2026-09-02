@@ -166,7 +166,7 @@ const logEntry = z.object({
   date: dateString,
   assessment: assessment.optional(),
   focus: z.string().max(160).nullable(),
-  notes: z.array(mediumLabel).max(5),
+  notes: z.array(mediumLabel).max(200),
   source: shortLabel.optional(),
 });
 

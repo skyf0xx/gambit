@@ -122,7 +122,7 @@ If something in an existing line has failed or stalled, name it, name the altern
 
 ### 8. Update GOAL.json
 
-Replace the `plan` key in `GOAL.json` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is a short (~40 char) name matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?}` objects (max 6 entries, `label` ~5 words); `nextActions` is capped at 5, each `{action, who, when, status, detail?}` with `status` one of `pending` (default), `done`, `dropped`. Set that line's own `status` to `on_schedule`, `at_risk`, or `blocked`, and set `blocker` only when `status` is `blocked`.
+Replace the `plan` key in `GOAL.json` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap); `nextActions` is capped at 5 entries, each `{action, who, when, status, detail?}` where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `status` is one of `pending` (default), `done`, `dropped`. Set that line's own `status` to `on_schedule`, `at_risk`, or `blocked`, and set `blocker` only when `status` is `blocked`.
 
 `detail` on a `criticalPath` step or a `nextAction` (max 280 chars, optional) is a hover
 tooltip in the visual layer — the reason this step is on the path, not a restatement of
@@ -153,6 +153,9 @@ the label. Fill it in only when the label alone won't jog memory later.
 If a criterion in `successCriteria` doesn't yet carry a `lineOfOperation` label matching one written here, set it to match — that's how `eval` and the visual layer connect a criterion to the line actually serving it.
 
 If this was a replan, append a `log` entry noting it.
+
+Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
+re-run before ending the turn — see AGENTS.md's "Validate every write."
 
 ### 9. Name the Next Step
 

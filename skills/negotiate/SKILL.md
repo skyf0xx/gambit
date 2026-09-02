@@ -189,6 +189,9 @@ given in a conversation and not recorded is one nobody can hold either side to.
 
 If it produced an agreement with obligations, hand to `plan` to sequence them.
 
+Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
+re-run before ending the turn — see AGENTS.md's "Validate every write."
+
 ```
 Next: [strengthen the BATNA | confirm a guessed interest → research |
        draft the opening → comms | after the conversation → review]

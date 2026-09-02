@@ -181,6 +181,9 @@ Each exposure entry must have:
 
 Log a one-line summary.
 
+Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
+re-run before ending the turn — see AGENTS.md's "Validate every write."
+
 ### 8. Name the Next Step
 
 ```

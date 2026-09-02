@@ -172,6 +172,9 @@ Required fields per decision entry:
 }
 ```
 
+Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
+re-run before ending the turn — see AGENTS.md's "Validate every write."
+
 ```
 Next: [plan to resequence | strategy to reset focus | nothing — this slots into the
        current plan]

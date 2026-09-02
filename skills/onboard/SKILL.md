@@ -251,6 +251,9 @@ nohup gambit visualize >/dev/null 2>&1 &
 Don't narrate this beyond mentioning once that a live view just opened — it's a
 side effect, not the deliverable.
 
+Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
+re-run before ending the turn — see AGENTS.md's "Validate every write."
+
 ---
 
 ### 3. Handoff (new goal)

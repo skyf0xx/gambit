@@ -265,6 +265,17 @@ it unless the fact is unreadable without it. The schema enforces field
 actually terse or actually a real label rather than a lazy placeholder;
 that's still this rule's job, in prose, on every write.
 
+Almost every string field is one of exactly two hard caps in
+`goalSchema`: `shortLabel` (40 chars) or `mediumLabel` (120 chars) — see
+`src/store/schema.mjs` for which each field is. "A few words" or "short"
+in a `SKILL.md` means one of these two numbers, not a stylistic
+suggestion. Treat 120 chars as roughly one plain sentence with no
+subordinate clause — a composed string (a template prefix like `"Review:
+"` plus a finding, or two clauses joined by `—`) is the most common way
+to blow it, because the prefix's length is easy to forget when judging
+whether the rest "looks short." When a field is a composed string, count
+the full rendered string, not just the part you're actively drafting.
+
 Gloss framework vocabulary once per session on first use, then use it
 freely. The analysis stays dense; only the entry cost comes down. A user
 who wants the whole picture in ordinary language has `brief`.

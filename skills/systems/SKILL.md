@@ -203,6 +203,9 @@ Replace the `systemsNotes` key with the Schwerpunkt recommendation and any criti
 }
 ```
 
+Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
+re-run before ending the turn — see AGENTS.md's "Validate every write."
+
 ### 11. Name the Next Step
 
 ```

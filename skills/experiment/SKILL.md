@@ -171,6 +171,9 @@ Update the `experiments` array. When one resolves, update the assumption's statu
 appears — a falsified assumption sitting unchallenged in the `systemsNotes` key or `plan` key
 is worse than one never tested.
 
+Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
+re-run before ending the turn — see AGENTS.md's "Validate every write."
+
 ```
 Next: [run the test, or the first step of it]
 

@@ -101,6 +101,9 @@ Then append the eval result as a `log` entry, with `source: "eval"`. This is the
 }
 ```
 
+Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
+re-run before ending the turn — see AGENTS.md's "Validate every write."
+
 ### 8. Name the Next Step
 
 An audit that ends in a finding with no route out leaves the user with a problem and no

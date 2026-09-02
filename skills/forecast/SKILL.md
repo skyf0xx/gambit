@@ -177,6 +177,9 @@ Resolved forecast (update the same entry):
 Keep resolved entries; they're the calibration record and the only reason the array has
 long-term value.
 
+Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
+re-run before ending the turn — see AGENTS.md's "Validate every write."
+
 ### 8. Name the Next Step
 
 ```

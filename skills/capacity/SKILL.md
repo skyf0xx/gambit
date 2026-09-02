@@ -184,6 +184,9 @@ Set the `capacity` key with the honest hours per week, the runway, and any speci
 Append a one-line summary to `log`. If capacity forces a scope change, hand to `plan` or `strategy`
 rather than quietly trimming the plan here.
 
+Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
+re-run before ending the turn — see AGENTS.md's "Validate every write."
+
 ### 10. Name the Next Step
 
 ```

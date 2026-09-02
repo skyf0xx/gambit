@@ -159,7 +159,7 @@ before the user acts on it.
 
 If posture changed, replace `posture.current` (`{level, label}`) — leave `posture.levels` and `posture.triggers` as they are unless the phases of intensity themselves changed.
 
-Append an object to `log` — date, assessment, and the focus just set. Keep `notes` to a few short entries — this is a running log, not a transcript.
+Append an object to `log` — date, assessment, and the focus just set. `notes` isn't rendered in the visual layer — it's the agent's own working record, not a user-scanned label — so don't force findings into an artificially short list; each entry still has its own 120-char cap (see AGENTS.md's char-cap note), so split a long finding into multiple entries rather than cramming it into one.
 
 ```json
 {
@@ -171,6 +171,8 @@ Append an object to `log` — date, assessment, and the focus just set. Keep `no
 ```
 
 `focus` on the log entry is the one place Schwerpunkt is persisted — the visual layer and the next session's context both read the most recent non-null `focus` across `log`, not a separate field.
+
+Immediately after writing, run `gambit check`. If it fails, fix the reported fields and re-run before ending the turn — see AGENTS.md's "Validate every write."
 
 ### 7. Name the Next Step
 
