@@ -5,10 +5,13 @@
 
 const MAX_NODES = 8;
 
-function sanitizeLabel(s) {
+// TD layout (see buildFlowchart below) gives each spoke's edge label its
+// own row rather than cramming it into a short horizontal band, so a
+// longer cap stays legible — raised from the old LR-era 50.
+function sanitizeLabel(s, max = 70) {
   const cleaned = s.replace(/["`]/g, "'").replace(/\s+/g, ' ').trim();
-  if (cleaned.length <= 50) return cleaned;
-  return `${cleaned.slice(0, 47).replace(/\s+\S*$/, '')}…`;
+  if (cleaned.length <= max) return cleaned;
+  return `${cleaned.slice(0, max - 3).replace(/\s+\S*$/, '')}…`;
 }
 
 function escapeHtml(s) {
@@ -36,13 +39,21 @@ function fallbackTable(labels) {
 }
 
 // nodes: [{ name, edgeLabel, detail? }]
+// Plain TD still puts every spoke on the same rank under center, so Mermaid
+// lays them out left-to-right — wide and short, cramping labels exactly
+// like the old LR version did. Chaining spoke -> spoke with an invisible
+// link (~~~) forces each one onto its own rank below the last, so the
+// diagram grows a real row per stakeholder instead of a wide single band;
+// the real "center -- label --> spoke" edges still carry the actual
+// relationship, the invisible link only controls vertical placement.
 function buildFlowchart(centerLabel, nodes) {
-  const lines = ['flowchart LR', `  center(("${sanitizeLabel(centerLabel)}"))`];
+  const lines = ['flowchart TD', `  center(("${sanitizeLabel(centerLabel, 24)}"))`];
   const tooltips = [];
   nodes.forEach(({ name, edgeLabel, detail }, i) => {
     const id = `s${i}`;
     lines.push(`  ${id}["${sanitizeLabel(name)}"]`);
     lines.push(edgeLabel ? `  center -- "${sanitizeLabel(edgeLabel)}" --> ${id}` : `  center --> ${id}`);
+    if (i > 0) lines.push(`  s${i - 1} ~~~ ${id}`);
     if (detail) tooltips.push({ id, text: sanitizeTooltip(detail) });
   });
   for (const t of tooltips) {
@@ -61,22 +72,6 @@ export function renderStakeholderNetwork(stakeholders, { centerLabel = 'Goal' } 
     name: s.name,
     edgeLabel: `${s.stanceCurrent} → ${s.stanceTarget}`,
     detail: s.detail,
-  }));
-  return buildFlowchart(centerLabel, nodes);
-}
-
-// riskNotes: [{ item, detail?, source, accepted }] — detail already existed
-// here and served as the edge label; it now also becomes the hover tooltip
-// since it's the same "why this risk matters" elaboration.
-export function renderRiskNetwork(riskNotes, { centerLabel = 'Goal' } = {}) {
-  if (!riskNotes.length) return null;
-  if (riskNotes.length > MAX_NODES) {
-    return fallbackTable(riskNotes.map((r) => r.item));
-  }
-  const nodes = riskNotes.map((r) => ({
-    name: r.item,
-    edgeLabel: r.detail ?? '',
-    detail: r.detail,
   }));
   return buildFlowchart(centerLabel, nodes);
 }

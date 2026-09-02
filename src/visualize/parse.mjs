@@ -5,16 +5,18 @@
 
 import { safeParseGoalJson } from '../store/schema.mjs';
 
-// Owned keys considered for the sections list, in a fixed display order.
+// Owned keys considered for the sections list, in a fixed display order —
+// what to do next, then are we winning, then who's involved and why, then
+// what could go wrong, then reference material that's checked less often.
 // Skipped when null/empty so an untouched goal doesn't render empty cards.
 const SECTION_KEYS = [
   'plan',
-  'systemsNotes',
-  'riskNotes',
   'criteriaStatus',
   'stakeholders',
-  'exposure',
+  'systemsNotes',
+  'riskNotes',
   'decisions',
+  'exposure',
   'capacity',
   'forecasts',
   'experiments',

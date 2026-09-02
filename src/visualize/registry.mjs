@@ -3,19 +3,22 @@
 // matching `display:` frontmatter field for humans reading the skill file,
 // but the server reads this table, not the frontmatter, at render time.
 //
-// Renderer types (kept to six deliberately — see AGENTS.md's formatting
-// philosophy: dense and scannable, not overdrawn). A section not listed
-// here falls back to 'plain-card'.
+// A diagram (network / decision-fork) is reserved for sections where the
+// relationships between items are themselves the point. Everything else —
+// including sequences like Plan and flat lists like Risk Notes — reads
+// faster as text than as a sparse Mermaid flowchart, so it's routed to
+// 'ordered-list' or 'risk-list'. A section not listed here falls back to
+// 'plain-card'.
 
 export const SECTION_RENDERERS = {
-  plan: 'lines-of-operation',
-  systemsNotes: 'lines-of-operation',
+  plan: 'ordered-list',
+  systemsNotes: 'ordered-list',
   criteriaStatus: 'checklist',
   capacity: 'checklist',
   experiments: 'checklist',
   forecasts: 'checklist',
   stakeholders: 'network',
-  riskNotes: 'network',
+  riskNotes: 'risk-list',
   decisions: 'decision-fork',
 };
 

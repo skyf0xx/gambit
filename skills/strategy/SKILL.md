@@ -1,7 +1,7 @@
 ---
 name: strategy
 description: Use when the user wants direction on a GOAL.json goal that already exists — starting a work session, asking "what should I focus on", or after a setback, new fact, deadline change, or escalation. Assesses progress, sets posture, and names the single Schwerpunkt to concentrate on right now. If GOAL.json doesn't exist yet, use onboard first.
-display: lines-of-operation
+display: ordered-list
 ---
 
 # Skill: strategy

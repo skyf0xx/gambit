@@ -1,7 +1,7 @@
 ---
 name: threat
 description: Use before committing to a plan or significant action, when something external changes, or to stress-test reasoning. Red-teams the plan for adversarial and non-adversarial failure modes, runs adversarial CoG analysis, assesses network exposure if people are involved, and flags interference indicators. Feeds findings to strategy and systems.
-display: network
+display: risk-list
 ---
 
 # Skill: threat
