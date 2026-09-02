@@ -198,7 +198,7 @@ two ever disagree, the schema wins.
   "goal": "[one or two sentence description, max ~200 chars]",
   "successCriteria": [
     { "text": "[specific, measurable condition]", "kind": "control" },
-    { "text": "[specific, measurable condition]", "kind": "influence", "detail": "[optional — why this matters, hover-only]" }
+    { "text": "[specific, measurable condition]", "kind": "influence", "lineOfOperation": "[optional — matches a plan.linesOfOperation[].label]", "detail": "[optional — why this matters, hover-only]" }
   ],
   "deadline": "YYYY-MM-DD or null",
   "people": [
@@ -213,12 +213,19 @@ two ever disagree, the schema wins.
     "triggers": ["[conditions that would force a change, if known]"]
   },
   "plan": {
-    "criticalPath": [
-      { "label": "A", "detail": "[optional — why this step exists, hover-only]" },
-      { "label": "B" },
-      { "label": "D" }
-    ],
-    "nextActions": [{ "action": "...", "who": "...", "when": "...", "detail": "[optional, hover-only]" }]
+    "linesOfOperation": [
+      {
+        "label": "[short name, matches a successCriteria[].lineOfOperation]",
+        "criticalPath": [
+          { "label": "A", "detail": "[optional — why this step exists, hover-only]" },
+          { "label": "B" },
+          { "label": "D" }
+        ],
+        "nextActions": [{ "action": "...", "who": "...", "when": "...", "detail": "[optional, hover-only]" }],
+        "status": "on_schedule",
+        "blocker": "[optional, only when status is blocked]"
+      }
+    ]
   },
   "systemsNotes": {
     "schwerpunkt": "...",
@@ -227,7 +234,7 @@ two ever disagree, the schema wins.
   },
   "riskNotes": [{ "item": "...", "source": "threat", "accepted": false }],
   "criteriaStatus": [
-    { "text": "[verbatim from successCriteria]", "kind": "control", "status": "on_track", "detail": "[optional — why this status, hover-only]" }
+    { "text": "[verbatim from successCriteria]", "kind": "control", "lineOfOperation": "[optional, echoes the matching successCriteria entry]", "status": "on_track", "detail": "[optional — why this status, hover-only]" }
   ],
   "stakeholders": [
     { "name": "...", "power": "high", "stanceCurrent": "...", "stanceTarget": "...", "via": "...", "detail": "[optional, hover-only]" }
@@ -253,7 +260,7 @@ Several array fields carry an optional `detail` (max 280 chars) — a hover-only
 in the visual layer, shown alongside the short scannable label rather than replacing it.
 It exists so a user returning later can see *why* a terse label was written without the
 label itself getting longer. Fill it in only when there's a genuinely non-obvious reason
-worth preserving, not mechanically on every entry. `plan.criticalPath` and
+worth preserving, not mechanically on every entry. `plan.linesOfOperation[].criticalPath` and
 `systemsNotes.topFindings` are the two fields reshaped from bare label strings to
 `{label, detail?}` objects to carry this; every other touched field just gains `detail`
 alongside its existing keys. `postureLevel.meaning`, `riskNote.detail`,

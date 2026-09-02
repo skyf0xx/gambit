@@ -41,8 +41,7 @@ PEOPLE
   [count confirmed / tentative, or omit this block entirely if the `people` key is empty]
 
 PLAN
-  Critical path: [from the `plan.criticalPath` key, or "no plan yet"]
-  Status: on_schedule | at_risk | blocked | unknown
+  [one line per plan.linesOfOperation entry: "label — critical path — status", or "no plan yet"]
 
 LAST EVAL
   [from most recent `log` entry with `source: "eval"`, or "never run"]

@@ -18,7 +18,7 @@ function escapeHtml(s) {
   return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
-// Same tooltip mechanism as linesOfOperation.mjs — a bound `click ... call`
+// Same tooltip mechanism as orderedList.mjs — a bound `click ... call`
 // directive survives securityLevel: 'strict' and Mermaid renders it as a
 // title attr on the node's SVG group.
 function sanitizeTooltip(s) {

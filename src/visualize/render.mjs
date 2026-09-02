@@ -60,7 +60,30 @@ function titleForKey(key) {
 // card. Falls through to plain-card whenever the specialised renderer finds
 // nothing it can draw (e.g. an empty array slipping through) rather than
 // showing an empty diagram.
+// plan.linesOfOperation fans out into one ordered-list card per line rather
+// than one 'Plan' card, since each line has its own independent critical
+// path and next actions — collapsing them back into one card is the flat
+// shape this was split out of.
+function renderPlanSection(section) {
+  const tier = SECTION_TIER.plan ?? 'secondary';
+  return section.data.linesOfOperation.map((line) => {
+    const body = `${renderOrderedList(line.criticalPath)}${
+      line.nextActions?.length
+        ? `<ul class="plain-list">${line.nextActions
+            .map(
+              (a) =>
+                `<li><span class="step-label">${escapeHtml(a.action)}</span><span class="step-detail">${escapeHtml(a.who)} — ${escapeHtml(a.when)}</span></li>`
+            )
+            .join('\n')}</ul>`
+        : ''
+    }`;
+    return { kind: 'html', title: `Plan: ${line.label}`, tier, key: 'plan', body };
+  });
+}
+
 function renderSection(section, ctx) {
+  if (section.key === 'plan') return renderPlanSection(section);
+
   const type = rendererForSection(section.key);
   const title = titleForKey(section.key);
   const tier = SECTION_TIER[section.key] ?? 'secondary';
@@ -80,7 +103,7 @@ function renderSection(section, ctx) {
     }
 
     case 'ordered-list': {
-      const steps = section.key === 'plan' ? section.data.criticalPath : section.data.topFindings;
+      const steps = section.data.topFindings;
       return { kind: 'html', title, tier, key, body: renderOrderedList(steps) };
     }
 
@@ -107,7 +130,7 @@ function renderSection(section, ctx) {
 
 export function renderGoal(rawBody) {
   const parsed = parseGoalMd(rawBody);
-  const cards = parsed.sections.map((s) => renderSection(s, { centerLabel: parsed.title }));
+  const cards = parsed.sections.flatMap((s) => renderSection(s, { centerLabel: parsed.title }));
 
   return {
     title: parsed.title,

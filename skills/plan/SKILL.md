@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Use to break a GOAL.json goal or current focus into a sequenced, dependency-aware plan — starting a new push, replanning after a failure, or when the existing plan feels stale. Builds a dependency graph, identifies the critical path, scales pace to posture, and lists the next 3-5 concrete actions.
+description: Use to break a GOAL.json goal or current focus into one or more sequenced, dependency-aware lines of operation — starting a new push, replanning after a failure, or when the existing plan feels stale. Builds a dependency graph per line, identifies each line's critical path, scales pace to posture, and lists the next 3-5 concrete actions per line.
 display: ordered-list
 ---
 
@@ -8,7 +8,7 @@ display: ordered-list
 
 **Trigger**: You need to break the goal (or the current focus from `strategy`) into concrete, ordered steps — starting a new push, replanning after something failed, or the existing plan feels stale.
 
-**Purpose**: Turn a goal or focus into a sequenced, dependency-aware plan. If the goal involves other people, sequence what they do too. Identify the critical path and what can run in parallel. Scale pace to current posture. Replan on failure without dwelling on it.
+**Purpose**: Turn a goal or focus into one or more sequenced, dependency-aware lines of operation. If the goal involves other people, sequence what they do too. Identify each line's critical path and what can run in parallel within it. Scale pace to current posture. Replan on failure without dwelling on it.
 
 ---
 
@@ -35,11 +35,17 @@ No systems read backs this focus (or confidence was low / stale). The plan
 below will assume it holds. Run systems first, or proceed anyway?
 ```
 
-Proceed only on explicit confirmation. If the user proceeds without resolving it, carry the caveat into the plan itself (see step 2) rather than dropping it.
+Proceed only on explicit confirmation. If the user proceeds without resolving it, carry the caveat into the plan itself (see step 3) rather than dropping it.
 
-### 2. Build the Dependency Graph
+### 2. Identify the Lines of Operation
 
-Enumerate the concrete actions needed, and their dependencies. If an action belongs to someone specific, name them. If an action's payoff depends on an unverified premise about how a third party or system will behave — not just whether the user can do it, but whether doing it produces the intended effect — flag that node explicitly rather than sequencing it at face value:
+A goal is one line of operation when its actions share one dependency chain toward one outcome. It's more than one when distinct success criteria are reached by genuinely separate action sets — nothing in one blocks or feeds the other (e.g. "raise funding" and "get the permit" don't share steps). Don't split a single thread into fake parallel lines just to look thorough, and don't force two unrelated tracks into one chain just to keep it simple — check `successCriteria` for a `lineOfOperation` label already set; if none exists yet, propose one per genuinely independent track and confirm before building each graph.
+
+Each line gets a short label (e.g. "Funding", "Permit") — this is what ties it back to the success criterion it serves.
+
+### 3. Build the Dependency Graph (per line)
+
+For each line of operation, enumerate the concrete actions needed, and their dependencies. If an action belongs to someone specific, name them. If an action's payoff depends on an unverified premise about how a third party or system will behave — not just whether the user can do it, but whether doing it produces the intended effect — flag that node explicitly rather than sequencing it at face value:
 
 ```
 Action A — no dependencies — can start immediately — [you | person's name/role]
@@ -54,9 +60,9 @@ Parallel opportunity: B and C once A is done
 
 Don't let an unverified assumption sit silently inside an otherwise-confident-looking graph — a flagged node changes what "next action" should be (verify the premise cheaply) versus an unflagged one (execute the expensive step directly).
 
-### 3. Identify the Critical Path
+### 4. Identify Each Line's Critical Path
 
-Call out the single longest dependency chain that, if delayed, delays the goal the most. Keep each node a short label — arrow-chain it on one line if the labels are short enough to fit; switch to one bullet per step rather than let the line wrap:
+For each line, call out the single longest dependency chain that, if delayed, delays that line's outcome the most. Keep each node a short label — arrow-chain it on one line if the labels are short enough to fit; switch to one bullet per step rather than let the line wrap:
 
 ```
 CRITICAL PATH: [A] → [B] → [D]
@@ -75,23 +81,23 @@ Status: on_schedule | at_risk | blocked
 Blocker (if any): [what's blocking, what resolves it]
 ```
 
-### 4. Apply Posture
+### 5. Apply Posture
 
-If `GOAL.json`'s `posture` key is set, scale the plan to the current level: how many things run in parallel, how much you ask of any one person, how tight the timeline is. Higher posture means more concurrent asks and less margin — say so if the plan is pushing people harder than the posture level implies, or if it's under-using the posture the situation actually calls for.
+If `GOAL.json`'s `posture` key is set, scale the plan to the current level: how many things run in parallel — within a line, and across lines — how much you ask of any one person, how tight the timeline is. Higher posture means more concurrent asks and less margin — say so if the plan is pushing people harder than the posture level implies, or if it's under-using the posture the situation actually calls for.
 
-### 5. Sequence Next Actions
+### 6. Sequence Next Actions (per line)
 
-List the next 3-5 actions in priority order — Schwerpunkt alignment first, then critical-path position. Each one should be concrete enough to start today, and clear about who does it.
+For each line, list its next 3-5 actions in priority order — Schwerpunkt alignment first, then critical-path position. Each one should be concrete enough to start today, and clear about who does it. If more than one line is active, say which one deserves the user's attention first rather than leaving every line's next action looking equally urgent.
 
 ```
-NEXT
+[Line label] NEXT
 1. [action] — [you | who] — unblocks: [...] — [today|this week]
 2. ...
 ```
 
 If an action depends on someone who hasn't confirmed, flag that explicitly — don't plan around a person as if their involvement is settled when `people` marks them `tentative`.
 
-### 5b. Reality-Check the Sequence
+### 6b. Reality-Check the Sequence
 
 You know the dependencies. The user knows what's actually feasible for them this week.
 Ask before committing the plan:
@@ -105,16 +111,16 @@ Before I write this down:
 
 A plan the user privately knows they won't execute is worse than a shorter one they
 will. If they flag an action as unrealistic, resequence around it rather than logging it
-and watching it rot. If the whole critical path is unrealistic, that's a signal for
+and watching it rot. If a whole line's critical path is unrealistic, that's a signal for
 `strategy` to reset the focus — say so rather than trimming the plan until it fits.
 
-### 6. Flag Blockers and Replans
+### 7. Flag Blockers and Replans
 
-If something in the existing plan has failed or stalled, name it, name the alternative path, and drop the dead branch. If there's no alternative, say so plainly — that's a signal for `strategy` to reassess the focus, not for this skill to paper over.
+If something in an existing line has failed or stalled, name it, name the alternative path, and drop the dead branch. If there's no alternative for that line, say so plainly — that's a signal for `strategy` to reassess the focus, not for this skill to paper over. A blocked line doesn't automatically block others — say which lines are affected.
 
-### 7. Update GOAL.json
+### 8. Update GOAL.json
 
-Replace the `plan` key in `GOAL.json` with the current critical path and next actions, rather than accumulating old ones. `criticalPath` entries are `{label, detail?}` objects (max 6 entries, `label` ~5 words); `nextActions` is capped at 5. Set `status` to `on_schedule`, `at_risk`, or `blocked`, and set `blocker` only when `status` is `blocked`.
+Replace the `plan` key in `GOAL.json` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is a short (~40 char) name matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?}` objects (max 6 entries, `label` ~5 words); `nextActions` is capped at 5. Set that line's `status` to `on_schedule`, `at_risk`, or `blocked`, and set `blocker` only when `status` is `blocked`.
 
 `detail` on a `criticalPath` step or a `nextAction` (max 280 chars, optional) is a hover
 tooltip in the visual layer — the reason this step is on the path, not a restatement of
@@ -123,23 +129,30 @@ the label. Fill it in only when the label alone won't jog memory later.
 ```json
 {
   "plan": {
-    "criticalPath": [
-      { "label": "A", "detail": "..." },
-      { "label": "B" },
-      { "label": "D" }
-    ],
-    "nextActions": [
-      { "action": "...", "who": "you | name", "when": "today | this week" }
-    ],
-    "status": "on_schedule",
-    "blocker": "..."
+    "linesOfOperation": [
+      {
+        "label": "Main",
+        "criticalPath": [
+          { "label": "A", "detail": "..." },
+          { "label": "B" },
+          { "label": "D" }
+        ],
+        "nextActions": [
+          { "action": "...", "who": "you | name", "when": "today | this week" }
+        ],
+        "status": "on_schedule",
+        "blocker": "..."
+      }
+    ]
   }
 }
 ```
 
+If a criterion in `successCriteria` doesn't yet carry a `lineOfOperation` label matching one written here, set it to match — that's how `eval` and the visual layer connect a criterion to the line actually serving it.
+
 If this was a replan, append a `log` entry noting it.
 
-### 8. Name the Next Step
+### 9. Name the Next Step
 
 End on the single first action, not the whole list — a plan handed over without a clear
 first move gets read and not started.

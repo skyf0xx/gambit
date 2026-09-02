@@ -9,7 +9,7 @@ function escapeHtml(s) {
   return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
-// steps: [{ label, detail? }] — plan.criticalPath or systemsNotes.topFindings.
+// steps: [{ label, detail? }] — a plan line's criticalPath, or systemsNotes.topFindings.
 // Rendered as a numbered sequence so the "critical path" reading order is
 // still visually obvious without a flowchart.
 export function renderOrderedList(steps) {

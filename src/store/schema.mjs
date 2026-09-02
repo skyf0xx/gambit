@@ -30,6 +30,7 @@ const detail = z.string().max(280).optional();
 const successCriterion = z.object({
   text: z.string().min(1).max(120),
   kind,
+  lineOfOperation: shortLabel.optional(),
   detail,
 });
 
@@ -67,11 +68,16 @@ const labeledStep = z.object({
   detail,
 });
 
-const plan = z.object({
+const lineOfOperation = z.object({
+  label: shortLabel,
   criticalPath: z.array(labeledStep).max(6),
   nextActions: z.array(nextAction).max(5),
   status: z.enum(['on_schedule', 'at_risk', 'blocked']).optional(),
   blocker: mediumLabel.optional(),
+});
+
+const plan = z.object({
+  linesOfOperation: z.array(lineOfOperation).min(1),
 });
 
 const labeledFinding = z.object({
@@ -96,6 +102,7 @@ const riskNote = z.object({
 const criterionStatus = z.object({
   text: z.string().min(1).max(120),
   kind,
+  lineOfOperation: shortLabel.optional(),
   status: assessment,
   detail,
 });

@@ -150,7 +150,7 @@ If yes, hand to `strategy` — don't renegotiate the goal from inside a review.
 ### 8. Update GOAL.json
 
 Append a compact `log` entry: what was reviewed, the outcome against expectation, and the top one
-or two lessons. Fold "improve" items into the `plan.nextActions` array where they're concrete — each as `{ action: "Review: <finding>", who, when }`. Where a predicted risk proved wrong, update the corresponding `riskNotes` array entry's `accepted` field if needed.
+or two lessons. Fold "improve" items into the `nextActions` array of whichever line of operation the reviewed event belongs to, under `plan.linesOfOperation` — each as `{ action: "Review: <finding>", who, when }`. If the event doesn't map cleanly to one line (or `plan` has only one), add it there rather than guessing a split. Where a predicted risk proved wrong, update the corresponding `riskNotes` array entry's `accepted` field if needed.
 
 Example log entry with source="review":
 ```json
@@ -167,16 +167,21 @@ Example log entry with source="review":
 }
 ```
 
-Example adding findings to plan.nextActions (preserve existing plan structure, just append to the array):
+Example adding findings to a line's nextActions (preserve existing plan structure — other lines, that line's criticalPath — just append to the one array):
 ```json
 {
   "plan": {
-    "criticalPath": [...],
-    "nextActions": [
-      { "action": "Review: tighten comms timeline — coordinate internally before external announcement", "who": "you", "when": "before next phase" },
-      { "action": "Review: document the messaging that resonated for reuse", "who": "you", "when": "this week" }
-    ],
-    "status": "on_schedule"
+    "linesOfOperation": [
+      {
+        "label": "Main",
+        "criticalPath": [...],
+        "nextActions": [
+          { "action": "Review: tighten comms timeline — coordinate internally before external announcement", "who": "you", "when": "before next phase" },
+          { "action": "Review: document the messaging that resonated for reuse", "who": "you", "when": "this week" }
+        ],
+        "status": "on_schedule"
+      }
+    ]
   }
 }
 ```

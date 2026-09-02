@@ -183,7 +183,11 @@ const fixtureObj = {
   deadline: '2026-12-31',
   people: [],
   posture: null,
-  plan: { criticalPath: [{ label: 'A', detail: 'first step detail' }, { label: 'B' }, { label: 'C' }], nextActions: [] },
+  plan: {
+    linesOfOperation: [
+      { label: 'Main', criticalPath: [{ label: 'A', detail: 'first step detail' }, { label: 'B' }, { label: 'C' }], nextActions: [] },
+    ],
+  },
   systemsNotes: null,
   riskNotes: [{ item: 'Some risk', detail: 'likelihood low', source: 'threat', accepted: false }],
   criteriaStatus: [
@@ -214,7 +218,7 @@ check('focus is most recent non-null log entry focus', parsed.focus === 'concent
 
 const rendered = renderGoal(fixture);
 const byTitle = Object.fromEntries(rendered.cards.map((c) => [c.title, c]));
-check('Plan renders as html ordered-list', byTitle['Plan']?.kind === 'html' && byTitle['Plan'].body.includes('ordered-list'));
+check('Plan renders as html ordered-list per line of operation', byTitle['Plan: Main']?.kind === 'html' && byTitle['Plan: Main'].body.includes('ordered-list'));
 check('Criteria status renders as html checklist', byTitle['Criteria status']?.kind === 'html' && byTitle['Criteria status'].body.includes('checklist'));
 check('Stakeholders renders as mermaid network', byTitle['Stakeholders']?.kind === 'mermaid' && byTitle['Stakeholders'].body.includes('center'));
 check('Risk notes renders as html risk-list', byTitle['Risk notes']?.kind === 'html' && byTitle['Risk notes'].body.includes('risk-list'));
