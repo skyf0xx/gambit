@@ -60,6 +60,7 @@ const nextAction = z.object({
   action: mediumLabel,
   who: shortLabel,
   when: shortLabel,
+  status: z.enum(['pending', 'done', 'dropped']).default('pending'),
   detail,
 });
 

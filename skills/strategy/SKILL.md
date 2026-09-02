@@ -91,6 +91,15 @@ candidate that comes easily to mind. If the candidate focus is built around cont
 capitalising on the user's most recent move, treat that as one hypothesis to test in 4b,
 not a conclusion — its own recency is exactly what makes it easy to overweight.
 
+A specific case of the same trap: if a `plan.linesOfOperation` entry just closed (its
+critical path completed, or its `status` moved to done) since the last session, that
+closure is not itself a focus — it's the reason to pick a new one. Report the closure in
+`notes`, then set `FOCUS` to whatever line or leverage point deserves concentration now
+that this one is closed — one of the remaining open lines, a newly-exposed bottleneck, or
+a fresh Schwerpunkt if the closure changes the picture. Writing "[line] closed" as the
+`focus` itself leaves the user with no forward direction and fails the state-not-task
+rule above the same way an action-shaped focus does.
+
 ### 4b. Test the Focus Before Committing It
 
 The user knows things about their situation that aren't in `GOAL.json`. Surface them
@@ -221,7 +230,7 @@ two ever disagree, the schema wins.
           { "label": "B" },
           { "label": "D" }
         ],
-        "nextActions": [{ "action": "...", "who": "...", "when": "...", "detail": "[optional, hover-only]" }],
+        "nextActions": [{ "action": "...", "who": "...", "when": "...", "status": "pending | done | dropped", "detail": "[optional, hover-only]" }],
         "status": "on_schedule",
         "blocker": "[optional, only when status is blocked]"
       }

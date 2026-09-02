@@ -89,6 +89,8 @@ If `GOAL.json`'s `posture` key is set, scale the plan to the current level: how 
 
 For each line, list its next 3-5 actions in priority order — Schwerpunkt alignment first, then critical-path position. Each one should be concrete enough to start today, and clear about who does it. If more than one line is active, say which one deserves the user's attention first rather than leaving every line's next action looking equally urgent.
 
+**Carry status forward.** Because this step replaces the whole `nextActions` array, a newly-done or newly-dropped action from the existing plan doesn't survive unless you re-add it. Before dropping an action off the list, check its current `status`: if it's genuinely done or intentionally dropped since the last plan write, keep it in the array with `status: "done"` or `"dropped"` rather than deleting it outright — that's how the visual layer shows a checkmark instead of the action just vanishing. Only remove an action entirely when it was never real (a duplicate, a misfire) rather than something that actually happened. New actions default to `status: "pending"`.
+
 ```
 [Line label] NEXT
 1. [action] — [you | who] — unblocks: [...] — [today|this week]
@@ -120,7 +122,7 @@ If something in an existing line has failed or stalled, name it, name the altern
 
 ### 8. Update GOAL.json
 
-Replace the `plan` key in `GOAL.json` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is a short (~40 char) name matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?}` objects (max 6 entries, `label` ~5 words); `nextActions` is capped at 5. Set that line's `status` to `on_schedule`, `at_risk`, or `blocked`, and set `blocker` only when `status` is `blocked`.
+Replace the `plan` key in `GOAL.json` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is a short (~40 char) name matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?}` objects (max 6 entries, `label` ~5 words); `nextActions` is capped at 5, each `{action, who, when, status, detail?}` with `status` one of `pending` (default), `done`, `dropped`. Set that line's own `status` to `on_schedule`, `at_risk`, or `blocked`, and set `blocker` only when `status` is `blocked`.
 
 `detail` on a `criticalPath` step or a `nextAction` (max 280 chars, optional) is a hover
 tooltip in the visual layer — the reason this step is on the path, not a restatement of
@@ -138,7 +140,7 @@ the label. Fill it in only when the label alone won't jog memory later.
           { "label": "D" }
         ],
         "nextActions": [
-          { "action": "...", "who": "you | name", "when": "today | this week" }
+          { "action": "...", "who": "you | name", "when": "today | this week", "status": "pending" }
         ],
         "status": "on_schedule",
         "blocker": "..."

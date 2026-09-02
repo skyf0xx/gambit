@@ -274,8 +274,13 @@ export function renderPage(goal) {
     align-items: center; justify-content: center; }
 
   ul.next-actions { list-style: none; margin: 0.4rem 0 0; padding: 0.7rem 0 0 1.9rem; border-top: 1px dashed var(--border); }
-  ul.next-actions li { display: flex; justify-content: space-between; gap: 0.8rem; padding: 0.3rem 0; font-size: 0.86rem; }
+  ul.next-actions li { display: flex; align-items: baseline; justify-content: space-between; gap: 0.8rem; padding: 0.3rem 0; font-size: 0.86rem; }
+  ul.next-actions .icon { flex: 0 0 auto; width: 1.1rem; text-align: center; font-weight: bold; }
   ul.next-actions .who { color: var(--muted); white-space: nowrap; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; }
+  ul.next-actions li.done .icon { color: var(--ok); }
+  ul.next-actions li.done > span:nth-child(2) { color: var(--muted); text-decoration: line-through; }
+  ul.next-actions li.dropped .icon { color: var(--bad); }
+  ul.next-actions li.dropped > span:nth-child(2) { color: var(--faint); text-decoration: line-through; }
 
   /* checklist (criteria status, experiments, forecasts, capacity) */
   ul.checklist { list-style: none; margin: 0; padding: 0; font-size: 0.92rem; }

@@ -48,12 +48,16 @@ export function parseGoalMd(rawBody) {
   const posture = goal.posture;
 
   // Single most useful next action across every line of operation, for the
-  // always-visible Bridge. "Most useful" here just means "the first one
-  // written" — plan writes nextActions in priority order per line, and the
-  // first line of operation is itself the one plan.mjs leads with — so the
-  // first line's first action is the closest thing to a single next step
-  // without inventing a cross-line prioritization the schema doesn't carry.
-  const nextAction = goal.plan?.linesOfOperation.find((l) => l.nextActions?.length)?.nextActions[0] ?? null;
+  // always-visible Bridge. "Most useful" here just means "the first pending
+  // one written" — plan writes nextActions in priority order per line, and
+  // the first line of operation is itself the one plan.mjs leads with — so
+  // the first line's first still-open action is the closest thing to a
+  // single next step without inventing a cross-line prioritization the
+  // schema doesn't carry. done/dropped actions are skipped: they're not a
+  // next step anymore, just a record of one that closed out.
+  const firstPending = (l) => l.nextActions?.find((a) => (a.status ?? 'pending') === 'pending');
+  const lineWithPending = goal.plan?.linesOfOperation.find((l) => firstPending(l));
+  const nextAction = lineWithPending ? firstPending(lineWithPending) : null;
 
   return { title, criteria, deadline, sections, focus, posture, nextAction };
 }

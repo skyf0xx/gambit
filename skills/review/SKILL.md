@@ -150,7 +150,7 @@ If yes, hand to `strategy` — don't renegotiate the goal from inside a review.
 ### 8. Update GOAL.json
 
 Append a compact `log` entry: what was reviewed, the outcome against expectation, and the top one
-or two lessons. Fold "improve" items into the `nextActions` array of whichever line of operation the reviewed event belongs to, under `plan.linesOfOperation` — each as `{ action: "Review: <finding>", who, when }`. If the event doesn't map cleanly to one line (or `plan` has only one), add it there rather than guessing a split. Where a predicted risk proved wrong, update the corresponding `riskNotes` array entry's `accepted` field if needed.
+or two lessons. Fold "improve" items into the `nextActions` array of whichever line of operation the reviewed event belongs to, under `plan.linesOfOperation` — each as `{ action: "Review: <finding>", who, when, status: "pending" }`. If the event doesn't map cleanly to one line (or `plan` has only one), add it there rather than guessing a split. Preserve the `status` already on any existing action in that array — appending new findings is not a reason to touch ones already marked `done` or `dropped`. Where a predicted risk proved wrong, update the corresponding `riskNotes` array entry's `accepted` field if needed.
 
 Example log entry with source="review":
 ```json

@@ -122,10 +122,11 @@ function renderPlanSection(section) {
       const stepsHtml = renderOrderedList(line.criticalPath);
       const actionsHtml = line.nextActions?.length
         ? `<ul class="next-actions">${line.nextActions
-            .map(
-              (a) =>
-                `<li><span${a.detail ? ` title="${escapeHtml(a.detail)}"` : ''}>${escapeHtml(a.action)}</span><span class="who">${escapeHtml(a.who)} · ${escapeHtml(a.when)}</span></li>`
-            )
+            .map((a) => {
+              const status = a.status ?? 'pending';
+              const icon = status === 'done' ? '✓' : status === 'dropped' ? '✕' : '·';
+              return `<li class="${status}"><span class="icon">${icon}</span><span${a.detail ? ` title="${escapeHtml(a.detail)}"` : ''}>${escapeHtml(a.action)}</span><span class="who">${escapeHtml(a.who)} · ${escapeHtml(a.when)}</span></li>`;
+            })
             .join('\n')}</ul>`
         : '';
       const blockerHtml = line.blocker
