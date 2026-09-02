@@ -95,7 +95,7 @@ export function renderPage(goal) {
 <div class="disconnected" id="disconnected">Reconnecting…</div>
 <header>
   <h1>${escapeHtml(goal.shortTitle)}</h1>
-  <div class="meta"${goal.lastLogFull ? ` title="${escapeHtml(goal.lastLogFull)}"` : ''}>${goal.deadline ? `Deadline: ${escapeHtml(goal.deadline)}` : 'No deadline set'}${goal.lastLogLine ? ` · ${escapeHtml(goal.lastLogLine)}` : ''}</div>
+  <div class="meta">${goal.deadline ? `Deadline: ${escapeHtml(goal.deadline)}` : 'No deadline set'}</div>
 </header>
 ${focusHtml(goal.focus)}
 ${criteriaHtml(goal.criteria)}

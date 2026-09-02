@@ -40,7 +40,7 @@ export async function killExistingOnPort(port) {
 
 function currentPageHtml(goalPath) {
   if (!goalPath || !existsSync(goalPath)) {
-    return renderPage({ title: 'No goal found', shortTitle: 'No goal found', deadline: null, criteria: [], lastLogLine: null, lastLogFull: null, focus: null, cards: [] });
+    return renderPage({ title: 'No goal found', shortTitle: 'No goal found', deadline: null, criteria: [], focus: null, cards: [] });
   }
   const body = readFileSync(goalPath, 'utf8');
   return renderPage(renderGoal(body));

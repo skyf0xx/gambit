@@ -85,11 +85,9 @@ export function parseGoalMd(rawBody) {
   const bodySections = sections.filter((s) => !excluded.has(s.heading) && s.body.length > 0);
 
   const logEntries = parseLogEntries(byHeading.get('Log') ?? '');
-  const lastLogFull = logEntries.length ? logEntries[logEntries.length - 1] : null;
-  const lastLogLine = lastLogFull ? shorten(lastLogFull, 120) : null;
   const focus = extractFocus(logEntries);
 
-  return { title, shortTitle: shorten(title), criteria, deadline, sections: bodySections, lastLogLine, lastLogFull, focus };
+  return { title, shortTitle: shorten(title), criteria, deadline, sections: bodySections, focus };
 }
 
 // A goal's `# Goal` body is often a full multi-sentence description — fine

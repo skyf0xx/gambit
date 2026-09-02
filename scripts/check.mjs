@@ -156,7 +156,7 @@ check('deadline parsed', parsed.deadline === '2026-12-31');
 check('criteria parsed with control/influence', parsed.criteria.length === 2 && parsed.criteria[0].kind === 'control' && parsed.criteria[1].kind === 'influence');
 check('log/deadline/criteria excluded from body sections', parsed.sections.every((s) => !['Success criteria', 'Deadline', 'Log'].includes(s.heading)));
 check('focus extracted from a wrapped log entry, most recent Focus: wins over a later entry with none', parsed.focus === 'concentrate on the wrapped focus line that continues here');
-check('lastLogLine is the true last entry, not a continuation fragment', parsed.lastLogLine.startsWith('2026-01-02 at_risk'));
+check('log entries excluded from visualizer output entirely (internal, not for display)', parsed.lastLogLine === undefined && parsed.lastLogFull === undefined);
 
 const rendered = renderGoal(fixture);
 const byTitle = Object.fromEntries(rendered.cards.map((c) => [c.title, c]));
