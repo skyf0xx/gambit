@@ -57,6 +57,8 @@ Global goal store (~/.gambit, or $GAMBIT_HOME):
   npx @skyf0xx/gambit path             print the resolved GOAL.md path
   npx @skyf0xx/gambit reindex          rebuild gambit.db from goals/
   npx @skyf0xx/gambit adopt [path]     move an existing ./GOAL.md into the store
+  npx @skyf0xx/gambit delete <slug> --force   delete one goal (GOAL.md + index row)
+  npx @skyf0xx/gambit delete --all --force    delete every goal in the store
 
   npx @skyf0xx/gambit --help           show this message
 
@@ -145,6 +147,42 @@ async function storeAdopt(pathArg) {
   console.log(`Adopted ${relative(CWD, src)} into the store as "${slug}".`);
   console.log(`The original file at ${relative(CWD, src)} was left in place —`);
   console.log(`remove it yourself once you've confirmed the store copy is correct.`);
+}
+
+async function storeDelete(args, { force }) {
+  const all = args.includes('--all');
+  const slug = args.find((a) => a !== '--all' && a !== '--force');
+
+  if (!all && !slug) {
+    console.error('Usage: gambit delete <slug> --force\n       gambit delete --all --force');
+    process.exitCode = 1;
+    return;
+  }
+
+  if (!force) {
+    console.error('Refusing to delete without --force (this permanently removes GOAL.md and cannot be undone).');
+    process.exitCode = 1;
+    return;
+  }
+
+  if (all) {
+    const goals = store.list();
+    if (goals.length === 0) {
+      console.log('No goals to delete.');
+      return;
+    }
+    const slugs = store.removeAll();
+    console.log(`Deleted ${slugs.length} goal(s): ${slugs.join(', ')}`);
+    return;
+  }
+
+  try {
+    store.remove(slug);
+    console.log(`Deleted goal "${slug}".`);
+  } catch (err) {
+    console.error(err.message);
+    process.exitCode = 1;
+  }
 }
 
 async function listSkillDirs() {
@@ -323,6 +361,11 @@ async function main() {
 
   if (cmd === 'adopt') {
     await storeAdopt(args[1]);
+    return;
+  }
+
+  if (cmd === 'delete') {
+    await storeDelete(args.slice(1), { force });
     return;
   }
 

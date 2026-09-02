@@ -5,7 +5,7 @@
 //
 // Usage: node scripts/check.mjs
 
-import { mkdtempSync, rmSync, writeFileSync, statSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, statSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -65,6 +65,27 @@ check('switch back', store.resolveActive() === slug);
 
 console.log('\npath resolution:');
 check('resolveActive matches switch target', store.resolveActive() === slug);
+
+console.log('\ndelete one goal:');
+store.remove(slug2);
+check('goal file removed', !existsSync(goalFile(slug2)));
+check('list no longer shows it', store.list().every((g) => g.slug !== slug2));
+check('active goal untouched', store.resolveActive() === slug);
+
+console.log('\ndelete active goal clears active pointer:');
+store.remove(slug);
+check('goal file removed', !existsSync(goalFile(slug)));
+check('active pointer cleared', !existsSync(activeFile()));
+check('resolveActive returns null', store.resolveActive() === null);
+
+console.log('\ndelete all:');
+const slugA = store.create('Goal A');
+const slugB = store.create('Goal B');
+const deleted = store.removeAll();
+check('removeAll returns deleted slugs', deleted.includes(slugA) && deleted.includes(slugB));
+check('list is empty', store.list().length === 0);
+check('active pointer cleared', !existsSync(activeFile()));
+check('goal dirs removed', !existsSync(goalFile(slugA)) && !existsSync(goalFile(slugB)));
 
 rmSync(tmpRoot, { recursive: true, force: true });
 

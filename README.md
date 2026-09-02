@@ -59,4 +59,6 @@ npx @skyf0xx/gambit new "<title>"    # create a goal, make it active
 npx @skyf0xx/gambit switch <slug>    # change the active goal
 npx @skyf0xx/gambit path             # print the resolved GOAL.md path
 npx @skyf0xx/gambit adopt            # move an existing ./GOAL.md into the store
+npx @skyf0xx/gambit delete <slug> --force   # permanently delete one goal
+npx @skyf0xx/gambit delete --all --force    # permanently delete every goal
 ```

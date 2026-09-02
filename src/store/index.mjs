@@ -1,7 +1,7 @@
 // Store operations: list, create, switch, and keep the SQLite index in
 // sync with the GOAL.md files that are the actual source of truth.
 
-import { readFileSync, writeFileSync, existsSync, statSync, readdirSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, statSync, readdirSync, mkdirSync, rmSync, unlinkSync } from 'node:fs';
 import { openDb, withDb, inTransaction, ensureStoreDirs } from './db.mjs';
 import { goalsDir, goalDir, goalFile, activeFile } from './paths.mjs';
 
@@ -141,4 +141,53 @@ export function touch(slug) {
   withDb((db) => {
     db.prepare("UPDATE goals SET last_active = datetime('now') WHERE slug = ?").run(slug);
   });
+}
+
+// Deletes one goal: its goals/<slug>/ directory (GOAL.md and all) and its
+// row in the index. If it was the active goal, clears `active` — the next
+// resolution falls through to the single-goal or onboard rule rather than
+// pointing at a slug that no longer exists.
+export function remove(slug) {
+  if (!existsSync(goalFile(slug))) {
+    throw new Error(`No such goal: ${slug}`);
+  }
+  const wasActive = resolveActive() === slug;
+
+  rmSync(goalDir(slug), { recursive: true, force: true });
+
+  withDb((db) => {
+    inTransaction(db, () => {
+      db.prepare('DELETE FROM goals WHERE slug = ?').run(slug);
+      db.prepare('DELETE FROM goals_fts WHERE slug = ?').run(slug);
+    });
+  });
+
+  if (wasActive && existsSync(activeFile())) {
+    unlinkSync(activeFile());
+  }
+}
+
+// Deletes every goal in the store: all goals/<slug>/ directories, the
+// active pointer, and the index rows. Leaves gambit.db itself in place
+// (reindex() will recreate an empty schema on next use) rather than
+// deleting the database file, so callers don't need to worry about a
+// concurrent open handle.
+export function removeAll() {
+  const slugs = listSlugsOnDisk();
+  for (const slug of slugs) {
+    rmSync(goalDir(slug), { recursive: true, force: true });
+  }
+
+  withDb((db) => {
+    inTransaction(db, () => {
+      db.exec('DELETE FROM goals');
+      db.exec('DELETE FROM goals_fts');
+    });
+  });
+
+  if (existsSync(activeFile())) {
+    unlinkSync(activeFile());
+  }
+
+  return slugs;
 }
