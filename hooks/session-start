@@ -9,7 +9,13 @@
 # the four "Guided, not just capable" rules — the parts of AGENTS.md that a
 # session outside this repo would otherwise never see.
 #
-# Must exit 0 and stay silent when no goal resolves.
+# It also checks whether the installed plugin is behind the marketplace it
+# came from (see plugin_update_notice below) and, if so, prepends a short
+# notice to the same context blob — so the update check never needs a
+# second hook registration or a second block of output-format branching.
+#
+# Must exit 0. Must stay silent when no goal resolves AND no update is
+# available.
 
 set -euo pipefail
 
@@ -43,8 +49,74 @@ elif [ -d "${STORE_ROOT}/goals" ]; then
     fi
 fi
 
-[ -n "$GOAL_MD" ] || exit 0
-[ -f "$GOAL_MD" ] || exit 0
+# --- plugin update check ---
+# Is the installed plugin behind the marketplace it came from?
+#
+# Entirely local: the marketplace is a git clone Claude Code already
+# maintains at ~/.claude/plugins/marketplaces/<name>, so comparing the
+# manifest version there against the installed one costs no network call
+# and cannot hang a session start. Only applies to a marketplace install
+# (CLAUDE_PLUGIN_ROOT under .../plugins/cache/<marketplace>/<plugin>/<version>)
+# — a per-project `gambit init` copy has no such path and this stays silent.
+UPDATE_NOTICE=""
+plugin_update_notice() {
+    [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] || return 0
+    command -v git >/dev/null 2>&1 || return 0
+
+    local plugins_root marketplace installed_version clone branch manifest latest
+    plugins_root="${CLAUDE_PLUGIN_ROOT%/cache/*}"
+    [ "$plugins_root" != "$CLAUDE_PLUGIN_ROOT" ] || return 0
+    installed_version="$(basename "$CLAUDE_PLUGIN_ROOT")"
+    marketplace="${CLAUDE_PLUGIN_ROOT#"${plugins_root}"/cache/}"
+    marketplace="${marketplace%%/*}"
+
+    clone="${plugins_root}/marketplaces/${marketplace}"
+    [ -d "${clone}/.git" ] || return 0
+
+    # Read the manifest from the tracked remote branch, not the working
+    # tree — the working tree is whatever was last pulled, so a published
+    # update is invisible there until the host happens to refresh it.
+    branch="$(git -C "$clone" symbolic-ref --quiet --short HEAD 2>/dev/null || echo master)"
+    manifest="$(git -C "$clone" show "origin/${branch}:.claude-plugin/marketplace.json" 2>/dev/null)"
+    [ -n "$manifest" ] || return 0
+
+    latest="$(printf '%s\n' "$manifest" \
+        | sed -n '/"name"[[:space:]]*:[[:space:]]*"gambit"/,/}/p' \
+        | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
+    [ -n "$latest" ] || return 0
+    [ "$latest" != "$installed_version" ] || return 0
+    [ "$installed_version" != "unknown" ] || return 0
+
+    # sort -V decides direction: report only when the marketplace is ahead,
+    # never when a locally-built plugin is ahead of it.
+    [ "$(printf '%s\n%s\n' "$installed_version" "$latest" | sort -V | tail -1)" = "$latest" ] || return 0
+
+    # Two steps, and the qualified plugin@marketplace id in the second —
+    # `claude plugin update` resolves its argument as that id, and it only
+    # offers a version the marketplace clone has already fetched.
+    UPDATE_NOTICE="A newer version of Gambit is available (${installed_version} -> ${latest}). If the user wants to update, run: claude plugin marketplace update ${marketplace} && claude plugin update gambit@${marketplace} (takes effect on restart). Mention this once; don't repeat it later in the session."
+}
+plugin_update_notice || true
+
+# Refresh the remote ref the check above reads, for the next session rather
+# than this one. Fully detached and discarded: a session start must never
+# wait on the network, so this session reports against whatever was already
+# fetched and the fetch it kicks off lands in time for the next one.
+refresh_marketplace_ref() {
+    [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] || return 0
+    command -v git >/dev/null 2>&1 || return 0
+    local plugins_root marketplace clone
+    plugins_root="${CLAUDE_PLUGIN_ROOT%/cache/*}"
+    [ "$plugins_root" != "$CLAUDE_PLUGIN_ROOT" ] || return 0
+    marketplace="${CLAUDE_PLUGIN_ROOT#"${plugins_root}"/cache/}"
+    marketplace="${marketplace%%/*}"
+    clone="${plugins_root}/marketplaces/${marketplace}"
+    [ -d "${clone}/.git" ] || return 0
+    ( git -C "$clone" fetch --quiet origin >/dev/null 2>&1 & ) >/dev/null 2>&1
+}
+refresh_marketplace_ref || true
+
+[ -n "$GOAL_MD" ] || [ -n "$UPDATE_NOTICE" ] || exit 0
 
 # JSON-escape via bash parameter substitution.
 escape_for_json() {
@@ -82,39 +154,41 @@ emit_context() {
     fi
 }
 
-# --- pull title / focus / deadline / last log line out of GOAL.md ---
-# awk rather than sed: portable across BSD (macOS) and GNU without dialect
-# differences in address-range/quit syntax. Each extractor finds a heading,
-# then prints the first non-blank line after it and stops.
-first_line_after() {
-    # $1: heading regex (matched via awk's ~), $2: file
-    awk -v pat="$1" '
-        found && NF { print; exit }
-        $0 ~ pat { found = 1 }
-    ' "$2"
-}
+goal_context=""
+if [ -n "$GOAL_MD" ]; then
+    # --- pull title / focus / deadline / last log line out of GOAL.md ---
+    # awk rather than sed: portable across BSD (macOS) and GNU without dialect
+    # differences in address-range/quit syntax. Each extractor finds a heading,
+    # then prints the first non-blank line after it and stops.
+    first_line_after() {
+        # $1: heading regex (matched via awk's ~), $2: file
+        awk -v pat="$1" '
+            found && NF { print; exit }
+            $0 ~ pat { found = 1 }
+        ' "$2"
+    }
 
-title="$(first_line_after '^#[[:space:]]*Goal[[:space:]]*$' "$GOAL_MD")"
-title="$(printf '%s' "$title" | awk '{$1=$1;print}')"
-[ -n "$title" ] || title="(untitled goal)"
+    title="$(first_line_after '^#[[:space:]]*Goal[[:space:]]*$' "$GOAL_MD")"
+    title="$(printf '%s' "$title" | awk '{$1=$1;print}')"
+    [ -n "$title" ] || title="(untitled goal)"
 
-deadline="$(first_line_after '^##[[:space:]]*Deadline[[:space:]]*$' "$GOAL_MD")"
-deadline="$(printf '%s' "$deadline" | awk '{$1=$1;print}')"
-[ -n "$deadline" ] || deadline="none"
+    deadline="$(first_line_after '^##[[:space:]]*Deadline[[:space:]]*$' "$GOAL_MD")"
+    deadline="$(printf '%s' "$deadline" | awk '{$1=$1;print}')"
+    [ -n "$deadline" ] || deadline="none"
 
-focus="$(grep -m1 '^FOCUS:' "$GOAL_MD" 2>/dev/null | sed 's/^FOCUS:[[:space:]]*//' || true)"
-[ -n "$focus" ] || focus="nothing set yet"
+    focus="$(grep -m1 '^FOCUS:' "$GOAL_MD" 2>/dev/null | sed 's/^FOCUS:[[:space:]]*//' || true)"
+    [ -n "$focus" ] || focus="nothing set yet"
 
-last_log="$(awk '
-    /^##[[:space:]]*Log[[:space:]]*$/ { found = 1; next }
-    found && /^##/ { exit }
-    found && /^- / { line = $0 }
-    END { print line }
-' "$GOAL_MD" || true)"
-last_log="${last_log#- }"
-[ -n "$last_log" ] || last_log="no log entries yet"
+    last_log="$(awk '
+        /^##[[:space:]]*Log[[:space:]]*$/ { found = 1; next }
+        found && /^##/ { exit }
+        found && /^- / { line = $0 }
+        END { print line }
+    ' "$GOAL_MD" || true)"
+    last_log="${last_log#- }"
+    [ -n "$last_log" ] || last_log="no log entries yet"
 
-read -r -d '' context_text <<CTX || true
+    read -r -d '' goal_context <<CTX || true
 # Active goal (Gambit)
 
 GOAL: ${title}
@@ -147,6 +221,18 @@ useful next move plus a short menu of alternatives.
 **Close on a decision, not a narrative.** When asked for a verdict, end with
 the call itself — a committed answer, not just analysis of what happened.
 CTX
+fi
+
+context_text="$UPDATE_NOTICE"
+if [ -n "$goal_context" ]; then
+    if [ -n "$context_text" ]; then
+        context_text="${context_text}
+
+${goal_context}"
+    else
+        context_text="$goal_context"
+    fi
+fi
 
 emit_context "$context_text"
 
