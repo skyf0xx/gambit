@@ -5,11 +5,12 @@
 // that file, so the skills travel with the project rather than living
 // only in this package.
 //
-// Usage:
-//   npx @skyf0xx/gambit init      install skills into ./.claude/skills
-//   npx @skyf0xx/gambit init --force   overwrite files that differ
-//   npx @skyf0xx/gambit update    re-copy the current package's skills
-//   npx @skyf0xx/gambit --help
+// Usage (as a global command after `npm install -g @skyf0xx/gambit`, or
+// prefixed with `npx @skyf0xx/gambit` with no install step):
+//   gambit init      install skills into ./.claude/skills
+//   gambit init --force   overwrite files that differ
+//   gambit update    re-copy the current package's skills
+//   gambit --help
 
 import { cp, mkdir, readdir, readFile, writeFile, stat } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -47,25 +48,29 @@ function help() {
   console.log(`
 Gambit — strategic-advisor skills for an AI agent working a goal.
 
+\`gambit\` below is the global command, available after:
+  npm install -g @skyf0xx/gambit
+\`npx @skyf0xx/gambit\` works the same way with no install step.
+
 Legacy per-project install:
-  npx @skyf0xx/gambit init [--force]   install skills into ./.claude/skills
-  npx @skyf0xx/gambit update           re-copy skills from the installed package version
+  gambit init [--force]   install skills into ./.claude/skills
+  gambit update           re-copy skills from the installed package version
 
 Global goal store (~/.gambit, or $GAMBIT_HOME):
-  npx @skyf0xx/gambit list             goals, with active marked
-  npx @skyf0xx/gambit new <title>      create a goal, make it active
-  npx @skyf0xx/gambit switch <slug>    set the active goal
-  npx @skyf0xx/gambit path             print the resolved GOAL.json path
-  npx @skyf0xx/gambit reindex          rebuild gambit.db from goals/
-  npx @skyf0xx/gambit adopt [path]     move an existing ./GOAL.json into the store
-  npx @skyf0xx/gambit delete <slug> --force   delete one goal (GOAL.json + index row)
-  npx @skyf0xx/gambit delete --all --force    delete every goal in the store
+  gambit list             goals, with active marked
+  gambit new <title>      create a goal, make it active
+  gambit switch <slug>    set the active goal
+  gambit path             print the resolved GOAL.json path
+  gambit reindex          rebuild gambit.db from goals/
+  gambit adopt [path]     move an existing ./GOAL.json into the store
+  gambit delete <slug> --force   delete one goal (GOAL.json + index row)
+  gambit delete --all --force    delete every goal in the store
 
-  npx @skyf0xx/gambit visualize [--port N] [--no-open]
-                                        open a local live-updating diagram
-                                        view of the resolved GOAL.json
+  gambit visualize [--port N] [--no-open]
+                          open a local live-updating diagram
+                          view of the resolved GOAL.json
 
-  npx @skyf0xx/gambit --help           show this message
+  gambit --help           show this message
 
 Without --force, init will not overwrite a skill file that already
 differs from the package's copy — pass --force to sync anyway.

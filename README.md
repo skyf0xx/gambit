@@ -36,17 +36,23 @@ Use Gambit for: **better thinking, clearer decisions, and a plan you can actuall
 
 ## Install
 
-**Claude Code, Cursor and Gemini CLI** (global install)
+
+**Add the CLI Command**
+```bash
+npm install -g @skyf0xx/gambit
+```
+
+**Then add the plugin for Claude Code, Cursor and Gemini CLI**
 
 ```bash
 /plugin marketplace add skyf0xx/gambit
 /plugin install gambit@gambit
 ```
 
-**Any other AGENTS.md-reading agent** (local install)
+**For other agents, call**
 
 ```bash
-npx @skyf0xx/gambit init
+gambit init
 ```
 
 Then just tell your agent what's on your mind e.g. "help me plan... [your goal]"
@@ -54,12 +60,12 @@ Then just tell your agent what's on your mind e.g. "help me plan... [your goal]"
 ## Managing multiple goals
 
 ```bash
-npx @skyf0xx/gambit list             # goals, with the active one marked
-npx @skyf0xx/gambit new "<title>"    # create a goal, make it active
-npx @skyf0xx/gambit switch <slug>    # change the active goal
-npx @skyf0xx/gambit path             # print the resolved GOAL.json path
-npx @skyf0xx/gambit adopt            # move an existing ./GOAL.json into the store
-npx @skyf0xx/gambit delete <slug> --force   # permanently delete one goal
-npx @skyf0xx/gambit delete --all --force    # permanently delete every goal
-npx @skyf0xx/gambit visualize        # open a local, auto-refreshing diagram view of the active goal
+gambit list             # goals, with the active one marked
+gambit new "<title>"    # create a goal, make it active
+gambit switch <slug>    # change the active goal
+gambit path             # print the resolved GOAL.json path
+gambit adopt            # move an existing ./GOAL.json into the store
+gambit delete <slug> --force   # permanently delete one goal
+gambit delete --all --force    # permanently delete every goal
+gambit visualize        # open a local, auto-refreshing diagram view of the active goal
 ```
