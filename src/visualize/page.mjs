@@ -117,6 +117,14 @@ ${criteriaHtml(goal.criteria)}
 ${cardsHtml}
 </div>
 <script>
+  // Mermaid's click-directive tooltip: "click nodeId call fn() 'tooltip text'"
+  // is how a node in a rendered flowchart gets a hover tooltip — it attaches
+  // a title child to the node's SVG group, shown by the browser natively on
+  // hover, no extra JS needed for the hover itself. The callback name must
+  // resolve to something (Mermaid calls it on click) even though a
+  // hover-only tooltip doesn't need it to do anything.
+  window.___gambitTooltip = function () {};
+
   mermaid.initialize({
     startOnLoad: true,
     theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default',

@@ -140,7 +140,7 @@ any individual forecast.
 
 ### 7. Update GOAL.json
 
-Append new forecasts to the `forecasts` array, or update existing entries once they resolve. Each entry must have `statement`, `probability` (0-100 integer), `resolvesBy` (YYYY-MM-DD), `resolvesVia` (one short label, the specific source that settles it), and `resolved` (boolean). Once a forecast resolves, set `outcome` ('yes' or 'no'), `verdict` (e.g., "well-called", "overconfident"), and `resolved: true`.
+Append new forecasts to the `forecasts` array, or update existing entries once they resolve. Each entry must have `statement`, `probability` (0-100 integer), `resolvesBy` (YYYY-MM-DD), `resolvesVia` (one short label, the specific source that settles it), and `resolved` (boolean). Once a forecast resolves, set `outcome` ('yes' or 'no'), `verdict` (e.g., "well-called", "overconfident"), and `resolved: true`. `detail` (optional, max 280 chars) is a hover tooltip in the visual layer — the basis for the number, or what the verdict rested on. Fill in only when it adds something the statement doesn't already say.
 
 New unresolved forecast:
 ```json

@@ -81,12 +81,12 @@ Overall: on_track | at_risk | stalled | regressing
 
 ### 7. Update GOAL.json
 
-Replace the `criteriaStatus` key with one entry per success criterion, scored this run. `text` must match `successCriteria[].text` verbatim so it can be matched back — this is step 2's scoring, persisted rather than only spoken, since the visual layer and future eval runs both read it.
+Replace the `criteriaStatus` key with one entry per success criterion, scored this run. `text` must match `successCriteria[].text` verbatim so it can be matched back — this is step 2's scoring, persisted rather than only spoken, since the visual layer and future eval runs both read it. `detail` (optional, max 280 chars) is a hover tooltip — why this status, e.g. what changed since last eval. Fill in only when the status alone doesn't explain itself.
 
 ```json
 {
   "criteriaStatus": [
-    { "text": "...", "kind": "control", "status": "on_track" }
+    { "text": "...", "kind": "control", "status": "on_track", "detail": "..." }
   ]
 }
 ```

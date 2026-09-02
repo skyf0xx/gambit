@@ -165,7 +165,10 @@ something that was never in the user's hands.
 
 Where a criterion isn't directly controllable, ask what the user *can* control that
 makes it more likely, and record both — these become entries in the `successCriteria`
-key (each `{text, kind: 'control'|'influence'}`):
+key (each `{text, kind: 'control'|'influence', detail?}`). `detail` (optional, max 280
+chars) is a hover tooltip in the visual layer — why this criterion matters, not a
+restatement of `text`. Fill it in only when there's a non-obvious reason worth
+preserving.
 
 ```json
 {
@@ -187,7 +190,10 @@ and leave `people` as an empty array.
 
 If people are involved, ask who's actually committed versus who's been mentioned. The
 distinction matters more than the list does — later skills plan differently around a
-confirmed person than a hoped-for one. Each entry is `{name, status: 'confirmed'|'tentative'|'lead', doing}`.
+confirmed person than a hoped-for one. Each entry is `{name, status: 'confirmed'|'tentative'|'lead', doing, detail?}`.
+`detail` (optional, max 280 chars) is a hover tooltip — why this person matters to the
+goal, not a restatement of `doing`. Fill in only when there's something worth
+preserving beyond the obvious.
 
 **5. Posture.**
 Do not ask. It gets introduced later, by `strategy`, only if the goal has real phases of

@@ -198,11 +198,11 @@ two ever disagree, the schema wins.
   "goal": "[one or two sentence description, max ~200 chars]",
   "successCriteria": [
     { "text": "[specific, measurable condition]", "kind": "control" },
-    { "text": "[specific, measurable condition]", "kind": "influence" }
+    { "text": "[specific, measurable condition]", "kind": "influence", "detail": "[optional — why this matters, hover-only]" }
   ],
   "deadline": "YYYY-MM-DD or null",
   "people": [
-    { "name": "[name/role]", "status": "confirmed", "doing": "[what they're doing]" }
+    { "name": "[name/role]", "status": "confirmed", "doing": "[what they're doing]", "detail": "[optional — why they matter, hover-only]" }
   ],
   "posture": {
     "current": { "level": 1, "label": "Normal" },
@@ -213,24 +213,32 @@ two ever disagree, the schema wins.
     "triggers": ["[conditions that would force a change, if known]"]
   },
   "plan": {
-    "criticalPath": ["A", "B", "D"],
-    "nextActions": [{ "action": "...", "who": "...", "when": "..." }]
+    "criticalPath": [
+      { "label": "A", "detail": "[optional — why this step exists, hover-only]" },
+      { "label": "B" },
+      { "label": "D" }
+    ],
+    "nextActions": [{ "action": "...", "who": "...", "when": "...", "detail": "[optional, hover-only]" }]
   },
-  "systemsNotes": { "schwerpunkt": "...", "confidence": "high", "topFindings": ["..."] },
+  "systemsNotes": {
+    "schwerpunkt": "...",
+    "confidence": "high",
+    "topFindings": [{ "label": "...", "detail": "[optional, hover-only]" }]
+  },
   "riskNotes": [{ "item": "...", "source": "threat", "accepted": false }],
   "criteriaStatus": [
-    { "text": "[verbatim from successCriteria]", "kind": "control", "status": "on_track" }
+    { "text": "[verbatim from successCriteria]", "kind": "control", "status": "on_track", "detail": "[optional — why this status, hover-only]" }
   ],
   "stakeholders": [
-    { "name": "...", "power": "high", "stanceCurrent": "...", "stanceTarget": "...", "via": "..." }
+    { "name": "...", "power": "high", "stanceCurrent": "...", "stanceTarget": "...", "via": "...", "detail": "[optional, hover-only]" }
   ],
   "exposure": [{ "item": "...", "status": "open", "mustHandleBefore": "..." }],
-  "capacity": { "availableHrsPerWeek": 10, "runway": "[until date/condition]" },
+  "capacity": { "availableHrsPerWeek": 10, "runway": "[until date/condition]", "detail": "[optional — elaborates on runway, hover-only]" },
   "forecasts": [
-    { "statement": "...", "probability": 70, "resolvesBy": "YYYY-MM-DD", "resolvesVia": "...", "resolved": false }
+    { "statement": "...", "probability": 70, "resolvesBy": "YYYY-MM-DD", "resolvesVia": "...", "resolved": false, "detail": "[optional, hover-only]" }
   ],
   "experiments": [
-    { "assumption": "...", "test": "...", "passIf": "...", "by": "YYYY-MM-DD", "done": false }
+    { "assumption": "...", "test": "...", "passIf": "...", "by": "YYYY-MM-DD", "done": false, "detail": "[optional, hover-only]" }
   ],
   "decisions": [
     { "date": "YYYY-MM-DD", "choice": "[what was chosen]", "reverseIf": "[observable signal]" }
@@ -240,6 +248,17 @@ two ever disagree, the schema wins.
   ]
 }
 ```
+
+Several array fields carry an optional `detail` (max 280 chars) — a hover-only tooltip
+in the visual layer, shown alongside the short scannable label rather than replacing it.
+It exists so a user returning later can see *why* a terse label was written without the
+label itself getting longer. Fill it in only when there's a genuinely non-obvious reason
+worth preserving, not mechanically on every entry. `plan.criticalPath` and
+`systemsNotes.topFindings` are the two fields reshaped from bare label strings to
+`{label, detail?}` objects to carry this; every other touched field just gains `detail`
+alongside its existing keys. `postureLevel.meaning`, `riskNote.detail`,
+`exposureItem.why`, and `decision.because` already serve this same elaboration role
+under their own names and don't get a second `detail` field.
 
 Mark each success criterion `control` (you can cause it directly) or `influence`
 (it depends on a decision someone else makes). Influence criteria are legitimate, but

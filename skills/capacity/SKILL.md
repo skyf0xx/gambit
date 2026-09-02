@@ -168,13 +168,15 @@ Set the `capacity` key with the honest hours per week, the runway, and any speci
 - `availableHrsPerWeek`: concrete number per week, or `null` if unknown
 - `runway`: when you run short (e.g., "until 2026-10-15", or "6 months at this rate")
 - `watch`: the specific observable warning sign (e.g., "two weeks with no log entry", "missing family dinners three nights running")
+- `detail` (optional, max 280 chars): hover tooltip in the visual layer, elaborating on `runway` — what the number rests on. Fill in only when the short field alone would be unclear later.
 
 ```json
 {
   "capacity": {
     "availableHrsPerWeek": 15,
     "runway": "until 2026-11-30",
-    "watch": "log goes quiet or work creeps into evenings regularly"
+    "watch": "log goes quiet or work creeps into evenings regularly",
+    "detail": "..."
   }
 }
 ```

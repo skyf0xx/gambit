@@ -114,12 +114,20 @@ If something in the existing plan has failed or stalled, name it, name the alter
 
 ### 7. Update GOAL.json
 
-Replace the `plan` key in `GOAL.json` with the current critical path and next actions, rather than accumulating old ones. `criticalPath` entries are short labels (max 6 entries, ~5 words each); `nextActions` is capped at 5. Set `status` to `on_schedule`, `at_risk`, or `blocked`, and set `blocker` only when `status` is `blocked`.
+Replace the `plan` key in `GOAL.json` with the current critical path and next actions, rather than accumulating old ones. `criticalPath` entries are `{label, detail?}` objects (max 6 entries, `label` ~5 words); `nextActions` is capped at 5. Set `status` to `on_schedule`, `at_risk`, or `blocked`, and set `blocker` only when `status` is `blocked`.
+
+`detail` on a `criticalPath` step or a `nextAction` (max 280 chars, optional) is a hover
+tooltip in the visual layer — the reason this step is on the path, not a restatement of
+the label. Fill it in only when the label alone won't jog memory later.
 
 ```json
 {
   "plan": {
-    "criticalPath": ["A", "B", "D"],
+    "criticalPath": [
+      { "label": "A", "detail": "..." },
+      { "label": "B" },
+      { "label": "D" }
+    ],
     "nextActions": [
       { "action": "...", "who": "you | name", "when": "today | this week" }
     ],

@@ -187,7 +187,7 @@ Replace the `systemsNotes` key with the Schwerpunkt recommendation and any criti
 - `schwerpunkt` (required, max 120 chars): the single point of leverage and why
 - `rationale` (optional, max 120 chars): one sentence on what CV this attacks or what CC this builds
 - `confidence` (required): 'high', 'moderate', or 'low'
-- `topFindings` (required, max 5 items, each max 120 chars): critical findings from CoG/PMESII/ASCOPE
+- `topFindings` (required, max 5 items): critical findings from CoG/PMESII/ASCOPE, each `{label, detail?}` — `label` max 120 chars, `detail` (optional, max 280 chars) is a hover tooltip in the visual layer elaborating on a finding that won't be self-explanatory from the label alone later. Fill in only when worth preserving.
 
 ```json
 {
@@ -195,7 +195,10 @@ Replace the `systemsNotes` key with the Schwerpunkt recommendation and any criti
     "schwerpunkt": "...",
     "rationale": "...",
     "confidence": "high",
-    "topFindings": ["...", "..."]
+    "topFindings": [
+      { "label": "...", "detail": "..." },
+      { "label": "..." }
+    ]
   }
 }
 ```

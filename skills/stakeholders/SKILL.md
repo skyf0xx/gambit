@@ -147,11 +147,12 @@ Each stakeholder entry must have:
 - `stanceCurrent` (required, max 40 chars): current position (e.g., "opposed", "neutral", "supportive")
 - `stanceTarget` (required, max 40 chars): realistic best achievable stance
 - `via` (required, max 120 chars): what would actually move them to target stance
+- `detail` (optional, max 280 chars): hover tooltip in the visual layer — the underlying interest or history behind their stance, not a restatement of `via`. Fill in only when worth preserving.
 
 ```json
 {
   "stakeholders": [
-    { "name": "...", "power": "high", "stanceCurrent": "...", "stanceTarget": "...", "via": "..." }
+    { "name": "...", "power": "high", "stanceCurrent": "...", "stanceTarget": "...", "via": "...", "detail": "..." }
   ]
 }
 ```

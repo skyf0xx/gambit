@@ -129,7 +129,7 @@ proceed deliberately (`decide`) than to dress a commitment up as an enquiry.
 
 ### 7. Record and Run
 
-Append new experiments to the `experiments` array, or update existing entries once they complete. Each entry must have `assumption`, `test`, `passIf`, `by` (YYYY-MM-DD), and `done` (boolean). Once complete, set `done: true`, `result` (outcome), and optionally `changedAsResult` (what changed because of this result).
+Append new experiments to the `experiments` array, or update existing entries once they complete. Each entry must have `assumption`, `test`, `passIf`, `by` (YYYY-MM-DD), and `done` (boolean). Once complete, set `done: true`, `result` (outcome), and optionally `changedAsResult` (what changed because of this result). `detail` (optional, max 280 chars) is a hover tooltip in the visual layer — non-obvious context on why this assumption or test matters. Fill in only when worth preserving beyond the fields above.
 
 New unstarted experiment:
 ```json

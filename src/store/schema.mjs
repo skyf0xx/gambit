@@ -25,15 +25,19 @@ const mediumLabel = z.string().min(1).max(120);
 const kind = z.enum(['control', 'influence']);
 const assessment = z.enum(['on_track', 'at_risk', 'stalled', 'regressing']);
 
+const detail = z.string().max(280).optional();
+
 const successCriterion = z.object({
   text: z.string().min(1).max(120),
   kind,
+  detail,
 });
 
 const person = z.object({
   name: shortLabel,
   status: z.enum(['confirmed', 'tentative', 'lead']),
   doing: mediumLabel,
+  detail,
 });
 
 const postureLevel = z.object({
@@ -55,20 +59,31 @@ const nextAction = z.object({
   action: mediumLabel,
   who: shortLabel,
   when: shortLabel,
+  detail,
+});
+
+const labeledStep = z.object({
+  label: shortLabel,
+  detail,
 });
 
 const plan = z.object({
-  criticalPath: z.array(shortLabel).max(6),
+  criticalPath: z.array(labeledStep).max(6),
   nextActions: z.array(nextAction).max(5),
   status: z.enum(['on_schedule', 'at_risk', 'blocked']).optional(),
   blocker: mediumLabel.optional(),
+});
+
+const labeledFinding = z.object({
+  label: mediumLabel,
+  detail,
 });
 
 const systemsNotes = z.object({
   schwerpunkt: mediumLabel,
   rationale: mediumLabel.optional(),
   confidence: z.enum(['high', 'moderate', 'low']),
-  topFindings: z.array(mediumLabel).max(5),
+  topFindings: z.array(labeledFinding).max(5),
 });
 
 const riskNote = z.object({
@@ -82,6 +97,7 @@ const criterionStatus = z.object({
   text: z.string().min(1).max(120),
   kind,
   status: assessment,
+  detail,
 });
 
 const stakeholder = z.object({
@@ -90,6 +106,7 @@ const stakeholder = z.object({
   stanceCurrent: shortLabel,
   stanceTarget: shortLabel,
   via: mediumLabel,
+  detail,
 });
 
 const exposureItem = z.object({
@@ -104,6 +121,7 @@ const capacity = z.object({
   availableHrsPerWeek: z.number().min(0).nullable(),
   runway: shortLabel,
   watch: mediumLabel.optional(),
+  detail,
 });
 
 const forecast = z.object({
@@ -114,6 +132,7 @@ const forecast = z.object({
   resolved: z.boolean(),
   outcome: z.enum(['yes', 'no']).optional(),
   verdict: mediumLabel.optional(),
+  detail,
 });
 
 const experiment = z.object({
@@ -124,6 +143,7 @@ const experiment = z.object({
   done: z.boolean(),
   result: mediumLabel.optional(),
   changedAsResult: mediumLabel.optional(),
+  detail,
 });
 
 const decision = z.object({

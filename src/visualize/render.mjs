@@ -46,9 +46,9 @@ function renderSection(section, ctx) {
 
     case 'lines-of-operation': {
       const steps = section.key === 'plan' ? section.data.criticalPath : section.data.topFindings;
-      const mermaid = renderLinesOfOperation(steps);
-      if (!mermaid) return { kind: 'html', title, body: '<p class="empty">No items yet.</p>' };
-      return { kind: 'mermaid', title, body: mermaid };
+      const result = renderLinesOfOperation(steps);
+      if (!result) return { kind: 'html', title, body: '<p class="empty">No items yet.</p>' };
+      return { kind: 'mermaid', title, body: result.mermaid, tooltips: result.tooltips };
     }
 
     case 'network': {
@@ -58,7 +58,7 @@ function renderSection(section, ctx) {
           : renderRiskNetwork(section.data, ctx);
       if (!result) return { kind: 'html', title, body: '<p class="empty">No items yet.</p>' };
       if (result.kind === 'table') return { kind: 'html', title, body: result.html };
-      return { kind: 'mermaid', title, body: result.text };
+      return { kind: 'mermaid', title, body: result.text, tooltips: result.tooltips };
     }
 
     case 'decision-fork': {

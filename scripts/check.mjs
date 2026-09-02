@@ -183,7 +183,7 @@ const fixtureObj = {
   deadline: '2026-12-31',
   people: [],
   posture: null,
-  plan: { criticalPath: ['A', 'B', 'C'], nextActions: [] },
+  plan: { criticalPath: [{ label: 'A', detail: 'first step detail' }, { label: 'B' }, { label: 'C' }], nextActions: [] },
   systemsNotes: null,
   riskNotes: [{ item: 'Some risk', detail: 'likelihood low', source: 'threat', accepted: false }],
   criteriaStatus: [
