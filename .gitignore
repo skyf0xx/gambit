@@ -1,3 +1,5 @@
 GOAL.md
 GOAL.json
 node_modules/
+.playwright-mcp/
+gambit-test-goal-full.png

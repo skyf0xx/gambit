@@ -130,7 +130,7 @@ const skillsDir = join(__dirname, '..', 'skills');
 const skillNames = readdirSync(skillsDir, { withFileTypes: true })
   .filter((e) => e.isDirectory() && e.name !== '_shared')
   .map((e) => e.name);
-const validRenderers = new Set(['ordered-list', 'checklist', 'network', 'risk-list', 'timeline', 'decision-fork', 'plain-card']);
+const validRenderers = new Set(['ordered-list', 'checklist', 'stakeholder-table', 'risk-list', 'timeline', 'decision-callout', 'plain-card']);
 let missingDisplay = 0;
 let invalidDisplay = 0;
 for (const name of skillNames) {
@@ -217,13 +217,22 @@ check('sections exclude empty/null owned keys', parsed.sections.every((s) => s.d
 check('focus is most recent non-null log entry focus', parsed.focus === 'concentrate on the wrapped focus line');
 
 const rendered = renderGoal(fixture);
-const byTitle = Object.fromEntries(rendered.cards.map((c) => [c.title, c]));
-check('Plan renders as html ordered-list per line of operation', byTitle['Plan: Main']?.kind === 'html' && byTitle['Plan: Main'].body.includes('ordered-list'));
-check('Criteria status renders as html checklist', byTitle['Criteria status']?.kind === 'html' && byTitle['Criteria status'].body.includes('checklist'));
-check('Stakeholders renders as mermaid network', byTitle['Stakeholders']?.kind === 'mermaid' && byTitle['Stakeholders'].body.includes('center'));
-check('Risk notes renders as html risk-list', byTitle['Risk notes']?.kind === 'html' && byTitle['Risk notes'].body.includes('risk-list'));
-check('Decisions renders as mermaid decision-fork', byTitle['Decisions']?.kind === 'mermaid' && byTitle['Decisions'].body.includes('Decision'));
-check('no card exceeds a sane line count (stays legible, not overdrawn)', rendered.cards.every((c) => c.body.split('\n').length <= 20));
+const allCards = rendered.groups.flatMap((g) => g.cards);
+const byKey = Object.fromEntries(allCards.map((c) => [c.key, c]));
+check('Plan renders as html ordered-list with all lines of operation', byKey.plan?.body.includes('ordered-list') && byKey.plan.body.includes('Main'));
+check('Plan card is in the plan group', rendered.groups.find((g) => g.key === 'plan')?.cards.some((c) => c.key === 'plan'));
+check('Criteria status renders as html checklist', byKey.criteriaStatus?.body.includes('checklist'));
+check('Stakeholders renders as an html table, no mermaid', byKey.stakeholders?.body.includes('stake-table') && !byKey.stakeholders.body.includes('mermaid'));
+check('Risk notes renders as html risk-list', byKey.riskNotes?.body.includes('risk-list'));
+check('Decisions renders as a callout, no mermaid', byKey.decisions?.body.includes('decision-callout') && !byKey.decisions.body.includes('mermaid'));
+check('no card exceeds a sane line count (stays legible, not overdrawn)', allCards.every((c) => c.body.split('\n').length <= 20));
+
+console.log('\nvisualize: page renders with no mermaid references:');
+const { renderPage } = await import('../src/visualize/page.mjs');
+const pageHtml = renderPage(rendered);
+check('page HTML does not reference mermaid', !/mermaid/i.test(pageHtml));
+check('page HTML includes the Bridge focus banner', pageHtml.includes('focus-row'));
+check('page HTML includes at least one collapsible section group', pageHtml.includes('group-heading'));
 
 if (failures > 0) {
   console.error(`\n${failures} check(s) failed.`);

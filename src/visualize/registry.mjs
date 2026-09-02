@@ -1,14 +1,17 @@
-// Maps each GOAL.json owned key to the renderer that draws it. This is the
-// single source of truth for the mapping — each skill's SKILL.md carries a
-// matching `display:` frontmatter field for humans reading the skill file,
-// but the server reads this table, not the frontmatter, at render time.
+// Maps each GOAL.json owned key to the renderer that draws it, and to the
+// disclosure group it appears under on the visualize page. This is the
+// single source of truth for both mappings — each skill's SKILL.md carries
+// a matching `display:` frontmatter field for humans reading the skill
+// file, but the server reads this table, not the frontmatter, at render
+// time.
 //
-// A diagram (network / decision-fork) is reserved for sections where the
-// relationships between items are themselves the point. Everything else —
-// including sequences like Plan and flat lists like Risk Notes — reads
-// faster as text than as a sparse Mermaid flowchart, so it's routed to
-// 'ordered-list' or 'risk-list'. A section not listed here falls back to
-// 'plain-card'.
+// No section renders as a diagram — 'network' and 'decision-fork' (Mermaid)
+// were replaced by 'stakeholder-table' and 'decision-callout' (plain HTML):
+// a hub-and-spoke graph of at most 8 nodes and a two-fact decision fork
+// both carried less information than a table row or a callout, at a much
+// bigger footprint and worse legibility. Sequences like Plan and flat lists
+// like Risk Notes were already text ('ordered-list' / 'risk-list') for the
+// same reason. A section not listed here falls back to 'plain-card'.
 
 export const SECTION_RENDERERS = {
   plan: 'ordered-list',
@@ -17,10 +20,38 @@ export const SECTION_RENDERERS = {
   capacity: 'checklist',
   experiments: 'checklist',
   forecasts: 'checklist',
-  stakeholders: 'network',
+  stakeholders: 'stakeholder-table',
   riskNotes: 'risk-list',
-  decisions: 'decision-fork',
+  decisions: 'decision-callout',
 };
+
+// Which collapsible group each section renders under on the visualize page
+// (see page.mjs). 'plan' and 'criteriaStatus' render inside the always-open
+// Bridge/Plan group since they're what changes session to session; the rest
+// group by subject into collapsed-by-default sections so reference material
+// (checked rarely) doesn't compete for attention with what to do next.
+export const SECTION_GROUPS = {
+  plan: 'plan',
+  criteriaStatus: 'plan',
+  stakeholders: 'people',
+  systemsNotes: 'people',
+  riskNotes: 'people',
+  decisions: 'people',
+  forecasts: 'forecasts',
+  experiments: 'forecasts',
+  exposure: 'exposure',
+  capacity: 'exposure',
+};
+
+export const GROUP_LABELS = {
+  plan: 'Plan & progress',
+  people: 'People & risk',
+  forecasts: 'Forecasts & experiments',
+  exposure: 'Exposure & capacity',
+};
+
+// Display order of groups on the page, and of sections within a group.
+export const GROUP_ORDER = ['plan', 'people', 'forecasts', 'exposure'];
 
 // Skills whose primary output isn't a GOAL.json section at all (read-only
 // reads, or prose the user reads in the session) — never diagrammed,
@@ -31,4 +62,8 @@ export const PLAIN_CARD_SKILLS = [
 
 export function rendererForSection(key) {
   return SECTION_RENDERERS[key] ?? 'plain-card';
+}
+
+export function groupForSection(key) {
+  return SECTION_GROUPS[key] ?? 'people';
 }

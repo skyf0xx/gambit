@@ -1,7 +1,7 @@
 ---
 name: negotiate
 description: Use before a conversation where you need someone's agreement — a council, a landlord, a sponsor, a platform, a collaborator, a rival organiser. Preps interests on both sides, your walk-away alternative (BATNA), the zone where a deal exists, concessions ranked by cost, and the traps. Two-way, unlike comms, which prepares outward broadcast. Appends to GOAL.json's log with the agreement and any commitments made.
-display: decision-fork
+display: decision-callout
 ---
 
 # Skill: negotiate

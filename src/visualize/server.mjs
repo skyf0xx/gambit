@@ -38,20 +38,43 @@ export async function killExistingOnPort(port) {
   }
 }
 
+const EMPTY_GOAL = {
+  deadline: null,
+  deadlineWeeks: null,
+  criteria: [],
+  criteriaProgress: [],
+  criteriaMet: 0,
+  focus: null,
+  posture: null,
+  nextAction: null,
+  groups: [],
+};
+
 function currentPageHtml(goalPath) {
   if (!goalPath || !existsSync(goalPath)) {
-    return renderPage({ title: 'No goal found', deadline: null, criteria: [], focus: null, cards: [] });
+    return renderPage({ ...EMPTY_GOAL, title: 'No goal found' });
   }
   const body = readFileSync(goalPath, 'utf8');
   try {
     return renderPage(renderGoal(body));
   } catch (err) {
     return renderPage({
+      ...EMPTY_GOAL,
       title: 'Invalid GOAL.json',
-      deadline: null,
-      criteria: [],
-      focus: null,
-      cards: [{ kind: 'html', title: 'Schema error', body: `<p class="empty">${goalPath} does not match the schema — fix it by hand and save.<br>${escapeForHtml(err.message)}</p>` }],
+      groups: [
+        {
+          key: 'error',
+          label: 'Schema error',
+          cards: [
+            {
+              key: 'error',
+              title: 'Schema error',
+              hint: '',
+              body: `<p class="empty">${goalPath} does not match the schema — fix it by hand and save.<br>${escapeForHtml(err.message)}</p>`,
+            },
+          ],
+        },
+      ],
     });
   }
 }

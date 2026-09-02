@@ -45,5 +45,15 @@ export function parseGoalMd(rawBody) {
 
   const focus = [...goal.log].reverse().find((e) => e.focus)?.focus ?? null;
 
-  return { title, criteria, deadline, sections, focus };
+  const posture = goal.posture;
+
+  // Single most useful next action across every line of operation, for the
+  // always-visible Bridge. "Most useful" here just means "the first one
+  // written" — plan writes nextActions in priority order per line, and the
+  // first line of operation is itself the one plan.mjs leads with — so the
+  // first line's first action is the closest thing to a single next step
+  // without inventing a cross-line prioritization the schema doesn't carry.
+  const nextAction = goal.plan?.linesOfOperation.find((l) => l.nextActions?.length)?.nextActions[0] ?? null;
+
+  return { title, criteria, deadline, sections, focus, posture, nextAction };
 }
