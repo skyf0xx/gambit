@@ -1,6 +1,7 @@
 ---
 name: eval
 description: Use for a periodic check-in or an honest audit of progress against GOAL.md's success criteria, including whether people involved are actually delivering. Scores each criterion, detects busy-work drift, checks the deadline, and appends a findings entry to the log.
+display: checklist
 ---
 
 # Skill: eval
@@ -80,7 +81,18 @@ Overall: on_track | at_risk | stalled | regressing
 
 ### 7. Update GOAL.md
 
-Append the eval result to the log. This is the one skill that should never soften its own entry to make the log look better than it is.
+Replace the `## Criteria status` section with one line per success criterion,
+scored this run:
+
+```
+- [criterion text, verbatim from ## Success criteria] — [control|influence] — [on_track|at_risk|stalled|regressing]
+```
+
+This is step 2's scoring, persisted rather than only spoken — the visual
+layer and future eval runs both read it, so keep the criterion text verbatim
+so it can be matched back to `## Success criteria`.
+
+Then append the eval result to the log. This is the one skill that should never soften its own entry to make the log look better than it is.
 
 ### 8. Name the Next Step
 

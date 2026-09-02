@@ -1,6 +1,7 @@
 ---
 name: stakeholders
 description: Use when the goal depends on people who are neither on your team nor your opponents — councils, regulators, media, landowners, sponsors, rival organisers, the undecided public. Maps who holds power over the outcome, what each actually wants underneath their stated position, and where the movable middle is. Distinct from threat, which models opposition to degrade.
+display: network
 ---
 
 # Skill: stakeholders

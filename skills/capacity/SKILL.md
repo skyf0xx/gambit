@@ -1,6 +1,7 @@
 ---
 name: capacity
 description: Use when the plan assumes more time, money, or personal energy than actually exists — or periodically on any sustained effort. Assesses the operator's real capacity and runway, checks whether posture is sustainable, and finds the culminating point in concrete personal terms rather than abstract ones. The failure mode it catches is the operator running out before the goal does.
+display: checklist
 ---
 
 # Skill: capacity

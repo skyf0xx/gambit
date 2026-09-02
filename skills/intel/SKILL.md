@@ -1,6 +1,7 @@
 ---
 name: intel
 description: Use when a specific fact, person, organization, or precedent needs researching before deciding or acting — including gaps flagged by systems or threat. Rates sources on the Admiralty Scale and reports findings with explicit key judgments and confidence levels, not confident-sounding guesses.
+display: plain-card
 ---
 
 # Skill: intel

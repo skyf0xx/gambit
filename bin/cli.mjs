@@ -60,6 +60,10 @@ Global goal store (~/.gambit, or $GAMBIT_HOME):
   npx @skyf0xx/gambit delete <slug> --force   delete one goal (GOAL.md + index row)
   npx @skyf0xx/gambit delete --all --force    delete every goal in the store
 
+  npx @skyf0xx/gambit visualize [--port N] [--no-open]
+                                        open a local live-updating diagram
+                                        view of the resolved GOAL.md
+
   npx @skyf0xx/gambit --help           show this message
 
 Without --force, init will not overwrite a skill file that already
@@ -367,6 +371,19 @@ async function main() {
   if (cmd === 'delete') {
     await storeDelete(args.slice(1), { force });
     return;
+  }
+
+  if (cmd === 'visualize') {
+    const { startServer, killExistingOnPort } = await import('../src/visualize/server.mjs');
+    const portArg = args.find((a) => a === '--port');
+    const port = portArg ? Number(args[args.indexOf(portArg) + 1]) : 4173;
+    const open = !args.includes('--no-open');
+    await killExistingOnPort(port);
+    const server = startServer({ port, open });
+    if (server) {
+      process.on('SIGINT', () => { server.close(); process.exit(0); });
+    }
+    return new Promise(() => {}); // keep the process alive until Ctrl+C
   }
 
   console.error(`Unknown command: ${cmd}\n`);

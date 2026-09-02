@@ -1,6 +1,7 @@
 ---
 name: experiment
 description: Use when the plan rests on an unproven assumption that could be tested cheaply before committing serious effort — will people turn up, will anyone donate, does this message land, will the partner actually deliver. Designs the smallest test that could falsify the assumption, with a pass/fail line set in advance.
+display: checklist
 ---
 
 # Skill: experiment

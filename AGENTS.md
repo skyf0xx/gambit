@@ -144,7 +144,8 @@ rather than accumulating: `## Plan` ← `plan`, `## Systems notes` ←
 `systems`, `## Risk notes` ← `threat`, `## Decisions` ← `decide`,
 `## Stakeholders` ← `stakeholders`, `## Exposure` ← `exposure`,
 `## Capacity` ← `capacity`, `## Forecasts` ← `forecast`, `## Experiments`
-← `experiment`. The `## Log` is the only append-only section.
+← `experiment`, `## Criteria status` ← `eval`. The `## Log` is the only
+append-only section.
 
 `premortem` and `review` deliberately own no section — they append to
 `## Risk notes` and `## Plan` respectively, labelled with their source, so
@@ -232,11 +233,16 @@ formatting weight to the substance of the reply.
 
 ## Working on this repo
 
-- These are prompt/procedure files, not code — there is no build, test, or
-  lint step. Changes are reviewed by reading the skill file itself.
+- The skills themselves are prompt/procedure files, not code — changes are
+  reviewed by reading the skill file itself, no build or lint step applies
+  to them. `src/store/` and `src/visualize/` are real code (an npm package,
+  `bin/cli.mjs` as entry point); run `node scripts/check.mjs` after
+  touching either.
 - If you add a new skill, give it a `SKILL.md` inside its own
-  `skills/<name>/` directory, with YAML frontmatter (`name`, `description`)
-  at the top so Claude Code and similar tools can auto-discover it, and
-  update the table in README.md. It needs a next-step section, an
-  elicitation checkpoint if it writes to `GOAL.md`, and a declared section
-  in the format spec if it writes a section.
+  `skills/<name>/` directory, with YAML frontmatter (`name`, `description`,
+  and `display` — the visual-layer renderer it maps to; see
+  `src/visualize/registry.mjs` for the fixed set of renderer types) at the
+  top so Claude Code and similar tools can auto-discover it, and update the
+  table in README.md. It needs a next-step section, an elicitation
+  checkpoint if it writes to `GOAL.md`, and a declared section in the
+  format spec if it writes a section.

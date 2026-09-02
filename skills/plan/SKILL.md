@@ -1,6 +1,7 @@
 ---
 name: plan
 description: Use to break a GOAL.md goal or current focus into a sequenced, dependency-aware plan — starting a new push, replanning after a failure, or when the existing plan feels stale. Builds a dependency graph, identifies the critical path, scales pace to posture, and lists the next 3-5 concrete actions.
+display: lines-of-operation
 ---
 
 # Skill: plan

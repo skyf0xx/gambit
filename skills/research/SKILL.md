@@ -1,6 +1,7 @@
 ---
 name: research
 description: Use when a decision depends on something you don't currently know and can't safely assume — a fact, a person, an organisation, a rule, a precedent, or what has happened recently. Runs live web research, date-stamps every claim, separates verified-current from background, rates sources, and reports what it could not confirm. Supersedes intel for anything time-sensitive.
+display: plain-card
 ---
 
 # Skill: research

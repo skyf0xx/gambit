@@ -1,6 +1,7 @@
 ---
 name: premortem
 description: Use before committing to a significant plan or an irreversible action. Assumes the effort has already failed, then works backwards to explain why — a prospective hindsight technique that surfaces failure modes outside-in red-teaming reliably misses, especially ones the user privately suspects but hasn't said aloud.
+display: plain-card
 ---
 
 # Skill: premortem

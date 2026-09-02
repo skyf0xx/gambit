@@ -1,6 +1,7 @@
 ---
 name: review
 description: Use after a discrete event, milestone, or push has completed — successful or not. Runs a structured after-action review — what was expected, what happened, why they differed, what transfers to next time — and converts the findings into concrete changes. Distinct from eval, which audits progress against the goal rather than learning from a completed action.
+display: timeline
 ---
 
 # Skill: review

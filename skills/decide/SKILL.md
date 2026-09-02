@@ -1,6 +1,7 @@
 ---
 name: decide
 description: Use when analysis has produced options and one must be chosen — a fork in the plan, competing focuses, a tradeoff between speed and exposure, or a call the user keeps deferring. Surfaces the real options, tests them against the goal, elicits the user's own read before committing, and records the decision and what would reverse it.
+display: decision-fork
 ---
 
 # Skill: decide

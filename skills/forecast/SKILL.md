@@ -1,6 +1,7 @@
 ---
 name: forecast
 description: Use when the plan rests on a belief about what will happen — turnout, a vote, a decision, a response, a timeline. Converts vague expectations into dated, falsifiable predictions with explicit probabilities, then scores them once the outcome is known so the user finds out whether their judgment is actually calibrated.
+display: checklist
 ---
 
 # Skill: forecast

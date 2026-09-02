@@ -1,6 +1,7 @@
 ---
 name: systems
 description: Use for a systems-level read before committing to a plan, when the goal or environment has shifted, or when progress feels diffuse. Runs Center of Gravity, PMESII/ASCOPE, Schwerpunkt identification, lines of effort, second/third order effects, and culminating point analysis, feeding results into strategy and plan.
+display: lines-of-operation
 ---
 
 # Skill: systems

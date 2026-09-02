@@ -61,4 +61,5 @@ npx @skyf0xx/gambit path             # print the resolved GOAL.md path
 npx @skyf0xx/gambit adopt            # move an existing ./GOAL.md into the store
 npx @skyf0xx/gambit delete <slug> --force   # permanently delete one goal
 npx @skyf0xx/gambit delete --all --force    # permanently delete every goal
+npx @skyf0xx/gambit visualize        # open a local, auto-refreshing diagram view of the active goal
 ```

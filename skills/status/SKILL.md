@@ -1,6 +1,7 @@
 ---
 name: status
 description: Use for a quick, read-only snapshot of GOAL.md — goal, posture, focus, people, plan status, last eval, and recent log — without running a full strategy or eval cycle. Never writes to GOAL.md.
+display: plain-card
 ---
 
 # Skill: status

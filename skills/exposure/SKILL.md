@@ -1,6 +1,7 @@
 ---
 name: exposure
 description: Use before a public action, a filing, a publication, or anything that puts the user personally on the record — protests, campaigns, public criticism, or organising that touches permits, liability, employment, or personal safety. Maps legal, financial, professional, and personal-safety exposure, and what reduces each. Not legal advice; a checklist for knowing what to check and who to ask.
+display: plain-card
 ---
 
 # Skill: exposure

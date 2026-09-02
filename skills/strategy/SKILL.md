@@ -1,6 +1,7 @@
 ---
 name: strategy
 description: Use when the user wants direction on a GOAL.md goal that already exists — starting a work session, asking "what should I focus on", or after a setback, new fact, deadline change, or escalation. Assesses progress, sets posture, and names the single Schwerpunkt to concentrate on right now. If GOAL.md doesn't exist yet, use onboard first.
+display: lines-of-operation
 ---
 
 # Skill: strategy
@@ -215,6 +216,10 @@ Next actions:
 ## Risk notes
 (written by `threat`; omit until run)
 
+## Criteria status
+(written by `eval`; omit until run)
+- [criterion text, verbatim from ## Success criteria] — [control|influence] — [on_track|at_risk|stalled|regressing]
+
 ## Stakeholders
 (written by `stakeholders`; omit until run)
 - [name/role] — power: [high|med|low] — stance: [current] → [target] — via [lever]
@@ -245,8 +250,8 @@ Available: [N hrs/week] — Runway: [until date/condition]
 ```
 
 Sections are written in place, not appended to. Every skill that owns a section
-(`plan` → `## Plan`, `systems` → `## Systems notes`, `threat` → `## Risk notes`)
-replaces its own content rather than accumulating history. The log is the only
-append-only section.
+(`plan` → `## Plan`, `systems` → `## Systems notes`, `threat` → `## Risk notes`,
+`eval` → `## Criteria status`) replaces its own content rather than
+accumulating history. The log is the only append-only section.
 
 If `GOAL.md` doesn't exist yet, create it at the location resolution would use (typically that means `onboard` ran first and already created it — see `skills/_shared/RESOLVING.md`) after confirming the goal and success criteria with the user. Only include `## People` and `## Posture` if they're actually relevant — don't force structure the goal doesn't need.
