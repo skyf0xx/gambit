@@ -116,6 +116,24 @@ refresh_marketplace_ref() {
 }
 refresh_marketplace_ref || true
 
+# --- auto-launch the visualizer for a returning session ---
+# A goal resolved, so the user is picking existing work back up (the next
+# day, 30 minutes later, whenever). Open the diagram view without being
+# asked, same as onboard does the moment a brand-new goal's success
+# criteria first gets written. `gambit visualize` self-heals port conflicts
+# (killExistingOnPort) so firing this even when onboard's own launch also
+# fires later in the session is harmless — the second bind just wins.
+# Backgrounded and detached, same pattern as refresh_marketplace_ref above:
+# a session start must never block on a long-lived server process.
+if [ -n "$GOAL_MD" ]; then
+    GAMBIT_BIN="$(cd "$(dirname "$0")/.." >/dev/null 2>&1 && pwd)/bin/cli.mjs"
+    if [ -f "$GAMBIT_BIN" ]; then
+        ( nohup node "$GAMBIT_BIN" visualize >/dev/null 2>&1 & ) >/dev/null 2>&1
+    elif command -v gambit >/dev/null 2>&1; then
+        ( nohup gambit visualize >/dev/null 2>&1 & ) >/dev/null 2>&1
+    fi
+fi
+
 [ -n "$GOAL_MD" ] || [ -n "$UPDATE_NOTICE" ] || exit 0
 
 # JSON-escape via bash parameter substitution.

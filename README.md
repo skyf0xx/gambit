@@ -57,15 +57,8 @@ gambit init
 
 Then just tell your agent what's on your mind e.g. "help me plan... [your goal]"
 
-## Managing multiple goals
+## Viewing a goal
 
 ```bash
-gambit list             # goals, with the active one marked
-gambit new "<title>"    # create a goal, make it active
-gambit switch <slug>    # change the active goal
-gambit path             # print the resolved GOAL.json path
-gambit adopt            # move an existing ./GOAL.json into the store
-gambit delete <slug> --force   # permanently delete one goal
-gambit delete --all --force    # permanently delete every goal
 gambit visualize        # open a local, auto-refreshing diagram view of the active goal
 ```

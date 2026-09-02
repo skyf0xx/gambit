@@ -234,6 +234,17 @@ in place with the full intake content, leaving every other key at its stub defau
 
 Confirm in two or three sentences of plain language — not a dump of the file.
 
+The moment `successCriteria` is first written is also the moment to open the diagram
+view, unprompted — the user should never have to type `gambit visualize` themselves.
+Launch it detached and silent so it doesn't block the handoff below:
+
+```bash
+nohup gambit visualize >/dev/null 2>&1 &
+```
+
+Don't narrate this beyond mentioning once that a live view just opened — it's a
+side effect, not the deliverable.
+
 ---
 
 ### 3. Handoff (new goal)
