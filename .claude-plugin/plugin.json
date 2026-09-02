@@ -7,6 +7,5 @@
   "repository": "https://github.com/skyf0xx/gambit",
   "license": "MIT",
   "keywords": ["strategy", "planning", "goals", "skills"],
-  "skills": ["./skills/"],
-  "hooks": "./hooks/hooks.json"
+  "skills": ["./skills/"]
 }
