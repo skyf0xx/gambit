@@ -63,15 +63,14 @@ Then just tell your agent what's on your mind e.g. "help me plan... [your goal]"
 gambit visualize        # open a local, auto-refreshing diagram view of the active goal
 ```
 
-<table>
-<tr>
-<td width="33%"><img src="https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/screen-dashboard.png" alt="Goal overview showing the current focus, deadline, success criteria, and plan lines of operation"></td>
-<td width="33%"><img src="https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/screen-people-risk.png" alt="Stakeholder mapping, standing decisions, and known risks for a goal"></td>
-<td width="33%"><img src="https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/screen-strategy.png" alt="Strategic assessment with posture options, forecasts, and the culminating point"></td>
-</tr>
-<tr>
-<td align="center">Focus & plan</td>
-<td align="center">People & risk</td>
-<td align="center">Strategy & forecasts</td>
-</tr>
-</table>
+### Focus & plan
+
+![Goal overview showing the current focus, deadline, success criteria, and plan lines of operation](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/screen-dashboard.png)
+
+### People & risk
+
+![Stakeholder mapping, standing decisions, and known risks for a goal](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/screen-people-risk.png)
+
+### Strategy & forecasts
+
+![Strategic assessment with posture options, forecasts, and the culminating point](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/screen-strategy.png)
