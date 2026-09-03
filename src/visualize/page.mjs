@@ -272,6 +272,18 @@ export function renderPage(goal) {
     width: 1.3rem; height: 1.3rem; border-radius: 50%; background: var(--bg); border: 1px solid var(--border-strong);
     color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 0.66rem; display: flex;
     align-items: center; justify-content: center; }
+  /* criticalPath steps that carry a status (topFindings never does, so this
+     never fires there) get the same done/dropped treatment as next-actions —
+     an icon in place of the step number, dimmed or struck-through label. */
+  ol.ordered-list li.done::before,
+  ol.ordered-list li.dropped::before { content: ''; }
+  ol.ordered-list li.done .icon,
+  ol.ordered-list li.dropped .icon { position: absolute; left: 0; top: 0.28rem; width: 1.3rem; height: 1.3rem;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; }
+  ol.ordered-list li.done .icon { color: var(--ok); border: 1px solid var(--ok); }
+  ol.ordered-list li.dropped .icon { color: var(--bad); border: 1px solid var(--bad); }
+  ol.ordered-list li.done { opacity: 0.6; }
+  ol.ordered-list li.dropped .step-label { color: var(--bad); text-decoration: line-through; opacity: 0.75; }
 
   ul.next-actions { list-style: none; margin: 0.4rem 0 0; padding: 0.7rem 0 0 1.9rem; border-top: 1px dashed var(--border); }
   ul.next-actions li { display: flex; align-items: baseline; gap: 0.8rem; padding: 0.3rem 0; font-size: 0.86rem; }

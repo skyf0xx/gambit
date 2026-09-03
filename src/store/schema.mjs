@@ -67,6 +67,7 @@ const nextAction = z.object({
 const labeledStep = z.object({
   label: shortLabel,
   detail,
+  status: z.enum(['pending', 'done', 'dropped']).default('pending'),
 });
 
 const lineOfOperation = z.object({

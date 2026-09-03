@@ -14,18 +14,18 @@ display: ordered-list
 
 ## Mode 0: Quick Status Update
 
-This mode exists because `nextActions[].status` only ever changes when `plan` writes it — nothing else in Gambit updates it automatically, so without this fast path a casually-reported completion silently fails to land in `GOAL.json` until someone happens to trigger a full replan. Use this mode instead of the full sequence below whenever the user reports a `nextActions` item done, blocked, or dropped, and isn't asking for a replan.
+This mode exists because `nextActions[].status` and `criticalPath[].status` only ever change when `plan` writes them — nothing else in Gambit updates either automatically, so without this fast path a casually-reported completion silently fails to land in `GOAL.json` until someone happens to trigger a full replan. Use this mode instead of the full sequence below whenever the user reports a `nextActions` item **or a `criticalPath` step** done, blocked, or dropped, and isn't asking for a replan.
 
-1. **Load** `GOAL.json` and scan every line's `nextActions` for an entry matching what the user described. Match on meaning, not exact string — "finished the ATS audit" matches an action reading "run ATS keyword/format audit." If nothing plausible matches, say so and stop here rather than guessing; the update likely belongs under a different line, or the plan is stale enough to need Mode 1's full treatment.
+1. **Load** `GOAL.json` and scan every line's `nextActions` *and* `criticalPath` for an entry matching what the user described — a report can close either. Match on meaning, not exact string — "finished the ATS audit" matches an action reading "run ATS keyword/format audit," and "mapped contacts' networks" matches a critical-path step labeled "Map contacts' networks." If nothing plausible matches, say so and stop here rather than guessing; the update likely belongs under a different line, or the plan is stale enough to need Mode 1's full treatment.
 2. **Confirm in one line**, not a full elicitation checkpoint — this is a status flip, not a decision:
    ```
-   Marking "[action]" done in [line label]. Right?
+   Marking "[label/action]" done in [line label]. Right?
    ```
    On a yes, proceed. On a correction, use the corrected target instead.
-3. **Write** just that entry's `status` (`done`, `dropped`, or back to `pending`) in place. Leave every other field on that action, every other action, and every other key untouched — this mode never rebuilds the graph, re-sequences, or touches `criticalPath`.
+3. **Write** just that entry's `status` (`done`, `dropped`, or back to `pending`) in place — on the matched `nextActions` entry or `criticalPath` step, whichever it was. Leave every other field on that item, every other item, and every other key untouched — this mode never rebuilds the graph, re-sequences, or touches anything but the one `status` field. Don't let a completed step's story live only in `detail` prose ("Done — see log") while `status` stays `pending` — the visual layer reads `status`, not `detail`, to show it's finished.
 4. **Run `gambit check`** immediately. Fix and re-run on failure per AGENTS.md's "Validate every write."
-5. **Check whether the line just closed** (every `nextActions` entry now `done` or `dropped`). If so, say so plainly and note that `strategy` should pick a new focus next run — per its existing recency-trap guidance, a closed line is a reason to reassess, not itself a next step. Don't run `strategy` yourself; just flag it.
-6. **Name the next step**: the next `pending` action in that line, if one exists, or "run `strategy`" if the line just closed.
+5. **Check whether the line just closed** (every `nextActions` entry *and* every `criticalPath` step now `done` or `dropped`). If so, say so plainly and note that `strategy` should pick a new focus next run — per its existing recency-trap guidance, a closed line is a reason to reassess, not itself a next step. Don't run `strategy` yourself; just flag it.
+6. **Name the next step**: the next `pending` item in that line (critical-path step or next action, whichever comes first), or "run `strategy`" if the line just closed.
 
 No log entry is required for a routine status flip — the `log` is for events worth a durable record, and `nextActions[].status` already carries the current state per AGENTS.md's no-history rule. If the report carries a reason worth remembering (why it's blocked, what changed), a short `log` entry is fine, but don't manufacture one just to document the flip itself.
 
@@ -147,11 +147,13 @@ If something in an existing line has failed or stalled, name it, name the altern
 
 ### 8. Update GOAL.json
 
-Replace the `plan` key in `GOAL.json` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap); `nextActions` is capped at 5 entries, each `{action, who, when, status, detail?}` where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `status` is one of `pending` (default), `done`, `dropped`. Set that line's own `status` to `on_schedule`, `at_risk`, or `blocked`, and set `blocker` only when `status` is `blocked`.
+Replace the `plan` key in `GOAL.json` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?, status}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `status` is one of `pending` (default), `done`, `dropped` — same enum and meaning as a `nextAction`'s, so a step that's finished or abandoned shows that in the visual layer instead of relying on prose in `detail`); `nextActions` is capped at 5 entries, each `{action, who, when, status, detail?}` where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `status` is one of `pending` (default), `done`, `dropped`. Set that line's own `status` to `on_schedule`, `at_risk`, or `blocked`, and set `blocker` only when `status` is `blocked`.
 
 `detail` on a `criticalPath` step or a `nextAction` (max 280 chars, optional) is a hover
 tooltip in the visual layer — the reason this step is on the path, not a restatement of
-the label. Fill it in only when the label alone won't jog memory later.
+the label. Fill it in only when the label alone won't jog memory later. It is never a
+substitute for `status` — "Done — see log" belongs in `status: "done"` with an optional
+short `detail` for context, not in `detail` alone with `status` left `pending`.
 
 ```json
 {
@@ -160,9 +162,9 @@ the label. Fill it in only when the label alone won't jog memory later.
       {
         "label": "Main",
         "criticalPath": [
-          { "label": "A", "detail": "..." },
-          { "label": "B" },
-          { "label": "D" }
+          { "label": "A", "detail": "...", "status": "done" },
+          { "label": "B", "status": "pending" },
+          { "label": "D", "status": "pending" }
         ],
         "nextActions": [
           { "action": "...", "who": "you | name", "when": "today | this week", "status": "pending" }
