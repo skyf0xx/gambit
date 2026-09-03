@@ -22,9 +22,9 @@ This mode exists because `nextActions[].status` and `criticalPath[].status` only
    Marking "[label/action]" done in [line label]. Right?
    ```
    On a yes, proceed. On a correction, use the corrected target instead.
-3. **Write** just that entry's `status` (`done`, `dropped`, or back to `pending`) in place — on the matched `nextActions` entry or `criticalPath` step, whichever it was. Leave every other field on that item, every other item, and every other key untouched — this mode never rebuilds the graph, re-sequences, or touches anything but the one `status` field. Don't let a completed step's story live only in `detail` prose ("Done — see log") while `status` stays `pending` — the visual layer reads `status`, not `detail`, to show it's finished.
-4. **Run `gambit check`** immediately. Fix and re-run on failure per AGENTS.md's "Validate every write."
-5. **Check whether the line just closed** (every `nextActions` entry *and* every `criticalPath` step now `done` or `dropped`). If so, say so plainly and note that `strategy` should pick a new focus next run — per its existing recency-trap guidance, a closed line is a reason to reassess, not itself a next step. Don't run `strategy` yourself; just flag it.
+3. **Write** just that entry's `status` (`done`, `dropped`, or back to `pending`) in place — on the matched `nextActions` entry or `criticalPath` step, whichever it was. Leave every other field on that item, every other item, and every other key untouched — this mode never rebuilds the graph, re-sequences, or touches anything but the one `status` field (plus, per step 5, the line's own `status` when the write closes it). Don't let a completed step's story live only in `detail` prose ("Done — see log") while `status` stays `pending` — the visual layer reads `status`, not `detail`, to show it's finished.
+4. **Check whether the line just closed** (every `nextActions` entry *and* every `criticalPath` step now `done` or `dropped`). If so, set that line's own `status` to `"done"` too — the line-level pill (`on_schedule`/`at_risk`/`blocked`/`done`) doesn't follow step completion automatically, so leaving it on its old value (often `on_schedule` or `at_risk`) after every step closes is stale and wrong, not neutral. Say the closure plainly and note that `strategy` should pick a new focus next run — per its existing recency-trap guidance, a closed line is a reason to reassess, not itself a next step. Don't run `strategy` yourself; just flag it.
+5. **Run `gambit check`** immediately. Fix and re-run on failure per AGENTS.md's "Validate every write."
 6. **Name the next step**: the next `pending` item in that line (critical-path step or next action, whichever comes first), or "run `strategy`" if the line just closed.
 
 No log entry is required for a routine status flip — the `log` is for events worth a durable record, and `nextActions[].status` already carries the current state per AGENTS.md's no-history rule. If the report carries a reason worth remembering (why it's blocked, what changed), a short `log` entry is fine, but don't manufacture one just to document the flip itself.
@@ -92,7 +92,7 @@ For each line, call out the single longest dependency chain that, if delayed, de
 ```
 CRITICAL PATH: [A] → [B] → [D]
 Estimated duration: [...]
-Status: on_schedule | at_risk | blocked
+Status: on_schedule | at_risk | blocked | done
 Blocker (if any): [what's blocking, what resolves it]
 ```
 
@@ -102,7 +102,7 @@ CRITICAL PATH:
 - [short label B]
 - [short label D]
 Estimated duration: [...]
-Status: on_schedule | at_risk | blocked
+Status: on_schedule | at_risk | blocked | done
 Blocker (if any): [what's blocking, what resolves it]
 ```
 
@@ -147,7 +147,7 @@ If something in an existing line has failed or stalled, name it, name the altern
 
 ### 8. Update GOAL.json
 
-Replace the `plan` key in `GOAL.json` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?, status}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `status` is one of `pending` (default), `done`, `dropped` — same enum and meaning as a `nextAction`'s, so a step that's finished or abandoned shows that in the visual layer instead of relying on prose in `detail`); `nextActions` is capped at 5 entries, each `{action, who, when, status, detail?}` where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `status` is one of `pending` (default), `done`, `dropped`. Set that line's own `status` to `on_schedule`, `at_risk`, or `blocked`, and set `blocker` only when `status` is `blocked`.
+Replace the `plan` key in `GOAL.json` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?, status}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `status` is one of `pending` (default), `done`, `dropped` — same enum and meaning as a `nextAction`'s, so a step that's finished or abandoned shows that in the visual layer instead of relying on prose in `detail`); `nextActions` is capped at 5 entries, each `{action, who, when, status, detail?}` where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `status` is one of `pending` (default), `done`, `dropped`. Set that line's own `status` to `on_schedule`, `at_risk`, `blocked`, or `done` — `done` means every `criticalPath` step and every `nextActions` entry on that line is itself `done` or `dropped`; don't set the line to `done` while any step or action is still `pending`. Set `blocker` only when `status` is `blocked`.
 
 `detail` on a `criticalPath` step or a `nextAction` (max 280 chars, optional) is a hover
 tooltip in the visual layer — the reason this step is on the path, not a restatement of

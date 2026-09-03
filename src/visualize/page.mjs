@@ -265,6 +265,7 @@ export function renderPage(goal) {
   .status-pill.on_schedule { background: var(--ok-soft); color: var(--ok); }
   .status-pill.at_risk { background: var(--warn-soft); color: var(--warn); }
   .status-pill.blocked { background: var(--bad-soft); color: var(--bad); }
+  .status-pill.done { background: var(--accent-soft); color: var(--accent); }
 
   ol.ordered-list { list-style: none; margin: 0 0 0.6rem; padding: 0; counter-reset: step; }
   ol.ordered-list li { counter-increment: step; position: relative; padding: 0.32rem 0 0.32rem 1.9rem; font-size: 0.9rem; }

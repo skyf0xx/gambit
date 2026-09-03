@@ -74,7 +74,7 @@ const lineOfOperation = z.object({
   label: shortLabel,
   criticalPath: z.array(labeledStep).max(6),
   nextActions: z.array(nextAction).max(5),
-  status: z.enum(['on_schedule', 'at_risk', 'blocked']).optional(),
+  status: z.enum(['on_schedule', 'at_risk', 'blocked', 'done']).optional(),
   blocker: mediumLabel.optional(),
 });
 

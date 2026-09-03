@@ -97,13 +97,32 @@ function hintForSection(key, data) {
   }
 }
 
+// Shared sink-order for anything with a pending/done/dropped-shaped status:
+// active first, done next, dropped last — a finished or abandoned item is
+// no longer where attention belongs, so it shouldn't compete with open work
+// for the top of the list. `done` sinks below active but above `dropped`
+// because a completed item is still more worth seeing than an abandoned one.
+const STATUS_SORT_RANK = { done: 1, dropped: 2 };
+function byStatusSinkOrder(status) {
+  return STATUS_SORT_RANK[status] ?? 0;
+}
+
+// Stable sort (rank compare only, no secondary key) so items sharing a rank
+// keep their original relative order.
+function sortedByStatus(items, getStatus) {
+  return [...items].sort((a, b) => byStatusSinkOrder(getStatus(a)) - byStatusSinkOrder(getStatus(b)));
+}
+
 // Renders one { key, data } section to a { title, hint, group, body } card.
 // plan.linesOfOperation fans out into one summary line per line of
 // operation inside a single 'Plan' card (rather than one card per line, or
 // one flat 'Plan' card) so the Bridge's plan group reads as one scannable
 // unit with each line's own status pill and steps, matching the demo.
 function renderPlanSection(section) {
-  const lines = section.data.linesOfOperation;
+  // Lines of operation use a 4-value status enum (on_schedule/at_risk/
+  // blocked/done) rather than pending/done/dropped, but 'done' sinks the
+  // same way — see byStatusSinkOrder.
+  const lines = sortedByStatus(section.data.linesOfOperation, (l) => l.status);
   const statusCounts = lines.reduce((acc, l) => {
     const s = l.status ?? 'on_schedule';
     return { ...acc, [s]: (acc[s] ?? 0) + 1 };
@@ -119,9 +138,14 @@ function renderPlanSection(section) {
   const body = lines
     .map((line) => {
       const status = line.status ?? 'on_schedule';
+      // criticalPath keeps its original order — it's a numbered dependency
+      // sequence (this step precedes that one), not an unordered list, so a
+      // done step still gets its checkmark/dim styling in place rather than
+      // sinking and scrambling what the numbering means.
       const stepsHtml = renderOrderedList(line.criticalPath);
-      const actionsHtml = line.nextActions?.length
-        ? `<ul class="next-actions">${line.nextActions
+      const actions = line.nextActions?.length ? sortedByStatus(line.nextActions, (a) => a.status) : [];
+      const actionsHtml = actions.length
+        ? `<ul class="next-actions">${actions
             .map((a) => {
               const status = a.status ?? 'pending';
               const icon = status === 'done' ? '✓' : status === 'dropped' ? '✕' : '·';
