@@ -12,6 +12,7 @@ import { safeParseGoalJson } from '../store/schema.mjs';
 const SECTION_KEYS = [
   'plan',
   'criteriaStatus',
+  'people',
   'stakeholders',
   'systemsNotes',
   'riskNotes',

@@ -7,6 +7,7 @@ import {
   renderCapacity,
 } from './renderers/checklist.mjs';
 import { renderOrderedList, renderRiskList } from './renderers/orderedList.mjs';
+import { renderPeopleTable } from './renderers/peopleTable.mjs';
 import { renderStakeholderTable } from './renderers/stakeholderTable.mjs';
 import { renderDecisionCallout } from './renderers/decisionCallout.mjs';
 import { renderPlainCard } from './renderers/plainCard.mjs';
@@ -62,6 +63,10 @@ function hintForSection(key, data) {
       return Object.entries(counts)
         .map(([status, n]) => `${n} ${status.replace('_', ' ')}`)
         .join(' · ');
+    }
+    case 'people': {
+      const confirmed = data.filter((p) => p.status === 'confirmed').length;
+      return `${data.length} tracked · ${confirmed} confirmed`;
     }
     case 'stakeholders':
       return `${data.length} tracked`;
@@ -208,7 +213,13 @@ function renderSection(section) {
       return { title, hint, group, key, body: renderRiskList(section.data) };
 
     case 'stakeholder-table':
-      return { title, hint, group, key, body: renderStakeholderTable(section.data) };
+      return {
+        title,
+        hint,
+        group,
+        key,
+        body: section.key === 'people' ? renderPeopleTable(section.data) : renderStakeholderTable(section.data),
+      };
 
     case 'decision-callout':
       return { title: 'Latest decision', hint, group, key, body: renderDecisionCallout(section.data) };

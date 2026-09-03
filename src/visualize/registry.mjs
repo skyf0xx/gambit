@@ -20,6 +20,7 @@ export const SECTION_RENDERERS = {
   capacity: 'checklist',
   experiments: 'checklist',
   forecasts: 'checklist',
+  people: 'stakeholder-table',
   stakeholders: 'stakeholder-table',
   riskNotes: 'risk-list',
   decisions: 'decision-callout',
@@ -33,6 +34,7 @@ export const SECTION_RENDERERS = {
 export const SECTION_GROUPS = {
   plan: 'plan',
   criteriaStatus: 'plan',
+  people: 'people',
   stakeholders: 'people',
   riskNotes: 'people',
   decisions: 'people',
