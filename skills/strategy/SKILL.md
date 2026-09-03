@@ -166,6 +166,14 @@ If posture changed, replace `posture.current` (`{level, label}`) — leave `post
 
 Append an object to `log` — date, assessment, and the focus just set. `notes` isn't rendered in the visual layer — it's the agent's own working record, not a user-scanned label — so don't force findings into an artificially short list; each entry still has its own 120-char cap (see AGENTS.md's char-cap note), so split a long finding into multiple entries rather than cramming it into one.
 
+Apply `skills/_shared/NO_HISTORY.md` here specifically — this step is where it's easiest to
+break. When a prior focus turns out to have been wrong or under-specified (e.g. a Schwerpunkt
+that drifted into implying two lines run in parallel), state the corrected Schwerpunkt as
+plain current fact ("Schwerpunkt: Conversion; Distribution stays secondary"), not as a
+narrated correction ("Schwerpunkt corrected: still X, not parallel with Y — one thing, never
+split"). The log's sequence of entries already is the history; a single entry re-narrating
+its own correction is the violation, not the presence of a fix.
+
 ```json
 {
   "posture": { "current": { "level": 2, "label": "Heightened" } },
