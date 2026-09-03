@@ -6,14 +6,15 @@ involves coordinating other people.
 
 ## Start of session
 
-Before the first substantive reply in any session, resolve `GOAL.json` per
-the rule below and read it if resolution finds one. This is silent
-context-loading, not a skill invocation — don't narrate it, don't run
-`onboard` or `strategy` unprompted, and don't treat it as green light to
-take action. It exists so the agent already knows the goal, current
-posture, plan, and log the moment the user says anything, instead of
-asking them to re-explain state they already recorded. If resolution finds
-no goal, say nothing about it until a skill (typically `onboard`) needs it.
+Before the first substantive reply in any session, resolve `GOAL.json` by
+running `gambit path` (see below — do not guess the file's location by hand)
+and read it if resolution finds one. This is silent context-loading, not a
+skill invocation — don't narrate it, don't run `onboard` or `strategy`
+unprompted, and don't treat it as green light to take action. It exists so
+the agent already knows the goal, current posture, plan, and log the moment
+the user says anything, instead of asking them to re-explain state they
+already recorded. If resolution finds no goal, say nothing about it until a
+skill (typically `onboard`) needs it.
 
 ## Resolving GOAL.json
 
@@ -26,8 +27,13 @@ global store outside any project directory:
   active                        one line: slug of the active goal
   goals/
     park-cleanup/GOAL.json      a full GOAL.json, schema unchanged
-    job-search/GOAL.json
+    land-a-job-offer/GOAL.json
 ```
+
+A goal's slug is derived from its title when it's created (`gambit new`), not
+from a topic guess — `land-a-job-offer`, not `job-search`. Never construct a
+slug by hand and read `~/.gambit/goals/<guessed-slug>/GOAL.json` directly;
+resolve with `gambit path` (or list actual slugs with `gambit list`) instead.
 
 `~/.gambit` is `$GAMBIT_HOME` if set, else `$XDG_DATA_HOME/gambit`, else
 the literal path `~/.gambit`. `gambit.db` is an index, not the source of
@@ -37,7 +43,9 @@ so the CLI can list, switch, and search across goals quickly. Deleting it
 and running `gambit reindex` loses nothing.
 
 Which file "`GOAL.json`" means, for any skill, is decided by one precedence
-rule, spelled out in full in `skills/_shared/RESOLVING.md`:
+rule, spelled out in full in `skills/_shared/RESOLVING.md`. Resolve it by
+running `gambit path`, which applies the rule and prints the answer — don't
+reimplement it with raw file checks or a guessed slug:
 
 1. `GOAL.json` in the current working directory → use it. A repo-local goal
    always wins, so existing per-project installs keep working unchanged.

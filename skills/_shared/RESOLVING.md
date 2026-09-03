@@ -1,7 +1,18 @@
 # Resolving GOAL.json
 
 Every skill in this repo reads and writes "`GOAL.json`" as its state file. Which
-actual file that means is decided once, by this rule, in precedence order:
+actual file that means is decided once, by this rule, in precedence order.
+
+**Resolve it by running `gambit path`, not by hand.** It applies every case
+below and prints the one file this rule would choose, or a nonzero exit with
+a message telling you what to do next (create a goal, or pick one of several
+listed). Do not reimplement this rule with raw file checks — don't guess
+`$GAMBIT_HOME`/`$XDG_DATA_HOME` fallback order, don't guess a goal's slug
+from its name, don't `ls`/`find` the store directory looking for a match.
+Any of those can silently land on the wrong goal (or "no goal" when one
+exists) in exactly the cases this rule exists to get right. If `gambit` isn't
+on PATH, fall back to reading the precedence rule below by hand — but treat
+that as the exception, not the default.
 
 1. **`GOAL.json` in the current working directory** → use it. A repo-local goal
    always wins. This is what makes existing per-project installs keep working
@@ -21,9 +32,6 @@ actual file that means is decided once, by this rule, in precedence order:
 A skill that finds no file after applying this rule follows its own
 not-found behavior (most defer to `onboard`; `status` and `brief` say so and
 point there).
-
-`gambit path` (the CLI) resolves and prints the same file this rule would
-choose — useful for scripting or confirming what a session will read.
 
 Skills should read and write "the resolved file," not restate this
 precedence table — it exists once, here, so it stays in sync as the store

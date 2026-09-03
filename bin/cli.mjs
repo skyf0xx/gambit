@@ -122,21 +122,41 @@ async function storeSwitch(slug) {
   }
 }
 
-// Same precedence rule documented in AGENTS.md / RESOLVING.md: a
-// CWD-local GOAL.json wins, otherwise the active goal in the store.
-// Returns null (after printing the same "no goal" message) if neither
-// exists, so callers share one error path instead of repeating it.
+// Same precedence rule documented in AGENTS.md / RESOLVING.md, all five
+// cases: a CWD-local GOAL.json wins (case 1); otherwise the active goal in
+// the store (case 2); otherwise, if exactly one goal exists in the store,
+// it resolves to that goal and is set active so the next call resolves via
+// case 2 (case 3). Returns null if none of those apply — either no goals
+// exist anywhere (case 4) or several exist with none active (case 5);
+// callers distinguish those two by checking store.list().length.
 function resolveGoalPath() {
   if (existsSync(CWD_GOAL_JSON)) return CWD_GOAL_JSON;
   const slug = store.resolveActive();
-  if (!slug) return null;
-  return goalFile(slug);
+  if (slug) return goalFile(slug);
+  const goals = store.list();
+  if (goals.length === 1) {
+    store.setActive(goals[0].slug);
+    return goalFile(goals[0].slug);
+  }
+  return null;
+}
+
+// Shared "couldn't resolve" message for storePath/storeCheck — cases 4
+// (nothing exists) and 5 (several goals, none active) need different next
+// steps, so this distinguishes them rather than printing one generic line.
+function noGoalResolvedMessage() {
+  const goals = store.list();
+  if (goals.length === 0) {
+    return 'No GOAL.json in the working directory and no goals in the store. Create one with: gambit new "<title>"';
+  }
+  const list = goals.map((g) => `  ${g.slug}  ${g.title}`).join('\n');
+  return `No GOAL.json in the working directory and no active goal in the store. Several goals exist — pick one:\n${list}\n\nSwitch with: gambit switch <slug>`;
 }
 
 async function storePath() {
   const path = resolveGoalPath();
   if (!path) {
-    console.error('No GOAL.json in the working directory and no active goal in the store.');
+    console.error(noGoalResolvedMessage());
     process.exitCode = 1;
     return;
   }
@@ -149,7 +169,7 @@ async function storePath() {
 async function storeCheck() {
   const path = resolveGoalPath();
   if (!path) {
-    console.error('No GOAL.json in the working directory and no active goal in the store.');
+    console.error(noGoalResolvedMessage());
     process.exitCode = 1;
     return;
   }

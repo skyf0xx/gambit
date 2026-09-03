@@ -38,22 +38,23 @@ words ("let me work out where the leverage is"), not by naming the file.
 
 ### 1. Resolve the goal
 
-Apply the resolution rule in `skills/_shared/RESOLVING.md`:
+Run `gambit path` (see `skills/_shared/RESOLVING.md` — don't hand-check
+files or guess a slug):
 
-- **Case 1 (cwd `GOAL.json`) or case 2 (active goal in the store) resolves to a
-  file** → **4. Returning User**
-- **Case 3 (exactly one goal in the store, none active)** → resolution sets
-  it active silently → **4. Returning User**
-- **Case 4 (no goals exist anywhere)** → **2. New Goal Intake**
-- **Case 5 (several goals, none active)** → **1a. Which Goal**
+- **Prints a file path** (cases 1-3 of the resolution rule) → **4. Returning
+  User**
+- **Exits nonzero, message says to create a goal** (case 4, no goals exist
+  anywhere) → **2. New Goal Intake**
+- **Exits nonzero, message lists several goals** (case 5, none active) →
+  **1a. Which Goal**
 
 ---
 
 ### 1a. Which Goal
 
 Several goals exist in the store and none is active — the only case in the resolution
-rule that asks the user anything. List them (`gambit list`, or the equivalent read of
-`~/.gambit/goals/*/GOAL.json`) and ask plainly:
+rule that asks the user anything. `gambit path`'s error already listed them (slug +
+title); use `gambit list` if you need last-touched dates too. Ask plainly:
 
 ```
 You've got a few goals going:
