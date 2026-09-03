@@ -166,6 +166,14 @@ rather than accumulating: `plan` ← `plan`, `systemsNotes` ← `systems`,
 `forecasts` ← `forecast`, `experiments` ← `experiment`, `criteriaStatus` ←
 `eval`. The `log` array is the only append-only key.
 
+Ownership is per key, not per full rewrite — `plan` owns `nextActions[].status`
+even for a single-field flip. When the user simply reports a `nextActions` item
+done, blocked, or dropped in passing, that still routes to `plan` (its
+lightweight "Quick Status Update" mode, not a full replan) rather than sitting
+unrecorded until something happens to trigger a full `plan` run. Nothing else
+in Gambit writes that field, and nothing updates it silently outside a skill
+invocation — see `skills/plan/SKILL.md`.
+
 `premortem` and `review` deliberately own no key — they append to
 `riskNotes` and `plan.nextActions` respectively, labelled with their
 source, so findings live where the skill that owns the key will see them

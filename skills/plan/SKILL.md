@@ -1,14 +1,35 @@
 ---
 name: plan
-description: Use to break a GOAL.json goal or current focus into one or more sequenced, dependency-aware lines of operation — starting a new push, replanning after a failure, or when the existing plan feels stale. Builds a dependency graph per line, identifies each line's critical path, scales pace to posture, and lists the next 3-5 concrete actions per line.
+description: Use to break a GOAL.json goal or current focus into one or more sequenced, dependency-aware lines of operation — starting a new push, replanning after a failure, or when the existing plan feels stale. Builds a dependency graph per line, identifies each line's critical path, scales pace to posture, and lists the next 3-5 concrete actions per line. Also the skill to reach for when the user simply reports a next action done, blocked, or dropped in ordinary conversation — that's the lightweight "Quick Status Update" mode below, not a full replan.
 display: ordered-list
 ---
 
 # Skill: plan
 
-**Trigger**: You need to break the goal (or the current focus from `strategy`) into concrete, ordered steps — starting a new push, replanning after something failed, or the existing plan feels stale.
+**Trigger**: You need to break the goal (or the current focus from `strategy`) into concrete, ordered steps — starting a new push, replanning after something failed, or the existing plan feels stale. Also triggers, in its lightweight mode, whenever the user reports progress on a `nextActions` item in passing — "I finished X," "Y is done," "we're blocked on Z" — even though nothing about the message sounds like a planning request.
 
-**Purpose**: Turn a goal or focus into one or more sequenced, dependency-aware lines of operation. If the goal involves other people, sequence what they do too. Identify each line's critical path and what can run in parallel within it. Scale pace to current posture. Replan on failure without dwelling on it.
+**Purpose**: Turn a goal or focus into one or more sequenced, dependency-aware lines of operation. If the goal involves other people, sequence what they do too. Identify each line's critical path and what can run in parallel within it. Scale pace to current posture. Replan on failure without dwelling on it. `nextActions[].status` has exactly one owning skill — this one — so any status change, however small, is this skill's job even when nothing else about the moment looks like "planning."
+
+---
+
+## Mode 0: Quick Status Update
+
+This mode exists because `nextActions[].status` only ever changes when `plan` writes it — nothing else in Gambit updates it automatically, so without this fast path a casually-reported completion silently fails to land in `GOAL.json` until someone happens to trigger a full replan. Use this mode instead of the full sequence below whenever the user reports a `nextActions` item done, blocked, or dropped, and isn't asking for a replan.
+
+1. **Load** `GOAL.json` and scan every line's `nextActions` for an entry matching what the user described. Match on meaning, not exact string — "finished the ATS audit" matches an action reading "run ATS keyword/format audit." If nothing plausible matches, say so and stop here rather than guessing; the update likely belongs under a different line, or the plan is stale enough to need Mode 1's full treatment.
+2. **Confirm in one line**, not a full elicitation checkpoint — this is a status flip, not a decision:
+   ```
+   Marking "[action]" done in [line label]. Right?
+   ```
+   On a yes, proceed. On a correction, use the corrected target instead.
+3. **Write** just that entry's `status` (`done`, `dropped`, or back to `pending`) in place. Leave every other field on that action, every other action, and every other key untouched — this mode never rebuilds the graph, re-sequences, or touches `criticalPath`.
+4. **Run `gambit check`** immediately. Fix and re-run on failure per AGENTS.md's "Validate every write."
+5. **Check whether the line just closed** (every `nextActions` entry now `done` or `dropped`). If so, say so plainly and note that `strategy` should pick a new focus next run — per its existing recency-trap guidance, a closed line is a reason to reassess, not itself a next step. Don't run `strategy` yourself; just flag it.
+6. **Name the next step**: the next `pending` action in that line, if one exists, or "run `strategy`" if the line just closed.
+
+No log entry is required for a routine status flip — the `log` is for events worth a durable record, and `nextActions[].status` already carries the current state per AGENTS.md's no-history rule. If the report carries a reason worth remembering (why it's blocked, what changed), a short `log` entry is fine, but don't manufacture one just to document the flip itself.
+
+If the user's report actually describes several changes at once, or implies the rest of the plan needs rethinking (a blocker with no workaround, a dependency that turned out wrong), stop and use Mode 1 (the full sequence below) instead — this mode is for a clean, isolated status change only.
 
 ---
 
@@ -21,6 +42,10 @@ When something is blocked, state what's blocked, what's blocking it, and what un
 **Nodes are labels, not sentences.** Max 5 words each. Bullets or arrows, not prose. "spec: eval owns criteria status" — not a full clause explaining why. Too long for one line? Switch to bullets.
 
 ---
+
+## Mode 1: Full Plan / Replan
+
+Use this sequence for an actual planning request — a new push, a replan after failure, or a stale plan. For a bare status report on an existing action, use Mode 0 above instead.
 
 ## Execution Sequence
 
