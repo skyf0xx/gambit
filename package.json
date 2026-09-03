@@ -1,6 +1,6 @@
 {
   "name": "@skyf0xx/gambit",
-  "version": "4.5.2",
+  "version": "4.6.0",
   "description": "Strategic-advisor skills (onboard, strategy, plan, threat, and more) for Claude Code, Cursor, Gemini CLI, and other AGENTS.md-reading agents — installable globally with multi-goal support, or per-project.",
   "type": "module",
   "repository": {

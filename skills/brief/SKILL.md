@@ -45,6 +45,11 @@ Resolve `GOAL.json` per `skills/_shared/RESOLVING.md` and read it in full.
 If resolution finds no goal: say there's nothing set up yet, and point to `onboard` to
 start (it also handles several goals with none active). Stop there.
 
+Per AGENTS.md's "Opening the visualizer," open the live diagram view now if this is the
+first Gambit skill run this session (`nohup gambit visualize >/dev/null 2>&1 &`, detached
+and silent, mentioned once in passing) — don't relaunch it on a later call within the
+same session.
+
 ### 2. Write the Brief
 
 Prose, not a template. If more than one goal exists in the store, open by naming which

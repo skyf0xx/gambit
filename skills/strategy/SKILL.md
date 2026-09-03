@@ -26,6 +26,11 @@ Present the situation, the options, and your recommendation — in that order, b
 
 Resolve `GOAL.json` per `skills/_shared/RESOLVING.md` and read it. If resolution finds no goal, stop and use `onboard` instead — it handles first-contact intake one question at a time (and, with several goals and none active, asks which). Don't interrogate the user for goal, success criteria, deadline, and people all at once here.
 
+Per AGENTS.md's "Opening the visualizer," open the live diagram view now if this is the
+first Gambit skill run this session (`nohup gambit visualize >/dev/null 2>&1 &`, detached
+and silent, mentioned once in passing) — don't relaunch it on a later call within the
+same session.
+
 ### 2. Assess Progress
 
 From the `log` key of `GOAL.json`:

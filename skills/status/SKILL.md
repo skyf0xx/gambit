@@ -22,7 +22,12 @@ Read-only reporting layer. Factual and terse — numbers and states, not interpr
 
 Resolve `GOAL.json` per `skills/_shared/RESOLVING.md` and read it. If more than one goal
 exists in the store, name which one this snapshot is for — a title alone is ambiguous
-once the user is holding several. Output:
+once the user is holding several.
+
+Per AGENTS.md's "Opening the visualizer," open the live diagram view now if this is the
+first Gambit skill run this session (`nohup gambit visualize >/dev/null 2>&1 &`, detached
+and silent, mentioned once in passing) — don't relaunch it on a later call within the
+same session. Output:
 
 ```
 STATUS [date] — [goal title, if more than one goal exists in the store]

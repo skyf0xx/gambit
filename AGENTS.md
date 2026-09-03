@@ -16,6 +16,27 @@ the user says anything, instead of asking them to re-explain state they
 already recorded. If resolution finds no goal, say nothing about it until a
 skill (typically `onboard`) needs it.
 
+## Opening the visualizer
+
+Any Gambit skill invocation that engages an existing goal — `status`, `strategy`,
+`brief`, or any other skill run against a `GOAL.json` that already has content —
+should open the live diagram view unprompted, the same way `onboard` already does
+the moment a brand-new goal's `successCriteria` is first written. The user should
+never have to type `gambit visualize` themselves just because the goal predates
+this session rather than being created in it.
+
+Launch it once per session, detached and silent, the first time such a skill runs:
+
+```bash
+nohup gambit visualize >/dev/null 2>&1 &
+```
+
+Relaunching is safe even if a server from an earlier session is still bound to the
+port — `gambit visualize` force-frees it first (see `killExistingOnPort` in
+`src/visualize/server.mjs`) — but don't fire it again after the first call within
+the same session; once is a live view, twice is a respawned browser tab. Mention
+once, briefly, that a live view opened; don't narrate it beyond that.
+
 ## Resolving GOAL.json
 
 Gambit holds state for many goals at once, one active at a time, in a

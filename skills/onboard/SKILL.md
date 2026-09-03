@@ -272,6 +272,14 @@ cleanly so it reads the fresh `GOAL.json` and does its own assessment.
 
 `GOAL.json` exists. Do not re-interview — that discards their standing context.
 
+This branch is itself a Gambit discussion of an existing goal, so AGENTS.md's
+"Opening the visualizer" rule applies here too, not just to the new-goal write in
+2d: open it once, detached and silent, before or alongside the snapshot below.
+
+```bash
+nohup gambit visualize >/dev/null 2>&1 &
+```
+
 #### 4a. Route direct asks straight through
 
 If the return message is a specific ask that maps to one skill ("what's my status",
