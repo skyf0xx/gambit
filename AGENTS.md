@@ -88,8 +88,9 @@ Skills reference this rule rather than restating it — see
 skills/
   ORIENT
   onboard/SKILL.md      entry point — new goal intake, or welcome-back for a returning one
-  brief/SKILL.md        plain-language read of current state, jargon translated, read-only
-  status/SKILL.md       read-only snapshot in the system's own terms, no writes
+  elicit/SKILL.md       shared pressure-test checkpoint any skill can call; writes no key of its own
+  brief/SKILL.md         plain-language read of current state, jargon translated, read-only
+  status/SKILL.md        read-only snapshot in the system's own terms, no writes
 
   DIRECT
   strategy/SKILL.md     assess progress, set posture, set focus (Schwerpunkt)
@@ -147,10 +148,18 @@ different questions, and collapsing them loses the distinct one:
   where the other side has leverage.
 
 `onboard` is the front door: it checks whether `GOAL.json` exists and branches
-to first-contact intake (one question at a time, not a form) or a
-welcome-back snapshot for a returning session, then hands off to `strategy`.
-Other skills should assume `GOAL.json` already exists — `strategy` explicitly
-defers to `onboard` if it's missing rather than re-implementing intake.
+to first-contact intake (an open brain dump mined into a scratch file, then
+pressure-tested via `elicit` before anything is written) or a welcome-back
+snapshot for a returning session, then hands off to `strategy`. Other skills
+should assume `GOAL.json` already exists — `strategy` explicitly defers to
+`onboard` if it's missing rather than re-implementing intake.
+
+`elicit` is the one skill with no owned key: other skills call it at a pause
+point to put a piece of reasoning — a goal statement, a plan, a risk read —
+under more pressure before committing to it, and it hands back a sharpened
+version rather than writing anything itself. `onboard` calls it after intake,
+before the goal is locked in; any skill facing a consequential call can call
+it the same way.
 
 Each `SKILL.md` is self-contained: trigger, purpose, voice, and an execution
 sequence. They are written to be read and followed directly by any capable
@@ -226,7 +235,10 @@ most of that weight, and all four are easy to skip under time pressure:
 user its read and asks what they think first. The user holds situational
 facts the file doesn't contain, and the cheap moment to surface them is
 before a focus is locked in — not after three skills have built on it. One
-exchange, then commit; this is a checkpoint, not a negotiation.
+exchange, then commit; this is a checkpoint, not a negotiation. (This is the
+general rule, not the `elicit` skill — that's a specific, callable menu of
+named pressure-test methods; this rule applies whether or not a skill
+invokes it.)
 
 **Stay opinionated through pushback.** The user is consulting these skills
 *because* they want a strategic read, not because they want their own

@@ -1,6 +1,6 @@
 ---
 name: onboard
-description: Use at the start of any session touching a goal — a vague first message ("I want to...", "help me with...", "help me plan...", "what's going on with this"), or any time it's unclear whether GOAL.json exists yet. Not a coding task even if the phrasing sounds like one ("help me plan" here means a life/business/campaign goal, not a software plan). Checks for GOAL.json and branches to a guided one-question-at-a-time intake for a new goal, or a welcome-back snapshot for a returning one, then hands off to strategy.
+description: Use at the start of any session touching a goal — a vague first message ("I want to...", "help me with...", "help me plan...", "what's going on with this"), or any time it's unclear whether GOAL.json exists yet. Not a coding task even if the phrasing sounds like one ("help me plan" here means a life/business/campaign goal, not a software plan). Checks for GOAL.json and branches to a guided intake for a new goal, or a welcome-back snapshot for a returning one, then hands off to strategy.
 display: plain-card
 ---
 
@@ -18,7 +18,12 @@ system first. A user arrives with a desire, not a formed goal. This skill works 
 which of two states they're in — starting something new, or returning to something
 existing — and handles the first move.
 
-It never does the deep work itself. It hands off once the user knows where they are.
+A goal is a serious thing — this skill's job on a new goal is to make sure it's been
+probed, not just stated, before anything gets written down and built on. It does that
+probing itself for the raw intake, then leans on `elicit` for deeper pressure once
+there's something concrete to pressure-test. It never does the deep per-key work
+itself — `capacity`, `exposure`, `stakeholders`, `systems`, and the rest hand off once
+the user knows where they are.
 
 ---
 
@@ -74,13 +79,19 @@ the user is clearly already oriented, mid-multi-goal, not a first-time visitor.
 
 ### 2. New Goal Intake
 
-#### 2a. Introduce, then frame
+New-goal intake runs in three passes: get the raw material down without interrupting it
+(2a-2b), put real pressure on the shape that emerges (2c), then mine the result into
+`GOAL.json` (2d-2f). The scratch file created in 2b is what makes this order possible —
+the user talks first, structure gets extracted after, instead of being forced to answer
+one structured question at a time before they've said what's actually on their mind.
+
+#### 2a. Introduce, then open space
 
 This is the very first contact — the store has no goals at all yet for this user
 (resolution case 4, per `skills/_shared/RESOLVING.md`). Open with a short
 self-introduction before the first question. This runs once ever, not once per goal —
 a second or later goal also reaches this step (no goal resolves yet) but skips the
-introduction and starts straight at the first question, since the user already knows
+introduction and starts straight at the opening prompt, since the user already knows
 who Gambit is. A returning user (section 4) gets the welcome-back snapshot instead,
 never a repeat of the introduction.
 
@@ -89,31 +100,61 @@ never a repeat of the introduction.
 
 Expert on getting things done. Give me a goal, I'll help you get there.
 
-What's the goal?
+What's going on — tell me as much or as little as you've got.
 ```
 
-Three lines, verbatim. Don't expand it — no bullet list of what happens next, no
-disclaimers, no "I don't know is fine" preamble. That belongs later, in the interview
-itself (2b already permits "I don't know" turn by turn), not front-loaded into the
-intro. If the user's opening message already states the goal, skip straight to
-reflecting it back — don't make them read the intro before you've used what they gave
-you.
+Three lines, verbatim (swap only the question line for a second-or-later goal, since
+there's no introduction to pair it with). Don't expand it — no bullet list of what
+happens next, no disclaimers. The invitation to say "as much or as little" is
+deliberate: unlike a form, this doesn't need the goal stated cleanly on the first try.
+If the user's opening message already contains real substance, skip straight to 2b —
+don't make them re-answer a prompt they've already answered by writing it.
 
-Ends on the first question. Go straight into 2b once they answer — no second framing
-pass.
+#### 2b. Take the brain dump, write it to a scratch file
 
-#### 2b. Interview, one question at a time
+Let the user talk before imposing any structure. Don't ask for goal, criteria,
+deadline, and people one at a time up front — that's an interrogation, and most people
+can't answer all four cold before they've had a chance to just describe the situation.
+Ask open follow-ups only where the picture is genuinely unclear, not to fill in a form
+in order.
 
-Do not ask for goal, criteria, deadline and people at once. That's an interrogation, and
-most people can't answer all four cold. Adapt wording to what they've already said.
+As the conversation develops, write what's said into a scratch file rather than
+holding it only in the conversation — this is what later steps mine, and what lets the
+session resume cleanly if it's interrupted. There's no slug yet at this point (that
+comes from the confirmed goal title in 2f), so use a fixed pending path:
+`<store root>/pending-intake.md` (store root is `$GAMBIT_HOME`, else
+`$XDG_DATA_HOME/gambit`, else `~/.gambit` — same resolution `gambit path` uses). Plain
+markdown, not JSON — this file is never validated against `goalSchema` and never read
+by the visualizer; it's working notes, freeform:
 
-**1. The goal itself.**
+```markdown
+# Intake — [date]
 
-First, check altitude. People often open with a task or activity — "I want to arrange a
+## Raw
+[what the user said, close to verbatim, as it comes in]
+
+## Signals
+- capacity: [anything volunteered about time/money/energy — or omit if none]
+- exposure: [anything volunteered about legal/professional/safety risk — or omit]
+- stakeholders: [anyone named whose decision the goal depends on — or omit]
+- posture: [any sign the goal has real phases of intensity — or omit]
+```
+
+Append to `## Raw` as the conversation continues; file the `## Signals` bullets the
+moment something matching them comes up, don't wait until the end to reconstruct them
+from memory. If a fresh scratch file already exists from an interrupted earlier
+session (check before writing a new one), read it and resume from where it left off
+rather than starting over.
+
+While listening, run the same altitude and control checks the old interview asked
+explicitly — just as read-throughs of what's said, not as questions fired in sequence:
+
+**Altitude.** People often open with a task or activity — "I want to arrange a
 protest", "help me find a job", "I need to write a grant application" — rather than the
 outcome that task is in service of. Taken at face value, the task becomes the goal, and
-everything downstream (success criteria, plan, focus) gets built around the wrong thing:
-the protest happens, well-organised, and nothing the person actually wanted has moved.
+everything downstream (success criteria, plan, focus) gets built around the wrong
+thing: the protest happens, well-organised, and nothing the person actually wanted has
+moved.
 
 Test it: is what they said an *outcome* (a state of the world that would be different)
 or an *activity* (a thing they'd do)? A useful tell — could this plausibly be one line
@@ -128,84 +169,60 @@ Keep asking "and then what does that get you" only as long as the answer keeps c
 — stop at the first answer that's a real end-state, not another step. Don't push past
 that; over-abstracting ("I want to be happy") is as useless as under-abstracting.
 
-Then zoom back in. Say the reframe out loud rather than silently substituting it — the
-user may genuinely want just the activity, and that's a legitimate answer:
+Then say the reframe out loud rather than silently substituting it — the user may
+genuinely want just the activity, and that's a legitimate answer:
 
 > So the real goal is [outcome] — and [the original activity] is one way to get there,
 > maybe one piece of it rather than the whole thing. Does that sound right, or is the
 > activity itself what you're after?
 
 If they confirm the outcome, that becomes the goal, and the original activity is noted
-as a likely plan step, not re-litigated now — `plan` will place it properly later. If
-they push back and say no, the activity really is the point, take that at face value and
-move on — don't argue someone out of a goal they've confirmed twice.
+in the scratch file as a likely plan step, not re-litigated now — `plan` will place it
+properly later. If they push back and say no, the activity really is the point, take
+that at face value and move on.
 
-If what they opened with is already an outcome ("get the developer to withdraw the
-permit application", "be debt-free within a year"), skip this test entirely — don't
-manufacture a zoom-out step a well-formed goal doesn't need. Reflect it back in one
-sentence and confirm rather than re-asking.
+If what they opened with is already an outcome, skip this test — don't manufacture a
+zoom-out step a well-formed goal doesn't need.
 
-If it's vague rather than task-shaped ("I want to do something about the park"), ask
-what "done" would look like concretely — that's the seed of the success criteria, and a
-separate problem from the altitude check above.
-
-**2. Success criteria.**
-Push from a vague want to 1-3 specific, observable conditions.
-
-If they give an activity instead of an outcome ("organise a cleanup day"), ask what it's
-in service of ("the lot is usable by families again") and use the outcome.
-
-Then run the **control check** — the single most valuable question in this intake:
+**Control.** Once a candidate success condition is on the table, run the single most
+valuable question in this intake:
 
 > Is this something you can cause directly, or something you're trying to influence?
 
 Plenty of worthwhile goals depend on a decision somebody else makes — a council vote, a
-government policy, an employer's offer. That's legitimate. But it changes what progress
-means, and it must be visible from the start, or later audits will report "stalled" on
-something that was never in the user's hands.
+government policy, an employer's offer. That's legitimate, but it changes what progress
+means, and it must be visible from the start. Where a criterion isn't directly
+controllable, ask what the user *can* control that makes it more likely, and note both.
 
-Where a criterion isn't directly controllable, ask what the user *can* control that
-makes it more likely, and record both — these become entries in the `successCriteria`
-key (each `{text, kind: 'control'|'influence', detail?}`). `detail` (optional, max 280
-chars) is a hover tooltip in the visual layer — why this criterion matters, not a
-restatement of `text`. Fill it in only when there's a non-obvious reason worth
-preserving.
+Ask about deadline and people directly if the conversation hasn't already surfaced
+them — "none" and "nobody else yet" are both valid, complete answers. Don't ask about
+posture; it's introduced later by `strategy`, only if the goal has real phases of
+intensity.
 
-```json
-{
-  "successCriteria": [
-    { "text": "[outcome you're trying to move]", "kind": "influence" },
-    { "text": "[what you can directly cause]", "kind": "control" }
-  ]
-}
-```
+Stop the raw-material pass once there's enough for a real goal statement and at least
+one concrete, testable success condition. That's the signal to move to 2c, not a fixed
+number of exchanges.
 
-**3. Deadline.**
-Ask directly. "None" is a valid answer — don't impose a deadline on a goal that doesn't
-have one. If there's a fixed external date (an election, a hearing, a season), note that
-it's fixed and can't be moved.
+#### 2c. Offer real pressure before anything is locked in
 
-**4. People.**
-Ask only if the goal doesn't already make it obvious. If it's purely personal, skip it
-and leave `people` as an empty array.
+This is the step that makes onboard more than a form-filler. Before mining the scratch
+file into `GOAL.json`, hand the goal framing and its success criteria to `elicit`:
 
-If people are involved, ask who's actually committed versus who's been mentioned. The
-distinction matters more than the list does — later skills plan differently around a
-confirmed person than a hoped-for one. Each entry is `{name, status: 'confirmed'|'tentative'|'lead', doing, detail?}`.
-`detail` (optional, max 280 chars) is a hover tooltip — why this person matters to the
-goal, not a restatement of `doing`. Fill in only when there's something worth
-preserving beyond the obvious.
+> Before I lock this in, want to put it under some pressure — check the assumptions,
+> see if it holds up?
 
-**5. Posture.**
-Do not ask. It gets introduced later, by `strategy`, only if the goal has real phases of
-intensity. Most first conversations shouldn't mention it — leave `posture` as `null`.
+Invoke `elicit` with the goal statement and draft success criteria as the target. Let
+`elicit` run its own menu and loop (see `skills/elicit/SKILL.md`) — don't reimplement
+its method table or menu logic here. When it returns control, fold whatever changed
+back into the scratch file's `## Raw` section as the current framing (per
+`skills/_shared/NO_HISTORY.md` — the revised version, not a diff against the original).
 
-Stop as soon as you have enough for a real `GOAL.json` — a goal description and at least
-one concrete success criterion. Don't manufacture structure the goal doesn't need.
+If the user declines pressure-testing (a low-stakes goal, or they're clearly already
+sure), respect that immediately and move on — this is an offer, not a gate.
 
-#### 2c. Reflect back before writing
+#### 2d. Reflect back before writing
 
-Do not write the file and announce it. Show them what you heard first:
+Do not write the file and announce it. Show them what the scratch file now says:
 
 ```
 Here's what I've got:
@@ -218,28 +235,63 @@ Here's what I've got:
 Does that land right? Anything wrong or missing before I write it down?
 ```
 
-If step 1 reframed an opening activity into an outcome, name that once here too — e.g.
+If step 2b reframed an opening activity into an outcome, name that once here too — e.g.
 "...and [the activity] sounds like it'll be one piece of the plan, not the goal itself"
 — so the substitution is visible at the one point it's cheap to reject.
 
 Wait. Corrections at this point are cheap; corrections after three skills have built on
 a misread goal are not.
 
-#### 2d. Write GOAL.json
+#### 2e. Write GOAL.json
 
-Use the shape in `strategy`'s **GOAL.json format** section.
+Use the shape in `strategy`'s **GOAL.json format** section. Onboard writes exactly the
+same four keys it always has — `goal`, `successCriteria`, `deadline`, `people` — nothing
+more. `capacity`, `exposure`, `stakeholders`, `posture`, and every other optional key
+stay at their schema-default `null`/`[]` regardless of what the scratch file's
+`## Signals` section captured (see AGENTS.md's "don't fabricate" and `exposure`'s and
+`stakeholders`' own explicit warnings against filling required fields — `status`,
+`power`, `stanceCurrent`, `stanceTarget`, `via` — without the analysis those skills
+actually do). A volunteered fact is real signal for those skills to start from, not a
+license to write a thin version of their key now.
 
 Where to write it follows the same resolution rule (`skills/_shared/RESOLVING.md`): if a
-cwd `GOAL.json` is the intended target (case 1 — an existing per-project setup, or the user
-explicitly wants a project-local goal), write there directly. Otherwise this is a new
-goal in the global store — run `gambit new "<goal title>"`, which derives a slug from the
-title, creates `~/.gambit/goals/<slug>/GOAL.json` as a schema-default stub, and sets it
-active; then edit that file's `goal`, `successCriteria`, `deadline`, and `people` keys
-in place with the full intake content, leaving every other key at its stub default
-(`null` or `[]`). Don't hand-derive the slug yourself — the CLI's derivation is the one
-`gambit list`/`switch` expect.
+cwd `GOAL.json` is the intended target (case 1 — an existing per-project setup, or the
+user explicitly wants a project-local goal), write there directly. Otherwise this is a
+new goal in the global store — run `gambit new "<goal title>"`, which derives a slug
+from the title, creates `~/.gambit/goals/<slug>/GOAL.json` as a schema-default stub, and
+sets it active, and prints that file's path; then edit that file's `goal`,
+`successCriteria`, `deadline`, and `people` keys in place with the mined intake content,
+leaving every other key at its stub default. Don't hand-derive the slug yourself — the
+CLI's derivation is the one `gambit list`/`switch` expect.
 
 Confirm in two or three sentences of plain language — not a dump of the file.
+
+#### 2f. Carry the scratch file forward
+
+Move the pending scratch file into the new goal's own directory (same directory as the
+`GOAL.json` path `gambit new` just printed) and rename it `intake.md`, so it isn't lost
+and isn't validated as part of `GOAL.json`. It's a plain file move — the store treats it
+as an untracked sibling of `GOAL.json`, nothing reads it automatically.
+
+If `## Signals` captured anything, name it once in the handoff so it isn't silently
+dropped:
+
+> Worth flagging for later: [capacity/exposure/stakeholders note, one line each]. I'll
+> leave those for the skills that actually work through them.
+
+Append one line to the freshly-written `GOAL.json`'s `log` noting which signals were
+flagged, so a later `capacity`/`exposure`/`stakeholders`/`systems` run has a pointer to
+`intake.md` instead of starting cold:
+
+```json
+{
+  "log": [
+    { "date": "YYYY-MM-DD", "focus": null, "notes": ["intake flagged: <capacity|exposure|stakeholders|posture signal, one line>"], "source": "onboard" }
+  ]
+}
+```
+
+Omit this log entry entirely if `## Signals` was empty — don't manufacture a note.
 
 The moment `successCriteria` is first written is also the moment to open the diagram
 view, unprompted — the user should never have to type `gambit visualize` themselves.
@@ -274,7 +326,7 @@ cleanly so it reads the fresh `GOAL.json` and does its own assessment.
 
 This branch is itself a Gambit discussion of an existing goal, so AGENTS.md's
 "Opening the visualizer" rule applies here too, not just to the new-goal write in
-2d: open it once, detached and silent, before or alongside the snapshot below.
+2e: open it once, detached and silent, before or alongside the snapshot below.
 
 ```bash
 nohup gambit visualize >/dev/null 2>&1 &
