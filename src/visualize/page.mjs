@@ -76,14 +76,14 @@ function bridgeHtml(goal) {
     ? `<div class="focus-row">
         <div class="focus-mark">${ICON_TARGET}</div>
         <div class="focus-body">
-          <span class="focus-eyebrow">Schwerpunkt · Focus right now</span>
+          <span class="focus-eyebrow">Schwerpunkt: Your top priority</span>
           <div class="focus-text">${escapeHtml(goal.focus)}</div>
         </div>
       </div>`
     : `<div class="focus-row">
         <div class="focus-mark">${ICON_TARGET}</div>
         <div class="focus-body">
-          <span class="focus-eyebrow">Schwerpunkt · Focus right now</span>
+          <span class="focus-eyebrow">Schwerpunkt: Your top priority</span>
           <div class="focus-text focus-empty">No focus set yet — run strategy to set one.</div>
         </div>
       </div>`;
@@ -116,8 +116,8 @@ function criteriaHtml(criteria) {
   return `<details class="card"><summary><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg><span class="summary-title">Success criteria</span></summary><div class="card-body"><ul class="criteria-list">${rows}</ul></div></details>`;
 }
 
-function cardHtml(card, open) {
-  return `<details class="card" id="card-${card.key}"${open ? ' open' : ''}>
+function cardHtml(card, open, quiet) {
+  return `<details class="card${quiet ? ' card-quiet' : ''}" id="card-${card.key}"${open ? ' open' : ''}>
   <summary>
     <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
     <span class="summary-title">${escapeHtml(card.title)}</span>
@@ -132,7 +132,9 @@ function cardHtml(card, open) {
 // less often and starts collapsed so it doesn't compete with the Bridge for
 // attention (see registry.mjs's SECTION_GROUPS comment).
 function groupHtml(group) {
-  const cardsHtml = group.cards.map((c) => cardHtml(c, group.key === 'plan')).join('\n');
+  const cardsHtml = group.cards
+    .map((c) => cardHtml(c, group.key === 'plan', group.key === 'reference'))
+    .join('\n');
   return `<div class="section-group">
     <div class="group-heading">${escapeHtml(group.label)}</div>
     ${cardsHtml}
@@ -141,6 +143,32 @@ function groupHtml(group) {
 
 const ICON_TARGET = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>`;
 const ICON_ARROW = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"></path></svg>`;
+const ICON_CHEVRON_DOWN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>`;
+
+// Goal switcher: only meaningful when the active GOAL.json came from the
+// store (multiple goals could exist to switch between) — a repo-local
+// GOAL.json always wins regardless of the store's active pointer (see
+// resolve.mjs), so switching would be a no-op there and the control is
+// omitted entirely rather than shown disabled.
+function goalSwitcherHtml(switcher) {
+  if (!switcher || !switcher.canSwitch) return '';
+  const items = switcher.goals.length
+    ? switcher.goals
+        .map(
+          (g) =>
+            `<button class="goal-switcher-item${g.slug === switcher.activeSlug ? ' current' : ''}" data-slug="${escapeHtml(g.slug)}">
+              <span class="dot"></span><span class="label">${escapeHtml(shorten(g.title, 60))}</span>
+            </button>`
+        )
+        .join('\n')
+    : '<div class="goal-switcher-empty">No other goals yet</div>';
+  return `<div class="goal-switcher" id="goal-switcher">
+    <button class="goal-switcher-btn" id="goal-switcher-btn" aria-haspopup="true" aria-expanded="false">
+      Switch goal ${ICON_CHEVRON_DOWN}
+    </button>
+    <div class="goal-switcher-menu" id="goal-switcher-menu">${items}</div>
+  </div>`;
+}
 
 export function renderPage(goal) {
   const shortTitle = shorten(goal.title);
@@ -199,8 +227,32 @@ export function renderPage(goal) {
   .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
   .tnum { font-variant-numeric: tabular-nums; }
 
-  h1.goal-title { font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; font-size: 1.7rem;
+  h1.goal-title { font-family: 'Source Serif 4', Georgia, serif; font-weight: 600;
+    font-size: clamp(1.15rem, 1.5vw + 0.85rem, 1.7rem);
     line-height: 1.3; margin: 0 0 1.4rem; text-wrap: balance; color: var(--ink); }
+
+  /* ---------- Goal switcher ---------- */
+  .goal-switcher { position: relative; margin-bottom: 0.6rem; }
+  .goal-switcher-btn { display: inline-flex; align-items: center; gap: 0.4rem; background: none; border: none;
+    padding: 0.2rem 0.35rem; margin-left: -0.35rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); cursor: pointer; border-radius: 6px; }
+  .goal-switcher-btn:hover, .goal-switcher-btn:focus-visible { color: var(--muted); background: var(--paper); }
+  .goal-switcher-btn svg { width: 0.7rem; height: 0.7rem; transition: transform 0.15s ease; }
+  .goal-switcher.open .goal-switcher-btn svg { transform: rotate(180deg); }
+  .goal-switcher-menu { display: none; position: absolute; top: calc(100% + 0.3rem); left: -0.35rem; z-index: 20;
+    min-width: 15rem; max-width: 22rem; background: var(--paper); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow); padding: 0.35rem; }
+  .goal-switcher.open .goal-switcher-menu { display: block; }
+  .goal-switcher-item { display: flex; align-items: center; gap: 0.55rem; width: 100%; text-align: left;
+    background: none; border: none; padding: 0.55rem 0.6rem; border-radius: 7px; cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 0.88rem; color: var(--ink); }
+  .goal-switcher-item:hover, .goal-switcher-item:focus-visible { background: var(--accent-soft); }
+  .goal-switcher-item .dot { flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%; background: var(--border-strong); }
+  .goal-switcher-item.current .dot { background: var(--accent); }
+  .goal-switcher-item.current { font-weight: 600; }
+  .goal-switcher-item .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .goal-switcher-empty { padding: 0.55rem 0.6rem; font-size: 0.85rem; color: var(--faint); }
+  .goal-switcher-new { border-top: 1px solid var(--border); margin-top: 0.3rem; padding-top: 0.35rem; }
 
   /* ---------- The Bridge: always-visible summary, no disclosure ---------- */
   .bridge { background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius);
@@ -243,6 +295,11 @@ export function renderPage(goal) {
   details.card { background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius);
     margin-bottom: 0.65rem; overflow: hidden; }
   details.card[open] { box-shadow: var(--shadow); }
+  /* Reference material (e.g. systems notes): background analysis that fed
+     the plan rather than something to act on, so it's styled to recede
+     into the page instead of competing visually with actionable cards. */
+  details.card.card-quiet { background: transparent; }
+  details.card.card-quiet[open] { box-shadow: none; }
   details.card summary { list-style: none; cursor: pointer; padding: 0.95rem 1.3rem; display: flex;
     align-items: center; gap: 0.7rem; font-weight: 600; font-size: 0.98rem; user-select: none; }
   details.card summary::-webkit-details-marker { display: none; }
@@ -406,7 +463,8 @@ export function renderPage(goal) {
 <body>
 <div class="disconnected" id="disconnected">Reconnecting…</div>
 <div class="wrap">
-  <h1 class="goal-title">${escapeHtml(shortTitle)}</h1>
+  ${goalSwitcherHtml(goal.switcher)}
+  <h1 class="goal-title">${escapeHtml(goal.title)}</h1>
 
   ${bridgeHtml(goal)}
   ${criteriaHtml(goal.criteria)}
@@ -424,6 +482,48 @@ export function renderPage(goal) {
   };
   es.onerror = () => { banner.style.display = 'block'; };
   es.onopen = () => { banner.style.display = 'none'; };
+
+  (function () {
+    const switcher = document.getElementById('goal-switcher');
+    if (!switcher) return;
+    const btn = document.getElementById('goal-switcher-btn');
+    const menu = document.getElementById('goal-switcher-menu');
+
+    function close() {
+      switcher.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const opening = !switcher.classList.contains('open');
+      switcher.classList.toggle('open', opening);
+      btn.setAttribute('aria-expanded', String(opening));
+    });
+    document.addEventListener('click', (e) => {
+      if (!switcher.contains(e.target)) close();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close();
+    });
+
+    menu.addEventListener('click', async (e) => {
+      const item = e.target.closest('.goal-switcher-item');
+      if (!item || item.classList.contains('current')) return;
+      const slug = item.dataset.slug;
+      item.style.opacity = '0.5';
+      try {
+        const res = await fetch('/api/goals/' + encodeURIComponent(slug) + '/activate', { method: 'POST' });
+        if (res.ok) {
+          location.reload();
+        } else {
+          item.style.opacity = '';
+        }
+      } catch {
+        item.style.opacity = '';
+      }
+    });
+  })();
 
   // Replaces the native title-attr tooltip (slow OS delay, unstyled, easy
   // to miss on a dashboard meant to be scanned) with a fast styled one.

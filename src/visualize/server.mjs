@@ -1,10 +1,12 @@
 import { createServer } from 'node:http';
 import { watch, readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { exec, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { resolveGoalPath } from './resolve.mjs';
 import { renderGoal } from './render.mjs';
 import { renderPage } from './page.mjs';
+import * as store from '../store/index.mjs';
 
 const execFileAsync = promisify(execFile);
 const OPEN_CMD = { darwin: 'open', win32: 'start', linux: 'xdg-open' }[process.platform] ?? 'xdg-open';
@@ -50,17 +52,31 @@ const EMPTY_GOAL = {
   groups: [],
 };
 
-function currentPageHtml(goalPath) {
+// A goal switcher only makes sense when the active GOAL.json came from the
+// store — a repo-local GOAL.json (cwd) always wins over the store's active
+// pointer (see resolve.mjs's precedence rule), so there's nothing to switch
+// to from there even if other store goals exist.
+function switcherData(goalPath, cwd) {
+  const cwdGoal = join(cwd, 'GOAL.json');
+  if (goalPath === cwdGoal) return { canSwitch: false, goals: [], activeSlug: null };
+  const activeSlug = store.resolveActive();
+  const goals = store.list().map((g) => ({ slug: g.slug, title: g.title }));
+  return { canSwitch: true, goals, activeSlug };
+}
+
+function currentPageHtml(goalPath, cwd) {
+  const switcher = switcherData(goalPath, cwd);
   if (!goalPath || !existsSync(goalPath)) {
-    return renderPage({ ...EMPTY_GOAL, title: 'No goal found' });
+    return renderPage({ ...EMPTY_GOAL, title: 'No goal found', switcher });
   }
   const body = readFileSync(goalPath, 'utf8');
   try {
-    return renderPage(renderGoal(body));
+    return renderPage({ ...renderGoal(body), switcher });
   } catch (err) {
     return renderPage({
       ...EMPTY_GOAL,
       title: 'Invalid GOAL.json',
+      switcher,
       groups: [
         {
           key: 'error',
@@ -84,7 +100,7 @@ function escapeForHtml(s) {
 }
 
 export function startServer({ port = 4173, cwd = process.cwd(), open = true } = {}) {
-  const goalPath = resolveGoalPath(cwd);
+  let goalPath = resolveGoalPath(cwd);
   if (!goalPath) {
     console.error('No GOAL.json found — nothing to visualize. Run onboard first.');
     process.exitCode = 1;
@@ -94,6 +110,26 @@ export function startServer({ port = 4173, cwd = process.cwd(), open = true } = 
   console.log(`Watching ${goalPath}`);
 
   const clients = new Set();
+  let watcher = null;
+  let debounce = null;
+
+  function notifyReload() {
+    for (const client of clients) client.write('data: reload\n\n');
+  }
+
+  function watchGoalPath() {
+    if (watcher) watcher.close();
+    if (!goalPath || !existsSync(goalPath)) {
+      watcher = null;
+      return;
+    }
+    watcher = watch(goalPath, () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(notifyReload, 150);
+    });
+  }
+
+  watchGoalPath();
 
   const server = createServer((req, res) => {
     if (req.url === '/events') {
@@ -108,16 +144,31 @@ export function startServer({ port = 4173, cwd = process.cwd(), open = true } = 
       return;
     }
 
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(currentPageHtml(goalPath));
-  });
+    if (req.url === '/api/goals' && req.method === 'GET') {
+      const body = JSON.stringify(switcherData(goalPath, cwd));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(body);
+      return;
+    }
 
-  let debounce = null;
-  const watcher = watch(goalPath, () => {
-    clearTimeout(debounce);
-    debounce = setTimeout(() => {
-      for (const client of clients) client.write('data: reload\n\n');
-    }, 150);
+    const activateMatch = req.method === 'POST' && req.url.match(/^\/api\/goals\/([^/]+)\/activate$/);
+    if (activateMatch) {
+      const slug = decodeURIComponent(activateMatch[1]);
+      try {
+        store.setActive(slug);
+        goalPath = resolveGoalPath(cwd);
+        watchGoalPath();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (err) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: err.message }));
+      }
+      return;
+    }
+
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(currentPageHtml(goalPath, cwd));
   });
 
   server.listen(port, () => {
@@ -126,7 +177,7 @@ export function startServer({ port = 4173, cwd = process.cwd(), open = true } = 
     if (open) exec(`${OPEN_CMD} ${url}`);
   });
 
-  server.on('close', () => watcher.close());
+  server.on('close', () => { if (watcher) watcher.close(); });
 
   return server;
 }

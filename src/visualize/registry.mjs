@@ -34,13 +34,13 @@ export const SECTION_GROUPS = {
   plan: 'plan',
   criteriaStatus: 'plan',
   stakeholders: 'people',
-  systemsNotes: 'people',
   riskNotes: 'people',
   decisions: 'people',
   forecasts: 'forecasts',
   experiments: 'forecasts',
   exposure: 'exposure',
   capacity: 'exposure',
+  systemsNotes: 'reference',
 };
 
 export const GROUP_LABELS = {
@@ -48,10 +48,14 @@ export const GROUP_LABELS = {
   people: 'People & risk',
   forecasts: 'Forecasts & experiments',
   exposure: 'Exposure & capacity',
+  reference: 'Reference',
 };
 
 // Display order of groups on the page, and of sections within a group.
-export const GROUP_ORDER = ['plan', 'people', 'forecasts', 'exposure'];
+// 'reference' (systemsNotes) sits last — it's background analysis that
+// fed the plan rather than something to act on, so it belongs below
+// everything the user might actually need to check or do.
+export const GROUP_ORDER = ['plan', 'people', 'forecasts', 'exposure', 'reference'];
 
 // Skills whose primary output isn't a GOAL.json section at all (read-only
 // reads, or prose the user reads in the session) — never diagrammed,
