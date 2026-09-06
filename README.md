@@ -4,10 +4,10 @@
 
 ## Plan your next move
 
-Maybe you're starting a business, getting a
-campaign off the ground or just trying to get your own life in order.
+Maybe you're **starting a business**, organizing a
+campaign, **improving yourself**, or trying to **get your goals accomplished**.
 
-Gambit is a set of skills for **thinking it through and getting it done**.
+**Gambit is a Strategist** with a set of skills for **thinking it through and getting it done**.
 
 Figure out:
 
@@ -18,11 +18,11 @@ Figure out:
 - What could go wrong
 - And whether you're actually making progress.
 
-## Gambit under the hood
+## Why Gambit works
 
 <img src="https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/plan.jpg" alt="A strategic execution plan annotated with leverage points, dependencies, and constraints">
 
-Gambit combines established frameworks for:
+Gambit combines powerful frameworks for:
 
 - **Strategy & systems thinking**
 - **Decision-making & forecasting**
