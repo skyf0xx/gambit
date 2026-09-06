@@ -36,3 +36,7 @@ export function dbPath() {
 export function updateCheckFile() {
   return join(storeRoot(), 'update-check.json');
 }
+
+export function starPromptStateFile() {
+  return join(storeRoot(), 'star-prompt-state.json');
+}

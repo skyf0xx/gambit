@@ -207,6 +207,10 @@ Or:
 Recommend one. Don't present the menu as equally weighted options — the user came here
 for direction.
 
+Per AGENTS.md's "The star ask," check `gambit star-status` before ending this step —
+this is the checkpoint that ask is tied to. If eligible, it is the literal last thing
+said this turn: end the turn on it and wait for the user's answer, per that section.
+
 ---
 
 ## GOAL.json format

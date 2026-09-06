@@ -33,6 +33,7 @@ const store = await import('../src/store/index.mjs');
 const { goalFile } = await import('../src/store/paths.mjs');
 const { safeParseGoalJson } = await import('../src/store/schema.mjs');
 const { printNoticeIfDue } = await import('../src/store/updateCheck.mjs');
+const { isEligible: starPromptEligible, recordDeferred: recordStarPromptDeferred, recordClosed: recordStarPromptClosed } = await import('../src/store/starPrompt.mjs');
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PKG_ROOT = join(__dirname, '..');
@@ -65,6 +66,11 @@ Global goal store (~/.gambit, or $GAMBIT_HOME):
   gambit reindex          rebuild gambit.db from goals/
   gambit check            validate the resolved GOAL.json against the
                           schema — run after any skill writes it
+  gambit star-status      exit 0 if the agent should show the "star
+                          Gambit on GitHub" ask now, exit 1 otherwise
+  gambit star-later       record "remind me later" — re-eligible after
+                          a cooldown, up to a defer cap
+  gambit star-close       record a "yes" or "no" answer — never ask again
   gambit adopt [path]     move an existing ./GOAL.json into the store
   gambit delete <slug> --force   delete one goal (GOAL.json + index row)
   gambit delete --all --force    delete every goal in the store
@@ -190,6 +196,23 @@ async function storeCheck() {
   }
 
   console.log(`${path} is valid.`);
+}
+
+// Silent by design: prints nothing, only sets exit code — an agent checks
+// via exit code (`gambit star-status`) rather than parsing text, and a
+// human running it manually gets no confusing output.
+async function starStatus() {
+  process.exitCode = starPromptEligible() ? 0 : 1;
+}
+
+// User answered "remind me later" — re-eligible after a cooldown.
+async function starLater() {
+  recordStarPromptDeferred();
+}
+
+// User answered "yes" or "no" — either way, don't ask again.
+async function starClose() {
+  recordStarPromptClosed();
 }
 
 async function storeReindex() {
@@ -434,6 +457,21 @@ async function main() {
 
   if (cmd === 'path') {
     await storePath();
+    return;
+  }
+
+  if (cmd === 'star-status') {
+    await starStatus();
+    return;
+  }
+
+  if (cmd === 'star-later') {
+    await starLater();
+    return;
+  }
+
+  if (cmd === 'star-close') {
+    await starClose();
     return;
   }
 
