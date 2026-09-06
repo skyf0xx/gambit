@@ -56,7 +56,7 @@ If an opposing system is identifiable (a competitor, institution, deadline press
   Confidence: high|moderate|low
 ```
 
-If no opposing system is identifiable: state that explicitly and recommend a question for `intel` to fill the gap. Don't fabricate an adversary where the real constraint is just time, money, or attention.
+If no opposing system is identifiable: state that explicitly and recommend a question for `bmad-deep-recon` to fill the gap. Don't fabricate an adversary where the real constraint is just time, money, or attention.
 
 ---
 
@@ -97,7 +97,7 @@ NETWORK EXPOSURE FINDINGS:
     {name/role} — {why they're high-value} — {mitigation: cross-train, add redundancy, don't over-disclose to them alone}
 
   Trust/vetting gaps: {anyone whose involvement is unverified, or whose behavior doesn't match how they presented}
-    {name/role or pattern} — {what's off} — {recommend: verify via intel, or hold at arm's length until confirmed}
+    {name/role or pattern} — {what's off} — {recommend: verify via bmad-deep-recon, or hold at arm's length until confirmed}
 ```
 
 Skip this section entirely if `people` is empty — there's no network to assess.
@@ -122,7 +122,7 @@ Skip if `posture` is null.
 
 ### 7. Monitor for Interference Indicators
 
-Scan what's known (recent facts, research from `intel`, the log) for patterns consistent with:
+Scan what's known (recent facts, research from `bmad-deep-recon`, the log) for patterns consistent with:
 
 - Information you've been given that shapes the plan but hasn't been independently verified
 - A sudden or unexplained shift in someone else's behavior relevant to the goal
@@ -133,7 +133,7 @@ Scan what's known (recent facts, research from `intel`, the log) for patterns co
 INDICATOR: {description}
   Source: {where this came from}
   Confidence: high|moderate|low
-  Recommended response: {verify via intel | adjust plan | flag to strategy}
+  Recommended response: {verify via bmad-deep-recon | adjust plan | flag to strategy}
 ```
 
 If nothing is present, skip this section rather than manufacturing a finding.
@@ -191,6 +191,6 @@ Next: [the single highest-value mitigation]
 Or:
   - Rework the plan around these findings → plan
   - The risk changes what matters most → strategy
-  - A finding rests on an unverified assumption → research
+  - A finding rests on an unverified assumption → bmad-deep-recon
   - The tradeoff needs a real decision → decide
 ```

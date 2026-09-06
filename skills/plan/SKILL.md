@@ -196,7 +196,7 @@ Start here: [action 1, restated as something to do today]
 
 Or:
   - Stress-test this before committing → threat
-  - Check a fact the plan rests on → research
+  - Check a fact the plan rests on → bmad-deep-recon
   - Resolve a fork the plan exposed → decide
   - Draft something the plan requires you to send → comms
 ```

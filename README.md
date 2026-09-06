@@ -57,6 +57,11 @@ gambit init
 
 Then just tell your agent what's on your mind e.g. "help me plan... [your goal]"
 
+Starting a brand-new goal runs a vendored elicitation shelf that needs
+[`uv`](https://docs.astral.sh/uv/getting-started/installation/) (a Python
+tool runner) on PATH — install it before onboarding your first goal.
+Returning to an existing goal doesn't need it.
+
 ## Viewing a goal
 
 ```bash

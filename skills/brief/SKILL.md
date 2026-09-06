@@ -109,7 +109,7 @@ The most useful thing you could do next: [one specific action]
 If you'd rather:
   - Rethink what to focus on → strategy
   - Turn this into steps → plan
-  - Find out something you're unsure about → research
+  - Find out something you're unsure about → bmad-deep-recon
   - Make a call you've been putting off → decide
   - Check whether this is really working → eval
 ```

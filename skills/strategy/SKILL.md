@@ -157,7 +157,7 @@ Do not turn this into a negotiation. One exchange, then commit.
 
 If a deadline is close relative to remaining work, if the plan depends on something unconfirmed, or if the current focus conflicts with the stated success criteria — say so, in one line, with what closes the gap.
 
-If the focus rests on something unverified, say so explicitly and offer `research`
+If the focus rests on something unverified, say so explicitly and offer `bmad-deep-recon`
 before the user acts on it.
 
 ### 6. Update GOAL.json
@@ -200,7 +200,7 @@ Or:
   - Find the deeper leverage point first → systems
   - Stress-test it before committing → threat, or premortem
   - Map who actually decides this → stakeholders
-  - Check a fact this rests on → research
+  - Check a fact this rests on → bmad-deep-recon
   - Resolve a choice this surfaced → decide
 ```
 

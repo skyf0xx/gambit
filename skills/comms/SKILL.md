@@ -92,7 +92,7 @@ re-run before ending the turn — see AGENTS.md's "Validate every write."
 Next: [send it, or the specific thing that has to happen first]
 
 Or:
-  - Check a claim in the draft before it goes out → research
+  - Check a claim in the draft before it goes out → bmad-deep-recon
   - Think through how this could land badly → threat
   - Sequence what follows once it's sent → plan
 ```

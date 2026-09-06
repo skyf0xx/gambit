@@ -115,7 +115,7 @@ What this calls for: [the one change that follows from the top finding]
 Or:
   - Focus is wrong → strategy
   - Focus is right, sequence is wrong → plan
-  - A finding rests on something unverified → research
+  - A finding rests on something unverified → bmad-deep-recon
   - The findings force a choice → decide
 ```
 

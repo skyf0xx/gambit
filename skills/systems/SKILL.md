@@ -69,7 +69,7 @@ For each system:
   CV: {vulnerability} — exploitability: high|medium|low
 ```
 
-Flag if an opposing system isn't identifiable from what's known — recommend a question for `intel` to resolve it. Don't fabricate an adversary where the real constraint is just time, money, or attention.
+Flag if an opposing system isn't identifiable from what's known — recommend a question for `bmad-deep-recon` to resolve it. Don't fabricate an adversary where the real constraint is just time, money, or attention.
 
 ---
 
@@ -172,7 +172,7 @@ That's where I think the leverage is. Two questions:
   - Is there anything about [the key entity or constraint] I've got wrong?
 ```
 
-If confidence was rated `low`, say what would raise it and offer `research` before the
+If confidence was rated `low`, say what would raise it and offer `bmad-deep-recon` before the
 user commits to acting on it. A low-confidence Schwerpunkt acted on as though it were
 high-confidence is the most expensive failure this skill can produce.
 
@@ -215,5 +215,5 @@ Or:
   - Turn the Schwerpunkt into sequenced steps → plan
   - Set it as the standing focus → strategy
   - Stress-test it against opposition → threat
-  - Close the gap that limited confidence → research
+  - Close the gap that limited confidence → bmad-deep-recon
 ```

@@ -22,6 +22,7 @@
     "src/store",
     "src/visualize",
     "hooks",
+    "vendor-skills",
     "AGENTS.md",
     "GEMINI.md"
   ],

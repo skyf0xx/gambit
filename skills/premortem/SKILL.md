@@ -163,7 +163,7 @@ Next: [the single most important plan change this produced]
 
 Or:
   - Rework the sequence around these → plan
-  - The fatal cause is unverified → research
+  - The fatal cause is unverified → bmad-deep-recon
   - Preventing it means a real tradeoff → decide
   - This changes what matters most → strategy
 ```

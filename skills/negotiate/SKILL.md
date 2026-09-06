@@ -90,7 +90,7 @@ That last line changes the whole approach. If they're a messenger, the goal is t
 easy for them to advocate internally — which means giving them something to say, not
 winning an argument with them.
 
-Where an interest or constraint is a guess, mark it and offer `research`.
+Where an interest or constraint is a guess, mark it and offer `bmad-deep-recon`.
 
 ### 5. Find the Zone
 
@@ -193,6 +193,6 @@ Immediately after writing, run `gambit check`. If it fails, fix the reported fie
 re-run before ending the turn — see AGENTS.md's "Validate every write."
 
 ```
-Next: [strengthen the BATNA | confirm a guessed interest → research |
+Next: [strengthen the BATNA | confirm a guessed interest → bmad-deep-recon |
        draft the opening → comms | after the conversation → review]
 ```
