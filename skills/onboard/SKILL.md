@@ -111,21 +111,27 @@ If the user's opening message already contains real substance, carry it forward 
 opening context for the shelf below rather than making them re-answer a prompt they've
 already answered by writing it.
 
-#### 2a′. Quick path or full path
+#### 2a′. Quick take or deep dive
 
-Ask once, in plain language — don't name BMAD or any vendored skill here:
+Always ask this — never assume which one fits, and never skip straight to one because
+the goal "sounds simple" or "sounds big." Ask once, in plain language — don't name BMAD
+or any vendored skill here:
 
 ```
-Want to walk through this properly — a real back-and-forth that pressure-tests
-the idea from a few angles — or move fast and fill gaps as assumptions?
+Want the quick take — I'll ask a few questions and fill gaps as assumptions — or a
+deep dive, a real back-and-forth that pressure-tests the idea from a few angles first?
 ```
 
-- **Quick path** → run only `bmad-product-brief`, in its own native Fast mode
+- **Quick take** → run only `bmad-product-brief`, in its own native Fast mode
   (batched questions, `[ASSUMPTION]` tags). Skip `bmad-forge-idea`, `bmad-brainstorming`,
   and `bmad-prfaq` entirely.
-- **Full path** → all four shelf skills in sequence, each in its own native mode:
+- **Deep dive** → all four shelf skills in sequence, each in its own native mode:
   `bmad-forge-idea`'s interrogation, `bmad-brainstorming`'s facilitator mode,
   `bmad-product-brief`'s own Coaching path, `bmad-prfaq`'s full five-stage flow.
+
+These two names — quick take / deep dive — are the standing vocabulary for elicitation
+depth anywhere in Gambit, not just here. Section 4c below offers the same choice, in the
+same words, when re-engaging an existing goal.
 
 `bmad-prd` and `bmad-ux` are never part of this shelf — a personal or campaign goal has
 no "features" or "screens" for either's structure to attach to.
@@ -182,17 +188,17 @@ Archive each skill's output to `<goal-dir>/BMAD/`, sibling to `GOAL.json`:
 
 ```
 <goal-dir>/BMAD/
-  00-manifest.md        # attribution + pinned version + date + which path ran + which skills ran/skipped
-  01-forged-idea.md     # bmad-forge-idea output (full path only)
-  02-brainstorming.md   # bmad-brainstorming output (full path only)
+  00-manifest.md        # attribution + pinned version + date + which choice ran + which skills ran/skipped
+  01-forged-idea.md     # bmad-forge-idea output (deep dive only)
+  02-brainstorming.md   # bmad-brainstorming output (deep dive only)
   03-brief.md           # bmad-product-brief's brief.md
-  04-prfaq.md           # bmad-prfaq output (full path only)
+  04-prfaq.md           # bmad-prfaq output (deep dive only)
   _bmad/
     custom/             # optional team/user overrides, if ever added
 ```
 
-On the quick path only `03-brief.md` exists; `00-manifest.md` names the other three
-"not-run, quick path." Treat this archive as write-once — mined once below, never read
+On the quick take only `03-brief.md` exists; `00-manifest.md` names the other three
+"not-run, quick take." Treat this archive as write-once — mined once below, never read
 live again after intake.
 
 #### 2e. Mine the archive into GOAL.json's fields
@@ -374,6 +380,33 @@ Then route on the answer:
 
 If the last log entry is recent and nothing external has obviously shifted, ask in one
 line whether to keep going on the current focus or reassess.
+
+#### 4d. Offer elicitation depth on whatever comes next
+
+Before handing off per 4c's routing, always give the user the same quick-take/deep-dive
+choice new-goal intake offers in 2a′ — an existing goal deserves the option to be
+pressure-tested, not just a first one. Fold it into the same message rather than adding
+a separate turn:
+
+```
+Want the quick take on this, or should we dig in properly first — pressure-test it
+from a few angles before locking anything in?
+```
+
+- **Quick take** → hand off to the routed skill (`strategy`/`decide`/`brief`) as normal;
+  it reasons and commits in its own single pass, per AGENTS.md's "Stay opinionated
+  through pushback."
+- **Deep dive** → before that skill commits to a recommendation, invoke
+  `bmad-advanced-elicitation` against the read it's about to act on (the situation
+  assessment, the fork `decide` is weighing, the read `systems` produced) — bind
+  `{project-root}` the same way as 2c — then let the routed skill resume with the
+  pressure-tested version. This is the shelf's standing use as "other skills invoke you
+  at natural pauses" (see the skill's own on-activation description), not a new
+  mechanism — onboard is simply the one making sure the option surfaces here too.
+
+Skip re-asking this if the user's own return message already asked for one directly
+("give me the quick version", "really dig into whether this is still right") — take
+that as the answer instead of prompting again for what they just told you.
 
 ---
 
