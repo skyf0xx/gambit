@@ -170,6 +170,34 @@ function goalSwitcherHtml(switcher) {
   </div>`;
 }
 
+// The raw log, most recent first — collapsed by default behind the same
+// <details>/card-quiet chrome every reference card uses, but rendered
+// outside the section groups entirely and last on the page: it's
+// append-only history, not current state a skill owns and replaces, so it
+// sits below everything else rather than competing with the sections above
+// for attention. Collapsed because it's read rarely and can grow without
+// bound as a goal ages.
+function logHtml(log) {
+  if (!log || !log.length) return '';
+  const rows = log
+    .map((entry) => {
+      const meta = [formatDate(entry.date), entry.source, entry.focus].filter(Boolean).join(' · ');
+      const notes = entry.notes?.length
+        ? `<ul class="log-notes">${entry.notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`
+        : '';
+      return `<li class="log-entry"><span class="log-meta">${escapeHtml(meta)}</span>${notes}</li>`;
+    })
+    .join('\n');
+  return `<details class="card card-quiet log-section">
+  <summary>
+    <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+    <span class="summary-title">Log</span>
+    <span class="summary-hint">${log.length} entr${log.length === 1 ? 'y' : 'ies'}</span>
+  </summary>
+  <div class="card-body"><ul class="log-list">${rows}</ul></div>
+</details>`;
+}
+
 export function renderPage(goal) {
   const shortTitle = shorten(goal.title);
   const groupsHtml = goal.groups.length
@@ -325,23 +353,23 @@ export function renderPage(goal) {
   .status-pill.done { background: var(--accent-soft); color: var(--accent); }
 
   ol.ordered-list { list-style: none; margin: 0 0 0.6rem; padding: 0; counter-reset: step; }
-  ol.ordered-list li { counter-increment: step; position: relative; padding: 0.32rem 0 0.32rem 1.9rem; font-size: 0.9rem; }
-  ol.ordered-list li::before { content: counter(step); position: absolute; left: 0; top: 0.28rem;
+  ol.ordered-list > li { counter-increment: step; position: relative; padding: 0.32rem 0 0.32rem 1.9rem; font-size: 0.9rem; }
+  ol.ordered-list > li::before { content: counter(step); position: absolute; left: 0; top: 0.28rem;
     width: 1.3rem; height: 1.3rem; border-radius: 50%; background: var(--bg); border: 1px solid var(--border-strong);
     color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 0.66rem; display: flex;
     align-items: center; justify-content: center; }
   /* criticalPath steps that carry a status (topFindings never does, so this
      never fires there) get the same done/dropped treatment as next-actions —
      an icon in place of the step number, dimmed or struck-through label. */
-  ol.ordered-list li.done::before,
-  ol.ordered-list li.dropped::before { content: ''; }
-  ol.ordered-list li.done .icon,
-  ol.ordered-list li.dropped .icon { position: absolute; left: 0; top: 0.28rem; width: 1.3rem; height: 1.3rem;
+  ol.ordered-list > li.done::before,
+  ol.ordered-list > li.dropped::before { content: ''; }
+  ol.ordered-list > li.done .icon,
+  ol.ordered-list > li.dropped .icon { position: absolute; left: 0; top: 0.28rem; width: 1.3rem; height: 1.3rem;
     border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; }
-  ol.ordered-list li.done .icon { color: var(--ok); border: 1px solid var(--ok); }
-  ol.ordered-list li.dropped .icon { color: var(--bad); border: 1px solid var(--bad); }
-  ol.ordered-list li.done { opacity: 0.6; }
-  ol.ordered-list li.dropped .step-label { color: var(--bad); text-decoration: line-through; opacity: 0.75; }
+  ol.ordered-list > li.done .icon { color: var(--ok); border: 1px solid var(--ok); }
+  ol.ordered-list > li.dropped .icon { color: var(--bad); border: 1px solid var(--bad); }
+  ol.ordered-list > li.done { opacity: 0.6; }
+  ol.ordered-list > li.dropped .step-label { color: var(--bad); text-decoration: line-through; opacity: 0.75; }
 
   ul.next-actions { list-style: none; margin: 0.4rem 0 0; padding: 0.7rem 0 0 1.9rem; border-top: 1px dashed var(--border); }
   ul.next-actions li { display: flex; align-items: baseline; gap: 0.8rem; padding: 0.3rem 0; font-size: 0.86rem; }
@@ -378,6 +406,8 @@ export function renderPage(goal) {
 
   .step-label { display: block; }
   .step-detail { display: block; font-size: 0.82rem; color: var(--muted); margin-top: 0.2rem; line-height: 1.4; }
+  .step-sublist { list-style: disc; margin: 0.3rem 0 0; padding-left: 1.2rem; display: flex; flex-direction: column;
+    gap: 0.15rem; font-size: 0.82rem; color: var(--muted); line-height: 1.4; }
   .fact-list { margin-top: 0.35rem; display: flex; flex-direction: column; gap: 0.15rem; }
   .fact-row { display: flex; gap: 0.6rem; font-size: 0.82rem; line-height: 1.4; }
   .fact-label { flex: 0 0 6.2rem; color: var(--faint); text-transform: uppercase; letter-spacing: 0.03em;
@@ -454,6 +484,13 @@ export function renderPage(goal) {
     transition: opacity 0.1s ease, transform 0.1s ease; text-decoration: none; }
   #gambit-tooltip.visible { opacity: 1; transform: translateY(0); }
 
+  details.card.log-section { margin-top: 1.5rem; }
+  ul.log-list { list-style: none; margin: 0; padding: 0; }
+  li.log-entry { padding: 0.5rem 0; border-bottom: 1px solid var(--border); font-size: 0.78rem; color: var(--faint); }
+  li.log-entry:last-child { border-bottom: none; }
+  .log-meta { font-family: 'IBM Plex Mono', monospace; color: var(--faint); }
+  ul.log-notes { list-style: disc; margin: 0.25rem 0 0; padding-left: 1.1rem; color: var(--muted); }
+  ul.log-notes li { padding: 0.05rem 0; }
   footer.meta-foot { text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
     color: var(--faint); margin-top: 2.5rem; }
   .disconnected { position: fixed; top: 0; left: 0; right: 0; background: var(--bad); color: white;
@@ -470,6 +507,8 @@ export function renderPage(goal) {
   ${criteriaHtml(goal.criteria)}
 
   ${groupsHtml}
+
+  ${logHtml(goal.log)}
 
   <footer class="meta-foot">GOAL.json · gambit visualize</footer>
 </div>

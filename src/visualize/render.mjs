@@ -263,6 +263,7 @@ export function renderGoal(rawBody) {
     posture: parsed.posture,
     nextAction: parsed.nextAction,
     groups,
+    log: parsed.log,
   };
 }
 
