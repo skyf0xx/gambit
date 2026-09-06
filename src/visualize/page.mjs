@@ -144,6 +144,20 @@ function groupHtml(group) {
 const ICON_TARGET = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>`;
 const ICON_ARROW = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"></path></svg>`;
 const ICON_CHEVRON_DOWN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>`;
+const ICON_STAR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l3.09 6.26 6.91 1-5 4.87 1.18 6.88L12 18.27l-6.18 3.25L7 14.63l-5-4.87 6.91-1L12 2.5z"></path></svg>`;
+const ICON_COMMENT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`;
+
+const GITHUB_REPO_URL = 'https://github.com/skyf0xx/gambit';
+
+// Top-right, next to the goal switcher: low-key text links rather than
+// badges or buttons, so they read as part of the page chrome instead of
+// competing with the Bridge for attention.
+function githubLinksHtml() {
+  return `<div class="gh-links">
+    <a class="gh-link" href="${GITHUB_REPO_URL}" target="_blank" rel="noopener noreferrer">${ICON_STAR}<span>Star on GitHub</span></a>
+    <a class="gh-link" href="${GITHUB_REPO_URL}/issues/new" target="_blank" rel="noopener noreferrer">${ICON_COMMENT}<span>Suggest something</span></a>
+  </div>`;
+}
 
 // Goal switcher: only meaningful when the active GOAL.json came from the
 // store (multiple goals could exist to switch between) — a repo-local
@@ -168,6 +182,34 @@ function goalSwitcherHtml(switcher) {
     </button>
     <div class="goal-switcher-menu" id="goal-switcher-menu">${items}</div>
   </div>`;
+}
+
+// The raw log, most recent first — collapsed by default behind the same
+// <details>/card-quiet chrome every reference card uses, but rendered
+// outside the section groups entirely and last on the page: it's
+// append-only history, not current state a skill owns and replaces, so it
+// sits below everything else rather than competing with the sections above
+// for attention. Collapsed because it's read rarely and can grow without
+// bound as a goal ages.
+function logHtml(log) {
+  if (!log || !log.length) return '';
+  const rows = log
+    .map((entry) => {
+      const meta = [formatDate(entry.date), entry.source, entry.focus].filter(Boolean).join(' · ');
+      const notes = entry.notes?.length
+        ? `<ul class="log-notes">${entry.notes.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`
+        : '';
+      return `<li class="log-entry"><span class="log-meta">${escapeHtml(meta)}</span>${notes}</li>`;
+    })
+    .join('\n');
+  return `<details class="card card-quiet log-section">
+  <summary>
+    <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+    <span class="summary-title">Log</span>
+    <span class="summary-hint">${log.length} entr${log.length === 1 ? 'y' : 'ies'}</span>
+  </summary>
+  <div class="card-body"><ul class="log-list">${rows}</ul></div>
+</details>`;
 }
 
 export function renderPage(goal) {
@@ -230,6 +272,20 @@ export function renderPage(goal) {
   h1.goal-title { font-family: 'Source Serif 4', Georgia, serif; font-weight: 600;
     font-size: clamp(1.15rem, 1.5vw + 0.85rem, 1.7rem);
     line-height: 1.3; margin: 0 0 1.4rem; text-wrap: balance; color: var(--ink); }
+
+  /* ---------- Top bar: goal switcher (left) + GitHub links (right) ---------- */
+  .top-bar { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+    margin-bottom: 0.6rem; }
+  .gh-links { display: flex; align-items: center; gap: 1rem; flex: 0 0 auto; padding-top: 0.2rem; }
+  .gh-link { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--faint);
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; letter-spacing: 0.02em;
+    text-decoration: none; border-radius: 6px; padding: 0.2rem 0.35rem; margin: -0.2rem -0.35rem; }
+  .gh-link:hover, .gh-link:focus-visible { color: var(--accent-ink); background: var(--accent-soft); }
+  .gh-link svg { width: 0.85rem; height: 0.85rem; flex: 0 0 auto; }
+  .gh-link span { white-space: nowrap; }
+  @media (max-width: 560px) {
+    .gh-link span { display: none; }
+  }
 
   /* ---------- Goal switcher ---------- */
   .goal-switcher { position: relative; margin-bottom: 0.6rem; }
@@ -325,23 +381,23 @@ export function renderPage(goal) {
   .status-pill.done { background: var(--accent-soft); color: var(--accent); }
 
   ol.ordered-list { list-style: none; margin: 0 0 0.6rem; padding: 0; counter-reset: step; }
-  ol.ordered-list li { counter-increment: step; position: relative; padding: 0.32rem 0 0.32rem 1.9rem; font-size: 0.9rem; }
-  ol.ordered-list li::before { content: counter(step); position: absolute; left: 0; top: 0.28rem;
+  ol.ordered-list > li { counter-increment: step; position: relative; padding: 0.32rem 0 0.32rem 1.9rem; font-size: 0.9rem; }
+  ol.ordered-list > li::before { content: counter(step); position: absolute; left: 0; top: 0.28rem;
     width: 1.3rem; height: 1.3rem; border-radius: 50%; background: var(--bg); border: 1px solid var(--border-strong);
     color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 0.66rem; display: flex;
     align-items: center; justify-content: center; }
   /* criticalPath steps that carry a status (topFindings never does, so this
      never fires there) get the same done/dropped treatment as next-actions —
      an icon in place of the step number, dimmed or struck-through label. */
-  ol.ordered-list li.done::before,
-  ol.ordered-list li.dropped::before { content: ''; }
-  ol.ordered-list li.done .icon,
-  ol.ordered-list li.dropped .icon { position: absolute; left: 0; top: 0.28rem; width: 1.3rem; height: 1.3rem;
+  ol.ordered-list > li.done::before,
+  ol.ordered-list > li.dropped::before { content: ''; }
+  ol.ordered-list > li.done .icon,
+  ol.ordered-list > li.dropped .icon { position: absolute; left: 0; top: 0.28rem; width: 1.3rem; height: 1.3rem;
     border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; }
-  ol.ordered-list li.done .icon { color: var(--ok); border: 1px solid var(--ok); }
-  ol.ordered-list li.dropped .icon { color: var(--bad); border: 1px solid var(--bad); }
-  ol.ordered-list li.done { opacity: 0.6; }
-  ol.ordered-list li.dropped .step-label { color: var(--bad); text-decoration: line-through; opacity: 0.75; }
+  ol.ordered-list > li.done .icon { color: var(--ok); border: 1px solid var(--ok); }
+  ol.ordered-list > li.dropped .icon { color: var(--bad); border: 1px solid var(--bad); }
+  ol.ordered-list > li.done { opacity: 0.6; }
+  ol.ordered-list > li.dropped .step-label { color: var(--bad); text-decoration: line-through; opacity: 0.75; }
 
   ul.next-actions { list-style: none; margin: 0.4rem 0 0; padding: 0.7rem 0 0 1.9rem; border-top: 1px dashed var(--border); }
   ul.next-actions li { display: flex; align-items: baseline; gap: 0.8rem; padding: 0.3rem 0; font-size: 0.86rem; }
@@ -378,6 +434,8 @@ export function renderPage(goal) {
 
   .step-label { display: block; }
   .step-detail { display: block; font-size: 0.82rem; color: var(--muted); margin-top: 0.2rem; line-height: 1.4; }
+  .step-sublist { list-style: disc; margin: 0.3rem 0 0; padding-left: 1.2rem; display: flex; flex-direction: column;
+    gap: 0.15rem; font-size: 0.82rem; color: var(--muted); line-height: 1.4; }
   .fact-list { margin-top: 0.35rem; display: flex; flex-direction: column; gap: 0.15rem; }
   .fact-row { display: flex; gap: 0.6rem; font-size: 0.82rem; line-height: 1.4; }
   .fact-label { flex: 0 0 6.2rem; color: var(--faint); text-transform: uppercase; letter-spacing: 0.03em;
@@ -454,16 +512,56 @@ export function renderPage(goal) {
     transition: opacity 0.1s ease, transform 0.1s ease; text-decoration: none; }
   #gambit-tooltip.visible { opacity: 1; transform: translateY(0); }
 
+  details.card.log-section { margin-top: 1.5rem; }
+  ul.log-list { list-style: none; margin: 0; padding: 0; }
+  li.log-entry { padding: 0.5rem 0; border-bottom: 1px solid var(--border); font-size: 0.78rem; color: var(--faint); }
+  li.log-entry:last-child { border-bottom: none; }
+  .log-meta { font-family: 'IBM Plex Mono', monospace; color: var(--faint); }
+  ul.log-notes { list-style: disc; margin: 0.25rem 0 0; padding-left: 1.1rem; color: var(--muted); }
+  ul.log-notes li { padding: 0.05rem 0; }
   footer.meta-foot { text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem;
     color: var(--faint); margin-top: 2.5rem; }
   .disconnected { position: fixed; top: 0; left: 0; right: 0; background: var(--bad); color: white;
     text-align: center; padding: 0.3rem; font-size: 0.85rem; display: none; z-index: 10; }
+
+  /* ---------- Welcome modal: shown once, first time the visualizer ever
+     opens on this browser, then never again (localStorage-gated). ---------- */
+  .welcome-overlay { position: fixed; inset: 0; background: rgba(28,27,25,0.45); display: none;
+    align-items: center; justify-content: center; z-index: 50; padding: 1.5rem; }
+  .welcome-overlay.visible { display: flex; }
+  .welcome-modal { background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); max-width: 26rem; width: 100%; padding: 1.6rem 1.7rem 1.5rem; }
+  .welcome-title { font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; font-size: 1.2rem;
+    margin: 0 0 0.5rem; color: var(--ink); }
+  .welcome-body { font-size: 0.92rem; color: var(--muted); line-height: 1.5; margin: 0 0 1.3rem; }
+  .welcome-actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .welcome-dismiss { background: var(--accent); color: white; border: none; border-radius: 7px;
+    padding: 0.55rem 1.1rem; font-family: 'IBM Plex Sans', sans-serif; font-size: 0.88rem; font-weight: 600;
+    cursor: pointer; }
+  .welcome-dismiss:hover, .welcome-dismiss:focus-visible { opacity: 0.92; }
+  .welcome-star { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--faint);
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.76rem; text-decoration: none; }
+  .welcome-star:hover, .welcome-star:focus-visible { color: var(--accent-ink); }
+  .welcome-star svg { width: 0.85rem; height: 0.85rem; }
 </style>
 </head>
 <body>
 <div class="disconnected" id="disconnected">Reconnecting…</div>
+<div class="welcome-overlay" id="welcome-overlay" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+  <div class="welcome-modal">
+    <h2 class="welcome-title" id="welcome-title">Goal Tracker</h2>
+    <p class="welcome-body">Watch your plan grow as you talk to Gambit.</p>
+    <div class="welcome-actions">
+      <button class="welcome-dismiss" id="welcome-dismiss">Got it</button>
+      <a class="welcome-star" href="${GITHUB_REPO_URL}" target="_blank" rel="noopener noreferrer">${ICON_STAR}<span>Enjoying Gambit? Star us on GitHub</span></a>
+    </div>
+  </div>
+</div>
 <div class="wrap">
-  ${goalSwitcherHtml(goal.switcher)}
+  <div class="top-bar">
+    ${goalSwitcherHtml(goal.switcher)}
+    ${githubLinksHtml()}
+  </div>
   <h1 class="goal-title">${escapeHtml(goal.title)}</h1>
 
   ${bridgeHtml(goal)}
@@ -471,10 +569,35 @@ export function renderPage(goal) {
 
   ${groupsHtml}
 
+  ${logHtml(goal.log)}
+
   <footer class="meta-foot">GOAL.json · gambit visualize</footer>
 </div>
 <div id="gambit-tooltip" role="tooltip"></div>
 <script>
+  // Welcome modal: shown once ever per browser, gated on localStorage.
+  // Wrapped in try/catch since localStorage can throw (private mode,
+  // blocked site data) — falls back to just not persisting the dismissal
+  // rather than breaking the page.
+  (function () {
+    const KEY = 'gambit-welcome-seen';
+    let seen = true;
+    try { seen = localStorage.getItem(KEY) === '1'; } catch {}
+    if (seen) return;
+    const overlay = document.getElementById('welcome-overlay');
+    const dismiss = document.getElementById('welcome-dismiss');
+    overlay.classList.add('visible');
+    function close() {
+      overlay.classList.remove('visible');
+      try { localStorage.setItem(KEY, '1'); } catch {}
+    }
+    dismiss.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', function onKey(e) {
+      if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); }
+    });
+  })();
+
   const es = new EventSource('/events');
   const banner = document.getElementById('disconnected');
   es.onmessage = (e) => {

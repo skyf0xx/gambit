@@ -54,6 +54,7 @@ const posture = z.object({
   }),
   levels: z.array(postureLevel).min(1),
   triggers: z.array(mediumLabel).max(10),
+  lastReviewed: dateString,
 });
 
 const nextAction = z.object({
@@ -64,9 +65,17 @@ const nextAction = z.object({
   detail,
 });
 
+// items: an optional flat sub-list (e.g. "8 subs, one line each") a step or
+// finding needs to enumerate rather than pack into one run-on `detail`
+// sentence. Each entry is a shortLabel so the rendered list stays scannable;
+// capped at 10 for the same reason criticalPath itself is capped at 6 — a
+// list that grows past this belongs in its own plan step, not a sub-list.
+const items = z.array(shortLabel).max(10).optional();
+
 const labeledStep = z.object({
   label: shortLabel,
   detail,
+  items,
   status: z.enum(['pending', 'done', 'dropped']).default('pending'),
 });
 
@@ -85,6 +94,7 @@ const plan = z.object({
 const labeledFinding = z.object({
   label: mediumLabel,
   detail,
+  items,
 });
 
 const systemsNotes = z.object({
@@ -92,6 +102,7 @@ const systemsNotes = z.object({
   rationale: mediumLabel.optional(),
   confidence: z.enum(['high', 'moderate', 'low']),
   topFindings: z.array(labeledFinding).max(5),
+  lastReviewed: dateString,
 });
 
 const riskNote = z.object({
@@ -131,6 +142,7 @@ const capacity = z.object({
   runway: shortLabel,
   watch: mediumLabel.optional(),
   detail,
+  lastReviewed: dateString,
 });
 
 const forecast = z.object({

@@ -60,5 +60,11 @@ export function parseGoalMd(rawBody) {
   const lineWithPending = goal.plan?.linesOfOperation.find((l) => firstPending(l));
   const nextAction = lineWithPending ? firstPending(lineWithPending) : null;
 
-  return { title, criteria, deadline, sections, focus, posture, nextAction };
+  // Raw log, most recent first — always the lowest-hierarchy element on the
+  // page (a plain footer list, not a card/group): it's append-only history,
+  // not current state like every other owned key, so it doesn't compete with
+  // the sections above for attention.
+  const log = [...goal.log].reverse();
+
+  return { title, criteria, deadline, sections, focus, posture, nextAction, log };
 }

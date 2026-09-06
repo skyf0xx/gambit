@@ -9,14 +9,17 @@ function escapeHtml(s) {
   return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
-// steps: [{ label, detail?, status? }] — a plan line's criticalPath (status:
-// pending/done/dropped), or systemsNotes.topFindings (no status field — a
-// findings list, not a sequence of steps to complete, so it always falls
-// through to the plain numbered-circle rendering below).
+// steps: [{ label, detail?, items?, status? }] — a plan line's criticalPath
+// (status: pending/done/dropped), or systemsNotes.topFindings (no status
+// field — a findings list, not a sequence of steps to complete, so it always
+// falls through to the plain numbered-circle rendering below).
 // Rendered as a numbered sequence so the "critical path" reading order is
 // still visually obvious without a flowchart. A step carrying status gets
 // the same done/dropped treatment as a nextAction (icon + dimmed label)
 // instead of relying on prose in `detail` to signal it's finished.
+// `items`, when present, is a real enumerable sub-list (e.g. one line per
+// sub-angle) rendered as its own nested <ul> rather than packed into the
+// single-line `detail` string.
 export function renderOrderedList(steps) {
   if (!steps || !steps.length) return '<p class="empty">No items yet.</p>';
   const rows = steps.map((s) => {
@@ -24,9 +27,13 @@ export function renderOrderedList(steps) {
     const cls = status && status !== 'pending' ? ` class="${status}"` : '';
     const icon =
       status === 'done' ? '<span class="icon">✓</span>' : status === 'dropped' ? '<span class="icon">✕</span>' : '';
+    const sublistHtml =
+      s.items && s.items.length
+        ? `<ul class="step-sublist">${s.items.map((i) => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`
+        : '';
     return `<li${cls}>${icon}<span class="step-label">${escapeHtml(s.label)}</span>${
       s.detail ? `<span class="step-detail">${escapeHtml(s.detail)}</span>` : ''
-    }</li>`;
+    }${sublistHtml}</li>`;
   });
   return `<ol class="ordered-list">\n${rows.join('\n')}\n</ol>`;
 }

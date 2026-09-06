@@ -162,7 +162,7 @@ before the user acts on it.
 
 ### 6. Update GOAL.json
 
-If posture changed, replace `posture.current` (`{level, label}`) — leave `posture.levels` and `posture.triggers` as they are unless the phases of intensity themselves changed.
+If posture changed, replace `posture.current` (`{level, label}`) — leave `posture.levels` and `posture.triggers` as they are unless the phases of intensity themselves changed. Whenever this step runs at all — posture changed or not — set `posture.lastReviewed` to today's date, so a later session can tell a genuinely current posture read from one that just hasn't been looked at in weeks.
 
 Append an object to `log` — date, assessment, and the focus just set. `notes` isn't rendered in the visual layer — it's the agent's own working record, not a user-scanned label — so don't force findings into an artificially short list; each entry still has its own 120-char cap (see AGENTS.md's char-cap note), so split a long finding into multiple entries rather than cramming it into one.
 
@@ -176,7 +176,7 @@ its own correction is the violation, not the presence of a fix.
 
 ```json
 {
-  "posture": { "current": { "level": 2, "label": "Heightened" } },
+  "posture": { "current": { "level": 2, "label": "Heightened" }, "lastReviewed": "YYYY-MM-DD" },
   "log": [
     { "date": "YYYY-MM-DD", "assessment": "on_track", "focus": "...", "notes": ["..."] }
   ]
@@ -234,7 +234,8 @@ two ever disagree, the schema wins.
       { "level": 1, "label": "Normal", "meaning": "[pace/risk/ask of people]" },
       { "level": 2, "label": "Heightened" }
     ],
-    "triggers": ["[conditions that would force a change, if known]"]
+    "triggers": ["[conditions that would force a change, if known]"],
+    "lastReviewed": "YYYY-MM-DD"
   },
   "plan": {
     "linesOfOperation": [
@@ -254,7 +255,8 @@ two ever disagree, the schema wins.
   "systemsNotes": {
     "schwerpunkt": "...",
     "confidence": "high",
-    "topFindings": [{ "label": "...", "detail": "[optional, hover-only]" }]
+    "topFindings": [{ "label": "...", "detail": "[optional, hover-only]" }],
+    "lastReviewed": "YYYY-MM-DD"
   },
   "riskNotes": [{ "item": "...", "source": "threat", "accepted": false }],
   "criteriaStatus": [
@@ -264,7 +266,7 @@ two ever disagree, the schema wins.
     { "name": "...", "power": "high", "stanceCurrent": "...", "stanceTarget": "...", "via": "...", "detail": "[optional, hover-only]" }
   ],
   "exposure": [{ "item": "...", "status": "open", "mustHandleBefore": "..." }],
-  "capacity": { "availableHrsPerWeek": 10, "runway": "[until date/condition]", "detail": "[optional — elaborates on runway, hover-only]" },
+  "capacity": { "availableHrsPerWeek": 10, "runway": "[until date/condition]", "detail": "[optional — elaborates on runway, hover-only]", "lastReviewed": "YYYY-MM-DD" },
   "forecasts": [
     { "statement": "...", "probability": 70, "resolvesBy": "YYYY-MM-DD", "resolvesVia": "...", "resolved": false, "detail": "[optional, hover-only]" }
   ],
@@ -279,6 +281,13 @@ two ever disagree, the schema wins.
   ]
 }
 ```
+
+`systemsNotes`, `posture`, and `capacity` each carry a required `lastReviewed`
+(`YYYY-MM-DD`) — set by their owning skill (`systems`, `strategy`, `capacity`
+respectively) every time it writes that section, whether or not the content
+changed. Unlike `log`, which records history, these are environmental *reads*
+that go stale even without user action — `lastReviewed` is what lets a later
+session tell a current read from a three-week-old one without scanning `log`.
 
 Several array fields carry an optional `detail` (max 280 chars) — a hover-only tooltip
 in the visual layer, shown alongside the short scannable label rather than replacing it.
