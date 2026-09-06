@@ -54,6 +54,7 @@ const posture = z.object({
   }),
   levels: z.array(postureLevel).min(1),
   triggers: z.array(mediumLabel).max(10),
+  lastReviewed: dateString,
 });
 
 const nextAction = z.object({
@@ -101,6 +102,7 @@ const systemsNotes = z.object({
   rationale: mediumLabel.optional(),
   confidence: z.enum(['high', 'moderate', 'low']),
   topFindings: z.array(labeledFinding).max(5),
+  lastReviewed: dateString,
 });
 
 const riskNote = z.object({
@@ -140,6 +142,7 @@ const capacity = z.object({
   runway: shortLabel,
   watch: mediumLabel.optional(),
   detail,
+  lastReviewed: dateString,
 });
 
 const forecast = z.object({
