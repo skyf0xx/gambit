@@ -144,6 +144,20 @@ function groupHtml(group) {
 const ICON_TARGET = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>`;
 const ICON_ARROW = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"></path></svg>`;
 const ICON_CHEVRON_DOWN = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>`;
+const ICON_STAR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5l3.09 6.26 6.91 1-5 4.87 1.18 6.88L12 18.27l-6.18 3.25L7 14.63l-5-4.87 6.91-1L12 2.5z"></path></svg>`;
+const ICON_COMMENT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`;
+
+const GITHUB_REPO_URL = 'https://github.com/skyf0xx/gambit';
+
+// Top-right, next to the goal switcher: low-key text links rather than
+// badges or buttons, so they read as part of the page chrome instead of
+// competing with the Bridge for attention.
+function githubLinksHtml() {
+  return `<div class="gh-links">
+    <a class="gh-link" href="${GITHUB_REPO_URL}" target="_blank" rel="noopener noreferrer">${ICON_STAR}<span>Star on GitHub</span></a>
+    <a class="gh-link" href="${GITHUB_REPO_URL}/issues/new" target="_blank" rel="noopener noreferrer">${ICON_COMMENT}<span>Suggest something</span></a>
+  </div>`;
+}
 
 // Goal switcher: only meaningful when the active GOAL.json came from the
 // store (multiple goals could exist to switch between) — a repo-local
@@ -258,6 +272,20 @@ export function renderPage(goal) {
   h1.goal-title { font-family: 'Source Serif 4', Georgia, serif; font-weight: 600;
     font-size: clamp(1.15rem, 1.5vw + 0.85rem, 1.7rem);
     line-height: 1.3; margin: 0 0 1.4rem; text-wrap: balance; color: var(--ink); }
+
+  /* ---------- Top bar: goal switcher (left) + GitHub links (right) ---------- */
+  .top-bar { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+    margin-bottom: 0.6rem; }
+  .gh-links { display: flex; align-items: center; gap: 1rem; flex: 0 0 auto; padding-top: 0.2rem; }
+  .gh-link { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--faint);
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; letter-spacing: 0.02em;
+    text-decoration: none; border-radius: 6px; padding: 0.2rem 0.35rem; margin: -0.2rem -0.35rem; }
+  .gh-link:hover, .gh-link:focus-visible { color: var(--accent-ink); background: var(--accent-soft); }
+  .gh-link svg { width: 0.85rem; height: 0.85rem; flex: 0 0 auto; }
+  .gh-link span { white-space: nowrap; }
+  @media (max-width: 560px) {
+    .gh-link span { display: none; }
+  }
 
   /* ---------- Goal switcher ---------- */
   .goal-switcher { position: relative; margin-bottom: 0.6rem; }
@@ -495,12 +523,45 @@ export function renderPage(goal) {
     color: var(--faint); margin-top: 2.5rem; }
   .disconnected { position: fixed; top: 0; left: 0; right: 0; background: var(--bad); color: white;
     text-align: center; padding: 0.3rem; font-size: 0.85rem; display: none; z-index: 10; }
+
+  /* ---------- Welcome modal: shown once, first time the visualizer ever
+     opens on this browser, then never again (localStorage-gated). ---------- */
+  .welcome-overlay { position: fixed; inset: 0; background: rgba(28,27,25,0.45); display: none;
+    align-items: center; justify-content: center; z-index: 50; padding: 1.5rem; }
+  .welcome-overlay.visible { display: flex; }
+  .welcome-modal { background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); max-width: 26rem; width: 100%; padding: 1.6rem 1.7rem 1.5rem; }
+  .welcome-title { font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; font-size: 1.2rem;
+    margin: 0 0 0.5rem; color: var(--ink); }
+  .welcome-body { font-size: 0.92rem; color: var(--muted); line-height: 1.5; margin: 0 0 1.3rem; }
+  .welcome-actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .welcome-dismiss { background: var(--accent); color: white; border: none; border-radius: 7px;
+    padding: 0.55rem 1.1rem; font-family: 'IBM Plex Sans', sans-serif; font-size: 0.88rem; font-weight: 600;
+    cursor: pointer; }
+  .welcome-dismiss:hover, .welcome-dismiss:focus-visible { opacity: 0.92; }
+  .welcome-star { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--faint);
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.76rem; text-decoration: none; }
+  .welcome-star:hover, .welcome-star:focus-visible { color: var(--accent-ink); }
+  .welcome-star svg { width: 0.85rem; height: 0.85rem; }
 </style>
 </head>
 <body>
 <div class="disconnected" id="disconnected">Reconnecting…</div>
+<div class="welcome-overlay" id="welcome-overlay" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+  <div class="welcome-modal">
+    <h2 class="welcome-title" id="welcome-title">Goal Tracker</h2>
+    <p class="welcome-body">Watch your plan grow as you talk to Gambit.</p>
+    <div class="welcome-actions">
+      <button class="welcome-dismiss" id="welcome-dismiss">Got it</button>
+      <a class="welcome-star" href="${GITHUB_REPO_URL}" target="_blank" rel="noopener noreferrer">${ICON_STAR}<span>Enjoying Gambit? Star us on GitHub</span></a>
+    </div>
+  </div>
+</div>
 <div class="wrap">
-  ${goalSwitcherHtml(goal.switcher)}
+  <div class="top-bar">
+    ${goalSwitcherHtml(goal.switcher)}
+    ${githubLinksHtml()}
+  </div>
   <h1 class="goal-title">${escapeHtml(goal.title)}</h1>
 
   ${bridgeHtml(goal)}
@@ -514,6 +575,29 @@ export function renderPage(goal) {
 </div>
 <div id="gambit-tooltip" role="tooltip"></div>
 <script>
+  // Welcome modal: shown once ever per browser, gated on localStorage.
+  // Wrapped in try/catch since localStorage can throw (private mode,
+  // blocked site data) — falls back to just not persisting the dismissal
+  // rather than breaking the page.
+  (function () {
+    const KEY = 'gambit-welcome-seen';
+    let seen = true;
+    try { seen = localStorage.getItem(KEY) === '1'; } catch {}
+    if (seen) return;
+    const overlay = document.getElementById('welcome-overlay');
+    const dismiss = document.getElementById('welcome-dismiss');
+    overlay.classList.add('visible');
+    function close() {
+      overlay.classList.remove('visible');
+      try { localStorage.setItem(KEY, '1'); } catch {}
+    }
+    dismiss.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', function onKey(e) {
+      if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); }
+    });
+  })();
+
   const es = new EventSource('/events');
   const banner = document.getElementById('disconnected');
   es.onmessage = (e) => {
