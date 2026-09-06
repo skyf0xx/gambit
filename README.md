@@ -67,15 +67,3 @@ Returning to an existing goal doesn't need it.
 ```bash
 gambit visualize        # open a local, auto-refreshing diagram view of the active goal
 ```
-
-### Focus & plan
-
-![Goal overview showing the current focus, deadline, success criteria, and plan lines of operation](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/screen-dashboard.png)
-
-### People & risk
-
-![Stakeholder mapping, standing decisions, and known risks for a goal](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/screen-people-risk.png)
-
-### Strategy & forecasts
-
-![Strategic assessment with posture options, forecasts, and the culminating point](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/screen-strategy.png)
