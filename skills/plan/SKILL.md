@@ -149,13 +149,22 @@ If something in an existing line has failed or stalled, name it, name the altern
 
 ### 8. Update GOAL.json
 
-Replace the `plan` key in `GOAL.json` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?, status}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `status` is one of `pending` (default), `done`, `dropped` — same enum and meaning as a `nextAction`'s, so a step that's finished or abandoned shows that in the visual layer instead of relying on prose in `detail`); `nextActions` is capped at 5 entries, each `{action, who, when, status, detail?}` where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `status` is one of `pending` (default), `done`, `dropped`. Set that line's own `status` to `on_schedule`, `at_risk`, `blocked`, or `done` — `done` means every `criticalPath` step and every `nextActions` entry on that line is itself `done` or `dropped`; don't set the line to `done` while any step or action is still `pending`. Set `blocker` only when `status` is `blocked`.
+Replace the `plan` key in `GOAL.json` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?, items?, status}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `status` is one of `pending` (default), `done`, `dropped` — same enum and meaning as a `nextAction`'s, so a step that's finished or abandoned shows that in the visual layer instead of relying on prose in `detail`); `nextActions` is capped at 5 entries, each `{action, who, when, status, detail?}` where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `status` is one of `pending` (default), `done`, `dropped`. Set that line's own `status` to `on_schedule`, `at_risk`, `blocked`, or `done` — `done` means every `criticalPath` step and every `nextActions` entry on that line is itself `done` or `dropped`; don't set the line to `done` while any step or action is still `pending`. Set `blocker` only when `status` is `blocked`.
 
 `detail` on a `criticalPath` step or a `nextAction` (max 280 chars, optional) is a hover
 tooltip in the visual layer — the reason this step is on the path, not a restatement of
 the label. Fill it in only when the label alone won't jog memory later. It is never a
 substitute for `status` — "Done — see log" belongs in `status: "done"` with an optional
 short `detail` for context, not in `detail` alone with `status` left `pending`.
+
+`items` on a `criticalPath` step (array of `shortLabel`, 40-char cap each, max 10 entries,
+optional) is a real enumerable sub-list the step needs to track — e.g. a step drafting
+one angle per subreddit, one line per sub. Use it whenever the step's content is actually
+a list of short items, not prose — the visual layer renders `items` as its own bulleted
+list, where packing the same content into `detail` renders as one unbroken run-on line.
+Never comma- or semicolon-splice a list into `detail` just because `items` feels like
+more structure than the step needs — if there's more than one item to track, it's a list
+and belongs in `items`.
 
 ```json
 {
@@ -166,6 +175,7 @@ short `detail` for context, not in `detail` alone with `status` left `pending`.
         "criticalPath": [
           { "label": "A", "detail": "...", "status": "done" },
           { "label": "B", "status": "pending" },
+          { "label": "C", "items": ["Sub 1: angle", "Sub 2: angle"], "status": "pending" },
           { "label": "D", "status": "pending" }
         ],
         "nextActions": [

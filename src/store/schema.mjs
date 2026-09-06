@@ -64,9 +64,17 @@ const nextAction = z.object({
   detail,
 });
 
+// items: an optional flat sub-list (e.g. "8 subs, one line each") a step or
+// finding needs to enumerate rather than pack into one run-on `detail`
+// sentence. Each entry is a shortLabel so the rendered list stays scannable;
+// capped at 10 for the same reason criticalPath itself is capped at 6 — a
+// list that grows past this belongs in its own plan step, not a sub-list.
+const items = z.array(shortLabel).max(10).optional();
+
 const labeledStep = z.object({
   label: shortLabel,
   detail,
+  items,
   status: z.enum(['pending', 'done', 'dropped']).default('pending'),
 });
 
@@ -85,6 +93,7 @@ const plan = z.object({
 const labeledFinding = z.object({
   label: mediumLabel,
   detail,
+  items,
 });
 
 const systemsNotes = z.object({
