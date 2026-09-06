@@ -191,7 +191,9 @@ logic in Gambit's own voice:
   fills the role Gambit's own `elicit` used to: any skill facing a
   consequential call can invoke it at a pause point.
 - `bmm-skills/plan/bmad-product-brief` — the spine of onboard's intake;
-  its Fast/Coaching fork is onboard's quick/full path.
+  its Fast/Coaching fork is onboard's quick take/deep dive choice, offered on
+  every onboard run — a new goal (`onboard`'s 2a′) and a returning one
+  (`onboard`'s 4d) alike.
 - `bmm-skills/plan/bmad-prfaq` — Working-Backwards pressure-test of what
   "done" looks like; onboard-intake only, last in the shelf.
 - `core-skills/bmad-deep-recon` — live, dated, source-rated research and
