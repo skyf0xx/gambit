@@ -63,7 +63,7 @@ export const GROUP_ORDER = ['plan', 'people', 'forecasts', 'exposure', 'referenc
 // reads, or prose the user reads in the session) — never diagrammed,
 // always the plain-card fallback if they ever do write something ad hoc.
 export const PLAIN_CARD_SKILLS = [
-  'onboard', 'brief', 'status', 'research', 'intel', 'comms', 'exposure', 'premortem',
+  'onboard', 'brief', 'status', 'bmad-deep-recon', 'comms', 'exposure', 'premortem',
 ];
 
 export function rendererForSection(key) {

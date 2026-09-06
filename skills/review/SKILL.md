@@ -215,5 +215,5 @@ Or:
   - Fold the lessons into the sequence → plan
   - This changed the picture → strategy
   - Audit overall progress while you're here → eval
-  - A lesson raises a question worth answering properly → research
+  - A lesson raises a question worth answering properly → bmad-deep-recon
 ```

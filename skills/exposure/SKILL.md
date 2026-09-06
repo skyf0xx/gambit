@@ -68,7 +68,7 @@ The seven categories below are independent — none depends on another's finding
 none needs input from the user mid-category. Where the executing agent can run
 independent sub-tasks concurrently, work them in parallel and converge for the Report
 (step 4); this is also where a category calling for an external lookup (permit rules,
-employer policy) can hand off to `research` without blocking the others.
+employer policy) can hand off to `bmad-deep-recon` without blocking the others.
 
 **Permissions and process**
 Permits, approvals, notifications, venue conditions, insurance requirements, road or
@@ -84,7 +84,7 @@ does it actually cover this activity?
 **Speech and publication**
 Defamation, misleading claims, copyright, privacy. Where a claim about a person or
 organisation is load-bearing in public communication, flag it for verification via
-`research` before it goes out — the cheapest defamation mitigation is being right, and
+`bmad-deep-recon` before it goes out — the cheapest defamation mitigation is being right, and
 having the source saved.
 
 **Data and other people's information**
@@ -192,7 +192,7 @@ Next: [the single must-handle item with the longest lead time]
 Or:
   - This blocks a plan step → plan
   - Accepting or avoiding it is a real choice → decide
-  - You need to know the actual rule → research
+  - You need to know the actual rule → bmad-deep-recon
   - Someone needs to be told what they're taking on → comms
 ```
 

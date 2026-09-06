@@ -77,7 +77,7 @@ STAKEHOLDER: [name or role]
   Cost of moving them: [time, concession, exposure, dependency created]
 ```
 
-Where confidence in an interest is `low`, say so and offer `research` — acting on a
+Where confidence in an interest is `low`, say so and offer `bmad-deep-recon` — acting on a
 guessed interest is how outreach backfires. Do not fabricate a motive to complete the
 table.
 
@@ -170,6 +170,6 @@ Next: [the single highest-value stakeholder move]
 Or:
   - Prep the conversation with them → negotiate
   - Draft what you'd say → comms
-  - Confirm an interest you're guessing at → research
+  - Confirm an interest you're guessing at → bmad-deep-recon
   - This changes where the leverage is → strategy or systems
 ```

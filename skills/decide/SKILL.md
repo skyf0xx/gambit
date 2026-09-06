@@ -8,7 +8,7 @@ display: decision-callout
 
 **Trigger**: There's a choice on the table and it isn't getting made. Two viable
 directions, a tradeoff nobody wants to name, an option set produced by `systems`,
-`threat`, or `research` that now needs resolving — or a call the user has quietly
+`threat`, or `bmad-deep-recon` that now needs resolving — or a call the user has quietly
 deferred across more than one session.
 
 **Purpose**: Get to a decision the user actually owns. Not a recommendation they nod
@@ -71,7 +71,7 @@ OPTION [N]: [label]
   Rests on: [assumption that must hold — flag if unverified]
 ```
 
-If an option rests on something unverified, say so here and offer `research` before
+If an option rests on something unverified, say so here and offer `bmad-deep-recon` before
 going further. Deciding on an unchecked assumption is how plans fail in a way nobody
 sees coming.
 
@@ -113,7 +113,7 @@ Then work with the answer:
 - **They're stuck between two.** Ask which one they'd regret more, a year on. Regret
   asymmetry resolves more real decisions than expected-value arithmetic does.
 - **They don't know.** Ask what they'd need to know to choose. If it's researchable,
-  stop here and run `research` — an underinformed decision made on schedule is not
+  stop here and run `bmad-deep-recon` — an underinformed decision made on schedule is not
   better than a decision made once the fog clears.
 - **They surface new context.** Take it seriously. It usually outranks the analysis,
   and it belongs in `GOAL.json`.

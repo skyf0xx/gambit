@@ -88,7 +88,6 @@ Skills reference this rule rather than restating it — see
 skills/
   ORIENT
   onboard/SKILL.md      entry point — new goal intake, or welcome-back for a returning one
-  elicit/SKILL.md       shared pressure-test checkpoint any skill can call; writes no key of its own
   brief/SKILL.md         plain-language read of current state, jargon translated, read-only
   status/SKILL.md        read-only snapshot in the system's own terms, no writes
 
@@ -99,10 +98,8 @@ skills/
   decide/SKILL.md       work an open choice to a recorded decision with a reverse-if condition
 
   ESTABLISH
-  research/SKILL.md     live, dated, source-rated research; supersedes intel when recency matters
   experiment/SKILL.md   smallest falsifiable test of an assumption, threshold set in advance
   forecast/SKILL.md     dated falsifiable predictions, scored later for calibration
-  intel/SKILL.md        source-rated research where recency isn't the risk
 
   STRESS
   threat/SKILL.md       red-team the plan, assess network exposure
@@ -124,10 +121,16 @@ skills/
   _shared/NO_HISTORY.md current-state-only rule for every GOAL.json write
 ```
 
+Vendored BMAD skills (see "Vendored BMAD skills" below) sit outside this
+table — `bmad-advanced-elicitation` and `bmad-deep-recon` fill the roles
+`elicit`, `research`, and `intel` used to, and the four onboard-only shelf
+skills (`bmad-forge-idea`, `bmad-brainstorming`, `bmad-product-brief`,
+`bmad-prfaq`) have no native-skill counterpart at all.
+
 The set draws on several domains deliberately, and the divisions matter when
 extending it. Operational planning doctrine supplies `strategy`, `systems`,
-`plan`, `threat`, `review`. Intelligence tradecraft supplies `research` and
-`intel`.
+`plan`, `threat`, `review`. Intelligence tradecraft's role is now filled by
+the vendored `bmad-deep-recon` (see below) rather than a native skill.
 Negotiation and stakeholder theory supply `stakeholders` and `negotiate`.
 Forecasting and behavioural science supply `forecast` and `premortem`. Lean
 experimentation supplies `experiment`. Operations and risk supply `capacity`
@@ -148,16 +151,18 @@ different questions, and collapsing them loses the distinct one:
   where the other side has leverage.
 
 `onboard` is the front door: it checks whether `GOAL.json` exists and branches
-to first-contact intake (an open brain dump mined into a scratch file, then
-pressure-tested via `elicit` before anything is written) or a welcome-back
-snapshot for a returning session, then hands off to `strategy`. Other skills
-should assume `GOAL.json` already exists — `strategy` explicitly defers to
-`onboard` if it's missing rather than re-implementing intake.
+to first-contact intake (a live run of the vendored BMAD shelf — see
+"Vendored BMAD skills" below — mined into `GOAL.json`'s four owned fields) or
+a welcome-back snapshot for a returning session, then hands off to
+`strategy`. Other skills should assume `GOAL.json` already exists —
+`strategy` explicitly defers to `onboard` if it's missing rather than
+re-implementing intake.
 
-`elicit` is the one skill with no owned key: other skills call it at a pause
-point to put a piece of reasoning — a goal statement, a plan, a risk read —
-under more pressure before committing to it, and it hands back a sharpened
-version rather than writing anything itself. `onboard` calls it after intake,
+`bmad-advanced-elicitation` is the vendored skill with no owned key: other
+skills call it at a pause point to put a piece of reasoning — a goal
+statement, a plan, a risk read — under more pressure before committing to
+it, and it hands back a sharpened version rather than writing anything
+itself. `onboard`'s shelf calls it at its own pause points during intake,
 before the goal is locked in; any skill facing a consequential call can call
 it the same way.
 
@@ -165,6 +170,96 @@ Each `SKILL.md` is self-contained: trigger, purpose, voice, and an execution
 sequence. They are written to be read and followed directly by any capable
 agent — Claude Code, Codex, a custom agent loop, or a human — not just tools
 that natively auto-load a `skills/` directory.
+
+## Vendored BMAD skills
+
+Six skills under `vendor-skills/BMAD/` are vendored in full from
+[BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD) rather than
+implemented natively — full attribution, pinned ref, and local changes are
+in `vendor-skills/BMAD/ATTRIBUTION.md`. Gambit runs these skills verbatim
+and lets upstream own their maintenance, rather than reimplementing their
+logic in Gambit's own voice:
+
+- `core-skills/bmad-forge-idea` — persona-driven interrogation of a new
+  idea. Onboard-intake only.
+- `core-skills/bmad-brainstorming` — divergent ideation session on the
+  goal's framing and candidate success criteria. Onboard-intake only (see
+  `skills/onboard/SKILL.md`); also a plausible future call site for
+  `plan`'s and `systems`' own lines-of-operation/solution-space steps
+  (flagged, not yet wired up).
+- `core-skills/bmad-advanced-elicitation` — the pressure-test menu that
+  fills the role Gambit's own `elicit` used to: any skill facing a
+  consequential call can invoke it at a pause point.
+- `bmm-skills/plan/bmad-product-brief` — the spine of onboard's intake;
+  its Fast/Coaching fork is onboard's quick/full path.
+- `bmm-skills/plan/bmad-prfaq` — Working-Backwards pressure-test of what
+  "done" looks like; onboard-intake only, last in the shelf.
+- `core-skills/bmad-deep-recon` — live, dated, source-rated research and
+  fact-checking, invoked from any skill at any point in a goal's
+  lifecycle (not onboard-only). Fills the role Gambit's own `research`
+  and `intel` used to: its own explore-vs-select and Draft/Process/Run
+  fork covers both the time-sensitive "run it now" case and the
+  non-time-sensitive "research a fact/precedent/domain" case those two
+  skills used to split between them.
+
+**Runtime dependency.** These skills run on `uv` (a Python tool runner),
+gated once per onboarding session with a hard failure and no fallback —
+see `skills/onboard/SKILL.md`'s uv gate. A user without `uv` on PATH
+cannot create a new goal; returning-user flows are unaffected.
+
+**`{project-root}` binding — the standard way any Gambit skill invokes any
+vendored BMAD skill.** BMAD's own machinery assumes a single fixed project
+directory, which Gambit doesn't have (a goal lives at `<cwd>` in the
+repo-local case, or `~/.gambit/goals/<slug>/` in the global-store case).
+Before invoking any vendored skill, the calling skill must:
+
+1. Run `gambit path` to resolve `<goal-dir>`.
+2. Ensure `<goal-dir>/_bmad/` exists (empty, or holding `custom/` if the
+   user ever adds overrides).
+3. Wrap every `uv run`/BMAD-skill invocation in a `(cd "<goal-dir>" &&
+   BMAD_PROJECT_ROOT="<goal-dir>" ...)` subshell — never a bare `cd`, since
+   a shell tool call isn't guaranteed to persist cwd from the previous one.
+   Both the `cd` and the env var matter: `resolve_customization.py`'s own
+   directory-walk fallback (`find_project_root(skill_dir) or
+   find_project_root(Path.cwd())`) is unsafe on Gambit's install shape —
+   verified by direct testing, not just reading — because
+   `find_project_root(skill_dir)` is entirely cwd-independent and commonly
+   resolves to an unrelated enclosing `.git` (the package's own repo, a
+   git-managed version manager) before the cwd fallback is ever reached.
+   `BMAD_PROJECT_ROOT` is a Gambit-local patch to the vendored script (see
+   `vendor-skills/BMAD/ATTRIBUTION.md`) that takes priority over that walk
+   entirely, so setting it is what's actually load-bearing; the `cd` still
+   matters for every other cwd-relative behavior in the shelf skills
+   themselves (resolving `{project-root}`-prefixed paths in their own
+   prose, relative output paths, etc.).
+4. Supply `{project_name}` and `{planning_artifacts}`/`{output_folder}`
+   (`<goal-dir>/BMAD/`) proactively wherever a shelf skill's own
+   "resolve sensible defaults" step would otherwise ask — several vendored
+   files literally say to infer `{project_name}` from "the Hedgehog
+   project," and a skill that lets that inference run first risks visibly
+   asking the user about a project that doesn't exist here.
+
+Getting this binding wrong is the most common failure mode: a shelf skill
+visibly asking about "the Hedgehog project" mid-conversation is the tell
+that `{project_name}` wasn't supplied proactively (step 4) — a distinct
+failure from the `_bmad/custom/` override-discovery bug `BMAD_PROJECT_ROOT`
+fixes (step 3), which fails silently rather than visibly.
+
+**Logging a `bmad-deep-recon` finding to `GOAL.json`.** `bmad-deep-recon`
+has zero native concept of `GOAL.json` — its own memlog and headless JSON
+status block are its only persistence. Every skill that invokes it must,
+after it returns a report, decide whether the finding is load-bearing for
+that skill's own current work and, if so, append one `log` entry itself
+(never `bmad-deep-recon` — no key but `log` is shared):
+
+```json
+{ "log": [{ "date": "YYYY-MM-DD", "focus": null,
+            "notes": ["the question", "overall confidence", "one-sentence bottom line"],
+            "source": "bmad-deep-recon" }] }
+```
+
+Skills that invoke `bmad-deep-recon` reference this instruction rather than
+restating it.
 
 ## The GOAL.json contract
 
@@ -236,9 +331,9 @@ user its read and asks what they think first. The user holds situational
 facts the file doesn't contain, and the cheap moment to surface them is
 before a focus is locked in — not after three skills have built on it. One
 exchange, then commit; this is a checkpoint, not a negotiation. (This is the
-general rule, not the `elicit` skill — that's a specific, callable menu of
-named pressure-test methods; this rule applies whether or not a skill
-invokes it.)
+general rule, not the vendored `bmad-advanced-elicitation` skill — that's a
+specific, callable menu of named pressure-test methods; this rule applies
+whether or not a skill invokes it.)
 
 **Stay opinionated through pushback.** The user is consulting these skills
 *because* they want a strategic read, not because they want their own

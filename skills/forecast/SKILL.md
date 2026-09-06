@@ -186,7 +186,7 @@ re-run before ending the turn — see AGENTS.md's "Validate every write."
 Next: [the forecast most worth improving, or the plan step resting on the shakiest one]
 
 Or:
-  - Improve a shaky estimate with real data → research
+  - Improve a shaky estimate with real data → bmad-deep-recon
   - A low-probability assumption is load-bearing → plan, or premortem
   - The forecast changes the call → decide
 ```

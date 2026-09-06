@@ -76,7 +76,7 @@ Push for the smallest version. Common compressions worth suggesting:
 - **A manual version first.** Do by hand what the plan proposes to do at scale, once, for
   a few people.
 - **A precedent search** instead of an experiment — if someone has already run this test,
-  `research` is faster and free.
+  `bmad-deep-recon` is faster and free.
 
 ### 4. Set the Pass/Fail Line — Before Running
 
@@ -181,5 +181,5 @@ Or:
   - It passed — commit and sequence → plan
   - It failed — the focus may be wrong → strategy
   - Ambiguous — sharpen the test, or decide without it → decide
-  - Someone's already run this test → research
+  - Someone's already run this test → bmad-deep-recon
 ```

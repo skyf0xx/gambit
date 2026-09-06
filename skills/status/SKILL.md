@@ -60,7 +60,7 @@ data and no move:
 
 ```
 Next: [strategy to reset focus | plan to sequence | brief for the plain-language read |
-       eval for a real audit | research to close a gap]
+       eval for a real audit | bmad-deep-recon to close a gap]
 ```
 
 Recommend nothing. This skill reports; it doesn't steer — that's the distinction from
