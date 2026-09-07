@@ -78,7 +78,7 @@ gambit init
 
 </details>
 
-Then tell your agent what's on your mind e.g. "help me plan... [your goal]"
+Then tell your agent what's on your mind e.g. "Gambit, help me plan... [your goal]"
 
 ## Viewing a goal
 
