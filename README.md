@@ -2,9 +2,11 @@
 
 ![Gambit](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/banner.jpg)
 
-## Plan your next move
+## Planning your next move?
 
-Starting a business. Organizing a campaign. **Changing your life**. Trying to finally **make something happen**.
+Starting a business, Organizing a campaign, **Changing your life**. 
+
+Trying to finally **make something happen**.
 
 **Gambit is a Strategist** that helps you think it through, **make better decisions, and get it done.**
 
