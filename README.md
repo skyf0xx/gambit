@@ -4,7 +4,7 @@
 
 ## Planning your next move?
 
-Starting a business, Organizing a campaign, **Changing your life**. 
+Starting a business, organizing a campaign, **changing your life**. 
 
 Trying to finally **make something happen**.
 
