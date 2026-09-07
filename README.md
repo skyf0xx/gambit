@@ -50,6 +50,10 @@ Use Gambit for almost anything:
 
 To install Gambit now:
 
+> Paste this repo to your agent and ask it to install it (e.g. "install this: <https://github.com/skyf0xx/gambit>")
+
+<details>
+<summary>Manual install instructions</summary>
 
 **Add the CLI Command**
 ```bash
@@ -69,12 +73,9 @@ npm install -g @skyf0xx/gambit
 gambit init
 ```
 
-Then just tell your agent what's on your mind e.g. "help me plan... [your goal]"
+</details>
 
-Starting a brand-new goal runs a vendored elicitation shelf that needs
-[`uv`](https://docs.astral.sh/uv/getting-started/installation/) (a Python
-tool runner) on PATH — install it before onboarding your first goal.
-Returning to an existing goal doesn't need it.
+Then tell your agent what's on your mind e.g. "help me plan... [your goal]"
 
 ## Viewing a goal
 
