@@ -8,7 +8,7 @@ Starting a business, organizing a campaign, **changing your life**.
 
 Trying to finally **make something happen**.
 
-**Gambit is a Strategist** that helps you think it through, **make better decisions, and get it done.**
+**Gambit is a strategist** that helps you think it through, **make better decisions, and get it done.**
 
 Figure out:
 
@@ -46,7 +46,9 @@ Use Gambit for almost anything:
 
 **Better thinking. Clearer decisions. Plans you can actually execute.**
 
-## Install
+## How to install Gambit
+
+To install Gambit now:
 
 
 **Add the CLI Command**
