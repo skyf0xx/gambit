@@ -1,4 +1,4 @@
-# G A M B I T ⭐
+# G A M B I T ⭐ A.I.
 
 ![Gambit](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/banner.jpg)
 
@@ -18,21 +18,32 @@ Figure out:
 - What could go wrong
 - And whether you're actually making progress.
 
+## Get 10X better outcomes
+
+Use Gambit for almost anything:
+
+- **Business**: find opportunities, make decisions, execute
+- **Marketing**: sharpen your strategy and messaging
+- **Fitness**: set goals, build a plan, stay on track
+- **Life goals**: work out what matters and what to do about it
+- **Anything you can imagine**: Gambit helps you think clearly and move forward
+
+
 ## Why Gambit works
 
 <img src="https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/plan.jpg" alt="A strategic execution plan annotated with leverage points, dependencies, and constraints">
 
-Gambit combines powerful frameworks for:
+### Gambit combines powerful frameworks for:
 
-- **Strategy & systems thinking**
-- **Decision-making & forecasting**
-- **Research & intelligence**
-- **Risk & red-teaming**
-- **Stakeholder analysis & negotiation**
-- **Planning & execution**
-- **Experimentation & after-action review**
+- **Strategy & systems thinking**: understand the bigger picture and what actually drives outcomes
+- **Decision-making & forecasting**: make better calls under uncertainty
+- **Research & intelligence**: find what matters, what’s missing, and what’s changed
+- **Risk & red-teaming**: expose weaknesses before they become problems
+- **Stakeholder analysis & negotiation**: understand people, incentives, and competing interests
+- **Planning & execution**: turn strategy into concrete next steps
+- **Experimentation & after-action review**: test, learn, adapt, and improve
 
-Use Gambit for: **better thinking, clearer decisions, and a plan you can actually get done.**
+**Better thinking. Clearer decisions. Plans you can actually execute.**
 
 ## Install
 
