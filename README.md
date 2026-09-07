@@ -4,10 +4,9 @@
 
 ## Plan your next move
 
-Maybe you're **starting a business**, organizing a
-campaign, **improving yourself**, or trying to **get your goals accomplished**.
+Starting a business. Organizing a campaign. **Changing your life**. Trying to finally **make something happen**.
 
-**Gambit is a Strategist** with a set of skills for **thinking it through and getting it done**.
+**Gambit is a Strategist** that helps you think it through, **make better decisions, and get it done.**
 
 Figure out:
 
