@@ -44,7 +44,7 @@ Use Gambit for almost anything:
 - **Planning & execution**: turn strategy into concrete next steps
 - **Experimentation & after-action review**: test, learn, adapt, and improve
 
-**Better thinking. Clearer decisions. Plans you can actually execute.**
+**Better thinking. Clearer decisions. Plans you can execute today.**
 
 ## How to install Gambit
 
