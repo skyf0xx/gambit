@@ -1,4 +1,4 @@
-# G A M B I T
+# G A M B I T ⭐
 
 ![Gambit](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/banner.jpg)
 
