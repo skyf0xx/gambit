@@ -50,7 +50,10 @@ Use Gambit for almost anything:
 
 To install Gambit now:
 
-> Paste this repo to your agent and ask it to install it (e.g. "install this: <https://github.com/skyf0xx/gambit>")
+Ask your agent:
+
+
+> "install this: https://github.com/skyf0xx/gambit"
 
 <details>
 <summary>Manual install instructions</summary>
