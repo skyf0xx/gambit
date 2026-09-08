@@ -19,7 +19,7 @@ Figure out:
 - What could go wrong
 - And whether you're actually making progress.
 
-## Get 10X better outcomes
+## Get 10X better outcomes for your goals
 
 Use Gambit for almost anything:
 
