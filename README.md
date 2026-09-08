@@ -53,10 +53,14 @@ To install Gambit now:
 Ask your agent:
 
 
-> "install this: https://github.com/skyf0xx/gambit"
+```text
+install Gambit: https://github.com/skyf0xx/gambit
+```
+
+Then tell your agent what's on your mind e.g. "Gambit, help me plan... [your goal]"
 
 <details>
-<summary>Manual install instructions</summary>
+<summary>Manual and Agent install instructions</summary>
 
 **Add the CLI Command**
 ```bash
@@ -77,8 +81,6 @@ gambit init
 ```
 
 </details>
-
-Then tell your agent what's on your mind e.g. "Gambit, help me plan... [your goal]"
 
 ## Viewing a goal
 
