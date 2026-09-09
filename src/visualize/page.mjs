@@ -434,8 +434,16 @@ export function renderPage(goal) {
 
   .step-label { display: block; }
   .step-detail { display: block; font-size: 0.82rem; color: var(--muted); margin-top: 0.2rem; line-height: 1.4; }
-  .step-sublist { list-style: disc; margin: 0.3rem 0 0; padding-left: 1.2rem; display: flex; flex-direction: column;
+  .step-sublist { list-style: none; margin: 0.3rem 0 0; padding-left: 0; display: flex; flex-direction: column;
     gap: 0.15rem; font-size: 0.82rem; color: var(--muted); line-height: 1.4; }
+  .step-sublist li { position: relative; padding-left: 1.2rem; }
+  .step-sublist li::before { content: '\\2022'; position: absolute; left: 0.2rem; }
+  .step-sublist li.done::before, .step-sublist li.dropped::before { content: ''; }
+  .step-sublist li .icon { position: absolute; left: 0; top: 0.05rem; font-size: 0.72rem; font-weight: bold; }
+  .step-sublist li.done .icon { color: var(--ok); }
+  .step-sublist li.dropped .icon { color: var(--bad); }
+  .step-sublist li.done { opacity: 0.6; }
+  .step-sublist li.dropped .step-label { color: var(--bad); text-decoration: line-through; opacity: 0.75; }
   .fact-list { margin-top: 0.35rem; display: flex; flex-direction: column; gap: 0.15rem; }
   .fact-row { display: flex; gap: 0.6rem; font-size: 0.82rem; line-height: 1.4; }
   .fact-label { flex: 0 0 6.2rem; color: var(--faint); text-transform: uppercase; letter-spacing: 0.03em;

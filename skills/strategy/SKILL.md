@@ -316,6 +316,14 @@ array-valued keys as `[]`, until the owning skill has actually run — don't for
 structure the goal doesn't need. Only include `people` entries and a non-null
 `posture` if they're actually relevant to this goal.
 
+`gambit check` also runs a soft reconciliation lint after schema validation: it warns
+(doesn't fail) when a `lineOfOperation` has a non-empty `criticalPath` that's entirely
+`done` but the line's own `status` isn't `done`, and likewise when a `criticalPath`
+step's `items` are all `done` but the step's own `status` lags behind. Treat that
+warning as a prompt to update the parent status, not something to silently accept —
+but it's a hint, not proof, since a line can still be genuinely blocked on something in
+`nextActions` despite a finished `criticalPath`.
+
 If `GOAL.json` doesn't exist yet, create it at the location resolution would use
 (typically that means `onboard` ran first via `gambit new`, which writes a
 schema-default stub — see `skills/_shared/RESOLVING.md`) after confirming the goal

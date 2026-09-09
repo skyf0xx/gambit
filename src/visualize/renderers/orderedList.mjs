@@ -19,7 +19,16 @@ function escapeHtml(s) {
 // instead of relying on prose in `detail` to signal it's finished.
 // `items`, when present, is a real enumerable sub-list (e.g. one line per
 // sub-angle) rendered as its own nested <ul> rather than packed into the
-// single-line `detail` string.
+// single-line `detail` string. Each entry is { label, status } and gets the
+// same done/dropped treatment (icon + dimmed/struck-through label) as the
+// parent step.
+function renderSubItem(i) {
+  const cls = i.status && i.status !== 'pending' ? ` class="${i.status}"` : '';
+  const icon =
+    i.status === 'done' ? '<span class="icon">✓</span>' : i.status === 'dropped' ? '<span class="icon">✕</span>' : '';
+  return `<li${cls}>${icon}<span class="step-label">${escapeHtml(i.label)}</span></li>`;
+}
+
 export function renderOrderedList(steps) {
   if (!steps || !steps.length) return '<p class="empty">No items yet.</p>';
   const rows = steps.map((s) => {
@@ -29,7 +38,7 @@ export function renderOrderedList(steps) {
       status === 'done' ? '<span class="icon">✓</span>' : status === 'dropped' ? '<span class="icon">✕</span>' : '';
     const sublistHtml =
       s.items && s.items.length
-        ? `<ul class="step-sublist">${s.items.map((i) => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`
+        ? `<ul class="step-sublist">${s.items.map(renderSubItem).join('')}</ul>`
         : '';
     return `<li${cls}>${icon}<span class="step-label">${escapeHtml(s.label)}</span>${
       s.detail ? `<span class="step-detail">${escapeHtml(s.detail)}</span>` : ''

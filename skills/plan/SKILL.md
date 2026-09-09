@@ -157,14 +157,24 @@ the label. Fill it in only when the label alone won't jog memory later. It is ne
 substitute for `status` — "Done — see log" belongs in `status: "done"` with an optional
 short `detail` for context, not in `detail` alone with `status` left `pending`.
 
-`items` on a `criticalPath` step (array of `shortLabel`, 40-char cap each, max 10 entries,
+`items` on a `criticalPath` step (array of `{label, status}` objects, max 10 entries,
 optional) is a real enumerable sub-list the step needs to track — e.g. a step drafting
-one angle per subreddit, one line per sub. Use it whenever the step's content is actually
-a list of short items, not prose — the visual layer renders `items` as its own bulleted
-list, where packing the same content into `detail` renders as one unbroken run-on line.
-Never comma- or semicolon-splice a list into `detail` just because `items` feels like
-more structure than the step needs — if there's more than one item to track, it's a list
-and belongs in `items`.
+one angle per subreddit, one line per sub. `label` is `shortLabel` (40-char cap); `status`
+is one of `pending` (default), `done`, `dropped` — the same enum as a step's own `status`,
+tracked per item rather than only at the parent step. Use `items` whenever the step's
+content is actually a list of short items, not prose — the visual layer renders `items`
+as its own bulleted list with per-item done/dropped icons, where packing the same content
+into `detail` renders as one unbroken run-on line with no way to mark individual items
+done. Never comma- or semicolon-splice a list into `detail` just because `items` feels
+like more structure than the step needs — if there's more than one item to track, it's a
+list and belongs in `items`.
+
+A step's own `status` should agree with its `items`: don't mark the parent step `done`
+while any of its items are still `pending` — mark items done individually as they
+complete, and only flip the step to `done` once every item is `done` or `dropped`.
+`gambit check` warns (not a hard failure) when a step's items are all done but its own
+`status` still lags behind — treat that warning as a prompt to update the step, not
+something to ignore.
 
 ```json
 {
@@ -175,7 +185,7 @@ and belongs in `items`.
         "criticalPath": [
           { "label": "A", "detail": "...", "status": "done" },
           { "label": "B", "status": "pending" },
-          { "label": "C", "items": ["Sub 1: angle", "Sub 2: angle"], "status": "pending" },
+          { "label": "C", "items": [{ "label": "Sub 1: angle", "status": "done" }, { "label": "Sub 2: angle", "status": "pending" }], "status": "pending" },
           { "label": "D", "status": "pending" }
         ],
         "nextActions": [

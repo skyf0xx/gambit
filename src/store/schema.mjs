@@ -67,10 +67,17 @@ const nextAction = z.object({
 
 // items: an optional flat sub-list (e.g. "8 subs, one line each") a step or
 // finding needs to enumerate rather than pack into one run-on `detail`
-// sentence. Each entry is a shortLabel so the rendered list stays scannable;
-// capped at 10 for the same reason criticalPath itself is capped at 6 — a
-// list that grows past this belongs in its own plan step, not a sub-list.
-const items = z.array(shortLabel).max(10).optional();
+// sentence. Each entry carries its own status so a step's children can be
+// tracked individually rather than forcing the whole step to one atomic
+// done/pending/dropped value. Capped at 10 for the same reason criticalPath
+// itself is capped at 6 — a list that grows past this belongs in its own
+// plan step, not a sub-list.
+const subItem = z.object({
+  label: shortLabel,
+  status: z.enum(['pending', 'done', 'dropped']).default('pending'),
+});
+
+const items = z.array(subItem).max(10).optional();
 
 const labeledStep = z.object({
   label: shortLabel,
@@ -231,6 +238,28 @@ export function stubGoal(title) {
 export function parseGoalJson(raw) {
   const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
   return goalSchema.parse(data);
+}
+
+// Soft reconciliation lint, run after schema validation — not a .refine()
+// on the schema itself, since this checks content correctness (does a
+// parent's status agree with its children's) rather than shape. A line or
+// step whose children are all done but whose own status lags behind is a
+// strong hint, not proof (something in nextActions could still be
+// blocking) — so this returns warnings for a skill to weigh, not a hard
+// failure.
+export function reconcileGoal(data) {
+  const warnings = [];
+  for (const line of data.plan?.linesOfOperation ?? []) {
+    if (line.criticalPath.length > 0 && line.criticalPath.every((s) => s.status === 'done') && line.status !== 'done') {
+      warnings.push(`lineOfOperation "${line.label}": all criticalPath steps done but status is "${line.status ?? 'unset'}"`);
+    }
+    for (const step of line.criticalPath) {
+      if (step.items && step.items.length > 0 && step.items.every((i) => i.status === 'done') && step.status !== 'done') {
+        warnings.push(`labeledStep "${step.label}": all items done but status is "${step.status}"`);
+      }
+    }
+  }
+  return warnings;
 }
 
 export function safeParseGoalJson(raw) {

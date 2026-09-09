@@ -31,7 +31,7 @@ process.emitWarning = (warning, ...rest) => {
 
 const store = await import('../src/store/index.mjs');
 const { goalFile } = await import('../src/store/paths.mjs');
-const { safeParseGoalJson } = await import('../src/store/schema.mjs');
+const { safeParseGoalJson, reconcileGoal } = await import('../src/store/schema.mjs');
 const { printNoticeIfDue } = await import('../src/store/updateCheck.mjs');
 const { isEligible: starPromptEligible, recordDeferred: recordStarPromptDeferred, recordClosed: recordStarPromptClosed } = await import('../src/store/starPrompt.mjs');
 
@@ -193,6 +193,11 @@ async function storeCheck() {
     console.error(result.error);
     process.exitCode = 1;
     return;
+  }
+
+  const warnings = reconcileGoal(result.data);
+  for (const warning of warnings) {
+    console.warn(`warning: ${warning}`);
   }
 
   console.log(`${path} is valid.`);
