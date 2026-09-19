@@ -5,3 +5,4 @@ node_modules/
 gambit-test-goal-full.png
 __pycache__/
 *.pyc
+dist/

@@ -16,10 +16,12 @@ function formatIssues(error) {
   return error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ');
 }
 
-// Returns one of:
-//   { status: 'ok', data, migratedFrom? }
-//   { status: 'needs_app_update', version }
-//   { status: 'invalid', error }
+/** @typedef {import('zod').infer<typeof goalSchema>} Goal */
+/**
+ * @param {unknown} raw
+ * @param {{ migrations?: { from: number, to: number, transform: (doc: any) => any }[], current?: number }} [opts]
+ * @returns {{ status: 'ok', data: Goal, migratedFrom?: number } | { status: 'needs_app_update', version: number } | { status: 'invalid', error: string }}
+ */
 export function readGoal(raw, { migrations = MIGRATIONS, current = CURRENT_SCHEMA_VERSION } = {}) {
   let doc;
   try {

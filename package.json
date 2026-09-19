@@ -14,7 +14,7 @@
     "gambit": "bin/cli.mjs"
   },
   "scripts": {
-    "check": "node scripts/check.mjs && npm test --workspace @gambit/core --silent"
+    "check": "node scripts/check.mjs && npm test -w @gambit/core --silent && npm run typecheck -w @gambit/pwa --silent && npm test -w @gambit/pwa --silent"
   },
   "files": [
     "bin",
@@ -44,6 +44,11 @@
   ],
   "license": "MIT",
   "workspaces": [
-    "packages/*"
-  ]
+    "packages/*",
+    "apps/*"
+  ],
+  "gambit": {
+    "appVersionMin": "0.1.0",
+    "migrations": []
+  }
 }
