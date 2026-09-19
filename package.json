@@ -14,11 +14,12 @@
     "gambit": "bin/cli.mjs"
   },
   "scripts": {
-    "check": "node scripts/check.mjs"
+    "check": "node scripts/check.mjs && npm test --workspace @gambit/core --silent"
   },
   "files": [
     "bin",
     "skills",
+    "packages/core/src",
     "src/store",
     "src/visualize",
     "hooks",
@@ -41,5 +42,8 @@
     "strategy",
     "gambit"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "workspaces": [
+    "packages/*"
+  ]
 }
