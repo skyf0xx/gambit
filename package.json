@@ -1,54 +1,27 @@
 {
-  "name": "@skyf0xx/gambit",
-  "version": "5.2.0",
-  "description": "Strategic-advisor skills (onboard, strategy, plan, threat, and more) for Claude Code, Cursor, Gemini CLI, and other AGENTS.md-reading agents — installable globally with multi-goal support, or per-project.",
+  "name": "gambit",
+  "version": "0.1.0",
+  "private": true,
   "type": "module",
+  "description": "Local-first strategic-advisor PWA — skills for goal planning, decision support, and risk analysis, run through an in-app agent against your own model key.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/skyf0xx/gambit.git"
   },
-  "publishConfig": {
-    "access": "public"
-  },
-  "bin": {
-    "gambit": "bin/cli.mjs"
-  },
   "scripts": {
-    "check": "node scripts/check.mjs && npm test -w @gambit/core --silent && npm run typecheck -w @gambit/pwa --silent && npm test -w @gambit/pwa --silent"
-  },
-  "files": [
-    "bin",
-    "skills",
-    "packages/core/src",
-    "src/store",
-    "src/visualize",
-    "hooks",
-    "vendor-skills",
-    "AGENTS.md",
-    "GEMINI.md"
-  ],
-  "dependencies": {
-    "zod": "^3.23.0"
+    "dev": "npm run dev -w @gambit/pwa",
+    "build": "npm run build -w @gambit/pwa",
+    "preview": "npm run preview -w @gambit/pwa",
+    "test": "npm test -w @gambit/core --silent && npm test -w @gambit/pwa --silent",
+    "typecheck": "npm run typecheck -w @gambit/pwa --silent",
+    "check": "npm test -w @gambit/core --silent && npm run typecheck -w @gambit/pwa --silent && npm test -w @gambit/pwa --silent && npm run build -w @gambit/pwa --silent"
   },
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22"
   },
-  "keywords": [
-    "claude",
-    "claude-code",
-    "agents-md",
-    "agents",
-    "skills",
-    "strategy",
-    "gambit"
-  ],
   "license": "MIT",
   "workspaces": [
     "packages/*",
     "apps/*"
-  ],
-  "gambit": {
-    "appVersionMin": "0.1.0",
-    "migrations": []
-  }
+  ]
 }

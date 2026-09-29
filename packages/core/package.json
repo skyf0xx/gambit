@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Shared goal schema, migrations, and display registry for the Gambit CLI and PWA.",
+  "description": "Shared goal schema, migrations, and display registry for the Gambit PWA.",
   "main": "src/index.mjs",
   "exports": { ".": "./src/index.mjs" },
   "scripts": { "test": "node --test test/*.test.mjs" },
