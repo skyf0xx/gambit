@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Use to break a GOAL.json goal or current focus into one or more sequenced, dependency-aware lines of operation — starting a new push, replanning after a failure, or when the existing plan feels stale. Builds a dependency graph per line, identifies each line's critical path, scales pace to posture, and lists the next 3-5 concrete actions per line. Also the skill to reach for when the user simply reports a next action done, blocked, or dropped in ordinary conversation — that's the lightweight "Quick Status Update" mode below, not a full replan.
+description: Use to break a goal or current focus into one or more sequenced, dependency-aware lines of operation — starting a new push, replanning after a failure, or when the existing plan feels stale. Builds a dependency graph per line, identifies each line's critical path, scales pace to posture, and lists the next 3-5 concrete actions per line. Also the skill to reach for when the user simply reports a next action done, blocked, or dropped in ordinary conversation — that's the lightweight "Quick Status Update" mode below, not a full replan.
 display: ordered-list
 ---
 
@@ -14,17 +14,17 @@ display: ordered-list
 
 ## Mode 0: Quick Status Update
 
-This mode exists because `nextActions[].status` and `criticalPath[].status` only ever change when `plan` writes them — nothing else in Gambit updates either automatically, so without this fast path a casually-reported completion silently fails to land in `GOAL.json` until someone happens to trigger a full replan. Use this mode instead of the full sequence below whenever the user reports a `nextActions` item **or a `criticalPath` step** done, blocked, or dropped, and isn't asking for a replan.
+This mode exists because `nextActions[].status` and `criticalPath[].status` only ever change when `plan` writes them — nothing else in the app updates either automatically, so without this fast path a casually-reported completion silently fails to land in the goal until someone happens to trigger a full replan. Use this mode instead of the full sequence below whenever the user reports a `nextActions` item **or a `criticalPath` step** done, blocked, or dropped, and isn't asking for a replan.
 
-1. **Load** `GOAL.json` and scan every line's `nextActions` *and* `criticalPath` for an entry matching what the user described — a report can close either. Match on meaning, not exact string — "finished the ATS audit" matches an action reading "run ATS keyword/format audit," and "mapped contacts' networks" matches a critical-path step labeled "Map contacts' networks." If nothing plausible matches, say so and stop here rather than guessing; the update likely belongs under a different line, or the plan is stale enough to need Mode 1's full treatment.
+1. **Load** the goal and scan every line's `nextActions` *and* `criticalPath` for an entry matching what the user described — a report can close either. Match on meaning, not exact string — "finished the ATS audit" matches an action reading "run ATS keyword/format audit," and "mapped contacts' networks" matches a critical-path step labeled "Map contacts' networks." If nothing plausible matches, say so and stop here rather than guessing; the update likely belongs under a different line, or the plan is stale enough to need Mode 1's full treatment.
 2. **Confirm in one line**, not a full elicitation checkpoint — this is a status flip, not a decision:
    ```
    Marking "[label/action]" done in [line label]. Right?
    ```
    On a yes, proceed. On a correction, use the corrected target instead.
-3. **Write** just that entry's `status` (`done`, `dropped`, or back to `pending`) in place — on the matched `nextActions` entry or `criticalPath` step, whichever it was. Leave every other field on that item, every other item, and every other key untouched — this mode never rebuilds the graph, re-sequences, or touches anything but the one `status` field (plus, per step 5, the line's own `status` when the write closes it). Don't let a completed step's story live only in `detail` prose ("Done — see log") while `status` stays `pending` — the visual layer reads `status`, not `detail`, to show it's finished.
-4. **Check whether the line just closed** (every `nextActions` entry *and* every `criticalPath` step now `done` or `dropped`). If so, set that line's own `status` to `"done"` too — the line-level pill (`on_schedule`/`at_risk`/`blocked`/`done`) doesn't follow step completion automatically, so leaving it on its old value (often `on_schedule` or `at_risk`) after every step closes is stale and wrong, not neutral. Say the closure plainly and note that `strategy` should pick a new focus next run — per its existing recency-trap guidance, a closed line is a reason to reassess, not itself a next step. Don't run `strategy` yourself; just flag it.
-5. **Run `gambit check`** immediately. Fix and re-run on failure per AGENTS.md's "Validate every write."
+3. **Call `set_status`** with the dotted path to just that entry (e.g. `plan.linesOfOperation.0.nextActions.2`) and the new status (`done`, `dropped`, or back to `pending`) — on the matched `nextActions` entry or `criticalPath` step, whichever it was. This touches only that one field; it never rebuilds the graph, re-sequences, or touches any other item or key (plus, per step 4, the line's own `status` when the write closes it). Don't let a completed step's story live only in `detail` prose ("Done — see log") while `status` stays `pending` — the visual layer reads `status`, not `detail`, to show it's finished.
+4. **Check whether the line just closed** (every `nextActions` entry *and* every `criticalPath` step now `done` or `dropped`). If so, call `set_status` again to set that line's own `status` to `"done"` too — the line-level pill (`on_schedule`/`at_risk`/`blocked`/`done`) doesn't follow step completion automatically, so leaving it on its old value (often `on_schedule` or `at_risk`) after every step closes is stale and wrong, not neutral. Say the closure plainly and note that `strategy` should pick a new focus next run — per its existing recency-trap guidance, a closed line is a reason to reassess, not itself a next step. Don't run `strategy` yourself; just flag it.
+5. If any `set_status` call returns `{ ok: false, errors }`, fix and retry before ending the turn.
 6. **Name the next step**: the next `pending` item in that line (critical-path step or next action, whichever comes first), or "run `strategy`" if the line just closed.
 
 No log entry is required for a routine status flip — the `log` is for events worth a durable record, and `nextActions[].status` already carries the current state per AGENTS.md's no-history rule. If the report carries a reason worth remembering (why it's blocked, what changed), a short `log` entry is fine, but don't manufacture one just to document the flip itself.
@@ -51,7 +51,7 @@ Use this sequence for an actual planning request — a new push, a replan after 
 
 ### 1. Load Context
 
-Read `GOAL.json`. Note the current focus (Schwerpunkt) if `strategy` has set one, the success criteria, the deadline, the current posture level if set, and who's involved from the `people` key if it's non-empty.
+Read the goal. Note the current focus (Schwerpunkt) if `strategy` has set one, the success criteria, the deadline, the current posture level if set, and who's involved from the `people` key if it's non-empty.
 
 **Check the `systemsNotes` key.** If it's `null`, its Schwerpunkt confidence was recorded as `low`, or it clearly predates the current focus (goal or focus changed since), the critical path you're about to build may rest on an unverified premise about how a third party or system responds. Flag this before building the graph rather than after:
 
@@ -108,7 +108,7 @@ Blocker (if any): [what's blocking, what resolves it]
 
 ### 5. Apply Posture
 
-If `GOAL.json`'s `posture` key is set, scale the plan to the current level: how many things run in parallel — within a line, and across lines — how much you ask of any one person, how tight the timeline is. Higher posture means more concurrent asks and less margin — say so if the plan is pushing people harder than the posture level implies, or if it's under-using the posture the situation actually calls for.
+If the goal's `posture` key is set, scale the plan to the current level: how many things run in parallel — within a line, and across lines — how much you ask of any one person, how tight the timeline is. Higher posture means more concurrent asks and less margin — say so if the plan is pushing people harder than the posture level implies, or if it's under-using the posture the situation actually calls for.
 
 ### 6. Sequence Next Actions (per line)
 
@@ -147,9 +147,9 @@ and watching it rot. If a whole line's critical path is unrealistic, that's a si
 
 If something in an existing line has failed or stalled, name it, name the alternative path, and drop the dead branch. If there's no alternative for that line, say so plainly — that's a signal for `strategy` to reassess the focus, not for this skill to paper over. A blocked line doesn't automatically block others — say which lines are affected.
 
-### 8. Update GOAL.json
+### 8. Update the Goal
 
-Replace the `plan` key in `GOAL.json` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?, items?, status}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `status` is one of `pending` (default), `done`, `dropped` — same enum and meaning as a `nextAction`'s, so a step that's finished or abandoned shows that in the visual layer instead of relying on prose in `detail`); `nextActions` is capped at 5 entries, each `{action, who, when, status, detail?}` where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `status` is one of `pending` (default), `done`, `dropped`. Set that line's own `status` to `on_schedule`, `at_risk`, `blocked`, or `done` — `done` means every `criticalPath` step and every `nextActions` entry on that line is itself `done` or `dropped`; don't set the line to `done` while any step or action is still `pending`. Set `blocker` only when `status` is `blocked`.
+Call `write_section` on `plan` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?, items?, status}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `status` is one of `pending` (default), `done`, `dropped` — same enum and meaning as a `nextAction`'s, so a step that's finished or abandoned shows that in the visual layer instead of relying on prose in `detail`); `nextActions` is capped at 5 entries, each `{action, who, when, status, detail?}` where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `status` is one of `pending` (default), `done`, `dropped`. Set that line's own `status` to `on_schedule`, `at_risk`, `blocked`, or `done` — `done` means every `criticalPath` step and every `nextActions` entry on that line is itself `done` or `dropped`; don't set the line to `done` while any step or action is still `pending`. Set `blocker` only when `status` is `blocked`.
 
 `detail` on a `criticalPath` step or a `nextAction` (max 280 chars, optional) is a hover
 tooltip in the visual layer — the reason this step is on the path, not a restatement of
@@ -172,7 +172,7 @@ list and belongs in `items`.
 A step's own `status` should agree with its `items`: don't mark the parent step `done`
 while any of its items are still `pending` — mark items done individually as they
 complete, and only flip the step to `done` once every item is `done` or `dropped`.
-`gambit check` warns (not a hard failure) when a step's items are all done but its own
+Write validation warns (not a hard failure) when a step's items are all done but its own
 `status` still lags behind — treat that warning as a prompt to update the step, not
 something to ignore.
 
@@ -203,8 +203,7 @@ If a criterion in `successCriteria` doesn't yet carry a `lineOfOperation` label 
 
 If this was a replan, append a `log` entry noting it.
 
-Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
-re-run before ending the turn — see AGENTS.md's "Validate every write."
+If the write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 
 ### 9. Name the Next Step
 
@@ -216,7 +215,7 @@ Start here: [action 1, restated as something to do today]
 
 Or:
   - Stress-test this before committing → threat
-  - Check a fact the plan rests on → bmad-deep-recon
+  - Check a fact the plan rests on → web search, or say it's unverified
   - Resolve a fork the plan exposed → decide
   - Draft something the plan requires you to send → comms
 ```

@@ -1,6 +1,6 @@
 ---
 name: negotiate
-description: Use before a conversation where you need someone's agreement — a council, a landlord, a sponsor, a platform, a collaborator, a rival organiser. Preps interests on both sides, your walk-away alternative (BATNA), the zone where a deal exists, concessions ranked by cost, and the traps. Two-way, unlike comms, which prepares outward broadcast. Appends to GOAL.json's log with the agreement and any commitments made.
+description: Use before a conversation where you need someone's agreement — a council, a landlord, a sponsor, a platform, a collaborator, a rival organiser. Preps interests on both sides, your walk-away alternative (BATNA), the zone where a deal exists, concessions ranked by cost, and the traps. Two-way, unlike comms, which prepares outward broadcast. Appends to the goal's log with the agreement and any commitments made.
 display: decision-callout
 ---
 
@@ -39,7 +39,7 @@ most common failure, and it's expensive.
 
 ### 1. Load Context
 
-Read `GOAL.json` — goal, the `plan` key, the `people` key, the `stakeholders` array if non-empty. If the
+Read the goal — the goal statement, the `plan` key, the `people` key, the `stakeholders` array if non-empty. If the
 counterparty appears in the `stakeholders` array, pull their recorded interest rather than
 re-deriving it.
 
@@ -90,7 +90,8 @@ That last line changes the whole approach. If they're a messenger, the goal is t
 easy for them to advocate internally — which means giving them something to say, not
 winning an argument with them.
 
-Where an interest or constraint is a guess, mark it and offer `bmad-deep-recon`.
+Where an interest or constraint is a guess, mark it and offer a web search, where the
+tool is present, to firm it up.
 
 ### 5. Find the Zone
 
@@ -168,9 +169,9 @@ I ALSO WALK IF: [the relationship or process condition — bad faith, moving ter
 Deciding to walk is nearly impossible in the room, under social pressure, with sunk time
 behind you. Deciding it beforehand is the only reliable way it happens.
 
-### 10. Update GOAL.json and Name the Next Step
+### 10. Update the Goal and Name the Next Step
 
-Append a `log` entry with the negotiation outcome, what was agreed, and any commitment the user made — a commitment
+Call `append_log` with the negotiation outcome, what was agreed, and any commitment the user made — a commitment
 given in a conversation and not recorded is one nobody can hold either side to.
 
 ```json
@@ -189,10 +190,9 @@ given in a conversation and not recorded is one nobody can hold either side to.
 
 If it produced an agreement with obligations, hand to `plan` to sequence them.
 
-Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
-re-run before ending the turn — see AGENTS.md's "Validate every write."
+If the write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 
 ```
-Next: [strengthen the BATNA | confirm a guessed interest → bmad-deep-recon |
+Next: [strengthen the BATNA | confirm a guessed interest → web search |
        draft the opening → comms | after the conversation → review]
 ```

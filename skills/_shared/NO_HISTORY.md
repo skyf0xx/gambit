@@ -1,8 +1,8 @@
 # No history in output
 
-Applies whenever a skill writes to `GOAL.json` — not a skill in its own
-right, referenced from AGENTS.md's voice rules the way `RESOLVING.md` is
-referenced rather than invoked. Adapted from the `no-history-in-output`
+Applies whenever a skill writes to the goal via `write_section`,
+`append_log`, or `set_status` — not a skill in its own right, referenced
+from AGENTS.md's voice rules. Adapted from the `no-history-in-output`
 skill.
 
 A written key should describe the current state of the thing, not the
@@ -13,10 +13,11 @@ process that produced it.
 - **Every owned key except `log`** (`goal`, `successCriteria`, `people`,
   `posture`, `plan`, `systemsNotes`, `riskNotes`, `decisions`,
   `stakeholders`, `exposure`, `capacity`, `forecasts`, `experiments`,
-  `criteriaStatus`) is replaced in place on each write, per AGENTS.md's
-  "GOAL.json contract." These read as current state, full stop — no trace
-  of what they said before.
-- **`log`** is the one deliberately append-only array — the sequence of
+  `criteriaStatus`) is replaced wholesale on each `write_section` call, per
+  AGENTS.md's "The goal contract." These read as current state, full
+  stop — no trace of what they said before.
+- **`log`** is the one deliberately append-only array, written through
+  `append_log` — the sequence of
   entries over time *is* the goal's history, and that's correct. What
   this rule adds is narrower: **a single entry doesn't re-narrate the
   discussion that produced it.** Each entry states what's true or what
@@ -50,6 +51,6 @@ process that produced it.
 
 - The user explicitly asks for a changelog, revision history, or "show me
   what changed" — a one-off request, answered directly, not written back
-  into `GOAL.json` itself.
+  into the goal itself.
 - A direct quote or the user's own wording being recorded verbatim — this
   rule shapes a skill's own narration, not what it's quoting.

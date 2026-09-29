@@ -45,7 +45,7 @@ you flagged, record it and back the decision.
 
 ### 1. Load Context
 
-Read `GOAL.json` — goal, `plan` key, `people` key, `posture` key, `riskNotes` key. Note the
+Read the goal — the goal statement, `plan` key, `people` key, `posture` key, `riskNotes` key. Note the
 jurisdiction if it's stated; if it isn't, ask, because almost nothing here generalises
 across jurisdictions.
 
@@ -68,7 +68,7 @@ The seven categories below are independent — none depends on another's finding
 none needs input from the user mid-category. Where the executing agent can run
 independent sub-tasks concurrently, work them in parallel and converge for the Report
 (step 4); this is also where a category calling for an external lookup (permit rules,
-employer policy) can hand off to `bmad-deep-recon` without blocking the others.
+employer policy) can be checked with a web search, where the tool is present, without blocking the others.
 
 **Permissions and process**
 Permits, approvals, notifications, venue conditions, insurance requirements, road or
@@ -83,9 +83,9 @@ does it actually cover this activity?
 
 **Speech and publication**
 Defamation, misleading claims, copyright, privacy. Where a claim about a person or
-organisation is load-bearing in public communication, flag it for verification via
-`bmad-deep-recon` before it goes out — the cheapest defamation mitigation is being right, and
-having the source saved.
+organisation is load-bearing in public communication, flag it for verification — a web
+search where the tool is present, otherwise say plainly it's unverified — before it goes
+out. The cheapest defamation mitigation is being right, and having the source saved.
 
 **Data and other people's information**
 If the effort collects names, contacts, addresses, or signatures: what obligations attach,
@@ -131,7 +131,7 @@ it there and don't answer it yourself.
 
 ### 5. Check the People, Not Just the User
 
-If the `people` key in `GOAL.json` lists others, their exposure is also the user's concern — practically and
+If the `people` key in the goal lists others, their exposure is also the user's concern — practically and
 ethically.
 
 ```
@@ -157,9 +157,9 @@ Only what you're comfortable saying. It affects the advice, but it's yours.
 Ask once, accept a non-answer, and don't press. Some of this is genuinely private and the
 user is entitled to withhold it; the assessment is partial where they do.
 
-### 7. Update GOAL.json
+### 7. Update the Goal
 
-Replace the `exposure` array with the must-handle items as open actions and anything the
+Call `write_section` on `exposure` with the must-handle items as open actions and anything the
 user explicitly chose to accept — so later sessions don't re-raise a settled decision.
 Where an item is a real blocker on a plan step, say so and hand to `plan` to resequence.
 
@@ -179,10 +179,9 @@ Each exposure entry must have:
 }
 ```
 
-Log a one-line summary.
+Call `append_log` with a one-line summary.
 
-Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
-re-run before ending the turn — see AGENTS.md's "Validate every write."
+If a write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 
 ### 8. Name the Next Step
 
@@ -192,7 +191,7 @@ Next: [the single must-handle item with the longest lead time]
 Or:
   - This blocks a plan step → plan
   - Accepting or avoiding it is a real choice → decide
-  - You need to know the actual rule → bmad-deep-recon
+  - You need to know the actual rule → web search, or ask a professional
   - Someone needs to be told what they're taking on → comms
 ```
 

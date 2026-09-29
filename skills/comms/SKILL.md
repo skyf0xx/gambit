@@ -1,6 +1,6 @@
 ---
 name: comms
-description: Use when the user needs to draft or sharpen outward communication in service of a GOAL.json goal — a post, pitch, update, or ask to the public or to people on the goal's people list. Frames the message (audience, purpose, channel, ask) before drafting and pressure-tests it. Appends to GOAL.json's log if the communication is a critical-path step.
+description: Use when the user needs to draft or sharpen outward communication in service of a goal — a post, pitch, update, or ask to the public or to people on the goal's people list. Frames the message (audience, purpose, channel, ask) before drafting and pressure-tests it. Appends to the goal's log if the communication is a critical-path step.
 display: plain-card
 ---
 
@@ -22,7 +22,7 @@ Adapts to the audience the user is writing for — warm where the audience is wa
 
 ### 1. Load Context
 
-Read `GOAL.json` — goal, success criteria, and current focus (if any). Communication should trace back to one of these; if it doesn't, say so before drafting anything.
+Read the goal — the goal statement, success criteria, and current focus (if any). Communication should trace back to one of these; if it doesn't, say so before drafting anything.
 
 ### 2. Frame the Message
 
@@ -65,9 +65,9 @@ A draft that's sharper than the user's natural register will either not get sent
 sent and not sound like them. Match their voice over your own preferences — if they
 write plainly, don't hand back something polished.
 
-### 6. Update GOAL.json
+### 6. Update the Goal
 
-If this communication is a meaningful part of the current plan (e.g. a pitch that's a critical-path step), append a brief entry to the `log` array once sent. Don't log routine messages — this file tracks the goal, not a comms archive.
+If this communication is a meaningful part of the current plan (e.g. a pitch that's a critical-path step), call `append_log` with a brief entry once sent. Don't log routine messages — this tracks the goal, not a comms archive.
 
 ```json
 {
@@ -83,8 +83,7 @@ If this communication is a meaningful part of the current plan (e.g. a pitch tha
 }
 ```
 
-Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
-re-run before ending the turn — see AGENTS.md's "Validate every write."
+If the write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 
 ### 7. Name the Next Step
 
@@ -92,7 +91,7 @@ re-run before ending the turn — see AGENTS.md's "Validate every write."
 Next: [send it, or the specific thing that has to happen first]
 
 Or:
-  - Check a claim in the draft before it goes out → bmad-deep-recon
+  - Check a claim in the draft before it goes out → web search, or say it's unverified
   - Think through how this could land badly → threat
   - Sequence what follows once it's sent → plan
 ```

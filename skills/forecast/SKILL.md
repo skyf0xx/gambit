@@ -1,6 +1,6 @@
 ---
 name: forecast
-description: Use when the plan rests on a belief about what will happen — turnout, a vote, a decision, a response, a timeline. Converts vague expectations into dated, falsifiable predictions with explicit probabilities, then scores them once the outcome is known so the user finds out whether their judgment is actually calibrated. Writes to GOAL.json's forecasts key.
+description: Use when the plan rests on a belief about what will happen — turnout, a vote, a decision, a response, a timeline. Converts vague expectations into dated, falsifiable predictions with explicit probabilities, then scores them once the outcome is known so the user finds out whether their judgment is actually calibrated. Writes to the goal's forecasts key.
 display: checklist
 ---
 
@@ -42,7 +42,7 @@ rather than explained away.
 
 ### 1. Load Context
 
-Read `GOAL.json` — goal, the `plan` key, and the `forecasts` array. Check first
+Read the goal — the goal statement, the `plan` key, and the `forecasts` array. Check first
 whether any recorded forecast has now resolved; if so, go to **6. Score** before making
 new ones.
 
@@ -138,9 +138,9 @@ CALIBRATION SO FAR
 This is the output the whole skill exists for. A named systematic bias is worth more than
 any individual forecast.
 
-### 7. Update GOAL.json
+### 7. Update the Goal
 
-Append new forecasts to the `forecasts` array, or update existing entries once they resolve. Each entry must have `statement`, `probability` (0-100 integer), `resolvesBy` (YYYY-MM-DD), `resolvesVia` (one short label, the specific source that settles it), and `resolved` (boolean). Once a forecast resolves, set `outcome` ('yes' or 'no'), `verdict` (e.g., "well-called", "overconfident"), and `resolved: true`. `detail` (optional, max 280 chars) is a hover tooltip in the visual layer — the basis for the number, or what the verdict rested on. Fill in only when it adds something the statement doesn't already say.
+Call `write_section` on `forecasts` with the new forecast added to the existing array, or with an existing entry updated once it resolves. Each entry must have `statement`, `probability` (0-100 integer), `resolvesBy` (YYYY-MM-DD), `resolvesVia` (one short label, the specific source that settles it), and `resolved` (boolean). Once a forecast resolves, set `outcome` ('yes' or 'no'), `verdict` (e.g., "well-called", "overconfident"), and `resolved: true`. `detail` (optional, max 280 chars) is a hover tooltip in the visual layer — the basis for the number, or what the verdict rested on. Fill in only when it adds something the statement doesn't already say.
 
 New unresolved forecast:
 ```json
@@ -177,8 +177,7 @@ Resolved forecast (update the same entry):
 Keep resolved entries; they're the calibration record and the only reason the array has
 long-term value.
 
-Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
-re-run before ending the turn — see AGENTS.md's "Validate every write."
+If the write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 
 ### 8. Name the Next Step
 
@@ -186,7 +185,7 @@ re-run before ending the turn — see AGENTS.md's "Validate every write."
 Next: [the forecast most worth improving, or the plan step resting on the shakiest one]
 
 Or:
-  - Improve a shaky estimate with real data → bmad-deep-recon
+  - Improve a shaky estimate with real data → web search, or say it's unverified
   - A low-probability assumption is load-bearing → plan, or premortem
   - The forecast changes the call → decide
 ```

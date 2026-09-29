@@ -1,6 +1,6 @@
 ---
 name: review
-description: Use after a discrete event, milestone, or push has completed — successful or not. Runs a structured after-action review — what was expected, what happened, why they differed, what transfers to next time — and converts the findings into concrete changes. Distinct from eval, which audits progress against GOAL.json's success criteria rather than learning from a completed action. Appends to GOAL.json's log and folds findings into the plan.nextActions array.
+description: Use after a discrete event, milestone, or push has completed — successful or not. Runs a structured after-action review — what was expected, what happened, why they differed, what transfers to next time — and converts the findings into concrete changes. Distinct from eval, which audits progress against the goal's success criteria rather than learning from a completed action. Appends to the goal's log and folds findings into the plan.nextActions array.
 display: timeline
 ---
 
@@ -42,7 +42,7 @@ This skill examines the system that let it matter.
 
 ### 1. Load Context
 
-Read `GOAL.json` — the goal, the `plan` key as it stood, the `people` key, the `riskNotes` array, and
+Read the goal — the goal statement, the `plan` key as it stood, the `people` key, the `riskNotes` array, and
 the log entries covering the period being reviewed. If a `premortem` was run, pull its
 predicted causes: checking them against what actually happened is one of the most
 valuable comparisons available.
@@ -147,9 +147,9 @@ Does this change anything about what you're actually going for?
 
 If yes, hand to `strategy` — don't renegotiate the goal from inside a review.
 
-### 8. Update GOAL.json
+### 8. Update the Goal
 
-Append a `log` entry: what was reviewed, the outcome against expectation, and the lessons —
+Call `append_log`: what was reviewed, the outcome against expectation, and the lessons —
 `notes` isn't rendered in the visual layer, so list findings freely rather than trimming to
 fit a short list; each entry still has its own 120-char cap, so split a long finding across
 multiple `notes` entries instead of cramming it into one. Fold "improve" items into the
@@ -200,11 +200,10 @@ Example adding findings to a line's nextActions (preserve existing plan structur
 }
 ```
 
-Do not paste the full review into `GOAL.json` — the file holds current state, and the
+Do not paste the full review into the goal — it holds current state, and the
 detailed review belongs in the conversation or the user's own notes.
 
-Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
-re-run before ending the turn — see AGENTS.md's "Validate every write."
+If the write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 
 ### 9. Name the Next Step
 
@@ -215,5 +214,5 @@ Or:
   - Fold the lessons into the sequence → plan
   - This changed the picture → strategy
   - Audit overall progress while you're here → eval
-  - A lesson raises a question worth answering properly → bmad-deep-recon
+  - A lesson raises a question worth answering properly → web search
 ```

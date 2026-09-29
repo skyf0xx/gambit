@@ -6,7 +6,7 @@ display: plain-card
 
 # Skill: intake
 
-**Trigger**: The goal has been named but not defined — the stub's placeholder success criterion is still in place, or the user is re-scoping what they are after. This replaces the vendored elicitation shelf the command-line version of `onboard` uses; the outcome is the same set of fields.
+**Trigger**: The goal has been named but not defined — the stub's placeholder success criterion is still in place, or the user is re-scoping what they are after. `onboard` hands off here the moment it detects a stub goal.
 
 **Purpose**: Get from a working title to a goal that is probed, not just stated. A goal is a serious thing — before anything is built on it, the definition of "done" has to survive a few hard questions.
 
@@ -72,7 +72,7 @@ Ask for a deadline as a real calendar date; if there truly is none, record none.
 
 Before writing anything, show the goal statement, criteria with their marks, deadline and people, and ask what is off. One exchange, then commit — a checkpoint, not a negotiation. Stay opinionated through pushback: fold new facts in and re-commit to a revised read rather than handing the decision back.
 
-Write the goal, success criteria, deadline and people. Append one log entry stating where the goal stands now, with no replay of the conversation.
+Call `write_section` for `goal`, `successCriteria`, `deadline`, and `people`. Call `append_log` with one entry stating where the goal stands now, with no replay of the conversation. If any write returns `{ ok: false, errors }`, fix the reported fields and retry before ending the turn.
 
 ### 7. Name the next step
 

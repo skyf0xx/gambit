@@ -33,11 +33,11 @@ terms freely. Define, don't teach.
 
 ### 1. Load Context
 
-Read `GOAL.json` — goal, success criteria, current plan (from `plan` key), current focus and posture (from `strategy`), any CoG assessment from `systemsNotes`, and `people` key if non-empty.
+Read the goal — the goal statement, success criteria, current plan (from `plan` key), current focus and posture (from `strategy`), any CoG assessment from `systemsNotes`, and `people` key if non-empty.
 
 ---
 
-Steps 2-7 are independent lenses over the same frozen plan/`GOAL.json`/`people`
+Steps 2-7 are independent lenses over the same frozen plan/the goal/`people`
 snapshot from step 1 — none depends on another's findings. Where the executing agent can
 run independent sub-tasks concurrently, run them in parallel and converge before step 8,
 which triages across all of them.
@@ -56,7 +56,7 @@ If an opposing system is identifiable (a competitor, institution, deadline press
   Confidence: high|moderate|low
 ```
 
-If no opposing system is identifiable: state that explicitly and recommend a question for `bmad-deep-recon` to fill the gap. Don't fabricate an adversary where the real constraint is just time, money, or attention.
+If no opposing system is identifiable: state that explicitly and recommend a web search to fill the gap, where the tool is present. Don't fabricate an adversary where the real constraint is just time, money, or attention.
 
 ---
 
@@ -85,7 +85,7 @@ Is the plan over-dependent on one thing — one relationship, one platform, one 
 
 ### 5. Network Exposure Assessment
 
-If the `people` key in `GOAL.json` is non-empty, assess the network itself for exposure:
+If the `people` key in the goal is non-empty, assess the network itself for exposure:
 
 ```
 NETWORK EXPOSURE FINDINGS:
@@ -97,7 +97,7 @@ NETWORK EXPOSURE FINDINGS:
     {name/role} — {why they're high-value} — {mitigation: cross-train, add redundancy, don't over-disclose to them alone}
 
   Trust/vetting gaps: {anyone whose involvement is unverified, or whose behavior doesn't match how they presented}
-    {name/role or pattern} — {what's off} — {recommend: verify via bmad-deep-recon, or hold at arm's length until confirmed}
+    {name/role or pattern} — {what's off} — {recommend: verify with a web search, or hold at arm's length until confirmed}
 ```
 
 Skip this section entirely if `people` is empty — there's no network to assess.
@@ -106,7 +106,7 @@ Skip this section entirely if `people` is empty — there's no network to assess
 
 ### 6. Escalation Exposure
 
-If the `posture` key in `GOAL.json` is non-null: does the current posture level create a signal that's exploitable — does higher tempo or more visible activity give away more than it's worth?
+If the `posture` key in the goal is non-null: does the current posture level create a signal that's exploitable — does higher tempo or more visible activity give away more than it's worth?
 
 ```
 POSTURE EXPOSURE:
@@ -122,7 +122,7 @@ Skip if `posture` is null.
 
 ### 7. Monitor for Interference Indicators
 
-Scan what's known (recent facts, research from `bmad-deep-recon`, the log) for patterns consistent with:
+Scan what's known (recent facts, any web-search findings, the log) for patterns consistent with:
 
 - Information you've been given that shapes the plan but hasn't been independently verified
 - A sudden or unexplained shift in someone else's behavior relevant to the goal
@@ -133,7 +133,7 @@ Scan what's known (recent facts, research from `bmad-deep-recon`, the log) for p
 INDICATOR: {description}
   Source: {where this came from}
   Confidence: high|moderate|low
-  Recommended response: {verify via bmad-deep-recon | adjust plan | flag to strategy}
+  Recommended response: {verify with a web search | adjust plan | flag to strategy}
 ```
 
 If nothing is present, skip this section rather than manufacturing a finding.
@@ -161,9 +161,9 @@ Risk tolerance is the user's call, not yours. Where they choose to accept someth
 flagged as high, say what you'd watch for and then back the decision — record it as an
 accepted risk rather than re-raising it every session.
 
-### 9. Update GOAL.json
+### 9. Update the Goal
 
-Replace the `riskNotes` array in `GOAL.json` with the top findings (adversarial CoG if identified, top workstream risks, network exposure if applicable, any single point of failure). Note anything the user explicitly chose to accept, so later sessions don't re-litigate it. Log a one-line summary.
+Call `write_section` on `riskNotes` with the top findings (adversarial CoG if identified, top workstream risks, network exposure if applicable, any single point of failure). Note anything the user explicitly chose to accept, so later sessions don't re-litigate it. Call `append_log` with a one-line summary.
 
 Each entry must have:
 - `item` (required, max 120 chars): the risk or finding
@@ -180,8 +180,7 @@ Each entry must have:
 }
 ```
 
-Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
-re-run before ending the turn — see AGENTS.md's "Validate every write."
+If the write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 
 ### 10. Name the Next Step
 
@@ -191,6 +190,6 @@ Next: [the single highest-value mitigation]
 Or:
   - Rework the plan around these findings → plan
   - The risk changes what matters most → strategy
-  - A finding rests on an unverified assumption → bmad-deep-recon
+  - A finding rests on an unverified assumption → web search, or say it's unverified
   - The tradeoff needs a real decision → decide
 ```

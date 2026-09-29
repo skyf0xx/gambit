@@ -8,7 +8,7 @@ display: decision-callout
 
 **Trigger**: There's a choice on the table and it isn't getting made. Two viable
 directions, a tradeoff nobody wants to name, an option set produced by `systems`,
-`threat`, or `bmad-deep-recon` that now needs resolving — or a call the user has quietly
+`threat`, or research that now needs resolving — or a call the user has quietly
 deferred across more than one session.
 
 **Purpose**: Get to a decision the user actually owns. Not a recommendation they nod
@@ -39,7 +39,7 @@ ceremony.
 
 ### 1. Load Context
 
-Read `GOAL.json` — goal, success criteria, deadline, current focus, plan, people, and any
+Read the goal — the goal statement, success criteria, deadline, current focus, plan, people, and any
 `systemsNotes` or `riskNotes` bearing on the choice.
 
 ### 2. State the Decision
@@ -71,13 +71,14 @@ OPTION [N]: [label]
   Rests on: [assumption that must hold — flag if unverified]
 ```
 
-If an option rests on something unverified, say so here and offer `bmad-deep-recon` before
-going further. Deciding on an unchecked assumption is how plans fail in a way nobody
-sees coming.
+If an option rests on something unverified, say so here and offer a web search (where the
+tool is present) before going further; without one, say plainly the assumption is
+unchecked. Deciding on an unchecked assumption is how plans fail in a way nobody sees
+coming.
 
 ### 4. Test Against the Goal
 
-Score each option against the success criteria in `GOAL.json` — not against how appealing
+Score each option against the success criteria in the goal — not against how appealing
 it feels.
 
 ```
@@ -86,7 +87,7 @@ it feels.
   Option B                 neutral         advances        neutral
 ```
 
-If an option advances nothing in `GOAL.json`, name that plainly. It may still be right —
+If an option advances nothing in the goal, name that plainly. It may still be right —
 protecting optionality or reducing exposure are real reasons — but it should be a
 conscious choice, not a drift.
 
@@ -101,7 +102,7 @@ Before I give you my read:
 
   - Which of these were you already leaning toward?
   - What's the part that's making you hesitate?
-  - Is there something about your situation that isn't in GOAL.json and should be
+  - Is there something about your situation that isn't in the goal and should be
     weighing on this?
 ```
 
@@ -113,10 +114,10 @@ Then work with the answer:
 - **They're stuck between two.** Ask which one they'd regret more, a year on. Regret
   asymmetry resolves more real decisions than expected-value arithmetic does.
 - **They don't know.** Ask what they'd need to know to choose. If it's researchable,
-  stop here and run `bmad-deep-recon` — an underinformed decision made on schedule is not
-  better than a decision made once the fog clears.
+  stop here and run a web search (where the tool is present) — an underinformed decision
+  made on schedule is not better than a decision made once the fog clears.
 - **They surface new context.** Take it seriously. It usually outranks the analysis,
-  and it belongs in `GOAL.json`.
+  and it belongs in the goal.
 
 ### 6. Give Your Read
 
@@ -131,7 +132,7 @@ WHAT WOULD CHANGE MY MIND: [specific, observable condition]
 
 ### 7. Confirm Before Recording
 
-Do not write to `GOAL.json` until the user has actually chosen. Explicitly:
+Do not write to the goal until the user has actually chosen. Explicitly:
 
 ```
 Where do you want to land?
@@ -153,9 +154,9 @@ DECIDED [date]: [option chosen]
 `Reverse if` is the most important line. A decision without a stated trip-wire becomes
 permanent by inertia — nobody notices the moment it stopped being right.
 
-### 9. Update GOAL.json and Hand Off
+### 9. Update the Goal and Hand Off
 
-Append the decision to the `decisions` array in `GOAL.json`. Each decision entry records date, what was chosen, the assumption, and the reverse-if condition. If the decision changes the plan, say so and hand off to `plan` to resequence. If it changes what matters most, hand off to `strategy` to reset the focus.
+Call `write_section` on `decisions` with the new decision added to the existing array. Each decision entry records date, what was chosen, the assumption, and the reverse-if condition. If the decision changes the plan, say so and hand off to `plan` to resequence. If it changes what matters most, hand off to `strategy` to reset the focus.
 
 Required fields per decision entry:
 - `date` (required, YYYY-MM-DD format): when this decision was made
@@ -172,8 +173,7 @@ Required fields per decision entry:
 }
 ```
 
-Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
-re-run before ending the turn — see AGENTS.md's "Validate every write."
+If the write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 
 ```
 Next: [plan to resequence | strategy to reset focus | nothing — this slots into the

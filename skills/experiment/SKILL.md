@@ -1,6 +1,6 @@
 ---
 name: experiment
-description: Use when the plan rests on an unproven assumption that could be tested cheaply before committing serious effort — will people turn up, will anyone donate, does this message land, will the partner actually deliver. Designs the smallest test that could falsify the assumption, with a pass/fail line set in advance. Writes to GOAL.json's experiments key.
+description: Use when the plan rests on an unproven assumption that could be tested cheaply before committing serious effort — will people turn up, will anyone donate, does this message land, will the partner actually deliver. Designs the smallest test that could falsify the assumption, with a pass/fail line set in advance. Writes to the goal's experiments key.
 display: checklist
 ---
 
@@ -39,7 +39,7 @@ six-week horizon isn't a test.
 
 ### 1. Load Context
 
-Read `GOAL.json` — goal, the `plan` key, the `forecasts` array if present, and any assumption flagged
+Read the goal — the goal statement, the `plan` key, the `forecasts` array if present, and any assumption flagged
 as unverified by `systems`, `threat`, `premortem`, or `plan`.
 
 ### 2. Name the Assumption
@@ -76,7 +76,7 @@ Push for the smallest version. Common compressions worth suggesting:
 - **A manual version first.** Do by hand what the plan proposes to do at scale, once, for
   a few people.
 - **A precedent search** instead of an experiment — if someone has already run this test,
-  `bmad-deep-recon` is faster and free.
+  a web search (where the tool is present) is faster and free.
 
 ### 4. Set the Pass/Fail Line — Before Running
 
@@ -129,7 +129,7 @@ proceed deliberately (`decide`) than to dress a commitment up as an enquiry.
 
 ### 7. Record and Run
 
-Append new experiments to the `experiments` array, or update existing entries once they complete. Each entry must have `assumption`, `test`, `passIf`, `by` (YYYY-MM-DD), and `done` (boolean). Once complete, set `done: true`, `result` (outcome), and optionally `changedAsResult` (what changed because of this result). `detail` (optional, max 280 chars) is a hover tooltip in the visual layer — non-obvious context on why this assumption or test matters. Fill in only when worth preserving beyond the fields above.
+Add new experiments to the `experiments` array, or update existing entries once they complete — this is the array `write_section` writes in step 8 below. Each entry must have `assumption`, `test`, `passIf`, `by` (YYYY-MM-DD), and `done` (boolean). Once complete, set `done: true`, `result` (outcome), and optionally `changedAsResult` (what changed because of this result). `detail` (optional, max 280 chars) is a hover tooltip in the visual layer — non-obvious context on why this assumption or test matters. Fill in only when worth preserving beyond the fields above.
 
 New unstarted experiment:
 ```json
@@ -165,14 +165,13 @@ Completed experiment (update the same entry):
 
 Ambiguous is a legitimate outcome and must be recorded as such. Either design a sharper test or proceed knowing the assumption is still open.
 
-### 8. Update GOAL.json and Name the Next Step
+### 8. Update the Goal and Name the Next Step
 
-Update the `experiments` array. When one resolves, update the assumption's status wherever it
+Call `write_section` on `experiments` with the array from step 7. When one resolves, update the assumption's status wherever it
 appears — a falsified assumption sitting unchallenged in the `systemsNotes` key or `plan` key
 is worse than one never tested.
 
-Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
-re-run before ending the turn — see AGENTS.md's "Validate every write."
+If the write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 
 ```
 Next: [run the test, or the first step of it]
@@ -181,5 +180,5 @@ Or:
   - It passed — commit and sequence → plan
   - It failed — the focus may be wrong → strategy
   - Ambiguous — sharpen the test, or decide without it → decide
-  - Someone's already run this test → bmad-deep-recon
+  - Someone's already run this test → web search
 ```

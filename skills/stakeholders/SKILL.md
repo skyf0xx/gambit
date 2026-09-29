@@ -16,7 +16,7 @@ Also use when `threat` returns "no identifiable adversary" but progress is still
 opponent with hostile intent.
 
 **Purpose**: Map the field of people who affect the outcome and can't simply be
-organised or defeated. The `people` key in `GOAL.json` tracks your own side's delivery.
+organised or defeated. The `people` key in the goal tracks your own side's delivery.
 `threat` models opposition as something to degrade. This covers everyone else — which,
 in most real coordination goals, is where the outcome is actually decided.
 
@@ -44,7 +44,7 @@ interest hasn't been identified yet.
 
 ### 1. Load Context
 
-Read `GOAL.json` — goal, success criteria, `people` key, `systemsNotes` and
+Read the goal — the goal statement, success criteria, `people` key, `systemsNotes` and
 `riskNotes` keys if present. Note especially any criterion marked `influence`: whoever
 makes that decision is by definition a stakeholder, and often the most important one.
 
@@ -77,9 +77,9 @@ STAKEHOLDER: [name or role]
   Cost of moving them: [time, concession, exposure, dependency created]
 ```
 
-Where confidence in an interest is `low`, say so and offer `bmad-deep-recon` — acting on a
-guessed interest is how outreach backfires. Do not fabricate a motive to complete the
-table.
+Where confidence in an interest is `low`, say so and offer a web search, where the tool
+is present — acting on a guessed interest is how outreach backfires. Do not fabricate a
+motive to complete the table.
 
 ### 4. Power / Interest Grid
 
@@ -137,9 +137,9 @@ Before I write this down:
 History between parties usually outranks the analysis. Take the correction and rerun the
 affected rows rather than defending the grid.
 
-### 8. Update GOAL.json
+### 8. Update the Goal
 
-Replace the `stakeholders` array with the high-power entries, their current stance, and the movable middle. Keep it to the ones that matter — the full grid lives in the conversation.
+Call `write_section` on `stakeholders` with the high-power entries, their current stance, and the movable middle. Keep it to the ones that matter — the full grid lives in the conversation.
 
 Each stakeholder entry must have:
 - `name` (required, max 40 chars): name or role
@@ -157,10 +157,9 @@ Each stakeholder entry must have:
 }
 ```
 
-Log a one-line summary.
+Call `append_log` with a one-line summary.
 
-Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
-re-run before ending the turn — see AGENTS.md's "Validate every write."
+If a write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 
 ### 9. Name the Next Step
 
@@ -170,6 +169,6 @@ Next: [the single highest-value stakeholder move]
 Or:
   - Prep the conversation with them → negotiate
   - Draft what you'd say → comms
-  - Confirm an interest you're guessing at → bmad-deep-recon
+  - Confirm an interest you're guessing at → web search
   - This changes where the leverage is → strategy or systems
 ```

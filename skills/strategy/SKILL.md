@@ -1,6 +1,6 @@
 ---
 name: strategy
-description: Use when the user wants direction on a GOAL.json goal that already exists — starting a work session, asking "what should I focus on", or after a setback, new fact, deadline change, or escalation. Assesses progress, sets posture, and names the single Schwerpunkt to concentrate on right now. If GOAL.json doesn't exist yet, use onboard first.
+description: Use when the user wants direction on a goal that already exists — starting a work session, asking "what should I focus on", or after a setback, new fact, deadline change, or escalation. Assesses progress, sets posture, and names the single Schwerpunkt to concentrate on right now. If the goal is still a stub, use onboard first.
 display: ordered-list
 ---
 
@@ -8,7 +8,7 @@ display: ordered-list
 
 **Trigger**: You want direction — "what should I focus on", "where am I", starting a work session, or after something has changed (a setback, a new fact, a deadline moved, an escalation).
 
-**Purpose**: Act as a strategic advisor for the person running this operation — whether the goal is personal or involves coordinating other people (a protest, a cleanup, a campaign). Read `GOAL.json`, assess progress, set posture, identify the one thing worth concentrating on right now (Schwerpunkt), and update the file.
+**Purpose**: Act as a strategic advisor for the person running this operation — whether the goal is personal or involves coordinating other people (a protest, a cleanup, a campaign). Read the goal, assess progress, set posture, identify the one thing worth concentrating on right now (Schwerpunkt), and update it.
 
 ---
 
@@ -24,16 +24,15 @@ Present the situation, the options, and your recommendation — in that order, b
 
 ### 1. Load Context
 
-Resolve `GOAL.json` per `skills/_shared/RESOLVING.md` and read it. If resolution finds no goal, stop and use `onboard` instead — it handles first-contact intake one question at a time (and, with several goals and none active, asks which). Don't interrogate the user for goal, success criteria, deadline, and people all at once here.
-
-Per AGENTS.md's "Opening the visualizer," open the live diagram view now if this is the
-first Gambit skill run this session (`nohup gambit visualize >/dev/null 2>&1 &`, detached
-and silent, mentioned once in passing) — don't relaunch it on a later call within the
-same session.
+The goal's current state is already supplied in "Current goal state." Call `get_goal`
+instead if the user may have edited the dashboard since. If the goal is still a stub,
+stop and use `onboard` instead — it hands off to `intake`, which gets the goal, success
+criteria, deadline, and people defined one question at a time. Don't interrogate the user
+for all of that at once here.
 
 ### 2. Assess Progress
 
-From the `log` key of `GOAL.json`:
+From the `log` key:
 - What has actually moved since the last entry?
 - Is progress on_track, at_risk, stalled, or regressing?
 - Is there a stall — no real movement across the last 2+ sessions?
@@ -42,7 +41,7 @@ State this plainly. Do not soften a stall.
 
 ### 3. Check Posture
 
-If `GOAL.json`'s `posture` key is set, read the current level. Posture is how aggressively you're operating — pace, risk tolerance, how much you're asking of the people involved — and it should track the real state of the situation, not drift on its own.
+If the `posture` key is set, read the current level. Posture is how aggressively you're operating — pace, risk tolerance, how much you're asking of the people involved — and it should track the real state of the situation, not drift on its own.
 
 Assess whether current conditions justify a change:
 - Escalate if: a deadline compressed, a trigger condition in the posture table was met, or the situation on the ground has intensified (e.g. opposition organizing, a cleanup deadline moved up, a legal risk increased)
@@ -86,7 +85,7 @@ usually the real Schwerpunkt, and the action becomes one line under WHY or belon
 `plan` instead. This failure compounds with the recency trap below: the most available
 action in front of you is also the easiest to mistake for the target.
 
-If people are involved (see the `people` key in `GOAL.json`), say plainly what this focus means for them — who you need to talk to, recruit, redirect, or stand down — but you do the talking. This skill does not send messages on your behalf.
+If people are involved (see the `people` key), say plainly what this focus means for them — who you need to talk to, recruit, redirect, or stand down — but you do the talking. This skill does not send messages on your behalf.
 
 Be wary of a specific trap on a thin log (one entry, or a first session): recency is not
 the same as leverage. The most recent action is vivid — it's the only thing in front of
@@ -107,7 +106,7 @@ rule above the same way an action-shaped focus does.
 
 ### 4b. Test the Focus Before Committing It
 
-The user knows things about their situation that aren't in `GOAL.json`. Surface them
+The user knows things about their situation that aren't in the goal. Surface them
 before writing, not after.
 
 ```
@@ -157,14 +156,19 @@ Do not turn this into a negotiation. One exchange, then commit.
 
 If a deadline is close relative to remaining work, if the plan depends on something unconfirmed, or if the current focus conflicts with the stated success criteria — say so, in one line, with what closes the gap.
 
-If the focus rests on something unverified, say so explicitly and offer `bmad-deep-recon`
-before the user acts on it.
+If the focus rests on something unverified, say so explicitly and offer a web search
+(if the tool is present) before the user acts on it. Without one, say plainly that the
+claim is unverified.
 
-### 6. Update GOAL.json
+### 6. Update the Goal
 
-If posture changed, replace `posture.current` (`{level, label}`) — leave `posture.levels` and `posture.triggers` as they are unless the phases of intensity themselves changed. Whenever this step runs at all — posture changed or not — set `posture.lastReviewed` to today's date, so a later session can tell a genuinely current posture read from one that just hasn't been looked at in weeks.
+If posture changed, call `write_section` on `posture` with `current` (`{level, label}`)
+updated — leave `posture.levels` and `posture.triggers` as they are unless the phases of
+intensity themselves changed. Whenever this step runs at all — posture changed or not —
+set `posture.lastReviewed` to today's date, so a later session can tell a genuinely
+current posture read from one that just hasn't been looked at in weeks.
 
-Append an object to `log` — date, assessment, and the focus just set. `notes` isn't rendered in the visual layer — it's the agent's own working record, not a user-scanned label — so don't force findings into an artificially short list; each entry still has its own 120-char cap (see AGENTS.md's char-cap note), so split a long finding into multiple entries rather than cramming it into one.
+Call `append_log` with an entry — date, assessment, and the focus just set. `notes` isn't rendered in the visual layer — it's the agent's own working record, not a user-scanned label — so don't force findings into an artificially short list; each entry still has its own 120-char cap (see AGENTS.md's char-cap note), so split a long finding into multiple entries rather than cramming it into one.
 
 Apply `skills/_shared/NO_HISTORY.md` here specifically — this step is where it's easiest to
 break. When a prior focus turns out to have been wrong or under-specified (e.g. a Schwerpunkt
@@ -185,7 +189,7 @@ its own correction is the violation, not the presence of a fix.
 
 `focus` on the log entry is the one place Schwerpunkt is persisted — the visual layer and the next session's context both read the most recent non-null `focus` across `log`, not a separate field.
 
-Immediately after writing, run `gambit check`. If it fails, fix the reported fields and re-run before ending the turn — see AGENTS.md's "Validate every write."
+If either write returns `{ ok: false, errors }`, fix the reported fields and retry before ending the turn.
 
 ### 7. Name the Next Step
 
@@ -200,25 +204,21 @@ Or:
   - Find the deeper leverage point first → systems
   - Stress-test it before committing → threat, or premortem
   - Map who actually decides this → stakeholders
-  - Check a fact this rests on → bmad-deep-recon
+  - Check a fact this rests on → web search, or say it's unverified
   - Resolve a choice this surfaced → decide
 ```
 
 Recommend one. Don't present the menu as equally weighted options — the user came here
 for direction.
 
-Per AGENTS.md's "The star ask," check `gambit star-status` before ending this step —
-this is the checkpoint that ask is tied to. If eligible, it is the literal last thing
-said this turn: end the turn on it and wait for the user's answer, per that section.
-
 ---
 
-## GOAL.json format
+## Goal format
 
-The authoritative shape is the Zod schema at `src/store/schema.mjs` (`goalSchema`) —
-every reader (the CLI, `gambit check`, the visualize server) validates through it.
-This section is a human-readable summary of that schema, not a second spec — if the
-two ever disagree, the schema wins.
+The authoritative shape is the Zod schema in `packages/core/src/schema.mjs`
+(`goalSchema`) — every reader validates through it, including every `write_section`
+call. This section is a human-readable summary of that schema, not a second spec — if
+the two ever disagree, the schema wins.
 
 ```json
 {
@@ -316,15 +316,13 @@ array-valued keys as `[]`, until the owning skill has actually run — don't for
 structure the goal doesn't need. Only include `people` entries and a non-null
 `posture` if they're actually relevant to this goal.
 
-`gambit check` also runs a soft reconciliation lint after schema validation: it warns
-(doesn't fail) when a `lineOfOperation` has a non-empty `criticalPath` that's entirely
-`done` but the line's own `status` isn't `done`, and likewise when a `criticalPath`
-step's `items` are all `done` but the step's own `status` lags behind. Treat that
-warning as a prompt to update the parent status, not something to silently accept —
-but it's a hint, not proof, since a line can still be genuinely blocked on something in
-`nextActions` despite a finished `criticalPath`.
+Write validation also runs a soft reconciliation lint after the schema check: it warns
+(doesn't fail the write) when a `lineOfOperation` has a non-empty `criticalPath` that's
+entirely `done` but the line's own `status` isn't `done`, and likewise when a
+`criticalPath` step's `items` are all `done` but the step's own `status` lags behind.
+Treat that warning as a prompt to update the parent status, not something to silently
+accept — but it's a hint, not proof, since a line can still be genuinely blocked on
+something in `nextActions` despite a finished `criticalPath`.
 
-If `GOAL.json` doesn't exist yet, create it at the location resolution would use
-(typically that means `onboard` ran first via `gambit new`, which writes a
-schema-default stub — see `skills/_shared/RESOLVING.md`) after confirming the goal
-and success criteria with the user.
+If the goal is still a stub, `onboard` hands off to `intake` first to confirm the goal
+and success criteria with the user before this skill has anything to work with.

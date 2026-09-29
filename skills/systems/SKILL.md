@@ -38,7 +38,7 @@ user wants the whole picture in plain language, that's `brief`.
 
 ### 1. Load Context
 
-Read `GOAL.json` — the goal, success criteria, deadline, current plan, current focus, posture if set, `people` key if non-empty, and log.
+Read the goal — the goal statement, success criteria, deadline, current plan, current focus, posture if set, `people` key if non-empty, and log.
 
 Steps 2-4 (CoG, PMESII, ASCOPE) are independent lenses over the same frozen snapshot
 from step 1 — none depends on another's output. Where the executing agent can run
@@ -69,7 +69,7 @@ For each system:
   CV: {vulnerability} — exploitability: high|medium|low
 ```
 
-Flag if an opposing system isn't identifiable from what's known — recommend a question for `bmad-deep-recon` to resolve it. Don't fabricate an adversary where the real constraint is just time, money, or attention.
+Flag if an opposing system isn't identifiable from what's known — recommend a web search to resolve it, where the tool is present. Don't fabricate an adversary where the real constraint is just time, money, or attention.
 
 ---
 
@@ -172,7 +172,7 @@ That's where I think the leverage is. Two questions:
   - Is there anything about [the key entity or constraint] I've got wrong?
 ```
 
-If confidence was rated `low`, say what would raise it and offer `bmad-deep-recon` before the
+If confidence was rated `low`, say what would raise it and offer a web search before the
 user commits to acting on it. A low-confidence Schwerpunkt acted on as though it were
 high-confidence is the most expensive failure this skill can produce.
 
@@ -180,9 +180,9 @@ If the user pushes back on a factual premise, treat that as a correction to the 
 not a disagreement about the analysis — rerun the affected step rather than defending
 the conclusion.
 
-### 10. Update GOAL.json
+### 10. Update the Goal
 
-Replace the `systemsNotes` key with the Schwerpunkt recommendation and any critical findings (top CV, top second/third order risk, culminating point if visible). Log a one-line summary in the log. Keep the full assessment in the conversation — `GOAL.json` holds the current read, not the whole analysis.
+Call `write_section` on `systemsNotes` with the Schwerpunkt recommendation and any critical findings (top CV, top second/third order risk, culminating point if visible). Call `append_log` with a one-line summary. Keep the full assessment in the conversation — the goal holds the current read, not the whole analysis.
 
 - `schwerpunkt` (required, max 120 chars): the single point of leverage and why
 - `rationale` (optional, max 120 chars): one sentence on what CV this attacks or what CC this builds
@@ -205,8 +205,7 @@ Replace the `systemsNotes` key with the Schwerpunkt recommendation and any criti
 }
 ```
 
-Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
-re-run before ending the turn — see AGENTS.md's "Validate every write."
+If the write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 
 ### 11. Name the Next Step
 
@@ -217,5 +216,5 @@ Or:
   - Turn the Schwerpunkt into sequenced steps → plan
   - Set it as the standing focus → strategy
   - Stress-test it against opposition → threat
-  - Close the gap that limited confidence → bmad-deep-recon
+  - Close the gap that limited confidence → web search
 ```

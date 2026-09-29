@@ -1,6 +1,6 @@
 ---
 name: status
-description: Use for a quick, read-only snapshot of GOAL.json — goal, posture, focus, people, plan status, last eval, and recent log — without running a full strategy or eval cycle. Never writes to GOAL.json.
+description: Use for a quick, read-only snapshot of the goal — goal, posture, focus, people, plan status, last eval, and recent log — without running a full strategy or eval cycle. Never writes to the goal.
 display: plain-card
 ---
 
@@ -8,7 +8,7 @@ display: plain-card
 
 **Trigger**: You want a quick read on where things stand without a full strategy or eval cycle.
 
-**Purpose**: Produce a lightweight snapshot from `GOAL.json`. Read-only — this skill never changes the plan or the focus, and never writes to `GOAL.json`.
+**Purpose**: Produce a lightweight snapshot from the goal. Read-only — this skill never changes the plan or the focus, and never writes to the goal.
 
 ---
 
@@ -20,17 +20,11 @@ Read-only reporting layer. Factual and terse — numbers and states, not interpr
 
 ## Execution Sequence
 
-Resolve `GOAL.json` per `skills/_shared/RESOLVING.md` and read it. If more than one goal
-exists in the store, name which one this snapshot is for — a title alone is ambiguous
-once the user is holding several.
-
-Per AGENTS.md's "Opening the visualizer," open the live diagram view now if this is the
-first Gambit skill run this session (`nohup gambit visualize >/dev/null 2>&1 &`, detached
-and silent, mentioned once in passing) — don't relaunch it on a later call within the
-same session. Output:
+The goal's current state is already supplied in "Current goal state." Call `get_goal`
+instead if the user may have edited the dashboard since. Output:
 
 ```
-STATUS [date] — [goal title, if more than one goal exists in the store]
+STATUS [date]
 
 GOAL
   [description, truncated if long]
@@ -60,12 +54,11 @@ data and no move:
 
 ```
 Next: [strategy to reset focus | plan to sequence | brief for the plain-language read |
-       eval for a real audit | bmad-deep-recon to close a gap]
+       eval for a real audit | web search to close a gap]
 ```
 
 Recommend nothing. This skill reports; it doesn't steer — that's the distinction from
 `strategy`. Just make the routes visible.
 
-If resolution finds no goal: say so and point to `onboard` — it handles first-contact
-intake properly, one question at a time, and also handles the case where several goals
-exist and none is active.
+If the goal is still a stub: say so and point to `onboard`, which hands off to `intake`
+for first-contact definition.

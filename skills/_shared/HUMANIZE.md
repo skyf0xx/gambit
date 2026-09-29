@@ -1,9 +1,9 @@
 # Humanize writing
 
-Applies whenever a skill produces prose for the user or writes a `## Log`
-entry — not a skill in its own right, referenced from AGENTS.md's voice
-rules the way `RESOLVING.md` is referenced rather than invoked. Adapted
-from [AshwinSathian/humanize-writing-skill](https://github.com/AshwinSathian/humanize-writing-skill).
+Applies whenever a skill produces prose for the user or writes a log entry
+via `append_log` — not a skill in its own right, referenced from AGENTS.md's
+voice rules. Adapted from
+[AshwinSathian/humanize-writing-skill](https://github.com/AshwinSathian/humanize-writing-skill).
 
 Writing reads as AI-generated more from *shape* than word choice: uniform
 sentence rhythm, safe generic claims instead of specific checkable ones,

@@ -42,7 +42,7 @@ Say that at the end, and mean it.
 
 ### 1. Load Context
 
-Read `GOAL.json` — goal, success criteria, deadline, `plan` key, `people` key,
+Read the goal — the goal statement, success criteria, deadline, `plan` key, `people` key,
 `riskNotes` and `systemsNotes` keys if present.
 
 ### 2. Set the Scene
@@ -135,9 +135,9 @@ Two questions:
 The user's gut on which failure "feels real" is signal. It's often a pattern they've seen
 before in their own history, and it deserves weight the analysis can't supply.
 
-### 8. Update GOAL.json
+### 8. Update the Goal
 
-Append the fatal causes and their mitigations to the `riskNotes` array (the array `threat` owns — append rather than replace, and label each with `source: "premortem"` so the source is clear). Add any early-warning indicators as watch items. Log a one-line summary.
+Call `write_section` on `riskNotes` with the fatal causes and their mitigations added to the existing array (the array `threat` owns — add to it rather than dropping its entries, and label each new one with `source: "premortem"` so the source is clear). Add any early-warning indicators as watch items. Call `append_log` with a one-line summary.
 
 Each appended entry must have:
 - `item` (required, max 120 chars): the fatal cause or mitigation
@@ -153,8 +153,7 @@ Each appended entry must have:
 }
 ```
 
-Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
-re-run before ending the turn — see AGENTS.md's "Validate every write."
+If the write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 
 ### 9. Name the Next Step
 
@@ -163,7 +162,7 @@ Next: [the single most important plan change this produced]
 
 Or:
   - Rework the sequence around these → plan
-  - The fatal cause is unverified → bmad-deep-recon
+  - The fatal cause is unverified → web search, or say it's unverified
   - Preventing it means a real tradeoff → decide
   - This changes what matters most → strategy
 ```

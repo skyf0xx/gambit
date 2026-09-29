@@ -1,6 +1,6 @@
 ---
 name: eval
-description: Use for a periodic check-in or an honest audit of progress against GOAL.json's success criteria, including whether people involved are actually delivering. Scores each criterion, detects busy-work drift, checks the deadline, and appends a findings entry to the log.
+description: Use for a periodic check-in or an honest audit of progress against the goal's success criteria, including whether people involved are actually delivering. Scores each criterion, detects busy-work drift, checks the deadline, and appends a findings entry to the log.
 display: checklist
 ---
 
@@ -14,7 +14,7 @@ display: checklist
 
 ## Voice & Tone
 
-Senior independent auditor: measured, exact, no editorializing. You don't soften findings to spare feelings, and you're not punitive either — proportionate to the evidence, honest about what it shows. Every claim traces to something in `GOAL.json`'s `log`.
+Senior independent auditor: measured, exact, no editorializing. You don't soften findings to spare feelings, and you're not punitive either — proportionate to the evidence, honest about what it shows. Every claim traces to something in the goal's `log`.
 
 ---
 
@@ -22,7 +22,7 @@ Senior independent auditor: measured, exact, no editorializing. You don't soften
 
 ### 1. Load Context
 
-Read `GOAL.json` in full — goal, success criteria, deadline, plan, and the complete log history since the goal was set (or since the last eval entry).
+Read the goal in full — the goal statement, success criteria, deadline, plan, and the complete log history since the goal was set (or since the last eval entry).
 
 ### 2. Score Progress
 
@@ -43,7 +43,7 @@ have actually moved, and say which conditions you're using.
 Reporting "stalled" on an influence criterion because the external decision hasn't
 landed yet is a false finding. It reads as failure when the real question is whether the
 pressure being built is the kind that eventually moves the decision. If a criterion isn't
-marked either way in `GOAL.json`, judge which it is and say so.
+marked either way in the goal, judge which it is and say so.
 
 ### 3. Detect Drift
 
@@ -55,7 +55,7 @@ If there's a deadline, is the current pace realistic against the remaining work?
 
 ### 5. People Check
 
-If the `people` key in `GOAL.json` lists anyone, assess follow-through against what was logged:
+If the `people` key in the goal lists anyone, assess follow-through against what was logged:
 - Anyone marked confirmed who's gone quiet or missed a commitment — flag by name/role
 - Anyone tentative who's now blocking the critical path — this needs resolving, not carrying forward indefinitely
 
@@ -79,9 +79,9 @@ Overall: on_track | at_risk | stalled | regressing
 {If clean: "No issues. N criteria assessed, all on_track."}
 ```
 
-### 7. Update GOAL.json
+### 7. Update the Goal
 
-Replace the `criteriaStatus` key with one entry per success criterion, scored this run. `text` must match `successCriteria[].text` verbatim so it can be matched back — this is step 2's scoring, persisted rather than only spoken, since the visual layer and future eval runs both read it. Carry over `lineOfOperation` verbatim too if the matching `successCriteria` entry has one set — that's what lets a stalled line be traced to the criterion it's supposed to serve. `detail` (optional, max 280 chars) is a hover tooltip — why this status, e.g. what changed since last eval. Fill in only when the status alone doesn't explain itself.
+Call `write_section` on `criteriaStatus` with one entry per success criterion, scored this run. `text` must match `successCriteria[].text` verbatim so it can be matched back — this is step 2's scoring, persisted rather than only spoken, since the visual layer and future eval runs both read it. Carry over `lineOfOperation` verbatim too if the matching `successCriteria` entry has one set — that's what lets a stalled line be traced to the criterion it's supposed to serve. `detail` (optional, max 280 chars) is a hover tooltip — why this status, e.g. what changed since last eval. Fill in only when the status alone doesn't explain itself.
 
 ```json
 {
@@ -91,7 +91,7 @@ Replace the `criteriaStatus` key with one entry per success criterion, scored th
 }
 ```
 
-Then append the eval result as a `log` entry, with `source: "eval"`. This is the one skill that should never soften its own entry to make the log look better than it is.
+Then call `append_log` with the eval result, `source: "eval"`. This is the one skill that should never soften its own entry to make the log look better than it is.
 
 ```json
 {
@@ -101,8 +101,7 @@ Then append the eval result as a `log` entry, with `source: "eval"`. This is the
 }
 ```
 
-Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
-re-run before ending the turn — see AGENTS.md's "Validate every write."
+If the write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 
 ### 8. Name the Next Step
 
@@ -115,7 +114,7 @@ What this calls for: [the one change that follows from the top finding]
 Or:
   - Focus is wrong → strategy
   - Focus is right, sequence is wrong → plan
-  - A finding rests on something unverified → bmad-deep-recon
+  - A finding rests on something unverified → web search, or say it's unverified
   - The findings force a choice → decide
 ```
 

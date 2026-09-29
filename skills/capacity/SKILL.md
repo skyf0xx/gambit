@@ -1,6 +1,6 @@
 ---
 name: capacity
-description: Use when the plan assumes more time, money, or personal energy than actually exists — or periodically on any sustained effort. Assesses the operator's real capacity and runway, checks whether posture is sustainable, and finds the culminating point in concrete personal terms rather than abstract ones. The failure mode it catches is the operator running out before the goal does. Writes to GOAL.json's capacity key.
+description: Use when the plan assumes more time, money, or personal energy than actually exists — or periodically on any sustained effort. Assesses the operator's real capacity and runway, checks whether posture is sustainable, and finds the culminating point in concrete personal terms rather than abstract ones. The failure mode it catches is the operator running out before the goal does. Writes to the goal's capacity key.
 display: checklist
 ---
 
@@ -41,7 +41,7 @@ Where the numbers don't work, say so plainly and give options. The user decides.
 
 ### 1. Load Context
 
-Read `GOAL.json` — goal, deadline, the `plan` key, the `posture` key, the `people` key, and the log. Look
+Read the goal — the goal statement, deadline, the `plan` key, the `posture` key, the `people` key, and the log. Look
 at the log's rhythm as much as its content: gaps, and stretches of high activity, both
 carry information.
 
@@ -161,9 +161,9 @@ open-ended one nobody has measured. Make it a choice rather than a drift.
 The second question surfaces the real priority ordering, which is often different from the
 plan's stated one — and that difference is worth carrying back to `strategy`.
 
-### 9. Update GOAL.json
+### 9. Update the Goal
 
-Set the `capacity` key with the honest hours per week, the runway, and any specific warning sign to watch:
+Call `write_section` on `capacity` with the honest hours per week, the runway, and any specific warning sign to watch:
 
 - `availableHrsPerWeek`: concrete number per week, or `null` if unknown
 - `runway`: when you run short (e.g., "until 2026-10-15", or "6 months at this rate")
@@ -183,11 +183,10 @@ Set the `capacity` key with the honest hours per week, the runway, and any speci
 }
 ```
 
-Append a one-line summary to `log`. If capacity forces a scope change, hand to `plan` or `strategy`
+Call `append_log` with a one-line summary. If capacity forces a scope change, hand to `plan` or `strategy`
 rather than quietly trimming the plan here.
 
-Immediately after writing, run `gambit check`. If it fails, fix the reported fields and
-re-run before ending the turn — see AGENTS.md's "Validate every write."
+If the write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 
 ### 10. Name the Next Step
 
