@@ -1,6 +1,5 @@
-import { db, getSetting } from './db';
-import agentsMd from '../../../../AGENTS.md?raw';
-import methodsCsv from '../../../../vendor-skills/BMAD/core-skills/bmad-advanced-elicitation/assets/methods.csv?raw';
+import guidedMd from '../../../../skills/_shared/GUIDED.md?raw';
+import methodsCsv from '../../vendor/BMAD/methods.csv?raw';
 
 const packGlob = import.meta.glob('../../../../skills/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 const nativeGlob = import.meta.glob('../../skills/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
@@ -8,7 +7,7 @@ const nativeGlob = import.meta.glob('../../skills/**/*.md', { query: '?raw', imp
 const rel = (k: string) => k.slice(k.lastIndexOf('/skills/') + 1);
 
 export const bundledFiles: Record<string, string> = Object.fromEntries(Object.entries(packGlob).map(([k, v]) => [rel(k), v]));
-/** PWA-native skills ship with the app, not the skill pack. */
+/** PWA-native skills ship with the app. */
 export const nativeFiles: Record<string, string> = Object.fromEntries(Object.entries(nativeGlob).map(([k, v]) => [rel(k), v]));
 
 export function parseFrontmatter(md: string): { meta: Record<string, string>; body: string } {
@@ -29,7 +28,6 @@ export interface SkillStore {
 }
 
 let cache: SkillStore | null = null;
-export const invalidateSkills = () => { cache = null; };
 
 export function buildStore(packFiles: Record<string, string>, version: string): SkillStore {
   const files = { ...packFiles, ...nativeFiles };
@@ -45,9 +43,7 @@ export function buildStore(packFiles: Record<string, string>, version: string): 
 
 export async function getSkillStore(): Promise<SkillStore> {
   if (cache) return cache;
-  const id = await getSetting<string>('activePack');
-  const pack = id ? await db.skillPacks.get(id) : undefined;
-  cache = pack ? buildStore(pack.files, pack.version) : buildStore(bundledFiles, __PACK_VERSION__);
+  cache = buildStore(bundledFiles, __APP_VERSION__);
   return cache;
 }
 
@@ -91,7 +87,7 @@ export function parseMethods(csv: string): Method[] {
 }
 
 export const methods = parseMethods(methodsCsv);
-export const methodsLicense = () => import('../../../../vendor-skills/BMAD/ATTRIBUTION.md?raw').then((m) => m.default);
+export const methodsLicense = () => import('../../vendor/BMAD/ATTRIBUTION.md?raw').then((m) => m.default);
 
 export function elicitationMethods(args: { command: string; categories?: string[]; names?: string[]; n?: number; exclude?: string[]; all?: boolean }) {
   const short = (m: Method) => `${m.num}. ${m.name} — ${m.description}`;
@@ -130,14 +126,7 @@ export function elicitationMethods(args: { command: string; categories?: string[
 
 // ---- Surface preamble ----
 
-const guided = (() => {
-  const a = agentsMd.indexOf('## Guided, not just capable');
-  const b = agentsMd.indexOf('## Working on this repo');
-  const section = a >= 0 ? agentsMd.slice(a, b > a ? b : undefined) : '';
-  // The CLI-only validation paragraph is rebound below, not repeated.
-  return section.replace(/\*\*Validate every write\.\*\*[\s\S]*?(?=\n\*\*Write GOAL\.json fields)/, '').trim();
-})();
-export const guidedRules = guided;
+export const guidedRules = guidedMd.trim();
 
 export const SECTION_SHAPES = `Section shapes. Caps are hard: S = 40 chars, M = 120, D = 280 for optional detail. Dates are YYYY-MM-DD.
 goal: string ≤200
@@ -157,28 +146,25 @@ experiments: [{assumption: M, test: M, passIf: M, by: date, done: boolean, resul
 decisions: [{date, choice: M, because?: M, reverseIf: M, reviewBy?: date}]
 log entry (append_log): {date?, assessment?: on_track|at_risk|stalled|regressing, focus: ≤160 | null, notes: [M] ≤200, source?: S}`;
 
-export const PREAMBLE = `You are Gambit, a strategic advisor running inside a local-first web app. The user's goal lives in an on-device store and is shown live on a dashboard beside this chat. You change it only through tools; every write is validated and appears on the dashboard as it lands.
+export const PREAMBLE = `You are Gambit, a strategic advisor running inside a local-first web app. The user's goal lives in an on-device store and is shown live on a dashboard beside this chat.
 
-# Surface bindings
-Gambit skills were written for a command-line agent that has a shell and a file editor. Here there is neither. Apply skill text with these bindings:
-- Never run, quote or mention \`gambit\` commands. \`gambit path\`, \`gambit list\` and \`gambit switch\` are unnecessary: the active goal is supplied below in "Current goal state". Anything in a skill about resolving GOAL.json is already done. To start another goal, the user uses the New goal button or the goal switcher.
-- "Edit GOAL.json" means: call write_section(key, value) with the complete new value for the key the skill owns. It replaces that key wholesale. Use set_status for a single step, sub-item or next-action flip, and append_log for the log. There is no other write path.
-- "Run gambit check" is built in: every write tool validates and returns structured errors with field paths. If a call returns ok: false, fix exactly those fields and call again before ending the turn.
-- "Open the visualizer" is dropped: the dashboard is always visible.
-- Skip the GitHub star prompt and any update notice.
-- New-goal intake: when the goal is still a stub (its only success criterion is the placeholder "define success criteria"), load the \`intake\` skill instead of running any vendored BMAD skill or the \`uv\` gate. For an elicitation checkpoint, load the \`elicit\` skill.
+# Surface
+- The active goal is supplied below in "Current goal state" — nothing needs resolving. To start another goal, the user uses the New goal button or the goal switcher.
+- You change the goal only through tools: write_section(key, value) replaces a key wholesale with the skill's owned value; set_status flips a single step, sub-item, or next-action; append_log adds one log entry. There is no other write path.
+- Every write validates automatically and returns structured errors with field paths. If a call returns ok: false, fix exactly those fields and call again before ending the turn.
+- New-goal intake: when the goal is still a stub (its only success criterion is the placeholder "define success criteria"), load the \`intake\` skill. For an elicitation checkpoint, load the \`elicit\` skill.
 - Shared docs referenced by skills (for example skills/_shared/HUMANIZE.md) are read with read_skill_file("_shared", "HUMANIZE.md").
 - Research: you have no live web access unless a web_search tool is present. Without it, say plainly that a claim is unverified instead of proceeding as if it had been checked.
 
 # Skills
 The skill index below lists every skill. When one applies, call load_skill(name) and follow it as a multi-turn guided session; the loaded skill stays active until you load another. Do not load a skill for a passing remark that needs no skill. When you hand off between skills, do it silently.
 
-# ${'The GOAL.json contract, in short'}
+# ${'The goal contract, in short'}
 Each top-level key has exactly one owning skill, which replaces its value wholesale; \`log\` is the only append-only array. Every key reads as current state, with no history in the file.
 
 ${SECTION_SHAPES}
 
-${guided}`;
+${guidedRules}`;
 
 export function skillIndexText(store: SkillStore): string {
   return `# Skill index\n${store.index.map((s) => `- ${s.name}: ${s.description}`).join('\n')}`;

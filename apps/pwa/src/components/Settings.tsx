@@ -7,7 +7,6 @@ import { bindExportFile, commitImport, downloadExport, fileSyncState, fsAccessSu
 import { methodsLicense } from '../lib/skills';
 import { Btn, Modal, Pill } from './ui';
 import { ProviderForm } from './Setup';
-import { UpdatePanel } from './UpdatePanel';
 import { CostPanel } from './CostPanel';
 
 const Section = ({ title, children, open }: { title: string; children: ReactNode; open?: boolean }) => (
@@ -99,10 +98,9 @@ export function Settings({ goalId }: { goalId?: string }) {
       <div className="space-y-3">
         <Section title="Model and key" open><ProviderForm /></Section>
         <Section title="Data and durability"><DataPanel /></Section>
-        <Section title="Skill updates"><UpdatePanel /></Section>
         <Section title="Cost"><CostPanel /></Section>
         <Section title="About and licenses">
-          <p className="text-xs text-slate-400">App {__APP_VERSION__} · bundled skill pack {__PACK_VERSION__}. No analytics, no third-party scripts, no account.</p>
+          <p className="text-xs text-slate-400">App {__APP_VERSION__}. No analytics, no third-party scripts, no account.</p>
           <Licenses />
         </Section>
         <Section title="Danger zone">

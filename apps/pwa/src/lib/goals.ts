@@ -1,4 +1,4 @@
-import { readGoal, stubGoal, summarizeChange, migrationsFromRules, CURRENT_SCHEMA_VERSION } from '@gambit/core';
+import { readGoal, stubGoal, summarizeChange, CURRENT_SCHEMA_VERSION } from '@gambit/core';
 import type { Goal } from './types';
 import { db, getSetting, setSetting, type GoalRecord, type SnapshotRecord } from './db';
 
@@ -7,14 +7,8 @@ export type Read =
   | { status: 'needs_app_update'; version: number }
   | { status: 'invalid'; error: string };
 
-export async function activeMigrations() {
-  const id = await getSetting<string>('activePack');
-  const pack = id ? await db.skillPacks.get(id) : undefined;
-  return migrationsFromRules((pack?.migrations ?? []) as never[]);
-}
-
 export async function readRecord(rec: GoalRecord): Promise<Read> {
-  const r = readGoal(rec.doc, { migrations: await activeMigrations() });
+  const r = readGoal(rec.doc);
   return r.status === 'ok' ? { status: 'ok', data: r.data as Goal } : (r as Read);
 }
 
@@ -77,7 +71,7 @@ export type OpResult =
 
 /** Read-validate-apply-write in one transaction. Refuses goals that need an app update. */
 export async function applyOp(goalId: string, op: (g: Goal) => OpResult): Promise<OpResult> {
-  return db.transaction('rw', db.goals, db.skillPacks, db.settings, async () => {
+  return db.transaction('rw', db.goals, db.settings, async () => {
     const rec = await db.goals.get(goalId);
     if (!rec) return { ok: false, errors: [{ path: '(goal)', message: 'goal not found' }] } as OpResult;
     const read = await readRecord(rec);
@@ -94,14 +88,13 @@ export async function applyOp(goalId: string, op: (g: Goal) => OpResult): Promis
 
 /** Migrate every stored goal up to the current schema, backing up first. */
 export async function migrateAll(): Promise<{ migrated: number; failed: string[] }> {
-  const migrations = await activeMigrations();
   let migrated = 0;
   const failed: string[] = [];
   for (const rec of await db.goals.toArray()) {
     const v = (rec.doc as { schemaVersion?: number })?.schemaVersion;
     if (v === CURRENT_SCHEMA_VERSION || (typeof v === 'number' && v > CURRENT_SCHEMA_VERSION)) continue;
     await snapshot(rec.id, 'premigration');
-    const r = readGoal(rec.doc, { migrations });
+    const r = readGoal(rec.doc);
     if (r.status !== 'ok') { failed.push(rec.id); continue; }
     await db.goals.put({ ...rec, doc: r.data, schemaVersion: CURRENT_SCHEMA_VERSION, updatedAt: Date.now() });
     migrated++;

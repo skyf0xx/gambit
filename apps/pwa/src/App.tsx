@@ -12,7 +12,6 @@ import { Chat } from './components/Chat';
 import { Dashboard, useGoalView } from './components/Dashboard';
 import { Settings } from './components/Settings';
 import { NewGoalDialog } from './components/NewGoal';
-import { pollUpdates, useUpdates } from './components/UpdatePanel';
 import { fmtUsd } from './lib/cost';
 import { useSessionCost } from './components/CostPanel';
 import { Btn } from './components/ui';
@@ -28,7 +27,6 @@ function Banner({ children, onClose }: { children: React.ReactNode; onClose?: ()
 
 function Banners() {
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW();
-  const upd = useUpdates((s) => s.check);
   const { installEvent, installDismissed, dismissInstall, openSettings } = useUi();
   const [d, setD] = useState({ persisted: true, sync: 'off' as string, hasGoals: false, last: 0 });
   useEffect(() => {
@@ -45,8 +43,6 @@ function Banners() {
   return (
     <>
       {needRefresh && <Banner>New app version ready. <Btn kind="primary" onClick={() => void updateServiceWorker(true)}>Reload</Btn></Banner>}
-      {upd?.status === 'available' && <Banner>Skill pack {upd.manifest.version} is available. <Btn onClick={() => openSettings(true)}>Review</Btn></Banner>}
-      {upd?.status === 'needs_app_update' && <Banner>Skill pack {upd.version} needs a newer app. Reload the app to check for one.</Banner>}
       {!installDismissed && !isStandalone() && (installEvent || isIos()) && (
         <Banner onClose={dismissInstall}>
           Install Gambit to keep your data safe: browsers can erase data for sites that aren't installed.
@@ -69,7 +65,6 @@ function Main() {
   const view = useGoalView(current?.id ?? '');
   const stub = view?.status === 'ok' && view.data.successCriteria.length === 1 && view.data.successCriteria[0].text === 'define success criteria';
 
-  useEffect(() => { void pollUpdates(); const t = setInterval(() => void pollUpdates(), 6 * 3600_000); return () => clearInterval(t); }, []);
   useEffect(() => { if (current && current.id !== activeId) void setActiveGoal(current.id); }, [current, activeId]);
   useEffect(() => startFileSync(), []);
 

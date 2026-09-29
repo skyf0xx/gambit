@@ -1,8 +1,8 @@
-// The Zod schema for GOAL.json — the single source of truth every reader
-// (store index, visualize, CLI, `gambit check`) validates through. Mirrors
-// AGENTS.md's "each section has exactly one owning skill, which replaces
-// its own content" rule: each top-level key here is owned by exactly one
-// skill and is replaced wholesale on write, never appended to. `log` is
+// The Zod schema for a goal document — the single source of truth every
+// reader (goal store, dashboard, write tools, import) validates through.
+// Mirrors AGENTS.md's "each key has exactly one owning skill" rule: each
+// top-level key here is owned by exactly one skill and is replaced
+// wholesale on write, never appended to. `log` is
 // the one append-only array.
 //
 // Date fields are strict `YYYY-MM-DD` plus a real-calendar-date refine —
@@ -210,9 +210,9 @@ export const goalSchema = z.object({
   log: z.array(logEntry),
 });
 
-// Schema-default stub for `gambit new` / `store.create()` — every array
-// empty, every optional section null, goal/successCriteria seeded from
-// the title so the file is valid the instant it's written.
+// Schema-default stub for a new goal — every array empty, every optional
+// section null, goal/successCriteria seeded from the title so the document
+// is valid the instant it's written.
 export function stubGoal(title) {
   return {
     schemaVersion: 1,

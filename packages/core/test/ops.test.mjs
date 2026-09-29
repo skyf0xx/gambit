@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stubGoal, writeSection, appendLog, setStatus, summarizeChange, applyRules, WRITABLE_KEYS } from '../src/index.mjs';
+import { stubGoal, writeSection, appendLog, setStatus, summarizeChange, WRITABLE_KEYS } from '../src/index.mjs';
 
 const plan = {
   linesOfOperation: [{
@@ -48,16 +48,4 @@ test('summarizeChange', () => {
   assert.deepEqual(summarizeChange(b, c), ['+1 risk']);
   const d = setStatus(c, 'plan.linesOfOperation.0.nextActions.0', 'done').goal;
   assert.deepEqual(summarizeChange(c, d), ['1 status change']);
-});
-
-test('applyRules: setDefault / rename / remove with fan-out', () => {
-  const doc = { people: [{ name: 'a', role: 'x' }, { name: 'b' }], old: 1 };
-  const out = applyRules(doc, [
-    { op: 'setDefault', path: 'people[].status', value: 'lead' },
-    { op: 'rename', from: 'people[].role', to: 'people[].doing' },
-    { op: 'rename', from: 'old', to: 'new' },
-    { op: 'remove', path: 'people[].name' },
-  ]);
-  assert.deepEqual(out, { people: [{ status: 'lead', doing: 'x' }, { status: 'lead' }], new: 1 });
-  assert.throws(() => applyRules({}, [{ op: 'eval' }]));
 });

@@ -1,8 +1,8 @@
-// Maps each GOAL.json owned key to the renderer that draws it, and to the
-// disclosure group it appears under on the visualize page. This is the
+// Maps each owned goal key to the renderer that draws it, and to the
+// disclosure group it appears under on the dashboard. This is the
 // single source of truth for both mappings — each skill's SKILL.md carries
 // a matching `display:` frontmatter field for humans reading the skill
-// file, but the server reads this table, not the frontmatter, at render
+// file, but the dashboard reads this table, not the frontmatter, at render
 // time.
 //
 // No section renders as a diagram — 'network' and 'decision-fork' (Mermaid)
@@ -26,7 +26,7 @@ export const SECTION_RENDERERS = {
   decisions: 'decision-callout',
 };
 
-// Which collapsible group each section renders under on the visualize page
+// Which collapsible group each section renders under on the dashboard
 // (see page.mjs). 'plan' and 'criteriaStatus' render inside the always-open
 // Bridge/Plan group since they're what changes session to session; the rest
 // group by subject into collapsed-by-default sections so reference material
@@ -59,7 +59,7 @@ export const GROUP_LABELS = {
 // everything the user might actually need to check or do.
 export const GROUP_ORDER = ['plan', 'people', 'forecasts', 'exposure', 'reference'];
 
-// Skills whose primary output isn't a GOAL.json section at all (read-only
+// Skills whose primary output isn't a goal section at all (read-only
 // reads, or prose the user reads in the session) — never diagrammed,
 // always the plain-card fallback if they ever do write something ad hoc.
 export const PLAIN_CARD_SKILLS = [

@@ -1,14 +1,15 @@
 import { CURRENT_SCHEMA_VERSION, readGoal } from '@gambit/core';
 import { db, getSetting, setSetting } from './db';
-import { activeMigrations, newGoalId, snapshot } from './goals';
-import { installedPackVersion } from './update';
+import { newGoalId, snapshot } from './goals';
 
 export interface ExportFile {
   app: 'gambit';
   exportVersion: 1;
   exportedAt: string;
   schemaVersion: number;
-  skillPackVersion: string;
+  appVersion: string;
+  /** Older export files may carry this instead of appVersion; still accepted on import. */
+  skillPackVersion?: string;
   goals: { id: string; title: string; doc: unknown }[];
 }
 
@@ -19,7 +20,7 @@ export async function buildExport(): Promise<ExportFile> {
     exportVersion: 1,
     exportedAt: new Date().toISOString(),
     schemaVersion: CURRENT_SCHEMA_VERSION,
-    skillPackVersion: await installedPackVersion(),
+    appVersion: __APP_VERSION__,
     goals: goals.map((g) => ({ id: g.id, title: g.title, doc: g.doc })),
   };
 }
@@ -47,11 +48,10 @@ export async function planImport(text: string): Promise<ImportItem[]> {
   let parsed: Partial<ExportFile>;
   try { parsed = JSON.parse(text); } catch { throw new Error('That file is not valid JSON.'); }
   if (parsed?.app !== 'gambit' || !Array.isArray(parsed.goals)) throw new Error('That file is not a Gambit export.');
-  const migrations = await activeMigrations();
   const existing = new Set((await db.goals.toArray()).map((g) => g.id));
   return parsed.goals.map((g, i) => {
     const id = typeof g?.id === 'string' && g.id ? g.id : `imported-${i}`;
-    const r = readGoal(g?.doc, { migrations });
+    const r = readGoal(g?.doc);
     if (r.status === 'ok') return { id, title: r.data.goal, doc: r.data, conflict: existing.has(id) };
     const error = r.status === 'needs_app_update' ? `saved by a newer app (schema v${r.version}); update the app first` : r.error;
     return { id, title: String(g?.title ?? id), conflict: existing.has(id), error };

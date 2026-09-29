@@ -13,7 +13,7 @@ export interface SnapshotRecord {
   id?: number;
   goalId: string;
   ts: number;
-  kind: 'turn' | 'premigration' | 'preupdate' | 'edit' | 'import';
+  kind: 'turn' | 'premigration' | 'edit' | 'import';
   doc: unknown;
 }
 export interface DisplayMsg {
@@ -31,20 +31,6 @@ export interface ChatRecord {
   model: ModelMessage[];
   display: DisplayMsg[];
   activeSkill?: string;
-}
-export interface SkillPackRecord {
-  version: string;
-  files: Record<string, string>;
-  integrity: string;
-  migrations: unknown[];
-  appVersionMin: string;
-  installedAt: number;
-  source: 'bundled' | 'npm';
-  /** Version this pack replaced, for rollback. */
-  previous?: string;
-  /** Pre-update snapshots taken when this pack was applied. */
-  preUpdateSnapshots?: number[];
-  migrated?: boolean;
 }
 export interface UsageRecord {
   id?: number;
@@ -65,7 +51,6 @@ class GambitDB extends Dexie {
   chats!: Table<ChatRecord, string>;
   settings!: Table<{ key: string; value: unknown }, string>;
   secrets!: Table<{ id: string; value: unknown }, string>;
-  skillPacks!: Table<SkillPackRecord, string>;
   usage!: Table<UsageRecord, number>;
 
   constructor() {
@@ -79,6 +64,8 @@ class GambitDB extends Dexie {
       skillPacks: 'version',
       usage: '++id, ts, goalId',
     });
+    // Skills ship in the app bundle; version 2 drops the skillPacks table.
+    this.version(2).stores({ skillPacks: null });
   }
 }
 
