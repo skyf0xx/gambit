@@ -29,7 +29,7 @@ Jobs to Be Done passes — a real interview protocol with rules for which
 questions invalidate a response.
 
 **Produces a decision or a state change.** Every Gambit skill writes a
-`GOAL.json` key or leaves a committed next step. If a framework's output is
+goal key or leaves a committed next step. If a framework's output is
 "the user understands their situation better," that's `brief`, not a new
 skill.
 
@@ -53,21 +53,22 @@ what changed and why.
 ## Storage and loading
 
 Domain skills are not peers of `skills/strategy` or `skills/plan`. They
-live outside `skills/` entirely, so an agent scanning that directory never
-treats fifteen packs as part of the always-on core surface:
+live outside `skills/` entirely, bundled with the app the same way the core
+catalogue is, so the app never treats fifteen packs as part of the
+always-on core surface:
 
-- **`domain-skills/<pack>/`** — top-level, sibling to `vendor-skills/`. Each
-  pack holds its own skill files, and, for a vendored-verbatim pack, an
+- **`domain-skills/<pack>/`** — top-level, sibling to `skills/`. Each pack
+  holds its own skill files, and, for a vendored-verbatim pack, an
   `ATTRIBUTION.md` in the BMAD shape.
 - **`domain-skills/registry.json`** — a manifest mapping goal-shape triggers
   to skill file paths. This is the gating mechanism, mechanically checkable
   rather than inferred: a skill loads only when the active goal matches a
-  trigger the manifest declares. AGENTS.md's rule: consult the registry
+  trigger the manifest declares. The app's rule: consult the registry
   against the active goal before assuming no pack applies, and load only
   the matched file, never the directory wholesale.
 
 What counts as a match is the harder half of this. A `domain` field on
-`GOAL.json`, set at onboard, is the simplest thing for the registry to
+the goal, set at onboard, is the simplest thing for the registry to
 check, but it requires classifying every goal into a taxonomy up front —
 awkward for a mixed goal like "build a business that funds my activism." A
 looser text-match against the goal statement avoids forcing a taxonomy but
@@ -79,7 +80,7 @@ matches its trigger is the same defect, just quieter.
 
 ## Key ownership
 
-No new `GOAL.json` schema key per pack — fifteen packs would mean fifteen
+No new goal schema key per pack — fifteen packs would mean fifteen
 keys, most null on any given goal. Domain skills follow the `premortem`/
 `review` pattern instead: own no key, append findings to an existing one
 (`systemsNotes`, `riskNotes`, `plan.nextActions`, or `log`), tagged with the
