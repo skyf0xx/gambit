@@ -64,13 +64,19 @@ function SendButton({ ready, busy, onClick }: { ready: boolean; busy: boolean; o
       onClick={() => { setPressed(true); onClick(); }}
       onAnimationEnd={() => setPressed(false)}
       disabled={!ready && !busy}
-      className={`grid h-9 w-9 flex-none place-items-center rounded-full transition-[background-color,box-shadow] duration-150 disabled:cursor-default ${pressed ? 'anim-press' : ''} ${
-        ready || busy ? 'bg-ink text-bg' : 'text-graphite shadow-[inset_0_0_0_1.2px_var(--graphite)]'
-      }`}
+      // A 44×44 hit area (padding around a 36×36 visible circle) so the tap
+      // target meets the minimum without growing the ring itself.
+      className="grid h-11 w-11 flex-none place-items-center disabled:cursor-default"
     >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        {busy ? <rect x="6" y="6" width="12" height="12" rx="1.5" /> : <><path d="M12 19V5" /><path d="M5 12l7-7 7 7" /></>}
-      </svg>
+      <span
+        className={`grid h-9 w-9 place-items-center rounded-full transition-[background-color,box-shadow] duration-150 ${pressed ? 'anim-press' : ''} ${
+          ready || busy ? 'bg-ink text-bg' : 'text-graphite shadow-[inset_0_0_0_1.2px_var(--graphite)]'
+        }`}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          {busy ? <rect x="6" y="6" width="12" height="12" rx="1.5" /> : <><path d="M12 19V5" /><path d="M5 12l7-7 7 7" /></>}
+        </svg>
+      </span>
     </button>
   );
 }
@@ -139,6 +145,8 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
   const display = chat?.display ?? [];
   const lastUndoable = [...display].reverse().find((m) => m.role === 'assistant' && m.snapshotId);
   const workingSkill = busy ? activeSkillFrom(draft.tools) : null;
+  const hasContent = useRef(false);
+  hasContent.current = display.length > 0 || !!draft;
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
     end.current?.scrollIntoView({ block: 'end', behavior });
@@ -154,7 +162,7 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
     const onScroll = () => {
       const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
       stickToBottom.current = atBottom;
-      if (atBottom) setShowJump(false);
+      setShowJump(!atBottom && hasContent.current);
     };
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => el.removeEventListener('scroll', onScroll);
@@ -251,8 +259,12 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
     window.setTimeout(() => {
       onCollapse();
       setClosing(false);
-      collapsedRef.current?.querySelector('input,textarea')?.dispatchEvent(new FocusEvent('focus'));
-      (collapsedRef.current?.querySelector('input,textarea') as HTMLElement | null)?.focus();
+      // The collapsed composer only mounts once React processes the state
+      // updates above, so wait a frame before focusing it (mirrors Leaf's
+      // opener-focus-return in ui.tsx).
+      requestAnimationFrame(() => {
+        (collapsedRef.current?.querySelector('input,textarea') as HTMLElement | null)?.focus();
+      });
     }, SHEET_DOWN_MS());
   }
 
@@ -336,7 +348,7 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
         <SendButton ready={!!input.trim()} busy={busy} onClick={() => { if (variant === 'mobile') onExpand(); busy ? abort.current?.abort() : void send(); }} />
       </div>
       {(variant === 'desktop' || open) && display.length > 0 && !busy && (
-        <TextAction className="!min-h-0 mt-2 text-[14px] text-graphite underline underline-offset-[3px]" onClick={() => confirm('Clear this chat? The goal itself is kept.') && void clearChat(goalId)}>
+        <TextAction className="mt-2 text-[14px] text-graphite underline underline-offset-[3px]" onClick={() => confirm('Clear this chat? The goal itself is kept.') && void clearChat(goalId)}>
           Clear chat
         </TextAction>
       )}
