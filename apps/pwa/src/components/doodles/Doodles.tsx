@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Goal } from '../../lib/types';
 import { timeLeft } from '../../lib/dates';
-import { buildDoodleLayout, nodeJitter, type DoodleNode, type DoodleEdge } from './layout';
+import { buildDoodleLayout, nodeJitter, RADIAL_MIN_WIDTH, type DoodleNode, type DoodleEdge } from './layout';
 import { hand, strokePath, tickPoints, starPoints, type Box, type Point } from '../marks/stroke';
 
 // The Doodles tab: the whole plan sketched in pencil as a mind map. Tapping
@@ -32,8 +32,9 @@ function BranchPath({ x1, y1, x2, y2, seed, kind }: { x1: number; y1: number; x2
 }
 
 function boxFor(node: DoodleNode): Box {
-  const w = Math.max(24, node.label.length * 6.5);
-  const h = 16;
+  const longest = Math.max(node.label.length, node.label2?.length ?? 0);
+  const w = Math.max(24, longest * 6.5);
+  const h = node.label2 ? 32 : 16;
   return { l: node.x - w / 2, r: node.x + w / 2, t: node.y - h / 2, b: node.y + h / 2, w, h };
 }
 
@@ -76,16 +77,19 @@ function NodeLabel({ node, onActivate }: { node: DoodleNode; onActivate: (path: 
   const isDropped = node.status === 'dropped';
   if (isDropped) return null;
 
+  const boxH = node.label2 ? 44 : 44; // tap target stays 44px tall either way
+  const box = boxFor(node);
+
   return (
     <g
       transform={`translate(${node.x}, ${node.y})`}
       className={node.isFocusLine ? 'doodle-focus' : ''}
     >
       {node.isFocusLine && (
-        <rect x={-boxFor(node).w / 2 - 4} y={-11} width={boxFor(node).w + 8} height={20} fill="var(--hi)" aria-hidden="true" />
+        <rect x={-box.w / 2 - 4} y={-box.h / 2 - 3} width={box.w + 8} height={box.h + 6} fill="var(--hi)" aria-hidden="true" />
       )}
-      <foreignObject x={-100} y={-22} width={200} height={44} style={{ overflow: 'visible', pointerEvents: 'none' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 44 }}>
+      <foreignObject x={-100} y={-boxH / 2} width={200} height={boxH} style={{ overflow: 'visible', pointerEvents: 'none' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: boxH }}>
           <button
             type="button"
             data-note={node.truncated ? node.fullLabel : undefined}
@@ -95,6 +99,7 @@ function NodeLabel({ node, onActivate }: { node: DoodleNode; onActivate: (path: 
               minHeight: 44,
               minWidth: 44,
               display: 'inline-flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               padding: '4px 8px',
@@ -106,11 +111,13 @@ function NodeLabel({ node, onActivate }: { node: DoodleNode; onActivate: (path: 
               fontWeight,
               color: 'var(--ink)',
               whiteSpace: 'nowrap',
-              lineHeight: '16px',
+              lineHeight: '15px',
+              textAlign: 'center',
             }}
             className="doodle-node"
           >
-            {node.label}
+            <span>{node.label}</span>
+            {node.label2 && <span>{node.label2}</span>}
           </button>
         </div>
       </foreignObject>
@@ -131,8 +138,11 @@ export function Doodles({ goal, goalId: _goalId }: { goal: Goal; goalId: string 
     if (!el) return;
     const update = () => {
       const w = el.clientWidth || 640;
-      const mode: 'radial' | 'tree' = w >= 640 ? 'radial' : 'tree';
-      const h = mode === 'radial' ? Math.max(420, Math.min(640, w * 0.75)) : 480;
+      const mode: 'radial' | 'tree' = w >= RADIAL_MIN_WIDTH ? 'radial' : 'tree';
+      // Height is a starting guess only — buildDoodleLayout computes the
+      // real height it needs (radial can grow taller than wide) and the
+      // viewBox below uses that instead.
+      const h = mode === 'radial' ? Math.max(420, w) : 480;
       setDims({ width: w, height: h, mode });
     };
     update();
