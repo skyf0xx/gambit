@@ -1,8 +1,11 @@
 import type { ReactNode } from 'react';
 import { rendererForSection, setStatus } from '@gambit/core';
 import { applyOp } from '../lib/goals';
+import { useSession } from '../lib/session';
+import { useLineMark } from './marks/context';
+import { undoTurn } from '../lib/agent';
 import type { Goal } from '../lib/types';
-import { Pill } from './ui';
+import { TextAction, PencilWord } from './ui';
 
 export const formatDate = (s?: string | null) => {
   const m = s && /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
@@ -35,25 +38,87 @@ export function hintFor(key: string, d: Any): string {
   }
 }
 
-const toneFor = (s: string) => (['met', 'on_track', 'confirmed', 'done', 'on_schedule', 'yes'].includes(s) ? 'green' : ['at_risk', 'tentative', 'med', 'open'].includes(s) ? 'amber' : ['stalled', 'regressing', 'blocked', 'high'].includes(s) ? 'red' : 'slate') as 'green' | 'amber' | 'red' | 'slate';
-const St = ({ s }: { s: string }) => <Pill tone={toneFor(s)}>{s.replace('_', ' ')}</Pill>;
-const Detail = ({ children }: { children?: ReactNode }) => (children ? <div className="mt-0.5 text-xs text-slate-500">{children}</div> : null);
-const icon = (s: string) => (s === 'done' ? '✓' : s === 'dropped' ? '✕' : s === 'proposed' ? '?' : '○');
+// The tappable question each empty section shows in place of content
+// (brand/identity.md §05 "An empty section is one pencilled question you
+// can tap").
+export const EMPTY_PROMPTS: Record<string, string> = {
+  plan: "No plan yet. What's the first move?",
+  people: 'Nobody named yet. Who has a say in this?',
+  stakeholders: 'Nobody named yet. Who has a say in this?',
+  systemsNotes: "Not looked at yet. Where's the leverage point here?",
+  riskNotes: "Nothing stress-tested yet. What could go wrong?",
+  decisions: 'Nothing decided yet. What choice is open?',
+  exposure: "Not looked at yet. What are you personally exposed to?",
+  capacity: "Not counted yet. What do you actually have to work with?",
+  forecasts: 'No bets on the record yet. What do you expect to happen?',
+  experiments: 'Nothing tested yet. What assumption needs checking?',
+  criteriaStatus: 'Not scored yet. How is this actually going?',
+};
+
+/** The sr-only text equivalent for a mark, appended to a markable line. */
+function MarkSr({ path }: { path: string }) {
+  const mark = useLineMark(path);
+  return mark.sr ? <span className="sr-only">{` (${mark.sr})`}</span> : null;
+}
+
+/** The pencilled "new, from your chat · undo" note under a changed line
+ * (brand/identity.md §05, the accent used at most once per screen alongside
+ * the loop). */
+function ChangeNote({ goalId, path }: { goalId: string; path: string }) {
+  const mark = useLineMark(path);
+  const { turn } = useSession();
+  if (mark.note !== 'changed') return null;
+  const displayId = turn?.goalId === goalId ? turn.turnId : undefined;
+  return (
+    <div className="hand text-[16px] text-accent">
+      new, from your chat ·{' '}
+      <TextAction
+        className="text-[16px] underline"
+        onClick={() => { if (displayId) void undoTurn(goalId, displayId); }}
+      >
+        undo
+      </TextAction>
+    </div>
+  );
+}
+
+/** A single markable line: text with its data-line hook, sr mark text, an
+ * optional "→ Name" pencilled after it, and the change note beneath. */
+function Line({ goalId, path, className = '', box, children }: { goalId: string; path: string; className?: string; box?: boolean; children: ReactNode }) {
+  const mark = useLineMark(path);
+  return (
+    <div>
+      <span data-line={path} className={`${mark.pencil ? 'pencil' : ''} ${className}`}>
+        {box && <span className="box" data-box aria-hidden="true" />}
+        {children}
+        <MarkSr path={path} />
+        {mark.to && <PencilWord className="ml-1">{`→ ${mark.to}`}</PencilWord>}
+      </span>
+      <ChangeNote goalId={goalId} path={path} />
+    </div>
+  );
+}
 
 function Toggle({ goalId, path, status, editable, children }: { goalId: string; path: string; status: string; editable: boolean; children: ReactNode }) {
-  const next = status === 'done' || status === 'proposed' ? 'pending' : 'done';
-  const cls = status === 'done' ? 'text-slate-500 line-through' : status === 'dropped' ? 'text-slate-600 line-through' : 'text-slate-200';
+  const next = status === 'done' ? 'pending' : 'done';
+  const cls = status === 'done' ? 'text-graphite line-through' : '';
   return (
-    <li className={`flex items-start gap-2 text-sm ${cls}`}>
-      <button
+    <li className="flex items-start gap-2 text-[17px] leading-[27px]">
+      <TextAction
         disabled={!editable}
         title={editable ? `Mark ${next}` : undefined}
-        className={`mt-0.5 w-4 shrink-0 text-left ${editable ? 'hover:text-sky-300' : 'cursor-default'}`}
+        className={`mt-0.5 shrink-0 ${cls}`}
         onClick={() => void applyOp(goalId, (g) => setStatus(g, path, next) as never)}
-      >{icon(status)}</button>
-      <div className="min-w-0 flex-1">{children}</div>
+      >
+        <span className="box" data-box aria-hidden="true" />
+      </TextAction>
+      <div className={`min-w-0 flex-1 ${cls}`}>{children}</div>
     </li>
   );
+}
+
+function Detail({ children }: { children?: ReactNode }) {
+  return children ? <div className="mt-0.5 text-[14px] text-graphite">{children}</div> : null;
 }
 
 function Steps({ goalId, base, steps, editable }: { goalId: string; base: string; steps: Any[]; editable: boolean }) {
@@ -61,12 +126,14 @@ function Steps({ goalId, base, steps, editable }: { goalId: string; base: string
     <ol className="space-y-1.5">
       {steps.map((s, i) => (
         <Toggle key={i} goalId={goalId} path={`${base}.${i}`} status={s.status} editable={editable}>
-          <span>{s.label}</span>
+          <Line goalId={goalId} path={`${base}.${i}`}><span>{s.label}</span></Line>
           <Detail>{s.detail}</Detail>
           {s.items?.length > 0 && (
             <ul className="mt-1 space-y-1 pl-1">
               {s.items.map((it: Any, j: number) => (
-                <Toggle key={j} goalId={goalId} path={`${base}.${i}.items.${j}`} status={it.status} editable={editable}><span className="text-xs">{it.label}</span></Toggle>
+                <Toggle key={j} goalId={goalId} path={`${base}.${i}.items.${j}`} status={it.status} editable={editable}>
+                  <Line goalId={goalId} path={`${base}.${i}.items.${j}`} className="text-[14px]"><span>{it.label}</span></Line>
+                </Toggle>
               ))}
             </ul>
           )}
@@ -76,36 +143,56 @@ function Steps({ goalId, base, steps, editable }: { goalId: string; base: string
   );
 }
 
+/** Next actions visible in a section: `proposed` lives on a sticky note
+ * instead, and `dropped` only stays visible for this session if it's the
+ * one the marks layer is erasing (brand/identity.md §05's "Erased" mark). */
+function visibleActions(actions: Any[], goalId: string, base: string, dropped: Map<string, Set<string>>) {
+  const droppedForGoal = dropped.get(goalId);
+  return actions
+    .map((a, i) => ({ a, path: `${base}.${i}` }))
+    .filter(({ a, path }) => {
+      if (a.status === 'proposed') return false;
+      if (a.status === 'dropped') return droppedForGoal?.has(path) ?? false;
+      return true;
+    });
+}
+
 export function SectionBody({ k, data, goalId, editable }: { k: keyof Goal; data: Any; goalId: string; editable: boolean }) {
   const type = rendererForSection(k);
+  const { dropped } = useSession();
 
   if (k === 'plan') {
     return (
       <div className="space-y-5">
-        {data.linesOfOperation.map((l: Any, li: number) => (
-          <div key={li} className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-medium text-slate-100">{l.label}</span>
-              <St s={l.status ?? 'on_schedule'} />
-            </div>
-            <Steps goalId={goalId} base={`plan.linesOfOperation.${li}.criticalPath`} steps={l.criticalPath} editable={editable} />
-            {l.blocker && <p className="text-xs text-red-300">Blocked: {l.blocker}</p>}
-            {l.nextActions.length > 0 && (
-              <div className="rounded-md bg-slate-900/70 p-2.5">
-                <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Next actions</div>
-                <ul className="space-y-1.5">
-                  {l.nextActions.map((a: Any, ai: number) => (
-                    <Toggle key={ai} goalId={goalId} path={`plan.linesOfOperation.${li}.nextActions.${ai}`} status={a.status} editable={editable}>
-                      <span>{a.action}</span>
-                      <span className="ml-2 text-xs text-slate-500">{a.who} · {a.when}</span>
-                      <Detail>{a.detail}</Detail>
-                    </Toggle>
-                  ))}
-                </ul>
+        {data.linesOfOperation.map((l: Any, li: number) => {
+          const actions = visibleActions(l.nextActions, goalId, `plan.linesOfOperation.${li}.nextActions`, dropped);
+          return (
+            <div key={li} className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-ink">{l.label}</span>
+                {l.status && <PencilWord>{l.status.replace('_', ' ')}</PencilWord>}
               </div>
-            )}
-          </div>
-        ))}
+              <Steps goalId={goalId} base={`plan.linesOfOperation.${li}.criticalPath`} steps={l.criticalPath} editable={editable} />
+              {l.blocker && <p className="text-[14px] text-accent">Blocked: {l.blocker}</p>}
+              {actions.length > 0 && (
+                <div>
+                  <div className="mb-1 text-[14px] text-graphite">Next actions</div>
+                  <ul className="space-y-1.5">
+                    {actions.map(({ a, path }) => (
+                      <Toggle key={path} goalId={goalId} path={path} status={a.status} editable={editable}>
+                        <Line goalId={goalId} path={path}>
+                          <span>{a.action}</span>
+                          <span className="ml-2 text-[14px] text-graphite">{a.who} · {a.when}</span>
+                        </Line>
+                        <Detail>{a.detail}</Detail>
+                      </Toggle>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -113,11 +200,11 @@ export function SectionBody({ k, data, goalId, editable }: { k: keyof Goal; data
   if (type === 'ordered-list') {
     return (
       <div className="space-y-3">
-        <div><div className="font-medium text-slate-100">{data.schwerpunkt}</div><Detail>{data.rationale}</Detail></div>
-        <ol className="list-decimal space-y-2 pl-5 text-sm">
+        <div><div className="font-medium text-ink">{data.schwerpunkt}</div><Detail>{data.rationale}</Detail></div>
+        <ol className="list-decimal space-y-2 pl-5 text-[17px] leading-[27px]">
           {data.topFindings.map((f: Any, i: number) => (
             <li key={i}>{f.label}<Detail>{f.detail}</Detail>
-              {f.items?.length > 0 && <ul className="mt-1 list-disc pl-4 text-xs text-slate-400">{f.items.map((it: Any, j: number) => <li key={j}>{it.label}</li>)}</ul>}
+              {f.items?.length > 0 && <ul className="mt-1 list-disc pl-4 text-[14px] text-graphite">{f.items.map((it: Any, j: number) => <li key={j}>{it.label}</li>)}</ul>}
             </li>
           ))}
         </ol>
@@ -128,31 +215,40 @@ export function SectionBody({ k, data, goalId, editable }: { k: keyof Goal; data
   if (type === 'stakeholder-table') {
     const isPeople = k === 'people';
     return (
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[28rem] text-left text-sm">
-          <thead className="text-xs uppercase tracking-wide text-slate-500">
-            <tr>{(isPeople ? ['Name', 'Status', 'Doing'] : ['Name', 'Power', 'Stance', 'Via']).map((h) => <th key={h} className="pb-2 pr-3 font-medium">{h}</th>)}</tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800/70">
-            {data.map((p: Any, i: number) => (
-              <tr key={i} className="align-top">
-                <td className="py-2 pr-3 font-medium text-slate-100">{p.name}<Detail>{p.detail}</Detail></td>
-                {isPeople ? (<><td className="py-2 pr-3"><St s={p.status} /></td><td className="py-2 pr-3">{p.doing}</td></>) : (<><td className="py-2 pr-3"><St s={p.power} /></td><td className="py-2 pr-3">{p.stanceCurrent} → {p.stanceTarget}</td><td className="py-2 pr-3">{p.via}</td></>)}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ul className="space-y-2 text-[17px] leading-[27px]">
+        {data.map((p: Any, i: number) => (
+          <li key={i}>
+            <Line goalId={goalId} path={`${k}.${i}`}>
+              <span className="font-medium text-ink">{p.name}</span>
+              {isPeople ? (
+                <>
+                  <span className="mx-2 text-[14px] text-graphite">{p.doing}</span>
+                  <PencilWord>{p.status}</PencilWord>
+                </>
+              ) : (
+                <>
+                  <span className="mx-2 text-[14px] text-graphite">{p.stanceCurrent} → {p.stanceTarget} · {p.via}</span>
+                  <PencilWord>{p.power}</PencilWord>
+                </>
+              )}
+            </Line>
+            <Detail>{p.detail}</Detail>
+          </li>
+        ))}
+      </ul>
     );
   }
 
   if (type === 'risk-list') {
     return (
-      <ul className="space-y-2 text-sm">
+      <ul className="space-y-2 text-[17px] leading-[27px]">
         {data.map((r: Any, i: number) => (
-          <li key={i} className={r.accepted ? 'text-slate-500' : ''}>
-            <span className="mr-2"><Pill tone={r.accepted ? 'slate' : 'amber'}>{r.accepted ? 'accepted' : 'open'}</Pill></span>{r.item}
-            <span className="ml-2 text-xs text-slate-500">{r.source}</span><Detail>{r.detail}</Detail>
+          <li key={i}>
+            <Line goalId={goalId} path={`riskNotes.${i}`} className={r.accepted ? 'text-graphite' : ''}>
+              <span>{r.item}</span>
+              <PencilWord className="ml-2">{r.accepted ? 'accepted' : 'open'}</PencilWord>
+            </Line>
+            <Detail>{r.detail}</Detail>
           </li>
         ))}
       </ul>
@@ -160,17 +256,17 @@ export function SectionBody({ k, data, goalId, editable }: { k: keyof Goal; data
   }
 
   if (type === 'decision-callout') {
-    const list = [...data].reverse() as Any[];
+    const list = [...(data as Any[])].map((d, i) => ({ d, i })).reverse();
     return (
       <div className="space-y-3">
-        {list.map((d, i) => (
-          <div key={i} className={i === 0 ? 'rounded-md border-l-2 border-sky-500 bg-slate-900/70 p-3' : 'pl-3 text-slate-400'}>
-            <div className="text-xs text-slate-500">{formatDate(d.date)}</div>
+        {list.map(({ d, i }) => (
+          <div key={i}>
+            <div className="text-[14px] text-graphite">{formatDate(d.date)}</div>
             {d.status === 'open' ? (
-              <div className="text-sm font-medium text-slate-100">Open: {d.question}</div>
+              <Line goalId={goalId} path={`decisions.${i}`}><span className="font-medium text-ink">Open: {d.question}</span></Line>
             ) : (
               <>
-                <div className="text-sm font-medium text-slate-100">{d.choice}</div>
+                <Line goalId={goalId} path={`decisions.${i}`}><span className="font-medium text-ink">{d.choice}</span></Line>
                 {d.because && <Detail>Because {d.because}</Detail>}
                 <Detail>Reverse if {d.reverseIf}{d.reviewBy ? ` · review by ${formatDate(d.reviewBy)}` : ''}</Detail>
               </>
@@ -182,20 +278,76 @@ export function SectionBody({ k, data, goalId, editable }: { k: keyof Goal; data
   }
 
   if (k === 'criteriaStatus') {
-    return <ul className="space-y-2 text-sm">{data.map((c: Any, i: number) => <li key={i}><St s={c.status} /> <span className="ml-1">{c.text}</span> <span className="text-xs text-slate-500">{c.kind}</span><Detail>{c.detail}</Detail></li>)}</ul>;
+    return (
+      <ul className="space-y-2 text-[17px] leading-[27px]">
+        {data.map((c: Any, i: number) => (
+          <li key={i}>
+            <Line goalId={goalId} path={`criteriaStatus.${i}`} box>
+              <span>{c.text}</span>
+              <PencilWord className="ml-2">{c.status.replace('_', ' ')}</PencilWord>
+            </Line>
+            <Detail>{c.detail}</Detail>
+          </li>
+        ))}
+      </ul>
+    );
   }
   if (k === 'capacity') {
-    return <div className="space-y-1 text-sm"><div>{data.availableHrsPerWeek ?? '?'} hrs/week · runway {data.runway}</div>{data.watch && <div className="text-amber-300">Watch: {data.watch}</div>}<Detail>{data.detail}</Detail><Detail>Reviewed {formatDate(data.lastReviewed)}</Detail></div>;
+    return (
+      <div className="space-y-1 text-[17px] leading-[27px]">
+        <div className="tabular-nums">{data.availableHrsPerWeek ?? '?'} hrs/week · runway {data.runway}</div>
+        {data.watch && <div className="text-accent">Watch: {data.watch}</div>}
+        <Detail>{data.detail}</Detail>
+        <Detail>Reviewed {formatDate(data.lastReviewed)}</Detail>
+      </div>
+    );
   }
   if (k === 'experiments') {
-    return <ul className="space-y-2 text-sm">{data.map((e: Any, i: number) => <li key={i}><span className="mr-2">{e.done ? '✓' : '○'}</span>{e.assumption}<Detail>Test: {e.test} · pass if {e.passIf} · by {formatDate(e.by)}</Detail>{e.result && <Detail>Result: {e.result}</Detail>}</li>)}</ul>;
+    return (
+      <ul className="space-y-2 text-[17px] leading-[27px]">
+        {data.map((e: Any, i: number) => (
+          <li key={i}>
+            <Line goalId={goalId} path={`experiments.${i}`} className={e.done ? '' : 'pencil'} box>
+              <span>{e.assumption}</span>
+            </Line>
+            <Detail>Test: {e.test} · pass if {e.passIf} · by {formatDate(e.by)}</Detail>
+            {e.result && <Detail>Result: {e.result}</Detail>}
+          </li>
+        ))}
+      </ul>
+    );
   }
-  if (k === 'forecasts') {
-    return <ul className="space-y-2 text-sm">{data.map((f: Any, i: number) => <li key={i}><Pill tone={f.resolved ? (f.outcome === 'yes' ? 'green' : 'slate') : 'sky'}>{f.probability}%</Pill> <span className="ml-1">{f.statement}</span><Detail>{f.resolved ? `Resolved ${f.outcome ?? ''}${f.verdict ? ` — ${f.verdict}` : ''}` : `Resolves ${formatDate(f.resolvesBy)} via ${f.resolvesVia}`}</Detail></li>)}</ul>;
+  if (type === 'checklist' && k === 'forecasts') {
+    return (
+      <ul className="space-y-2 text-[17px] leading-[27px]">
+        {data.map((f: Any, i: number) => (
+          <li key={i}>
+            <Line goalId={goalId} path={`forecasts.${i}`}>
+              <span className="tabular-nums"><PencilWord>{f.probability}%</PencilWord></span>{' '}
+              <span>{f.statement}</span>
+            </Line>
+            <Detail>{f.resolved ? `Resolved ${f.outcome ?? ''}${f.verdict ? ` — ${f.verdict}` : ''}` : `Resolves ${formatDate(f.resolvesBy)} via ${f.resolvesVia}`}</Detail>
+          </li>
+        ))}
+      </ul>
+    );
   }
   // plain-card fallback (exposure and anything unmapped)
   if (Array.isArray(data)) {
-    return <ul className="space-y-2 text-sm">{data.map((e: Any, i: number) => <li key={i}>{e.status && <St s={e.status} />} <span className="ml-1">{e.item ?? JSON.stringify(e)}</span>{e.mustHandleBefore && <span className="ml-2 text-xs text-slate-500">before {e.mustHandleBefore}</span>}<Detail>{e.why}</Detail></li>)}</ul>;
+    return (
+      <ul className="space-y-2 text-[17px] leading-[27px]">
+        {data.map((e: Any, i: number) => (
+          <li key={i}>
+            <Line goalId={goalId} path={`${k}.${i}`}>
+              <span>{e.item ?? JSON.stringify(e)}</span>
+              {e.status && <PencilWord className="ml-2">{e.status}</PencilWord>}
+              {e.mustHandleBefore && <span className="ml-2 text-[14px] text-graphite">before {e.mustHandleBefore}</span>}
+            </Line>
+            <Detail>{e.why}</Detail>
+          </li>
+        ))}
+      </ul>
+    );
   }
-  return <pre className="overflow-x-auto text-xs text-slate-400">{JSON.stringify(data, null, 2)}</pre>;
+  return <pre className="overflow-x-auto text-[14px] text-graphite">{JSON.stringify(data, null, 2)}</pre>;
 }

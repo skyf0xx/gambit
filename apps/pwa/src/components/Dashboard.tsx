@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { GROUP_LABELS, GROUP_ORDER, groupForSection, writeSection } from '@gambit/core';
+import { writeSection } from '@gambit/core';
 import { db } from '../lib/db';
 import { applyOp, readRecord, snapshot } from '../lib/goals';
 import type { Goal } from '../lib/types';
-import { Btn, Pill, inputCls } from './ui';
-import { SectionBody, formatDate, hintFor, titleForKey } from './Sections';
+import { TextAction, InkButton, PencilWord, RuledInput, inputCls } from './ui';
+import { SectionBody, EMPTY_PROMPTS, formatDate } from './Sections';
+import { sectionTitleFor } from './sectionTitles';
+import { MarksProvider } from './marks/context';
+import { MarksLayer } from './marks/MarksLayer';
+import { IndexCard } from './IndexCard';
+import { StickyNotes } from './StickyNotes';
 
 const SECTION_KEYS = ['plan', 'criteriaStatus', 'people', 'stakeholders', 'systemsNotes', 'riskNotes', 'decisions', 'exposure', 'capacity', 'forecasts', 'experiments'] as const;
 const isEmpty = (v: unknown) => v == null || (Array.isArray(v) ? v.length === 0 : typeof v === 'object' && Object.keys(v as object).length === 0);
@@ -16,7 +21,6 @@ const weeksUntil = (d: string) => {
   const n = new Date();
   return Math.round((t - Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate(), 12)) / 6048e5);
 };
-const segColor = (s: string) => ({ met: 'bg-emerald-500', on_track: 'bg-emerald-500', at_risk: 'bg-amber-500', stalled: 'bg-orange-600', regressing: 'bg-red-500' }[s] ?? 'bg-slate-700');
 
 function EditJson({ goalId, k, value, onDone }: { goalId: string; k: string; value: unknown; onDone: () => void }) {
   const [text, setText] = useState(JSON.stringify(value, null, 2));
@@ -30,65 +34,87 @@ function EditJson({ goalId, k, value, onDone }: { goalId: string; k: string; val
   }
   return (
     <div className="space-y-2">
-      <textarea className={`${inputCls} h-64 font-mono text-xs`} value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />
-      {errs.map((e, i) => <p key={i} className="text-xs text-red-300">{e}</p>)}
-      <div className="flex gap-2"><Btn kind="primary" onClick={() => void save()}>Save</Btn><Btn onClick={onDone}>Cancel</Btn></div>
+      <textarea className={`${inputCls} min-h-64 font-mono text-[14px]`} value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />
+      {errs.map((e, i) => <p key={i} className="text-[14px] text-accent">{e}</p>)}
+      <div className="flex gap-3"><InkButton onClick={() => void save()}>Save</InkButton><TextAction onClick={onDone}>Cancel</TextAction></div>
     </div>
   );
 }
 
-function Card({ goalId, k, data, open }: { goalId: string; k: (typeof SECTION_KEYS)[number]; data: unknown; open: boolean }) {
+function Section({ goalId, k, data }: { goalId: string; k: (typeof SECTION_KEYS)[number]; data: unknown }) {
   const [editing, setEditing] = useState(false);
-  const hint = hintFor(k, data);
+  const { title, method } = sectionTitleFor(k);
   return (
-    <details open={open} className="group rounded-lg border border-slate-800 bg-slate-900/40">
-      <summary className="flex items-center justify-between gap-3 px-4 py-3">
-        <span className="font-medium">{titleForKey(k)}</span>
-        <span className="truncate text-xs text-slate-500">{hint}</span>
-      </summary>
-      <div className="border-t border-slate-800 px-4 py-3">
-        {editing ? <EditJson goalId={goalId} k={k} value={data} onDone={() => setEditing(false)} /> : <SectionBody k={k} data={data} goalId={goalId} editable />}
-        {!editing && <button className="mt-3 hidden text-xs text-slate-500 hover:text-slate-300 md:block" onClick={() => setEditing(true)}>Edit</button>}
-      </div>
-    </details>
+    <section className="space-y-2">
+      <h2 className="font-sans text-[17px] font-semibold leading-6">
+        {title}
+        {method && <PencilWord className="ml-2 text-[19px]">{method}</PencilWord>}
+      </h2>
+      {editing ? (
+        <EditJson goalId={goalId} k={k} value={data} onDone={() => setEditing(false)} />
+      ) : (
+        <>
+          <SectionBody k={k} data={data} goalId={goalId} editable />
+          <TextAction className="mt-1 hidden text-[14px] text-graphite md:inline-flex" onClick={() => setEditing(true)}>Edit</TextAction>
+        </>
+      )}
+    </section>
   );
 }
 
-function Bridge({ g, goalId }: { g: Goal; goalId: string }) {
+function EmptySection({ k, onTap }: { k: string; onTap?: () => void }) {
+  const { title } = sectionTitleFor(k);
+  const prompt = EMPTY_PROMPTS[k] ?? 'Nothing here yet.';
+  return (
+    <section className="space-y-2">
+      <h2 className="font-sans text-[17px] font-semibold leading-6">{title}</h2>
+      <TextAction className="text-left" onClick={onTap}>
+        <PencilWord>{prompt}</PencilWord>
+      </TextAction>
+    </section>
+  );
+}
+
+function GoalHeader({ g, goalId }: { g: Goal; goalId: string }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(g.goal);
   const weeks = g.deadline ? weeksUntil(g.deadline) : null;
-  const status = new Map(g.criteriaStatus.map((c) => [c.text, c.status]));
-  const focus = [...g.log].reverse().find((e) => e.focus)?.focus;
-  const next = g.plan?.linesOfOperation.flatMap((l) => l.nextActions).find((a) => a.status === 'pending');
-  const met = g.criteriaStatus.filter((c) => c.status === 'met' || c.status === 'on_track').length;
   const stub = g.successCriteria.length === 1 && g.successCriteria[0].text === 'define success criteria';
   return (
-    <div className="space-y-3 rounded-lg border border-slate-800 bg-slate-900/60 p-4">
-      <div className="flex items-start justify-between gap-3">
-        {editing ? (
-          <input autoFocus className={inputCls} value={val} maxLength={200} onChange={(e) => setVal(e.target.value)}
-            onBlur={() => { setEditing(false); if (val.trim() && val !== g.goal) void applyOp(goalId, (x) => writeSection(x, 'goal', val.trim()) as never); }}
-            onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
-        ) : (
-          <h2 className="text-lg font-semibold leading-snug md:cursor-text" onDoubleClick={() => { setVal(g.goal); setEditing(true); }}>{g.goal}</h2>
-        )}
-        {g.deadline && <div className="shrink-0 text-right text-xs text-slate-400"><div>{formatDate(g.deadline)}</div>{weeks !== null && <div className={weeks < 0 ? 'text-red-300' : ''}>{weeks < 0 ? `${-weeks} wk past` : `${weeks} wk left`}</div>}</div>}
-      </div>
-      {stub ? <p className="text-sm text-slate-500">Not yet defined. Describe the goal in the chat to fill this in.</p> : (
-        <>
-          <div>
-            <div className="flex gap-1">{g.successCriteria.map((c, i) => <div key={i} title={c.text} className={`h-2 flex-1 rounded-full ${segColor(status.get(c.text) ?? '')}`} />)}</div>
-            <div className="mt-1 text-xs text-slate-500">{met}/{g.successCriteria.length} criteria on track</div>
-          </div>
-          <ul className="space-y-1 text-sm">{g.successCriteria.map((c, i) => <li key={i} className="flex gap-2"><Pill tone={c.kind === 'control' ? 'sky' : 'slate'}>{c.kind}</Pill><span>{c.text}</span></li>)}</ul>
-        </>
+    <header className="space-y-1">
+      {editing ? (
+        <RuledInput
+          autoFocus
+          value={val}
+          maxLength={200}
+          onChange={(e) => setVal(e.target.value)}
+          onBlur={() => { setEditing(false); if (val.trim() && val !== g.goal) void applyOp(goalId, (x) => writeSection(x, 'goal', val.trim()) as never); }}
+          onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+        />
+      ) : (
+        <h1
+          data-line="goal"
+          className="ink-bleed cursor-text font-serif text-[29px] font-medium leading-[37px] text-ink"
+          onDoubleClick={() => { setVal(g.goal); setEditing(true); }}
+        >
+          {g.goal}
+        </h1>
       )}
-      {focus && <div className="text-sm"><span className="text-xs uppercase tracking-wide text-slate-500">Focus </span>{focus}</div>}
-      {g.posture && <div className="text-sm"><span className="text-xs uppercase tracking-wide text-slate-500">Posture </span>L{g.posture.current.level} {g.posture.current.label}</div>}
-      {next && <div className="text-sm"><span className="text-xs uppercase tracking-wide text-slate-500">Next </span>{next.action} <span className="text-xs text-slate-500">{next.who} · {next.when}</span></div>}
-    </div>
+      {stub ? (
+        <PencilWord>Not yet defined — describe the goal in the chat to fill this in.</PencilWord>
+      ) : g.deadline ? (
+        <PencilWord>
+          {weeks === null ? formatDeadline(g.deadline) : weeks < 0 ? `${-weeks} wk past` : `${weeks} wk left`}
+        </PencilWord>
+      ) : null}
+    </header>
   );
+}
+
+function formatDeadline(d: string) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+  if (!m) return d;
+  return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
 
 export function useGoalView(goalId: string) {
@@ -98,39 +124,47 @@ export function useGoalView(goalId: string) {
   }, [goalId]);
 }
 
+// Sections shown by default (with a tappable empty prompt) even before the
+// conversation has written to them, matching brand/identity.md §09's
+// "three sections by default". Everything else appears only once it has
+// content.
+const DEFAULT_SECTIONS: (typeof SECTION_KEYS)[number][] = ['plan', 'people', 'riskNotes'];
+
 export function Dashboard({ goalId }: { goalId: string }) {
   const read = useGoalView(goalId);
-  const [mobileGroup, setMobileGroup] = useState('plan');
-  if (!read) return <div className="p-6 text-sm text-slate-500">Loading…</div>;
-  if (read.status === 'needs_app_update') return <div className="m-4 rounded-md bg-amber-500/10 p-4 text-sm text-amber-200">This goal was saved by a newer version of Gambit (schema v{read.version}). Update the app to open it. It has not been changed.</div>;
-  if (read.status === 'invalid') return <div className="m-4 rounded-md bg-red-500/10 p-4 text-sm text-red-200">This goal doesn't match the current schema: {read.error}. Restore it from a backup or fix the JSON.</div>;
+  if (!read) return <div className="paper p-6"><PencilWord>Loading…</PencilWord></div>;
+  if (read.status === 'needs_app_update') return <div className="paper m-4 p-4 text-[17px] leading-[27px] text-accent">This goal was saved by a newer version of Gambit (schema v{read.version}). Update the app to open it. It has not been changed.</div>;
+  if (read.status === 'invalid') return <div className="paper m-4 p-4 text-[17px] leading-[27px] text-accent">This goal doesn't match the current schema: {read.error}. Restore it from a backup or fix the JSON.</div>;
   const g = read.data;
-  const sections = SECTION_KEYS.filter((k) => !isEmpty(g[k])).map((k) => ({ k, data: g[k] }));
-  const groups = GROUP_ORDER.map((key) => ({ key, label: (GROUP_LABELS as Record<string, string>)[key], items: sections.filter((s) => groupForSection(s.k) === key) })).filter((x) => x.items.length);
-  const shown = groups.some((x) => x.key === mobileGroup) ? mobileGroup : groups[0]?.key;
+
+  const shownKeys = SECTION_KEYS.filter((k) => !isEmpty(g[k]) || DEFAULT_SECTIONS.includes(k));
+
   return (
-    <div className="space-y-4 p-4">
-      <Bridge g={g} goalId={goalId} />
-      {groups.length > 0 && (
-        <div className="flex gap-1 overflow-x-auto md:hidden">
-          {groups.map((x) => <button key={x.key} onClick={() => setMobileGroup(x.key)} className={`shrink-0 rounded-full px-3 py-1 text-xs ${x.key === shown ? 'bg-sky-500 text-slate-950' : 'bg-slate-800 text-slate-300'}`}>{x.label}</button>)}
+    <MarksProvider goal={g} goalId={goalId}>
+      <div className="paper relative mx-auto min-h-full max-w-[60ch] px-[34px] py-6 md:px-12" style={{ borderLeft: '2px solid var(--margin-rule)' }}>
+        <MarksLayer />
+        <div className="space-y-6">
+          <IndexCard goal={g} goalId={goalId} />
+          <StickyNotes goal={g} goalId={goalId} />
+          <GoalHeader g={g} goalId={goalId} />
+          {shownKeys.map((k) =>
+            isEmpty(g[k]) ? <EmptySection key={k} k={k} /> : <Section key={k} goalId={goalId} k={k} data={g[k]} />
+          )}
+          {g.log.length > 0 && (
+            <section className="space-y-2">
+              <h2 className="font-sans text-[17px] font-semibold leading-6">Log</h2>
+              <ul className="space-y-3 text-[17px] leading-[27px]">
+                {[...g.log].reverse().slice(0, 30).map((e, i) => (
+                  <li key={i}>
+                    <PencilWord className="text-[16px]">{formatDate(e.date)}{e.source ? ` · ${e.source}` : ''}</PencilWord>
+                    <ul className="list-disc pl-5">{e.notes.map((n, j) => <li key={j}>{n}</li>)}</ul>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
-      )}
-      {groups.map((x) => (
-        <section key={x.key} className={x.key === shown ? 'space-y-2' : 'hidden space-y-2 md:block'}>
-          <h3 className="hidden text-xs font-semibold uppercase tracking-wide text-slate-500 md:block">{x.label}</h3>
-          {x.items.map((s) => <Card key={s.k} goalId={goalId} k={s.k} data={s.data} open={x.key === 'plan'} />)}
-        </section>
-      ))}
-      {groups.length === 0 && <p className="text-sm text-slate-500">Sections appear here as the conversation builds them.</p>}
-      {g.log.length > 0 && (
-        <details className="rounded-lg border border-slate-800 bg-slate-900/40">
-          <summary className="px-4 py-3 text-sm font-medium">Log <span className="text-xs text-slate-500">{g.log.length} entries</span></summary>
-          <ul className="space-y-2 border-t border-slate-800 px-4 py-3 text-sm">
-            {[...g.log].reverse().slice(0, 30).map((e, i) => <li key={i}><span className="text-xs text-slate-500">{formatDate(e.date)}{e.source ? ` · ${e.source}` : ''}</span><ul className="list-disc pl-5 text-slate-300">{e.notes.map((n, j) => <li key={j}>{n}</li>)}</ul></li>)}
-          </ul>
-        </details>
-      )}
-    </div>
+      </div>
+    </MarksProvider>
   );
 }
