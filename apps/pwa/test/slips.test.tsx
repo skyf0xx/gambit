@@ -5,6 +5,7 @@ import { stubGoal, setStatus } from '@gambit/core';
 import { nextMove, proposals } from '../src/lib/slips';
 import { IndexCard } from '../src/components/IndexCard';
 import { StickyNotes } from '../src/components/StickyNotes';
+import { timeLeft, pencilDate, byDate } from '../src/lib/dates';
 import type { Goal } from '../src/lib/types';
 
 type Plan = NonNullable<Goal['plan']>;
@@ -121,6 +122,39 @@ describe('StickyNotes markup', () => {
     const goal = withActions(stubGoal('Goal') as Goal, [{ action: 'A1', who: 'me', when: 'fri', status: 'pending' }]);
     const el = StickyNotes({ goal, goalId: 'g1' });
     expect(el).toBeNull();
+  });
+});
+
+describe('dates in voice', () => {
+  const today = new Date(Date.UTC(2026, 8, 30, 12)); // 2026-09-30, per the environment's "today"
+
+  it('reads a same-year date as "Weekday D Mon", never ISO', () => {
+    expect(pencilDate('2026-10-03')).toBe('Saturday 3 Oct');
+    expect(pencilDate('2026-10-03')).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+  });
+
+  it('includes the year only when it differs from this year', () => {
+    expect(pencilDate('2027-10-03', today)).toBe('Sunday 3 Oct 2027');
+  });
+
+  it('prefixes a due date with "by"', () => {
+    expect(byDate('2026-10-03')).toBe('by Saturday 3 Oct');
+    expect(byDate(null)).toBe('');
+  });
+
+  it('reads days-left when close, weeks-left when far, plural-aware', () => {
+    expect(timeLeft('2026-10-03', today)).toBe('3 days left');
+    expect(timeLeft('2026-10-01', today)).toBe('1 day left');
+    expect(timeLeft('2026-11-11', today)).toBe('6 weeks left');
+  });
+
+  it('reads "due today" and never uses "wk"', () => {
+    expect(timeLeft('2026-09-30', today)).toBe('due today');
+    expect(timeLeft('2026-11-11', today)).not.toMatch(/wk/);
+  });
+
+  it('reads a past deadline as "N days late"', () => {
+    expect(timeLeft('2026-09-28', today)).toBe('2 days late');
   });
 });
 

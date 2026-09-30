@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Goal } from '../lib/types';
 import { proposals, keep, toss } from '../lib/slips';
+import { byDate } from '../lib/dates';
 import { TextAction, PencilWord } from './ui';
 import type { SlipItem } from '../lib/slips';
 
@@ -8,39 +9,60 @@ import type { SlipItem } from '../lib/slips';
 // `proposed` next action, with a folded corner and a slight tilt. Reference:
 // brand/mockups/notebook.css (.sticky) and notebook.html.
 
+const reducedMotion = () =>
+  typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const PEEL_MS = () => (reducedMotion() ? 0 : 220);
+
 function Note({ goalId, item }: { goalId: string; item: SlipItem }) {
   const [busy, setBusy] = useState(false);
+  const [leaving, setLeaving] = useState<'keep' | 'toss' | null>(null);
+  const [revealed, setRevealed] = useState(false);
 
   const onKeep = async () => {
     if (busy) return;
     setBusy(true);
+    setLeaving('keep');
     try {
+      // A quick lift-and-settle (anim-press-like beat) before the note
+      // becomes an ordinary ink line; no separate exit timing needed since
+      // it isn't leaving the page, just changing status.
+      await new Promise((r) => setTimeout(r, reducedMotion() ? 0 : 160));
       await keep(goalId, item.path);
     } finally {
       setBusy(false);
+      setLeaving(null);
     }
   };
 
   const onToss = async () => {
     if (busy) return;
     setBusy(true);
+    setLeaving('toss');
     try {
+      await new Promise((r) => setTimeout(r, PEEL_MS()));
       await toss(goalId, item.path);
     } finally {
       setBusy(false);
+      setLeaving(null);
     }
+  };
+
+  const onNoteClick = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    setRevealed((r) => !r);
   };
 
   return (
     <aside
       aria-label="Suggestion from Gambit"
-      className="slip motion-safe:transform-[rotate(1.6deg)] relative ml-auto mt-9 w-[82%] bg-note px-4 pb-3 pt-4"
+      onClick={onNoteClick}
+      className={`slip group/note motion-safe:transform-[rotate(1.6deg)] relative ml-auto mt-9 w-[82%] bg-note px-4 pb-3 pt-4 ${leaving === 'toss' ? 'anim-peel' : leaving === 'keep' ? 'anim-press' : ''}`}
       style={{
         filter: 'drop-shadow(0 1px 1px var(--lift)) drop-shadow(0 12px 18px -12px var(--lift)) drop-shadow(6px 18px 26px -18px var(--lift-far))',
-        backgroundImage: 'linear-gradient(135deg, transparent 0 88%, var(--note-edge) 88% 100%)',
-        backgroundPosition: '100% 100%',
-        backgroundSize: '26px 26px',
-        backgroundRepeat: 'no-repeat',
+        backgroundImage: 'linear-gradient(135deg, transparent 0 88%, var(--note-edge) 88% 100%), var(--grain)',
+        backgroundPosition: '100% 100%, 0 0',
+        backgroundSize: '26px 26px, auto',
+        backgroundRepeat: 'no-repeat, repeat',
         clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 26px), calc(100% - 26px) 100%, 0 100%)',
       }}
     >
@@ -51,10 +73,12 @@ function Note({ goalId, item }: { goalId: string; item: SlipItem }) {
       </p>
       {(item.when || item.who) && (
         <p className="leading-6.25">
-          <PencilWord>{item.when ?? item.who}</PencilWord>
+          <PencilWord>{item.when ? byDate(item.when) : item.who}</PencilWord>
         </p>
       )}
-      <div className="mt-2.5 flex gap-4">
+      <div
+        className={`mt-2.5 flex gap-4 transition-opacity duration-150 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/note:opacity-100 [@media(hover:hover)]:group-focus-within/note:opacity-100 ${revealed ? 'opacity-100' : 'opacity-0 [@media(hover:none)]:pointer-events-none'}`}
+      >
         <TextAction disabled={busy} onClick={() => void onKeep()}>
           Keep it
         </TextAction>
@@ -62,6 +86,11 @@ function Note({ goalId, item }: { goalId: string; item: SlipItem }) {
           Toss
         </TextAction>
       </div>
+      {!revealed && (
+        <p aria-hidden="true" className="hand mt-0.5 text-[13px] opacity-60 [@media(hover:hover)]:hidden">
+          tap for options
+        </p>
+      )}
     </aside>
   );
 }
