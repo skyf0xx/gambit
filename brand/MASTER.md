@@ -67,18 +67,18 @@ The single entry point for the UX rethink: what Gambit is, where each decision l
 
 ### Core experience, step 1 (no layout change)
 - [ ] Plain-names layer: card titles, hints, group labels, the summary card, change summaries (`ux-general.md` §3)
-- [ ] Change marks: a pencilled accent loop and a "new, from your chat · undo" note on lines a turn changed
+- [x] Change marks: a pencilled accent loop and a "new, from your chat · undo" note on lines a turn changed
 - [x] Goal schema v2 for the marks: proposed next actions (sticky notes), `riskNotes[].dependsOn` (arrows), `criteriaStatus` `met` (ticks), open decisions ("?"), `log[].focusLine` (highlighter). Only next actions can be proposed. The star isn't stored: it's the first pending step on the focus line's critical path.
 - [x] Schema v2 wired through: the v1→v2 migration, core tests, the owning skills (`plan`, `threat`, `eval`, `decide`, `strategy`), `AGENTS.md`, the model-facing contract in `skills.ts` and the tool inputs in `tools.ts`. The current dashboard shows open decisions, proposed moves and met criteria.
-- [ ] The other pencil marks (`identity.md` §05), drawn with perfect-freehand: tick, highlighter, star, arrow, squiggle, eraser, margin "?"
-- [ ] Sticky-note suggestions: render proposed next actions as sticky notes, with Keep it and Toss flipping the status
+- [x] The other pencil marks (`identity.md` §05), drawn with perfect-freehand: tick, highlighter, star, arrow, squiggle, eraser, margin "?"
+- [x] Sticky-note suggestions: render proposed next actions as sticky notes, with Keep it and Toss flipping the status
 - [ ] The next move on open, built on the device, on the taped index card with three text actions
 - [ ] Keep-your-notebook-safe step. Safety then lives in the menu, and every banner goes except the app update.
 - [ ] A fresh conversation per session, with the goal loaded and the previous note carried in
 - [ ] The active skill's plain name in the accent colour while it works
 - [ ] Rewrite the intake opener in voice.md style (`apps/pwa/skills/intake/SKILL.md`, step 1)
-- [ ] The paper system: tokens, grain, the graphite and bleed filters, fonts including Caveat, perfect-freehand marks, slips, plain sections in place of cards, no bubbles, pills or criteria bar (`identity.md` §05, §10)
-- [ ] Contrast check of pencilled text on grained paper in both themes (`identity.md` §03)
+- [x] The paper system: tokens, grain, the graphite and bleed filters, fonts including Caveat, perfect-freehand marks, slips, plain sections in place of cards, no bubbles, pills or criteria bar (`identity.md` §05, §10)
+- [x] Contrast check of pencilled text on grained paper in both themes (`identity.md` §03)
 
 ### Core experience, step 2 (page first)
 - [ ] Page-first layout: a conversation sheet on mobile and a side column on desktop
