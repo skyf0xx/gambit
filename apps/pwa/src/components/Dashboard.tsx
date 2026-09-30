@@ -11,16 +11,10 @@ import { MarksProvider } from './marks/context';
 import { MarksLayer } from './marks/MarksLayer';
 import { IndexCard } from './IndexCard';
 import { StickyNotes } from './StickyNotes';
+import { timeLeft } from '../lib/dates';
 
 const SECTION_KEYS = ['plan', 'criteriaStatus', 'people', 'stakeholders', 'systemsNotes', 'riskNotes', 'decisions', 'exposure', 'capacity', 'forecasts', 'experiments'] as const;
 const isEmpty = (v: unknown) => v == null || (Array.isArray(v) ? v.length === 0 : typeof v === 'object' && Object.keys(v as object).length === 0);
-const weeksUntil = (d: string) => {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
-  if (!m) return null;
-  const t = Date.UTC(+m[1], +m[2] - 1, +m[3], 12);
-  const n = new Date();
-  return Math.round((t - Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate(), 12)) / 6048e5);
-};
 
 function EditJson({ goalId, k, value, onDone }: { goalId: string; k: string; value: unknown; onDone: () => void }) {
   const [text, setText] = useState(JSON.stringify(value, null, 2));
@@ -43,12 +37,19 @@ function EditJson({ goalId, k, value, onDone }: { goalId: string; k: string; val
 
 function Section({ goalId, k, data }: { goalId: string; k: (typeof SECTION_KEYS)[number]; data: unknown }) {
   const [editing, setEditing] = useState(false);
-  const { title, method } = sectionTitleFor(k);
+  const { title, method, methodNote } = sectionTitleFor(k);
   return (
-    <section className="space-y-2">
+    <section className="anim-fade-in space-y-2">
       <h2 className="font-sans text-[17px] font-semibold leading-6">
         {title}
-        {method && <PencilWord className="ml-2 text-[19px]">{method}</PencilWord>}
+        {method && (
+          <>
+            <span className="sr-only"> — </span>
+            <span data-note={methodNote}>
+              <PencilWord className="ml-2 text-[19px]">{method}</PencilWord>
+            </span>
+          </>
+        )}
       </h2>
       {editing ? (
         <EditJson goalId={goalId} k={k} value={data} onDone={() => setEditing(false)} />
@@ -66,7 +67,7 @@ function EmptySection({ k, onTap }: { k: string; onTap?: () => void }) {
   const { title } = sectionTitleFor(k);
   const prompt = EMPTY_PROMPTS[k] ?? 'Nothing here yet.';
   return (
-    <section className="space-y-2">
+    <section className="anim-fade-in space-y-2">
       <h2 className="font-sans text-[17px] font-semibold leading-6">{title}</h2>
       <TextAction className="text-left" onClick={onTap}>
         <PencilWord>{prompt}</PencilWord>
@@ -78,7 +79,6 @@ function EmptySection({ k, onTap }: { k: string; onTap?: () => void }) {
 function GoalHeader({ g, goalId }: { g: Goal; goalId: string }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(g.goal);
-  const weeks = g.deadline ? weeksUntil(g.deadline) : null;
   const stub = g.successCriteria.length === 1 && g.successCriteria[0].text === 'define success criteria';
   return (
     <header className="space-y-1">
@@ -103,18 +103,30 @@ function GoalHeader({ g, goalId }: { g: Goal; goalId: string }) {
       {stub ? (
         <PencilWord>Not yet defined — describe the goal in the chat to fill this in.</PencilWord>
       ) : g.deadline ? (
-        <PencilWord>
-          {weeks === null ? formatDeadline(g.deadline) : weeks < 0 ? `${-weeks} wk past` : `${weeks} wk left`}
-        </PencilWord>
+        <PencilWord>{timeLeft(g.deadline)}</PencilWord>
       ) : null}
     </header>
   );
 }
 
-function formatDeadline(d: string) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
-  if (!m) return d;
-  return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+/** The small in-page header (brand/mockups/notebook.html's `.topbar`):
+ * wordmark and a single menu icon button that opens the chrome's menu leaf. */
+function PageHeader() {
+  return (
+    <div className="-mt-6 mb-7 flex items-center justify-between md:-mt-11">
+      <span className="font-serif text-[17px] font-semibold text-ink">gambit</span>
+      <TextAction
+        aria-label="Menu"
+        data-note="Menu"
+        className="min-h-11! min-w-11! justify-center text-graphite"
+        onClick={() => window.dispatchEvent(new CustomEvent('gambit:menu'))}
+      >
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M2.5 5.5h15M2.5 10h15M2.5 14.5h15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </TextAction>
+    </div>
+  );
 }
 
 export function useGoalView(goalId: string) {
@@ -146,6 +158,7 @@ export function Dashboard({ goalId }: { goalId: string }) {
         style={{ borderLeft: '2px solid var(--margin-rule)' }}
       >
         <MarksLayer />
+        <PageHeader />
         <div className="space-y-6">
           <IndexCard goal={g} goalId={goalId} />
           <StickyNotes goal={g} goalId={goalId} />

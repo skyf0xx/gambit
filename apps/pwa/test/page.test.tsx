@@ -61,6 +61,16 @@ describe('notebook page markup', () => {
     expect(htmls).not.toMatch(/emerald-\d/);
   });
 
+  it('never strikes through a done or dropped line', () => {
+    const htmls = [renderSection('plan', g.plan), renderSection('riskNotes', g.riskNotes)].join('\n');
+    expect(htmls).not.toMatch(/line-through/);
+  });
+
+  it('renders no ISO dates in the markup', () => {
+    const html = renderSection('plan', g.plan);
+    expect(html).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+  });
+
   it('gives every markable line a data-line attribute', () => {
     const html = renderSection('plan', g.plan);
     expect(html).toContain('data-line="plan.linesOfOperation.0.criticalPath.0"');
@@ -98,13 +108,29 @@ describe('notebook page markup', () => {
     const planHtml = renderSection('plan', g.plan);
     expect(planHtml).toContain('data-box');
   });
+
+  it('gives every next action and step a box, not only criteria', () => {
+    const planHtml = renderSection('plan', g.plan);
+    // one box per Toggle tap-area plus one per Line hook, for each of: the
+    // critical-path step and the two visible (pending + done) next actions
+    expect((planHtml.match(/data-box/g) ?? []).length).toBeGreaterThanOrEqual(6);
+  });
 });
 
 describe('sectionTitleFor', () => {
+  it('renames plan to Future moves', () => {
+    expect(sectionTitleFor('plan').title).toBe('Future moves');
+  });
+
   it('maps riskNotes to a plain-language title with the method pencilled beside it', () => {
     const t = sectionTitleFor('riskNotes');
     expect(t.title).toBe('What could go wrong');
     expect(t.method).toBe('red team');
+  });
+
+  it('gives every method a one-line plain-language note', () => {
+    expect(sectionTitleFor('riskNotes').methodNote).toMatch(/red team/);
+    expect(sectionTitleFor('criteriaStatus').methodNote).toMatch(/eval/);
   });
 
   it('falls back to the raw key for an unknown section', () => {

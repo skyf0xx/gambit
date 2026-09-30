@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { Goal } from '../lib/types';
 import { nextMove, markDone } from '../lib/slips';
+import { byDate } from '../lib/dates';
 import { TextAction, PencilWord } from './ui';
 
 // The taped index card (brand/identity.md §03/§05): the single next move,
@@ -19,23 +20,45 @@ function dispatchCompose(text: string) {
   window.dispatchEvent(new CustomEvent(COMPOSE_EVENT, { detail: { text } }));
 }
 
+const reducedMotion = () =>
+  typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// 220ms peel / 180ms card-out, or 0 under reduced motion — the shared exit
+// timing other builders' animation classes use (see AGENTS.md task notes).
+const CARD_OUT_MS = () => (reducedMotion() ? 0 : 180);
+
 export function IndexCard({ goal, goalId }: { goal: Goal; goalId: string }) {
   const [busy, setBusy] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
   const move = nextMove(goal);
 
   const onDone = async () => {
     if (!move || busy) return;
     setBusy(true);
+    setLeaving(true);
     try {
+      await new Promise((r) => setTimeout(r, CARD_OUT_MS()));
       await markDone(goalId, move.path);
     } finally {
       setBusy(false);
+      setLeaving(false);
     }
+  };
+
+  const onCardClick = (e: React.MouseEvent) => {
+    // Touch-only reveal: tapping the card toggles the action row; tapping a
+    // button inside (a TextAction) shouldn't also toggle it shut first.
+    if ((e.target as HTMLElement).closest('button')) return;
+    setRevealed((r) => !r);
   };
 
   return (
     <div
-      className="slip motion-safe:transform-[rotate(-0.7deg)] relative -mx-1.5 mb-14 -ml-3.5 rounded-[1px] px-4.5 pb-2.5 pt-4.5"
+      ref={cardRef}
+      onClick={onCardClick}
+      className={`slip group/card motion-safe:transform-[rotate(-0.7deg)] relative -mx-1.5 mb-14 -ml-3.5 rounded-[1px] px-4.5 pb-2.5 pt-4.5 ${leaving ? 'anim-card-out' : 'anim-card-in'}`}
       style={{
         filter: 'drop-shadow(0 1px 1px var(--lift)) drop-shadow(0 10px 22px -10px var(--lift)) drop-shadow(0 22px 40px -24px var(--lift-far))',
         // Layered on top of (not replacing) the `slip` utility's grain +
@@ -64,10 +87,12 @@ export function IndexCard({ goal, goalId }: { goal: Goal; goalId: string }) {
           </p>
           {(move.when || move.who) && (
             <p className="leading-7">
-              <PencilWord>{move.when ?? move.who}</PencilWord>
+              <PencilWord>{move.when ? byDate(move.when) : move.who}</PencilWord>
             </p>
           )}
-          <div className="mt-1 flex gap-4">
+          <div
+            className={`mt-1 flex gap-4 transition-opacity duration-150 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/card:opacity-100 [@media(hover:hover)]:group-focus-within/card:opacity-100 ${revealed ? 'opacity-100' : 'opacity-0 [@media(hover:none)]:pointer-events-none'}`}
+          >
             <TextAction disabled={busy} onClick={() => void onDone()}>
               Done
             </TextAction>
@@ -84,6 +109,11 @@ export function IndexCard({ goal, goalId }: { goal: Goal; goalId: string }) {
               Something changed
             </TextAction>
           </div>
+          {!revealed && (
+            <p aria-hidden="true" className="hand mt-0.5 text-[14px] opacity-60 [@media(hover:hover)]:hidden">
+              tap for options
+            </p>
+          )}
         </>
       ) : (
         <>

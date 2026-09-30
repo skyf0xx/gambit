@@ -6,12 +6,11 @@ import { useLineMark } from './marks/context';
 import { undoTurn } from '../lib/agent';
 import type { Goal } from '../lib/types';
 import { TextAction, PencilWord } from './ui';
+import { pencilDate, byDate } from '../lib/dates';
 
-export const formatDate = (s?: string | null) => {
-  const m = s && /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  if (!m) return s ?? '';
-  return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-};
+/** Pencilled long-date form ("Friday 3 Oct"), never ISO — used for the log
+ * and anywhere a bare date (not a "by …" due date) is shown. */
+export const formatDate = (s?: string | null) => pencilDate(s);
 
 export const titleForKey = (k: string) => {
   const s = k.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
@@ -99,20 +98,22 @@ function Line({ goalId, path, className = '', box, children }: { goalId: string;
   );
 }
 
+/** The 44x44 tick-toggle tap area, wrapping the small visible box the marks
+ * layer overshoots. Done items stay in normal ink — nothing here strikes
+ * through; the pencil tick is the only "done" signal (brand/identity.md §05). */
 function Toggle({ goalId, path, status, editable, children }: { goalId: string; path: string; status: string; editable: boolean; children: ReactNode }) {
   const next = status === 'done' ? 'pending' : 'done';
-  const cls = status === 'done' ? 'text-graphite line-through' : '';
   return (
     <li className="flex items-start text-[17px] leading-[27px]">
       <TextAction
         disabled={!editable}
         title={editable ? `Mark ${next}` : undefined}
-        className={`w-11 shrink-0 justify-center ${cls}`}
+        className="w-11 shrink-0 justify-center"
         onClick={() => void applyOp(goalId, (g) => setStatus(g, path, next) as never)}
       >
         <span className="box" data-box aria-hidden="true" />
       </TextAction>
-      <div className={`min-w-0 flex-1 ${cls}`}>{children}</div>
+      <div className="min-w-0 flex-1">{children}</div>
     </li>
   );
 }
@@ -126,13 +127,13 @@ function Steps({ goalId, base, steps, editable }: { goalId: string; base: string
     <ol className="space-y-1.5">
       {steps.map((s, i) => (
         <Toggle key={i} goalId={goalId} path={`${base}.${i}`} status={s.status} editable={editable}>
-          <Line goalId={goalId} path={`${base}.${i}`}><span>{s.label}</span></Line>
+          <Line goalId={goalId} path={`${base}.${i}`} box><span>{s.label}</span></Line>
           <Detail>{s.detail}</Detail>
           {s.items?.length > 0 && (
             <ul className="mt-1 space-y-1 pl-1">
               {s.items.map((it: Any, j: number) => (
                 <Toggle key={j} goalId={goalId} path={`${base}.${i}.items.${j}`} status={it.status} editable={editable}>
-                  <Line goalId={goalId} path={`${base}.${i}.items.${j}`} className="text-[14px]"><span>{it.label}</span></Line>
+                  <Line goalId={goalId} path={`${base}.${i}.items.${j}`} className="text-[14px]" box><span>{it.label}</span></Line>
                 </Toggle>
               ))}
             </ul>
@@ -175,20 +176,20 @@ export function SectionBody({ k, data, goalId, editable }: { k: keyof Goal; data
               <Steps goalId={goalId} base={`plan.linesOfOperation.${li}.criticalPath`} steps={l.criticalPath} editable={editable} />
               {l.blocker && <p className="text-[14px] text-graphite">Blocked: {l.blocker}</p>}
               {actions.length > 0 && (
-                <div>
-                  <div className="mb-1 text-[14px] text-graphite">Next actions</div>
-                  <ul className="space-y-1.5">
-                    {actions.map(({ a, path }) => (
-                      <Toggle key={path} goalId={goalId} path={path} status={a.status} editable={editable}>
-                        <Line goalId={goalId} path={path}>
-                          <span>{a.action}</span>
-                          <span className="ml-2 text-[14px] text-graphite">{a.who} · {a.when}</span>
-                        </Line>
-                        <Detail>{a.detail}</Detail>
-                      </Toggle>
-                    ))}
-                  </ul>
-                </div>
+                <ol className="space-y-1.5">
+                  {actions.map(({ a, path }) => (
+                    <Toggle key={path} goalId={goalId} path={path} status={a.status} editable={editable}>
+                      <Line goalId={goalId} path={path} box>
+                        <span>{a.action}</span>
+                        <span className="ml-2 text-[14px] text-graphite">
+                          {a.who}
+                          {a.when ? ` · ${byDate(a.when)}` : ''}
+                        </span>
+                      </Line>
+                      <Detail>{a.detail}</Detail>
+                    </Toggle>
+                  ))}
+                </ol>
               )}
             </div>
           );
@@ -268,7 +269,7 @@ export function SectionBody({ k, data, goalId, editable }: { k: keyof Goal; data
               <>
                 <Line goalId={goalId} path={`decisions.${i}`}><span className="font-medium text-ink">{d.choice}</span></Line>
                 {d.because && <Detail>Because {d.because}</Detail>}
-                <Detail>Reverse if {d.reverseIf}{d.reviewBy ? ` · review by ${formatDate(d.reviewBy)}` : ''}</Detail>
+                <Detail>Reverse if {d.reverseIf}{d.reviewBy ? ` · review ${byDate(d.reviewBy)}` : ''}</Detail>
               </>
             )}
           </div>
@@ -310,7 +311,7 @@ export function SectionBody({ k, data, goalId, editable }: { k: keyof Goal; data
             <Line goalId={goalId} path={`experiments.${i}`} className={e.done ? '' : 'pencil'} box>
               <span>{e.assumption}</span>
             </Line>
-            <Detail>Test: {e.test} · pass if {e.passIf} · by {formatDate(e.by)}</Detail>
+            <Detail>Test: {e.test} · pass if {e.passIf} · {byDate(e.by)}</Detail>
             {e.result && <Detail>Result: {e.result}</Detail>}
           </li>
         ))}
@@ -326,7 +327,7 @@ export function SectionBody({ k, data, goalId, editable }: { k: keyof Goal; data
               <span className="tabular-nums"><PencilWord>{f.probability}%</PencilWord></span>{' '}
               <span>{f.statement}</span>
             </Line>
-            <Detail>{f.resolved ? `Resolved ${f.outcome ?? ''}${f.verdict ? ` — ${f.verdict}` : ''}` : `Resolves ${formatDate(f.resolvesBy)} via ${f.resolvesVia}`}</Detail>
+            <Detail>{f.resolved ? `Resolved ${f.outcome ?? ''}${f.verdict ? ` — ${f.verdict}` : ''}` : `Resolves ${byDate(f.resolvesBy)} via ${f.resolvesVia}`}</Detail>
           </li>
         ))}
       </ul>
