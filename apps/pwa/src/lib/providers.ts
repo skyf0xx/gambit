@@ -42,7 +42,7 @@ export function keyProvider(key: string): Exclude<ProviderKind, 'custom'> | 'ope
   const k = cleanKey(key);
   if (k.startsWith('sk-ant-')) return 'anthropic';
   if (k.startsWith('sk-or-')) return 'openrouter';
-  if (/^sk-[a-f0-9]{32}$/.test(k)) return 'deepseek';
+  if (/^sk-[a-f0-9]{32,}$/.test(k)) return 'deepseek';
   if (k.startsWith('sk-')) return 'openai';
   if (k.startsWith('AQ.') || k.startsWith('AIza')) return 'google';
   return null;
@@ -75,7 +75,7 @@ export async function checkKey(s: Pick<ProviderSettings, 'kind' | 'baseURL'>, ke
     headers = { 'x-api-key': k, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' };
   } else if (base.startsWith(OPENROUTER_BASE)) url = `${base}/key`;
   try {
-    const r = await fetch(url, { headers });
+    const r = await fetch(url, { headers, signal: AbortSignal.timeout(10_000) });
     if (r.ok) return 'ok';
     return r.status === 400 || r.status === 401 || r.status === 403 ? 'bad' : 'unreachable';
   } catch {

@@ -183,19 +183,28 @@ function KeepSafe() {
 
 const THEMES: { id: Theme; label: string }[] = [{ id: 'system', label: 'Match my device' }, { id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' }];
 
-/** Light or dark paper, or whichever the device is using. */
+/** Light or dark paper, or whichever the device is using: one line per
+ * choice, the one in use pencilled at its end. */
 function Appearance() {
   const theme = useTheme();
   return (
-    <Group label="Paper" note={THEMES.find((t) => t.id === theme)?.label}>
-      <div role="radiogroup" aria-label="Paper" className="flex flex-wrap items-center gap-x-5">
-        {THEMES.map((t) => (
-          <TextAction key={t.id} role="radio" aria-checked={theme === t.id} className={`${linkCls} ${theme === t.id ? 'font-semibold' : 'no-underline text-graphite'}`} onClick={() => setTheme(t.id)}>
-            {t.label}
+    <div role="radiogroup" aria-label="Appearance" className="flex flex-col items-stretch">
+      {THEMES.map((t) => {
+        const on = theme === t.id;
+        return (
+          <TextAction
+            key={t.id}
+            role="radio"
+            aria-checked={on}
+            className={`flex w-full items-baseline justify-between gap-3 text-left ${on ? '' : 'text-graphite!'}`}
+            onClick={() => setTheme(t.id)}
+          >
+            <span>{t.label}</span>
+            {on && <PencilWord className="shrink-0">on</PencilWord>}
           </TextAction>
-        ))}
-      </div>
-    </Group>
+        );
+      })}
+    </div>
   );
 }
 
@@ -276,8 +285,8 @@ export function SettingsPage({ goalId, goals, activeId, cost, onSwitchGoal, onNe
         <NotebookShelf goals={goals ?? []} activeId={activeId} onSwitch={(id) => onSwitchGoal?.(id)} onNew={() => onNewGoal?.()} />
       </PageSection>
       <PageSection title="Model and key"><ProviderForm /></PageSection>
-      <PageSection title="Appearance"><Appearance /></PageSection>
       <PageSection title="Saving your work"><KeepSafe /></PageSection>
+      <PageSection title="Appearance"><Appearance /></PageSection>
       <PageSection title="Conversation and cost">
         <div className="space-y-6">
           {goalId && (

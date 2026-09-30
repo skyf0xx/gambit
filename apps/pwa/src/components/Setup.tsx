@@ -20,7 +20,8 @@ const CHECK_TEXT: Record<Exclude<KeyCheck, 'ok'>, string> = {
 
 /** Provider, model and key entry. Used under "Other options" on first run and inside Settings. */
 export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => void; beforeSave?: () => Promise<void>; firstRun?: boolean }) {
-  const [s, setS] = useState<ProviderSettings>({ kind: firstRun ? 'anthropic' : 'google', model: PROVIDERS[firstRun ? 'anthropic' : 'google'].defaultModel });
+  const [state, setS] = useState<ProviderSettings>({ kind: firstRun ? 'anthropic' : 'google', model: PROVIDERS[firstRun ? 'anthropic' : 'google'].defaultModel });
+  const s = state;
   const [key, setKey] = useState('');
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState('');
@@ -52,24 +53,35 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
   // A recognised key picks its own provider, and that provider's recommended
   // model (OpenRouter and DeepSeek as custom endpoints).
   const [detected, setDetected] = useState<keyof typeof KEY_LABEL | null>(null);
-  function onKey(k: string) {
-    setKey(k);
+  /** The settings a recognised key calls for, or null when the form already has them. */
+  function settingsFromKey(k: string): ProviderSettings | null {
     const p = keyProvider(k);
-    setDetected(p);
-    if (!p || (firstRun && p === 'google')) return;
+    if (!p || (firstRun && p === 'google')) return null;
     const next = settingsForKey(p);
     const same = next.kind === s.kind && (next.kind !== 'custom' || (s.baseURL ?? '').startsWith(next.baseURL ?? ''));
-    if (same) return;
-    setS({ ...next, webSearch: false });
+    return same ? null : { ...next, webSearch: false };
+  }
+  function adopt(next: ProviderSettings) {
+    setS(next);
     setShowBase(!!next.baseURL);
     setErr('');
     setUnchecked(false);
     void hasApiKey(next.kind).then(setSaved);
   }
+  function onKey(k: string) {
+    setKey(k);
+    setDetected(keyProvider(k));
+    const next = settingsFromKey(k);
+    if (next) adopt(next);
+  }
 
   async function save(skipCheck = false) {
     setErr('');
     setUnchecked(false);
+    // Whatever the form shows, a recognised key saves under its own provider.
+    const fromKey = key ? settingsFromKey(key) : null;
+    if (fromKey) adopt(fromKey);
+    const s = fromKey ?? state;
     if (!s.model.trim()) return setErr('Add a model (the default is fine).');
     const base = s.baseURL || PROVIDERS[s.kind].baseURL;
     if (s.kind === 'custom' && !base) return setErr('A custom provider needs a base URL.');
@@ -295,12 +307,21 @@ function GoalStep({ draft, onDraft, onNext }: { draft: string; onDraft: (v: stri
         <InkButton className={canDictate ? 'mt-8' : 'mt-12'} disabled={!ready} onClick={next}>Continue</InkButton>
       </div>
 
-      <p className="hand mt-auto pt-16 text-[20px]! leading-[26px]!">Next you'll get a free key from Google.</p>
+      <p className="hand mt-auto pt-16 text-[20px]! leading-[26px]!">Next, add your API key.</p>
     </div>
   );
 }
 
 const OPENED = 'gambit:opened-studio';
+
+/** Where each provider hands out keys, for anyone arriving without one. */
+const KEY_LINKS: { label: string; url: string }[] = [
+  { label: 'Google', url: GOOGLE_KEY_URL },
+  { label: 'Anthropic', url: 'https://console.anthropic.com/settings/keys' },
+  { label: 'OpenAI', url: 'https://platform.openai.com/api-keys' },
+  { label: 'DeepSeek', url: 'https://platform.deepseek.com/api_keys' },
+  { label: 'OpenRouter', url: 'https://openrouter.ai/keys' },
+];
 
 type Status =
   | { kind: 'idle' }
@@ -315,8 +336,8 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
   const run = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const canPaste = typeof navigator !== 'undefined' && !!navigator.clipboard?.readText;
-  // Set once they've gone to AI Studio. Kept for the tab's session, since
-  // coming back on a phone can reload the app.
+  // Set once they've gone off to get a key. Kept for the tab's session,
+  // since coming back on a phone can reload the app.
   const [opened, setOpened] = useState(() => { try { return sessionStorage.getItem(OPENED) === '1'; } catch { return false; } });
 
   async function commit(s: ProviderSettings, k: string) {
@@ -325,17 +346,17 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
     await saveProvider(s);
   }
 
-  async function verify(s: ProviderSettings, k: string, label?: string) {
+  async function verify(s: ProviderSettings, k: string, label: string) {
     const id = ++run.current;
     setStatus({ kind: 'checking', label });
     const r = await checkKey(s, k);
     if (id !== run.current) return;
     if (r !== 'ok') {
-      setStatus({ kind: 'error', text: r === 'bad' && s.kind === 'google' ? "That key didn't work. Copy it again from AI Studio. It starts with AQ." : CHECK_TEXT[r] });
+      setStatus({ kind: 'error', text: CHECK_TEXT[r] });
       return;
     }
     setStatus({ kind: 'ok', label });
-    // A beat to read "Key works" before the notebook opens.
+    // A beat to read "key works" before the notebook opens.
     await new Promise((res) => setTimeout(res, 700));
     if (id === run.current) await commit(s, k);
   }
@@ -345,9 +366,9 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
     const k = cleanKey(key);
     run.current++;
     if (k.length < 20) { setStatus({ kind: 'idle' }); return; }
-    // Recognised keys go to their own provider; anything else is tried as Google's.
-    const p = keyProvider(k) ?? 'google';
-    const t = setTimeout(() => void verify(settingsForKey(p), k, p === 'google' ? undefined : KEY_LABEL[p]), 350);
+    const p = keyProvider(k);
+    if (!p) { setStatus({ kind: 'error', text: "We don't recognise this key. For another provider, use a custom endpoint below." }); return; }
+    const t = setTimeout(() => void verify(settingsForKey(p), k, KEY_LABEL[p]), 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
@@ -356,15 +377,15 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
     try { setKey(cleanKey(await navigator.clipboard.readText())); } catch { /* declined; the field still takes a long-press paste */ }
   }
 
-  function openStudio() {
-    window.open(GOOGLE_KEY_URL, '_blank', 'noopener');
+  function getKey(url: string) {
+    window.open(url, '_blank', 'noopener');
     setOpened(true);
     try { sessionStorage.setItem(OPENED, '1'); } catch { /* the Paste button still works */ }
   }
 
-  // Back from AI Studio: read the clipboard, and fill the field if it holds
-  // a key. Chrome allows it once clipboard permission is granted; where it's
-  // refused (Safari wants a tap), the field is focused and Paste leads.
+  // Back from getting a key: read the clipboard, and fill the field if it
+  // holds one. Chrome allows it once clipboard permission is granted; where
+  // it's refused (Safari wants a tap), the field is focused and Paste leads.
   const keyRef = useRef(key);
   keyRef.current = key;
   useEffect(() => {
@@ -383,8 +404,6 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
     return () => { window.removeEventListener('focus', onBack); document.removeEventListener('visibilitychange', onBack); };
   }, [opened]);
 
-  const works = status.kind === 'ok';
-
   return (
     <div className="flex flex-1 flex-col">
       {onBack && (
@@ -392,43 +411,14 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
           <TextAction className="text-[15px]! text-graphite!" onClick={onBack}>← Back</TextAction>
         </div>
       )}
-      <h1 className="ink-bleed anim-rise font-serif text-[30px] leading-[38px] font-medium text-ink">Get your free key</h1>
-      <p className="anim-rise mt-3 text-[17px] leading-[27px] text-graphite">Gambit needs a key from Google to think this through with you. It takes about 2 minutes.</p>
-
-      <ol className="anim-rise mt-10 space-y-5">
-        {[
-          ['Open Google AI Studio', 'Sign in with any Google account'],
-          ['Copy your key', ''],
-          ['Paste it here', ''],
-        ].map(([title, sub], i) => (
-          <li key={title} className="grid grid-cols-[36px_1fr] text-[18px] leading-[28px] text-ink">
-            <span className="hand text-[24px]! leading-[28px]!">{i + 1}</span>
-            <span>
-              {title}
-              {sub && <span className="block text-[14px] leading-[20px] text-graphite">{sub}</span>}
-            </span>
-          </li>
-        ))}
-      </ol>
-
-      {/* The filled button follows the step: open AI Studio first, then,
-          once they're back, paste. */}
-      {opened && canPaste && !key ? (
-        <div className="anim-rise mt-10 flex flex-wrap items-center gap-x-5 gap-y-2">
-          <InkButton onClick={() => void paste()}>Paste your key</InkButton>
-          <TextAction className="text-[15px]! text-graphite! underline underline-offset-[3px]" onClick={openStudio}>Open AI Studio again</TextAction>
-        </div>
-      ) : (
-        <InkButton className={`anim-rise mt-10 self-start transition-opacity duration-300 ${works || key ? 'opacity-25' : ''}`} onClick={openStudio}>
-          Open Google AI Studio
-        </InkButton>
-      )}
+      <h1 className="ink-bleed anim-rise font-serif text-[30px] leading-[38px] font-medium text-ink">Add your API key</h1>
+      <p className="anim-rise mt-3 text-[17px] leading-[27px] text-graphite">Gambit runs on your own key from an AI provider. It stays encrypted on this device.</p>
 
       <div className="anim-rise mt-10">
         <div className="flex items-end gap-3">
           <input
             ref={inputRef}
-            aria-label="Paste your key"
+            aria-label="API key"
             className={`${inputCls} font-mono text-[16px]! placeholder:font-sans placeholder:text-[17px]`}
             value={key}
             onChange={(e) => setKey(e.target.value)}
@@ -437,7 +427,7 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
             autoComplete="off"
             autoCapitalize="off"
           />
-          {canPaste && !key && !opened && <TextAction className="underline underline-offset-[3px]" onClick={() => void paste()}>Paste</TextAction>}
+          {canPaste && !key && <TextAction className="underline underline-offset-[3px]" onClick={() => void paste()}>Paste</TextAction>}
         </div>
         <div className="mt-2.5 min-h-[20px] text-[14px] leading-[20px]" aria-live="polite">
           {status.kind === 'checking' && <span className="text-graphite">{status.label ? `Checking your ${status.label} key…` : 'Checking…'}</span>}
@@ -451,14 +441,23 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
         </div>
       </div>
 
+      <div className="anim-rise mt-8">
+        <p className="text-[14px] leading-5 text-graphite">No key yet? Get one from</p>
+        <div className="flex flex-wrap gap-x-5">
+          {KEY_LINKS.map((l) => (
+            <TextAction key={l.label} className="text-[15px]! underline underline-offset-[3px]" onClick={() => getKey(l.url)}>{l.label}</TextAction>
+          ))}
+        </div>
+      </div>
+
       <div className="mt-auto flex flex-col gap-3 pt-16">
         {otherProvider ? (
           <div className="anim-rise">
-            <h2 className="mb-4 font-serif text-[20px] font-medium text-ink">A different provider</h2>
+            <h2 className="mb-4 font-serif text-[20px] font-medium text-ink">Custom endpoint</h2>
             <ProviderForm firstRun beforeSave={beforeSave} />
           </div>
         ) : (
-          <TextAction className="self-start text-[14px]! text-graphite! underline underline-offset-[3px]" onClick={() => setOtherProvider(true)}>Use a different provider</TextAction>
+          <TextAction className="self-start text-[14px]! text-graphite! underline underline-offset-[3px]" onClick={() => setOtherProvider(true)}>Use a custom endpoint</TextAction>
         )}
       </div>
     </div>
