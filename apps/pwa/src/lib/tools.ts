@@ -58,7 +58,8 @@ export function makeTools(ctx: ToolContext) {
       description: `Replace one owned key of the goal with a complete new value, validated against its schema. Keys: ${WRITABLE_KEYS.join(', ')}. Returns { ok: true } or { ok: false, errors: [{ path, message }] }; fix the listed fields and retry.`,
       inputSchema: z.object({
         key: z.enum(WRITABLE_KEYS as [string, ...string[]]),
-        value: z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(z.any()), z.record(z.any())]).describe('The complete new value for the key, matching the section shapes in the system prompt.'),
+        // Array items need a concrete type: Gemini rejects an array schema without `items`.
+        value: z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(z.union([z.string(), z.record(z.any())])), z.record(z.any())]).describe('The complete new value for the key, matching the section shapes in the system prompt.'),
       }),
       execute: async ({ key, value }) => result(await applyOp(ctx.goalId, (g) => writeSection(g, key, value) as never)),
     }),
