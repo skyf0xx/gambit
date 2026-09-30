@@ -10,7 +10,7 @@ test('stubGoal is valid and seeded from title', () => {
   const g = stubGoal('Ship it');
   assert.equal(goalSchema.safeParse(g).success, true);
   assert.equal(g.goal, 'Ship it');
-  assert.equal(g.schemaVersion, 2);
+  assert.equal(g.schemaVersion, 3);
 });
 
 test('schema rejects bad dates, enums, and over-long labels', () => {
@@ -20,6 +20,17 @@ test('schema rejects bad dates, enums, and over-long labels', () => {
   assert.equal(bad({ successCriteria: [{ text: 'y', kind: 'sideways' }] }).success, false);
   assert.equal(bad({ people: [{ name: 'x'.repeat(41), status: 'lead', doing: 'd' }] }).success, false);
   assert.equal(bad({ deadline: '2028-02-29' }).success, true);
+});
+
+test('subGoals: optional, capped at 5 entries, each at most 12 words / 100 chars', () => {
+  const ok = (patch) => goalSchema.safeParse({ ...stubGoal('g'), ...patch }).success;
+  assert.equal(ok({}), true, 'subGoals is optional');
+  assert.equal(ok({ subGoals: ['without burning out', 'without losing Priya'] }), true);
+  assert.equal(ok({ subGoals: Array.from({ length: 5 }, (_, i) => `part ${i}`) }), true);
+  assert.equal(ok({ subGoals: Array.from({ length: 6 }, (_, i) => `part ${i}`) }), false, 'max 5 items');
+  assert.equal(ok({ subGoals: [Array.from({ length: 13 }, () => 'word').join(' ')] }), false, 'max 12 words');
+  assert.equal(ok({ subGoals: ['x'.repeat(101)] }), false, 'max 100 chars');
+  assert.equal(ok({ subGoals: [''] }), false, 'no empty entries');
 });
 
 test('caps: 6 critical-path steps, 5 next actions', () => {
@@ -43,7 +54,7 @@ test('reconcileGoal warns when children are all done but parent lags', () => {
 
 test('registry: every schema key maps to a group in GROUP_ORDER', () => {
   for (const key of Object.keys(goalSchema.shape)) {
-    if (['schemaVersion', 'goal', 'successCriteria', 'deadline', 'log', 'posture'].includes(key)) continue;
+    if (['schemaVersion', 'goal', 'subGoals', 'successCriteria', 'deadline', 'log', 'posture'].includes(key)) continue;
     assert.ok(GROUP_ORDER.includes(groupForSection(key)), key);
   }
   assert.ok(Object.values(SECTION_GROUPS).every((g) => GROUP_ORDER.includes(g)));
@@ -56,24 +67,57 @@ test('readGoal: ok, invalid, and newer-version paths', () => {
   assert.equal(readGoal(stubGoal('g')).status, 'ok');
   assert.equal(readGoal('{nope').status, 'invalid');
   assert.equal(readGoal({ goal: 'x' }).status, 'invalid');
-  assert.deepEqual(readGoal({ ...stubGoal('g'), schemaVersion: 3 }), { status: 'needs_app_update', version: 3 });
+  assert.deepEqual(readGoal({ ...stubGoal('g'), schemaVersion: 4 }), { status: 'needs_app_update', version: 4 });
 });
 
 test('readGoal: migration chain runs then validates', () => {
-  const migrations = [{ from: 2, to: 3, transform: (d) => ({ ...d, goal: d.goal.toUpperCase() }) }];
-  const r = readGoal(stubGoal('abc'), { migrations, current: 3 });
-  // current schema is still literal(2), so the migrated v3 doc must fail validation loudly rather than pass
+  const migrations = [{ from: 3, to: 4, transform: (d) => ({ ...d, goal: d.goal.toUpperCase() }) }];
+  const r = readGoal(stubGoal('abc'), { migrations, current: 4 });
+  // current schema is still literal(3), so the migrated v4 doc must fail validation loudly rather than pass
   assert.equal(r.status, 'invalid');
-  const noPath = readGoal(stubGoal('abc'), { migrations: [], current: 3 });
-  assert.match(noPath.error, /no migration from schemaVersion 2/);
+  const noPath = readGoal(stubGoal('abc'), { migrations: [], current: 4 });
+  assert.match(noPath.error, /no migration from schemaVersion 3/);
 });
 
-test('readGoal: a v1 document migrates to v2 unchanged', () => {
+test('readGoal: a v1 document migrates all the way to v3 unchanged (short goal)', () => {
   const v1 = { ...stubGoal('abc'), schemaVersion: 1 };
   const r = readGoal(v1);
   assert.equal(r.status, 'ok');
   assert.equal(r.migratedFrom, 1);
-  assert.deepEqual(r.data, { ...v1, schemaVersion: 2 });
+  assert.deepEqual(r.data, { ...v1, schemaVersion: 3 });
+});
+
+test('readGoal: v2 -> v3 migration splits an over-long goal on a dash', () => {
+  const v2 = { ...stubGoal('Open a third salon by March — without burning out or losing Priya'), schemaVersion: 2 };
+  const r = readGoal(v2);
+  assert.equal(r.status, 'ok');
+  assert.equal(r.data.goal, 'Open a third salon by March');
+  assert.deepEqual(r.data.subGoals, ['without burning out or losing Priya']);
+});
+
+test('readGoal: v2 -> v3 migration splits an over-long goal on a semicolon, further on commas', () => {
+  const v2 = { ...stubGoal('Launch the new product line by Q2; hire two engineers, keep runway above six months'), schemaVersion: 2 };
+  const r = readGoal(v2);
+  assert.equal(r.status, 'ok');
+  assert.equal(r.data.goal, 'Launch the new product line by Q2');
+  assert.deepEqual(r.data.subGoals, ['hire two engineers', 'keep runway above six months']);
+});
+
+test('readGoal: v2 -> v3 migration leaves a short goal untouched, with no subGoals', () => {
+  const v2 = { ...stubGoal('Open a third salon by March'), schemaVersion: 2 };
+  const r = readGoal(v2);
+  assert.equal(r.status, 'ok');
+  assert.equal(r.data.goal, 'Open a third salon by March');
+  assert.equal(r.data.subGoals, undefined);
+});
+
+test('readGoal: v2 -> v3 migration leaves an over-long goal with no separator as-is', () => {
+  const longGoal = 'Grow the business steadily while keeping quality high and staff happy this year';
+  const v2 = { ...stubGoal(longGoal), schemaVersion: 2 };
+  const r = readGoal(v2);
+  assert.equal(r.status, 'ok');
+  assert.equal(r.data.goal, longGoal);
+  assert.equal(r.data.subGoals, undefined);
 });
 
 test('v2: proposed next actions, met criteria, focusLine', () => {

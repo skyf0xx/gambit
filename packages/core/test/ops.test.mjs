@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stubGoal, writeSection, appendLog, setStatus, summarizeChange, WRITABLE_KEYS } from '../src/index.mjs';
+import { stubGoal, writeSection, appendLog, setStatus, summarizeChange, WRITABLE_KEYS, capLog, LOG_CAP, GOAL_MAX_WORDS } from '../src/index.mjs';
 
 const plan = {
   linesOfOperation: [{
@@ -20,6 +20,27 @@ test('writeSection validates, defaults, and rejects unknown/log keys', () => {
   assert.equal(bad.ok, false);
   assert.match(bad.errors[0].path, /^riskNotes\.0\.source/);
   assert.ok(WRITABLE_KEYS.includes('plan') && !WRITABLE_KEYS.includes('log'));
+});
+
+test('writeSection rejects a goal sentence over 10 words with a helpful message, but allows subGoals separately', () => {
+  const g = stubGoal('Open a third salon');
+  const tooLong = writeSection(g, 'goal', 'Open a third salon by March without burning out or losing Priya');
+  assert.equal(tooLong.ok, false);
+  assert.equal(tooLong.errors.length, 1);
+  assert.match(tooLong.errors[0].message, /10 words or fewer/);
+  assert.match(tooLong.errors[0].message, /subGoals/);
+
+  const short = writeSection(g, 'goal', 'Open a third salon by March');
+  assert.equal(short.ok, true);
+  assert.equal(short.goal.goal, 'Open a third salon by March');
+
+  const withParts = writeSection(short.goal, 'subGoals', ['without burning out', 'without losing Priya']);
+  assert.equal(withParts.ok, true);
+  assert.deepEqual(withParts.goal.subGoals, ['without burning out', 'without losing Priya']);
+
+  // exactly GOAL_MAX_WORDS words is fine
+  const exact = writeSection(g, 'goal', Array.from({ length: GOAL_MAX_WORDS }, () => 'word').join(' '));
+  assert.equal(exact.ok, true);
 });
 
 test('setStatus flips one node and surfaces reconcile warnings', () => {
@@ -46,6 +67,50 @@ test('appendLog is append-only and validated', () => {
   const r = appendLog(g, { date: '2026-09-19', focus: null, notes: ['started'] });
   assert.equal(r.goal.log.length, 1);
   assert.equal(appendLog(g, { date: 'today', focus: null, notes: [] }).ok, false);
+});
+
+test('capLog keeps only the newest LOG_CAP entries once over the cap', () => {
+  const entries = Array.from({ length: LOG_CAP + 5 }, (_, i) => ({ date: '2026-09-19', focus: null, notes: [`e${i}`] }));
+  const capped = capLog(entries);
+  assert.equal(capped.length, LOG_CAP);
+  assert.equal(capped[0].notes[0], 'e5');
+  assert.equal(capped.at(-1).notes[0], `e${LOG_CAP + 4}`);
+});
+
+test('capLog preserves the most recent focusLine entry even when older than the cap', () => {
+  const entries = Array.from({ length: LOG_CAP + 5 }, (_, i) => ({ date: '2026-09-19', focus: null, notes: [`e${i}`] }));
+  entries[2] = { ...entries[2], focusLine: 'the focused line' };
+  const capped = capLog(entries);
+  assert.equal(capped.length, LOG_CAP + 1);
+  assert.equal(capped[0].focusLine, 'the focused line');
+  assert.equal(capped[0].notes[0], 'e2');
+});
+
+test('capLog does not duplicate-preserve a focusLine entry already inside the window', () => {
+  const entries = Array.from({ length: LOG_CAP + 5 }, (_, i) => ({ date: '2026-09-19', focus: null, notes: [`e${i}`] }));
+  entries[LOG_CAP + 2] = { ...entries[LOG_CAP + 2], focusLine: 'recent focus' };
+  const capped = capLog(entries);
+  assert.equal(capped.length, LOG_CAP);
+  assert.equal(capped.filter((e) => e.focusLine).length, 1);
+});
+
+test('appendLog trims to LOG_CAP on overflow, keeping the newest entries', () => {
+  let g = stubGoal('g');
+  for (let i = 0; i < LOG_CAP + 3; i++) {
+    g = appendLog(g, { date: '2026-09-19', focus: null, notes: [`n${i}`] }).goal;
+  }
+  assert.equal(g.log.length, LOG_CAP);
+  assert.equal(g.log[0].notes[0], 'n3');
+});
+
+test('appendLog keeps an old focusLine entry alive past the cap', () => {
+  let g = stubGoal('g');
+  g = appendLog(g, { date: '2026-09-19', focus: 'early focus', focusLine: 'do the early thing', notes: [] }).goal;
+  for (let i = 0; i < LOG_CAP + 5; i++) {
+    g = appendLog(g, { date: '2026-09-19', focus: null, notes: [`n${i}`] }).goal;
+  }
+  const focused = g.log.find((e) => e.focusLine);
+  assert.equal(focused.focusLine, 'do the early thing');
 });
 
 test('summarizeChange', () => {

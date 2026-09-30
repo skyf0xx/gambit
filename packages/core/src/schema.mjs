@@ -215,9 +215,23 @@ const logEntry = z.object({
   source: shortLabel.optional(),
 });
 
+// A sub-goal is a part or condition of the aim itself (e.g. the clause after
+// a dash in "open a third salon — without burning out"), not a measurable
+// success criterion. Short list, short entries — this is a title-adjacent
+// fragment shown under "Parts of this goal," not a place to restate
+// criteria. Word/char caps mirror the goal sentence's own 10-word rule,
+// loosened slightly (12 words) since these are read on their own line
+// rather than as a page title.
+const subGoal = z
+  .string()
+  .min(1)
+  .max(100)
+  .refine((s) => s.trim().split(/\s+/).filter(Boolean).length <= 12, 'must be 12 words or fewer');
+
 export const goalSchema = z.object({
-  schemaVersion: z.literal(2),
+  schemaVersion: z.literal(3),
   goal: z.string().min(1).max(200),
+  subGoals: z.array(subGoal).max(5).optional(),
   successCriteria: z.array(successCriterion).min(1),
   deadline: dateString.nullable(),
   people: z.array(person),
@@ -235,12 +249,23 @@ export const goalSchema = z.object({
   log: z.array(logEntry),
 });
 
+// The goal sentence's word cap for new writes only (existing records may
+// already exceed it and must still read — this is enforced on the write
+// path in ops.mjs's writeSection, not here, so old documents never fail
+// schema validation on read). Exported so the write path and its tests
+// share one number.
+export const GOAL_MAX_WORDS = 10;
+
+export function wordCount(s) {
+  return s.trim().split(/\s+/).filter(Boolean).length;
+}
+
 // Schema-default stub for a new goal — every array empty, every optional
 // section null, goal/successCriteria seeded from the title so the document
 // is valid the instant it's written.
 export function stubGoal(title) {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     goal: title,
     successCriteria: [{ text: 'define success criteria', kind: 'control' }],
     deadline: null,

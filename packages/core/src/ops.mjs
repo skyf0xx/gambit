@@ -2,7 +2,7 @@
 // document and returns a result object instead of throwing, so an agent tool
 // can hand structured errors straight back to the model.
 
-import { goalSchema, reconcileGoal } from './schema.mjs';
+import { goalSchema, reconcileGoal, GOAL_MAX_WORDS, wordCount } from './schema.mjs';
 
 /** @typedef {import('zod').infer<typeof goalSchema>} Goal */
 /** @typedef {{ path: string, message: string }} Issue */
@@ -13,6 +13,26 @@ export const WRITABLE_KEYS = Object.keys(goalSchema.shape).filter((k) => k !== '
 
 const logEntrySchema = goalSchema.shape.log.element;
 const STATUSES = ['proposed', 'pending', 'done', 'dropped'];
+
+// `log` is append-only but bounded: the page only needs recent history plus
+// whichever entry currently drives the focus highlight.
+export const LOG_CAP = 30;
+
+/**
+ * Keep the newest LOG_CAP entries, but always keep the most recent entry
+ * that carries a focusLine, even if it would otherwise fall outside the cap
+ * — the page's highlighter reads it regardless of age.
+ */
+export function capLog(entries) {
+  if (entries.length <= LOG_CAP) return entries;
+  const kept = entries.slice(-LOG_CAP);
+  const keptHasFocus = kept.some((e) => e.focusLine);
+  if (keptHasFocus) return kept;
+  for (let i = entries.length - LOG_CAP - 1; i >= 0; i--) {
+    if (entries[i].focusLine) return [entries[i], ...kept];
+  }
+  return kept;
+}
 
 const toIssues = (error, prefix = []) =>
   error.issues.map((i) => ({ path: [...prefix, ...i.path].join('.') || '(root)', message: i.message }));
@@ -26,6 +46,20 @@ export function writeSection(goal, key, value) {
   if (!WRITABLE_KEYS.includes(key)) {
     return { ok: false, errors: [{ path: key, message: `not a writable key; expected one of: ${WRITABLE_KEYS.join(', ')}` }] };
   }
+  // The 10-word cap on the goal sentence is enforced here, on the write
+  // path, rather than in the schema itself — an existing goal written under
+  // the old rule must still be readable. Split any parts or conditions
+  // (the clause after a dash, etc.) into subGoals instead of packing them
+  // into the goal sentence.
+  if (key === 'goal' && typeof value === 'string' && wordCount(value) > GOAL_MAX_WORDS) {
+    return {
+      ok: false,
+      errors: [{
+        path: 'goal',
+        message: `goal must be ${GOAL_MAX_WORDS} words or fewer (got ${wordCount(value)}); move parts or conditions into subGoals instead`,
+      }],
+    };
+  }
   const part = goalSchema.shape[key].safeParse(value);
   if (!part.success) return { ok: false, errors: toIssues(part.error, [key]) };
   const next = goalSchema.safeParse({ ...goal, [key]: part.data });
@@ -37,7 +71,7 @@ export function writeSection(goal, key, value) {
 export function appendLog(goal, entry) {
   const parsed = logEntrySchema.safeParse(entry);
   if (!parsed.success) return { ok: false, errors: toIssues(parsed.error, ['log']) };
-  const next = goalSchema.safeParse({ ...goal, log: [...goal.log, parsed.data] });
+  const next = goalSchema.safeParse({ ...goal, log: capLog([...goal.log, parsed.data]) });
   if (!next.success) return { ok: false, errors: toIssues(next.error) };
   return { ok: true, goal: next.data, warnings: [] };
 }

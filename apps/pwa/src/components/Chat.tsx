@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
-import { runTurn, undoTurn, clearChat } from '../lib/agent';
+import { runTurn, undoTurn } from '../lib/agent';
 import { TextAction } from './ui';
 import { useTornEdge } from './marks/torn';
 import { Md } from './Md';
@@ -347,11 +347,6 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
         )}
         <SendButton ready={!!input.trim()} busy={busy} onClick={() => { if (variant === 'mobile') onExpand(); busy ? abort.current?.abort() : void send(); }} />
       </div>
-      {(variant === 'desktop' || open) && display.length > 0 && !busy && (
-        <TextAction className="mt-2 text-[14px] text-graphite underline underline-offset-[3px]" onClick={() => confirm('Clear this chat? The goal itself is kept.') && void clearChat(goalId)}>
-          Clear chat
-        </TextAction>
-      )}
     </div>
   );
 
