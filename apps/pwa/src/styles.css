@@ -143,6 +143,15 @@ details > summary::-webkit-details-marker { display: none; }
 
 :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 3px; }
 
+/* The mobile conversation leaf sliding up over the page when expanded
+   (brand/identity.md §05's "conversation is a loose leaf over the page").
+   Skipped entirely under prefers-reduced-motion via the motion-safe: variant
+   on the class that uses it. */
+@keyframes leaf-in {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;

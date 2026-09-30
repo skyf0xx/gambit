@@ -141,7 +141,10 @@ export function Dashboard({ goalId }: { goalId: string }) {
 
   return (
     <MarksProvider goal={g} goalId={goalId}>
-      <div className="paper relative mx-auto min-h-full max-w-[60ch] px-[34px] py-6 md:px-12" style={{ borderLeft: '2px solid var(--margin-rule)' }}>
+      <div
+        className="paper relative mx-auto min-h-full max-w-xl rounded-t-[3px] px-8.5 py-6 md:mt-8 md:min-h-[calc(100%-2rem)] md:px-16 md:py-11 md:shadow-[0_1px_1px_var(--lift),0_8px_30px_-8px_var(--lift-far)]"
+        style={{ borderLeft: '2px solid var(--margin-rule)' }}
+      >
         <MarksLayer />
         <div className="space-y-6">
           <IndexCard goal={g} goalId={goalId} />

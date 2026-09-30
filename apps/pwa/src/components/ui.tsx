@@ -78,19 +78,22 @@ export function Leaf({ title, onClose, children, wide }: { title: string; onClos
 }
 export const Modal = Leaf;
 
-/** @deprecated kept for callers not yet ported to `TextAction`/`InkButton`. */
+/** @deprecated kept for callers not yet ported to `TextAction`/`InkButton`.
+ * `danger` no longer tints text with the accent — the accent is reserved for
+ * the change loop, the working-skill name, and error text (brand/identity.md
+ * §03), not a general "destructive action" tone. */
 export function Btn({ kind = 'ghost', className = '', children, ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { kind?: 'primary' | 'ghost' | 'danger' }) {
   if (kind === 'primary') return <InkButton {...p} className={className}>{children}</InkButton>;
-  const tone = kind === 'danger' ? 'text-accent' : 'text-ink';
   return (
-    <TextAction {...p} className={`${tone} ${className}`}>
+    <TextAction {...p} className={`text-ink ${className}`}>
       {children}
     </TextAction>
   );
 }
 
-/** @deprecated kept for callers not yet ported; renders as a pencilled word. */
-export const Pill = ({ children, tone = 'slate' }: { children: ReactNode; tone?: 'slate' | 'green' | 'amber' | 'red' | 'sky' }) => {
-  const cls = tone === 'red' ? 'text-accent' : '';
-  return <PencilWord className={cls}>{children}</PencilWord>;
+/** @deprecated kept for callers not yet ported; renders as a pencilled word.
+ * `tone` no longer maps to the accent — status is a pencilled word, not a
+ * colour (brand/identity.md §03). */
+export const Pill = ({ children }: { children: ReactNode; tone?: 'slate' | 'green' | 'amber' | 'red' | 'sky' }) => {
+  return <PencilWord>{children}</PencilWord>;
 };

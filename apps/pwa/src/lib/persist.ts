@@ -36,9 +36,13 @@ interface InstallEvent extends Event { prompt: () => Promise<void> }
 interface UiState {
   installEvent: InstallEvent | null;
   installDismissed: boolean;
-  tab: 'chat' | 'dashboard';
+  /** Mobile only: the conversation leaf is a floating overlay, collapsed to
+   * just its composer slip by default and expanded full-screen over the
+   * page when opened (brand/identity.md §05's "conversation is a loose leaf
+   * over the page"). Desktop always shows both panes side by side. */
+  chatOpen: boolean;
   settingsOpen: boolean;
-  setTab: (t: 'chat' | 'dashboard') => void;
+  setChatOpen: (o: boolean) => void;
   openSettings: (o: boolean) => void;
   dismissInstall: () => void;
 }
@@ -46,9 +50,9 @@ interface UiState {
 export const useUi = create<UiState>((set) => ({
   installEvent: null,
   installDismissed: false,
-  tab: 'chat',
+  chatOpen: false,
   settingsOpen: false,
-  setTab: (tab) => set({ tab }),
+  setChatOpen: (chatOpen) => set({ chatOpen }),
   openSettings: (settingsOpen) => set({ settingsOpen }),
   dismissInstall: () => { void setSetting('installDismissed', Date.now()); set({ installDismissed: true }); },
 }));

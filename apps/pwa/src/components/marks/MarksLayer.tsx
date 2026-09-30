@@ -77,9 +77,12 @@ export function MarksLayer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const underRef = useRef<SVGSVGElement>(null);
   const overRef = useRef<SVGSVGElement>(null);
-  const [, forceTick] = useState(0);
+  const [tick, forceTick] = useState(0);
 
-  // Redraw on resize, font load, and colour-scheme change.
+  // Schedule a redraw (debounced) on resize, font load, and colour-scheme
+  // change — bumping `tick` is the only thing this effect does; the actual
+  // drawing lives in the effect below, keyed on `tick` plus the derived
+  // marks so it never draws against a stale layout or a stale mark set.
   useEffect(() => {
     const host = containerRef.current?.parentElement;
     if (!host) return;
@@ -101,7 +104,6 @@ export function MarksLayer() {
       mq.removeEventListener('change', schedule);
       window.removeEventListener('resize', schedule);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ctx?.derived]);
 
   useEffect(() => {
@@ -190,8 +192,9 @@ export function MarksLayer() {
 
       if (mark.kind === 'tick') {
         const box = lines[0];
-        const boxEl = (placed.find((p) => p.path === path)?.el as Element).querySelector('[data-box], .box') ?? null;
-        const target = boxEl ? rel((boxEl as Element).getBoundingClientRect(), origin) : box;
+        const lineEl = placed.find((p) => p.path === path)?.el;
+        const boxEl = lineEl?.querySelector('[data-box], .box') ?? null;
+        const target = boxEl ? rel(boxEl.getBoundingClientRect(), origin) : box;
         for (const side of boxPoints(target, seed)) {
           drawStroke(side, over, { size: 1.5, thinning: 0.45, taper: false, grain: false, opacity: 0.85 });
         }
@@ -265,12 +268,19 @@ export function MarksLayer() {
       }
 
       if (mark.kind === 'arrow' && mark.to) {
+        // deriveMarks already picked the single dependsOn risk that gets a
+        // drawn arrow; every other one is `arrow-text` and never reaches
+        // here. If this one can't actually be drawn (no in-DOM target, or
+        // its ends are more than a screen apart), it silently draws nothing
+        // — an edge case the single-arrow selection in derive.ts doesn't
+        // anticipate — rather than falling back to text, since Sections only
+        // renders "→ Name" for `arrow-text`.
         const targetPlacement = placed.find((pl) => pl.path === mark.to);
-        if (!targetPlacement) continue; // no in-DOM target: page renders "→ Name" text via `to`
+        if (!targetPlacement) continue;
         const from = lines[0];
         const to = targetPlacement.lines[0];
         const apart = Math.abs(to.t - from.t) > window.innerHeight;
-        if (apart) continue; // page falls back to pencilled "→ Name" via useLineMark's `to`
+        if (apart) continue;
         const { shaft, head1, head2 } = arrowPoints(marginX, from, to, seed);
         drawStroke(shaft, over, { size: 1.5, thinning: 0.5 });
         drawStroke(head1, over, { size: 1.5 });
@@ -314,7 +324,11 @@ export function MarksLayer() {
       host.removeEventListener('pointerleave', onLeave, true);
       host.removeEventListener('focusout', onLeave, true);
     };
-  });
+    // `tick` drives redraws for resize/fonts.ready/colour-scheme (bumped by
+    // the effect above); `ctx?.derived` drives redraws when the marks
+    // themselves change (goal edits, turn state, dropped lines).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick, ctx?.derived]);
 
   return (
     <div ref={containerRef} className="pointer-events-none absolute inset-0" aria-hidden="true">

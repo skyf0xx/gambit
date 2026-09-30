@@ -134,6 +134,28 @@ describe('deriveMarks — arrow', () => {
     expect(byPath.get('riskNotes.0')).toBeUndefined();
     expect(arrows).toEqual([]);
   });
+
+  // brand/identity.md §05: "only one arrow is visible at a time" — every
+  // other dependsOn risk falls back to a pencilled "→ Name" note instead of
+  // a drawn arrow, though all of them keep the same "depends on X" SR text.
+  it('draws only the first dependsOn risk as an arrow; the rest get the text-only fallback', () => {
+    const goal: Goal = {
+      ...(stubGoal('Goal') as Goal),
+      people: [
+        { name: 'Priya', status: 'confirmed' as const, doing: 'intros' },
+        { name: 'Dev', status: 'confirmed' as const, doing: 'fit-out' },
+      ],
+      riskNotes: [
+        { item: 'vendor lock-in', source: 'threat' as const, accepted: false, dependsOn: 'Priya' },
+        { item: 'fit-out overruns', source: 'threat' as const, accepted: false, dependsOn: 'Dev' },
+      ],
+    };
+    const { byPath, arrows } = deriveMarks(goal, 'g1', emptySession);
+    expect(byPath.get('riskNotes.0')).toEqual({ kind: 'arrow', sr: 'depends on Priya', to: 'people.0' });
+    expect(byPath.get('riskNotes.1')).toEqual({ kind: 'arrow-text', sr: 'depends on Dev', to: 'people.1', toName: 'Dev' });
+    // Only the drawn arrow is reported in `arrows` (MarksLayer's draw list).
+    expect(arrows).toEqual([{ from: 'riskNotes.0', to: 'people.0' }]);
+  });
 });
 
 describe('deriveMarks — squiggle', () => {

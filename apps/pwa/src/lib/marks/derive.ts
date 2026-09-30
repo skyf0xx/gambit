@@ -118,14 +118,26 @@ export function deriveMarks(goal: Goal, goalId: string, sessionState: SessionSna
     if (candidate) set(candidate.path, { kind: 'star', sr: 'next up' });
   }
 
-  // --- arrow: riskNotes[].dependsOn matched to a person/stakeholder name ---
+  // --- arrow: riskNotes[].dependsOn matched to a person/stakeholder name.
+  // Per spec, only one arrow is ever drawn; every other dependsOn risk gets
+  // just the pencilled "→ Name" text fallback (no `kind: 'arrow'`, so
+  // MarksLayer draws nothing for it and Line's `mark.to` supplies the text).
+  // All of them keep the same SR text via `arrowSr` below. ---
+  let arrowDrawn = false;
   (goal.riskNotes ?? []).forEach((r, i) => {
     if (!r.dependsOn) return;
     const target = names.find((n) => norm(n.text) === norm(r.dependsOn!));
     if (!target) return;
     const from: LinePath = `riskNotes.${i}`;
-    set(from, { kind: 'arrow', sr: `depends on ${r.dependsOn}`, to: target.path });
-    arrows.push({ from, to: target.path });
+    const sr = `depends on ${r.dependsOn}`;
+    if (!arrowDrawn) {
+      set(from, { kind: 'arrow', sr, to: target.path });
+      arrows.push({ from, to: target.path });
+      arrowDrawn = true;
+    } else {
+      // Fallback: text-only "→ Name", no drawn arrow, same SR text.
+      set(from, { kind: 'arrow-text', sr, to: target.path, toName: r.dependsOn });
+    }
   });
 
   // --- squiggle: open experiment's assumption, or unresolved forecast ---

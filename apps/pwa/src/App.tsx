@@ -65,7 +65,7 @@ function Banners() {
 function Main() {
   const goals = useLiveQuery(() => db.goals.orderBy('updatedAt').reverse().toArray(), []);
   const activeId = useLiveQuery(async () => (await getActiveGoalId()) ?? null, []);
-  const { tab, setTab, settingsOpen, openSettings } = useUi();
+  const { chatOpen, setChatOpen, settingsOpen, openSettings } = useUi();
   const [creating, setCreating] = useState(false);
   const cost = useSessionCost();
   const current = goals?.find((g) => g.id === activeId) ?? goals?.[0];
@@ -74,6 +74,13 @@ function Main() {
 
   useEffect(() => { if (current && current.id !== activeId) void setActiveGoal(current.id); }, [current, activeId]);
   useEffect(() => startFileSync(), []);
+  // The index card's "Not yet" / "Something changed" should bring the
+  // conversation to the front on mobile too, not just fill the composer.
+  useEffect(() => {
+    const onCompose = () => setChatOpen(true);
+    window.addEventListener('gambit:compose', onCompose);
+    return () => window.removeEventListener('gambit:compose', onCompose);
+  }, [setChatOpen]);
 
   if (!goals) return null;
   return (
@@ -110,24 +117,29 @@ function Main() {
       </header>
       <Banners />
       {current ? (
-        <>
-          <main className="min-h-0 flex-1 md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-            <section className={`${tab === 'chat' ? 'block' : 'hidden'} h-full min-h-0 md:block md:border-r md:border-rule`}><Chat goalId={current.id} stub={!!stub} /></section>
-            <section className={`${tab === 'dashboard' ? 'block' : 'hidden'} h-full min-h-0 overflow-y-auto md:block`}><Dashboard goalId={current.id} /></section>
-          </main>
-          <nav className="grid grid-cols-2 border-t border-rule md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-            {(['chat', 'dashboard'] as const).map((t) => (
-              <button key={t} onClick={() => setTab(t)} className={`min-h-[44px] py-3 text-[15px] capitalize ${tab === t ? 'text-ink' : 'text-graphite'}`}>{t}</button>
-            ))}
-          </nav>
-        </>
+        <main className="relative min-h-0 flex-1 md:grid md:grid-cols-[1fr_440px] md:overflow-hidden">
+          {/* The page: a centred column at reading width, with room to
+             either side so the desk shows through — no shared border with
+             the conversation leaf (brand/identity.md §05). */}
+          <section className="h-full min-h-0 overflow-y-auto md:px-10">
+            <Dashboard goalId={current.id} />
+          </section>
+          <section className="hidden h-full min-h-0 md:block">
+            <Chat goalId={current.id} stub={!!stub} variant="desktop" open onCollapse={() => {}} onExpand={() => {}} />
+          </section>
+          {/* Mobile: the conversation is a floating leaf, collapsed to its
+             composer slip by default and expanded full-screen on open. */}
+          <section className="md:hidden">
+            <Chat goalId={current.id} stub={!!stub} variant="mobile" open={chatOpen} onCollapse={() => setChatOpen(false)} onExpand={() => setChatOpen(true)} />
+          </section>
+        </main>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
           <p className="max-w-sm text-[15px] text-graphite">Start with a goal. Give it a working title; you'll sharpen it in conversation while the dashboard fills in.</p>
           <TextAction className="underline underline-offset-[3px]" onClick={() => setCreating(true)}>Start a goal</TextAction>
         </div>
       )}
-      {creating && <NewGoalDialog onClose={() => { setCreating(false); setTab('chat'); }} />}
+      {creating && <NewGoalDialog onClose={() => { setCreating(false); setChatOpen(true); }} />}
       {settingsOpen && <Settings goalId={current?.id} />}
     </div>
   );

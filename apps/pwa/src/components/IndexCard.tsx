@@ -38,11 +38,15 @@ export function IndexCard({ goal, goalId }: { goal: Goal; goalId: string }) {
       className="slip motion-safe:transform-[rotate(-0.7deg)] relative -mx-1.5 mb-14 -ml-3.5 rounded-[1px] px-4.5 pb-2.5 pt-4.5"
       style={{
         filter: 'drop-shadow(0 1px 1px var(--lift)) drop-shadow(0 10px 22px -10px var(--lift)) drop-shadow(0 22px 40px -24px var(--lift-far))',
+        // Layered on top of (not replacing) the `slip` utility's grain +
+        // --surface, so the card reads as paper on the page in both themes
+        // instead of falling through to the page's own --bg.
         backgroundImage:
-          'linear-gradient(var(--card-head), var(--card-head)), repeating-linear-gradient(transparent 0 27px, var(--card-rule) 27px 28px)',
-        backgroundPosition: '0 44px, 0 44px',
-        backgroundSize: '100% 1px, 100% calc(100% - 54px)',
-        backgroundRepeat: 'no-repeat, no-repeat',
+          'linear-gradient(var(--card-head), var(--card-head)), repeating-linear-gradient(transparent 0 27px, var(--card-rule) 27px 28px), var(--grain)',
+        backgroundColor: 'var(--surface)',
+        backgroundPosition: '0 44px, 0 44px, 0 0',
+        backgroundSize: '100% 1px, 100% calc(100% - 54px), auto',
+        backgroundRepeat: 'no-repeat, no-repeat, repeat',
       }}
     >
       <span

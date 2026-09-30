@@ -92,7 +92,7 @@ function Line({ goalId, path, className = '', box, children }: { goalId: string;
         {box && <span className="box" data-box aria-hidden="true" />}
         {children}
         <MarkSr path={path} />
-        {mark.to && <PencilWord className="ml-1">{`→ ${mark.to}`}</PencilWord>}
+        {mark.kind === 'arrow-text' && mark.toName && <PencilWord className="ml-1">{`→ ${mark.toName}`}</PencilWord>}
       </span>
       <ChangeNote goalId={goalId} path={path} />
     </div>
@@ -103,11 +103,11 @@ function Toggle({ goalId, path, status, editable, children }: { goalId: string; 
   const next = status === 'done' ? 'pending' : 'done';
   const cls = status === 'done' ? 'text-graphite line-through' : '';
   return (
-    <li className="flex items-start gap-2 text-[17px] leading-[27px]">
+    <li className="flex items-start text-[17px] leading-[27px]">
       <TextAction
         disabled={!editable}
         title={editable ? `Mark ${next}` : undefined}
-        className={`mt-0.5 shrink-0 ${cls}`}
+        className={`w-11 shrink-0 justify-center ${cls}`}
         onClick={() => void applyOp(goalId, (g) => setStatus(g, path, next) as never)}
       >
         <span className="box" data-box aria-hidden="true" />
@@ -173,7 +173,7 @@ export function SectionBody({ k, data, goalId, editable }: { k: keyof Goal; data
                 {l.status && <PencilWord>{l.status.replace('_', ' ')}</PencilWord>}
               </div>
               <Steps goalId={goalId} base={`plan.linesOfOperation.${li}.criticalPath`} steps={l.criticalPath} editable={editable} />
-              {l.blocker && <p className="text-[14px] text-accent">Blocked: {l.blocker}</p>}
+              {l.blocker && <p className="text-[14px] text-graphite">Blocked: {l.blocker}</p>}
               {actions.length > 0 && (
                 <div>
                   <div className="mb-1 text-[14px] text-graphite">Next actions</div>
@@ -296,7 +296,7 @@ export function SectionBody({ k, data, goalId, editable }: { k: keyof Goal; data
     return (
       <div className="space-y-1 text-[17px] leading-[27px]">
         <div className="tabular-nums">{data.availableHrsPerWeek ?? '?'} hrs/week · runway {data.runway}</div>
-        {data.watch && <div className="text-accent">Watch: {data.watch}</div>}
+        {data.watch && <div className="text-graphite">Watch: {data.watch}</div>}
         <Detail>{data.detail}</Detail>
         <Detail>Reviewed {formatDate(data.lastReviewed)}</Detail>
       </div>
