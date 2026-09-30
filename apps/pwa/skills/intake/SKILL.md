@@ -47,7 +47,7 @@ These two names are the standing vocabulary for elicitation depth anywhere in Ga
 
 ### 3. Goal statement
 
-Restate the goal in one sentence of at most 200 characters, in the user's own terms. Ask what is behind it — the problem or opportunity, and why now.
+Restate the goal in one plain sentence of **at most 10 words** — one idea, no dash-joined clauses ("open a third salon by March," not "open a third salon by March — without burning out or losing Priya"). If the user's framing carries real parts or conditions beyond that one idea (a constraint, a second thing that must also hold), name them back as sub-goals instead of folding them into the sentence — at most 5, each short (12 words or so). Ask what is behind the goal — the problem or opportunity, and why now.
 
 ### 4. Work backwards from done
 
@@ -70,9 +70,9 @@ Ask for a deadline as a real calendar date; if there truly is none, record none.
 
 ### 6. Show the read, then commit
 
-Before writing anything, show the goal statement, criteria with their marks, deadline and people, and ask what is off. One exchange, then commit — a checkpoint, not a negotiation. Stay opinionated through pushback: fold new facts in and re-commit to a revised read rather than handing the decision back.
+Before writing anything, show the goal statement, any sub-goals, criteria with their marks, deadline and people, and ask what is off. One exchange, then commit — a checkpoint, not a negotiation. Stay opinionated through pushback: fold new facts in and re-commit to a revised read rather than handing the decision back.
 
-Call `write_section` for `goal`, `successCriteria`, `deadline`, and `people`. Call `append_log` with one entry stating where the goal stands now, with no replay of the conversation. If any write returns `{ ok: false, errors }`, fix the reported fields and retry before ending the turn.
+Call `write_section` for `goal`, `subGoals` (only if there are any — omit the call rather than writing an empty array), `successCriteria`, `deadline`, and `people`. If `write_section` on `goal` comes back `{ ok: false }` for being over 10 words, shorten it, move what it dropped into `subGoals`, and retry — don't just resend the same sentence. Call `append_log` with one entry stating where the goal stands now, with no replay of the conversation. If any write returns `{ ok: false, errors }`, fix the reported fields and retry before ending the turn.
 
 ### 7. Name the next step
 
@@ -80,4 +80,4 @@ End with one recommended next move, defaulting to `strategy` to find the focus, 
 
 ## Fields written
 
-`goal`, `successCriteria`, `deadline`, `people`, and one `log` entry. Nothing else; the deeper per-key work belongs to the other skills.
+`goal`, `subGoals` (when the goal has distinct parts or conditions), `successCriteria`, `deadline`, `people`, and one `log` entry. Nothing else; the deeper per-key work belongs to the other skills.

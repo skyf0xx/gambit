@@ -126,9 +126,22 @@ ever disagree. The record holds the goal, success criteria, deadline, an
 optional `people` array and `posture` object, the current plan, and a
 running log.
 
+The goal sentence itself is capped at **10 words** on every new write —
+plain, one idea, no dash-joined clauses. This is enforced on the write path
+(`writeSection` in `packages/core/src/ops.mjs`), not in the schema itself,
+so an existing goal written before this rule still reads fine; the owning
+skill proposes a shorter sentence, confirms it with the user, and writes it
+on the next touch. Parts or conditions of the aim that don't fit in that
+one short sentence — the clause that used to follow a dash — go in the
+optional `subGoals` key instead: up to 5 short entries (about 12 words /
+100 characters each), listed on the Goal page under "Parts of this goal."
+`subGoals` is distinct from `successCriteria`: a sub-goal is a condition on
+the aim itself, a success criterion is a measurable definition of done.
+
 Each key has exactly one owning skill, which replaces its own key's value
 in place rather than accumulating:
 
+- `subGoals` ← `intake` (same owner as `goal`)
 - `plan` ← `plan`
 - `systemsNotes` ← `systems`
 - `riskNotes` ← `threat`

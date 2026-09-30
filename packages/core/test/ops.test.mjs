@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stubGoal, writeSection, appendLog, setStatus, summarizeChange, WRITABLE_KEYS, capLog, LOG_CAP } from '../src/index.mjs';
+import { stubGoal, writeSection, appendLog, setStatus, summarizeChange, WRITABLE_KEYS, capLog, LOG_CAP, GOAL_MAX_WORDS } from '../src/index.mjs';
 
 const plan = {
   linesOfOperation: [{
@@ -20,6 +20,27 @@ test('writeSection validates, defaults, and rejects unknown/log keys', () => {
   assert.equal(bad.ok, false);
   assert.match(bad.errors[0].path, /^riskNotes\.0\.source/);
   assert.ok(WRITABLE_KEYS.includes('plan') && !WRITABLE_KEYS.includes('log'));
+});
+
+test('writeSection rejects a goal sentence over 10 words with a helpful message, but allows subGoals separately', () => {
+  const g = stubGoal('Open a third salon');
+  const tooLong = writeSection(g, 'goal', 'Open a third salon by March without burning out or losing Priya');
+  assert.equal(tooLong.ok, false);
+  assert.equal(tooLong.errors.length, 1);
+  assert.match(tooLong.errors[0].message, /10 words or fewer/);
+  assert.match(tooLong.errors[0].message, /subGoals/);
+
+  const short = writeSection(g, 'goal', 'Open a third salon by March');
+  assert.equal(short.ok, true);
+  assert.equal(short.goal.goal, 'Open a third salon by March');
+
+  const withParts = writeSection(short.goal, 'subGoals', ['without burning out', 'without losing Priya']);
+  assert.equal(withParts.ok, true);
+  assert.deepEqual(withParts.goal.subGoals, ['without burning out', 'without losing Priya']);
+
+  // exactly GOAL_MAX_WORDS words is fine
+  const exact = writeSection(g, 'goal', Array.from({ length: GOAL_MAX_WORDS }, () => 'word').join(' '));
+  assert.equal(exact.ok, true);
 });
 
 test('setStatus flips one node and surfaces reconcile warnings', () => {

@@ -222,8 +222,9 @@ the two ever disagree, the schema wins.
 
 ```json
 {
-  "schemaVersion": 2,
-  "goal": "[one or two sentence description, max ~200 chars]",
+  "schemaVersion": 3,
+  "goal": "[plain sentence, 10 words max — one idea, no dash-joined clauses]",
+  "subGoals": ["[optional — a part or condition of the aim itself, e.g. \"without burning out\"; not a success criterion]"],
   "successCriteria": [
     { "text": "[specific, measurable condition]", "kind": "control" },
     { "text": "[specific, measurable condition]", "kind": "influence", "lineOfOperation": "[optional — matches a plan.linesOfOperation[].label]", "detail": "[optional — why this matters, hover-only]" }

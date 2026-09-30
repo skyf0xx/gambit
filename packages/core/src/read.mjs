@@ -4,10 +4,57 @@
 // for writing — it is reported as `needs_app_update` so a newer install's
 // data cannot be silently downgraded.
 
-import { goalSchema } from './schema.mjs';
+import { goalSchema, GOAL_MAX_WORDS, wordCount } from './schema.mjs';
 import { capLog } from './ops.mjs';
 
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
+
+// Split an over-long goal sentence into a short goal plus sub-goals, purely
+// and deterministically — no model call. Only fires when the sentence is
+// over GOAL_MAX_WORDS *and* carries a recognizable separator; otherwise the
+// sentence is left as-is for the owning skill to shorten on its next write
+// (see AGENTS.md's goal-contract section).
+const DASH_SPLIT = /\s+[—–-]\s+/;
+const SEMI_SPLIT = /\s*;\s*/;
+
+export function splitGoalSentence(goal) {
+  if (typeof goal !== 'string' || wordCount(goal) <= GOAL_MAX_WORDS) return null;
+  let head, tail;
+  if (DASH_SPLIT.test(goal)) {
+    const [first, ...rest] = goal.split(DASH_SPLIT);
+    head = first;
+    tail = rest.join(' — ');
+  } else if (SEMI_SPLIT.test(goal)) {
+    const [first, ...rest] = goal.split(SEMI_SPLIT);
+    head = first;
+    tail = rest.join('; ');
+  } else {
+    return null;
+  }
+  head = head.trim();
+  tail = tail.trim();
+  if (!head || !tail) return null;
+
+  // Split the remainder further on commas or a bare " and " only when that
+  // yields clean, non-empty fragments; otherwise keep it as one sub-goal
+  // rather than mangling a sentence that doesn't actually enumerate parts.
+  let parts;
+  if (tail.includes(',')) {
+    parts = tail.split(/\s*,\s*/).map((p) => p.replace(/^and\s+/i, '').trim()).filter(Boolean);
+  } else if (/\s+and\s+/i.test(tail)) {
+    parts = tail.split(/\s+and\s+/i).map((p) => p.trim()).filter(Boolean);
+  } else {
+    parts = [tail];
+  }
+  // Guard against fragments that blow the subGoal caps (100 chars / 12
+  // words) — fall back to the single unsplit tail, and if even that doesn't
+  // fit, drop the split entirely rather than write an invalid document.
+  const fits = (s) => s.length <= 100 && wordCount(s) <= 12;
+  if (!parts.every(fits)) parts = fits(tail) ? [tail] : null;
+  if (!parts || parts.length === 0) return null;
+
+  return { goal: head, subGoals: parts.slice(0, 5) };
+}
 
 // Declarative migrations: { from: n, to: n + 1, transform: (doc) => doc }.
 // `transform` is a pure data function shipped in-app, never downloaded code.
@@ -16,6 +63,19 @@ export const MIGRATIONS = [
   // riskNotes.dependsOn, criteriaStatus 'met', open decisions, log focusLine),
   // so every v1 document is already a valid v2 one.
   { from: 1, to: 2, transform: (doc) => doc },
+  // v3 adds subGoals and the 10-word goal-sentence rule (enforced on write,
+  // not on read — see schema.mjs). An existing over-long goal sentence with
+  // a dash or semicolon separator is split deterministically into a short
+  // goal plus subGoals; one with no separator is left as-is for the owning
+  // skill to shorten on its next write.
+  {
+    from: 2,
+    to: 3,
+    transform: (doc) => {
+      const split = splitGoalSentence(doc.goal);
+      return split ? { ...doc, ...split } : doc;
+    },
+  },
 ];
 
 function formatIssues(error) {

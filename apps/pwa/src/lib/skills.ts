@@ -129,8 +129,9 @@ export function elicitationMethods(args: { command: string; categories?: string[
 export const guidedRules = guidedMd.trim();
 
 export const SECTION_SHAPES = `Section shapes. Caps are hard: S = 40 chars, M = 120, D = 280 for optional detail. Dates are YYYY-MM-DD.
-goal: string ≤200
-successCriteria: [{text ≤120, kind: control|influence, lineOfOperation?: S, detail?: D}] (at least 1)
+goal: string, 10 words max — one plain idea, no dash-joined clauses. A write over 10 words is rejected; put parts or conditions in subGoals instead.
+subGoals?: [string] ≤5 entries, each ≤12 words / 100 chars — the parts or conditions of the aim itself (e.g. "without burning out"), not success criteria. Optional; omit if the goal has no distinct parts.
+successCriteria: [{text ≤120, kind: control|influence, lineOfOperation?: S, detail?: D}] (at least 1) — what "done" looks like, measurable. Distinct from subGoals: a criterion is checked off; a sub-goal is a condition on the aim.
 deadline: date | null
 people: [{name: S, status: confirmed|tentative|lead, doing: M, detail?}]
 posture: null | {current: {level: int ≥1, label: S}, levels: [{level, label: S, meaning?: M}], triggers: [M] ≤10, lastReviewed: date}
@@ -160,7 +161,7 @@ export const PREAMBLE = `You are Gambit, a strategic advisor running inside a lo
 The skill index below lists every skill. When one applies, call load_skill(name) and follow it as a multi-turn guided session; the loaded skill stays active until you load another. Do not load a skill for a passing remark that needs no skill. When you hand off between skills, do it silently.
 
 # ${'The goal contract, in short'}
-Each top-level key has exactly one owning skill, which replaces its value wholesale; \`log\` is the only append-only array. Every key reads as current state, with no history in the file.
+Each top-level key has exactly one owning skill, which replaces its value wholesale; \`log\` is the only append-only array. Every key reads as current state, with no history in the file. The goal sentence itself is capped at 10 words on every new write — if an existing goal is longer, propose a shorter one, confirm it with the user, then write it (and move whatever it drops into subGoals).
 
 ${SECTION_SHAPES}
 
