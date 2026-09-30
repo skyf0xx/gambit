@@ -143,6 +143,25 @@ details > summary::-webkit-details-marker { display: none; }
 
 :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 3px; }
 
+/* Every clickable element shows a pointer cursor — Tailwind v4's preflight
+   resets buttons to cursor: default, which otherwise leaves every button,
+   tab, tick box, and card/sticky-note action reading as unclickable. Covers
+   buttons, ARIA button/tab roles, links, and label/summary (native
+   clickables Tailwind doesn't reset but that still benefit from being
+   explicit here). */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[role="tab"],
+a[href],
+label[for],
+summary {
+  cursor: pointer;
+}
+:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 /* Motion primitives (brand/identity.md §05 "tasteful paper-metaphor
    motion"). Durations are exported as CSS custom properties so ui.tsx's
    `motionMs` can read the same numbers JS-side (for waiting out an exit

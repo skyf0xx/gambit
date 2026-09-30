@@ -2,13 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import type { Goal } from '../../lib/types';
 import { useSession } from '../../lib/session';
 import { Doodles } from '../doodles/Doodles';
+import type { SettingsPageProps } from '../Settings';
 import { DividerTabs } from './DividerTabs';
 import { TabPanel } from './TabPanel';
+import { TitleBar } from './TitleBar';
+import { GoalTab } from './GoalTab';
 import { MovesTab } from './MovesTab';
 import { PeopleTab } from './PeopleTab';
 import { RisksTab } from './RisksTab';
 import { ChoicesTab } from './ChoicesTab';
 import { CapacityTab } from './CapacityTab';
+import { InsideCoverTab } from './InsideCoverTab';
 import { TAB_ORDER, tabForPath, tabHasContent, type TabId } from './tabDefs';
 
 const reducedMotion = () =>
@@ -44,8 +48,10 @@ function flashLine(el: HTMLElement) {
  * long; there's too much scrolling"). Owns which tab is selected — never
  * persisted, every visit opens on Moves (task spec) — the `gambit:goto`
  * jump target, and the changed-elsewhere pencil dot fed by the session's
- * open change loop. */
-export function Tabs({ g, goalId }: { g: Goal; goalId: string }) {
+ * open change loop. `settings` carries the goal-switcher/provider-form
+ * props the Inside cover tab needs; App.tsx passes through what it used to
+ * hand the old Settings Leaf. */
+export function Tabs({ g, goalId, settings }: { g: Goal; goalId: string; settings: SettingsPageProps }) {
   const [active, setActive] = useState<TabId>('moves');
   const session = useSession();
   const pageRef = useRef<HTMLDivElement>(null);
@@ -56,7 +62,9 @@ export function Tabs({ g, goalId }: { g: Goal; goalId: string }) {
   useEffect(() => { setActive('moves'); }, [goalId]);
 
   // `gambit:goto`: switch to the tab holding the path, then scroll+flash
-  // the line once that tab's content is in the DOM.
+  // the line once that tab's content is in the DOM. `gambit:menu` (the
+  // in-page header used to open a Leaf for this; Inside cover is now a
+  // page instead) is just a goto to the special 'inside-cover' path.
   useEffect(() => {
     const onGoto = (e: Event) => {
       const path = (e as CustomEvent<{ path?: string }>).detail?.path;
@@ -72,8 +80,13 @@ export function Tabs({ g, goalId }: { g: Goal; goalId: string }) {
         flashLine(el);
       }));
     };
+    const onMenu = () => setActive('inside-cover');
     window.addEventListener('gambit:goto', onGoto);
-    return () => window.removeEventListener('gambit:goto', onGoto);
+    window.addEventListener('gambit:menu', onMenu);
+    return () => {
+      window.removeEventListener('gambit:goto', onGoto);
+      window.removeEventListener('gambit:menu', onMenu);
+    };
   }, []);
 
   const tabs = TAB_ORDER.filter((t) => tabHasContent(t, g));
@@ -90,13 +103,39 @@ export function Tabs({ g, goalId }: { g: Goal; goalId: string }) {
        * desk, never inside the page's own margin/padding, and never affect
        * the page's width (task: tabs sit outside the notebook). */}
       <DividerTabs tabs={tabs} active={active} onChange={setActive} changedTabs={changedTabs} />
-      <div className="px-8.5 py-6 md:px-16 md:py-11">
-        <TabPanel tab="moves" active={active === 'moves'}><MovesTab g={g} goalId={goalId} /></TabPanel>
-        <TabPanel tab="people" active={active === 'people'}><PeopleTab g={g} goalId={goalId} /></TabPanel>
-        <TabPanel tab="risks" active={active === 'risks'}><RisksTab g={g} goalId={goalId} /></TabPanel>
-        <TabPanel tab="choices" active={active === 'choices'}><ChoicesTab g={g} goalId={goalId} /></TabPanel>
-        <TabPanel tab="capacity" active={active === 'capacity'}><CapacityTab g={g} goalId={goalId} /></TabPanel>
-        <TabPanel tab="doodles" active={active === 'doodles'}><Doodles goal={g} goalId={goalId} /></TabPanel>
+      <div className="px-8.5 pb-6 md:px-16 md:pb-11">
+        <TabPanel tab="goal" active={active === 'goal'}>
+          <TitleBar goalTitle={g.goal} hideTitle />
+          <GoalTab g={g} goalId={goalId} />
+        </TabPanel>
+        <TabPanel tab="moves" active={active === 'moves'}>
+          <TitleBar goalTitle={g.goal} />
+          <MovesTab g={g} goalId={goalId} />
+        </TabPanel>
+        <TabPanel tab="people" active={active === 'people'}>
+          <TitleBar goalTitle={g.goal} />
+          <PeopleTab g={g} goalId={goalId} />
+        </TabPanel>
+        <TabPanel tab="risks" active={active === 'risks'}>
+          <TitleBar goalTitle={g.goal} />
+          <RisksTab g={g} goalId={goalId} />
+        </TabPanel>
+        <TabPanel tab="choices" active={active === 'choices'}>
+          <TitleBar goalTitle={g.goal} />
+          <ChoicesTab g={g} goalId={goalId} />
+        </TabPanel>
+        <TabPanel tab="capacity" active={active === 'capacity'}>
+          <TitleBar goalTitle={g.goal} />
+          <CapacityTab g={g} goalId={goalId} />
+        </TabPanel>
+        <TabPanel tab="doodles" active={active === 'doodles'}>
+          <TitleBar goalTitle={g.goal} />
+          <Doodles goal={g} goalId={goalId} />
+        </TabPanel>
+        <TabPanel tab="inside-cover" active={active === 'inside-cover'}>
+          <TitleBar goalTitle={g.goal} />
+          <InsideCoverTab {...settings} />
+        </TabPanel>
       </div>
     </div>
   );

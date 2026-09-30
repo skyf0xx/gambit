@@ -2,11 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { stubGoal } from '@gambit/core';
 import { tabForPath, tabHasContent, TAB_ORDER, TAB_SECTION_KEYS } from '../src/components/tabs/tabDefs';
+import { GoalTab } from '../src/components/tabs/GoalTab';
 import { MovesTab } from '../src/components/tabs/MovesTab';
 import { PeopleTab } from '../src/components/tabs/PeopleTab';
 import { RisksTab } from '../src/components/tabs/RisksTab';
 import { ChoicesTab } from '../src/components/tabs/ChoicesTab';
 import { CapacityTab } from '../src/components/tabs/CapacityTab';
+import { InsideCoverTab } from '../src/components/tabs/InsideCoverTab';
 import type { Goal } from '../src/lib/types';
 
 // Same seeded-goal approach as page.test.tsx: a v2 goal exercising every
@@ -45,6 +47,7 @@ function seededGoal(): Goal {
       { date: '2026-01-05', focus: null, notes: ['entry 5'] },
       { date: '2026-01-06', focus: null, notes: ['entry 6'] },
     ],
+    subGoals: ['Without burning out the team'],
   };
 }
 
@@ -52,7 +55,16 @@ describe('tabForPath', () => {
   it('routes plan and criteriaStatus paths to moves', () => {
     expect(tabForPath('plan.linesOfOperation.0.nextActions.2')).toBe('moves');
     expect(tabForPath('criteriaStatus.0')).toBe('moves');
-    expect(tabForPath('successCriteria.0')).toBe('moves');
+  });
+
+  it('routes goal, successCriteria and subGoals paths to the goal tab', () => {
+    expect(tabForPath('goal')).toBe('goal');
+    expect(tabForPath('successCriteria.0')).toBe('goal');
+    expect(tabForPath('subGoals.0')).toBe('goal');
+  });
+
+  it('routes the special inside-cover path to the inside-cover tab', () => {
+    expect(tabForPath('inside-cover')).toBe('inside-cover');
   });
 
   it('routes people and stakeholders paths to people', () => {
@@ -76,9 +88,9 @@ describe('tabForPath', () => {
     expect(tabForPath('capacity')).toBe('capacity');
   });
 
-  it('falls back an unrecognized or root path to moves', () => {
-    expect(tabForPath('goal')).toBe('moves');
+  it('falls back an unrecognized or empty path to moves', () => {
     expect(tabForPath('')).toBe('moves');
+    expect(tabForPath('somethingUnknown.0')).toBe('moves');
   });
 });
 
@@ -86,9 +98,11 @@ describe('tabHasContent', () => {
   const empty = stubGoal('Empty') as Goal;
   const full = seededGoal();
 
-  it('moves and doodles always show, even on a stub goal', () => {
+  it('goal, moves, doodles and inside-cover always show, even on a stub goal', () => {
+    expect(tabHasContent('goal', empty)).toBe(true);
     expect(tabHasContent('moves', empty)).toBe(true);
     expect(tabHasContent('doodles', empty)).toBe(true);
+    expect(tabHasContent('inside-cover', empty)).toBe(true);
   });
 
   it('people/risks/choices/capacity are hidden on a stub goal', () => {
@@ -116,9 +130,8 @@ function render(el: React.ReactElement) {
 describe('tab content components render the right lines', () => {
   const g = seededGoal();
 
-  it('MovesTab shows the goal title, plan, criteriaStatus and a 5-entry Lately list', () => {
+  it('MovesTab shows the plan, criteriaStatus and a 5-entry Lately list', () => {
     const html = render(<MovesTab g={g} goalId="g1" />);
-    expect(html).toContain('data-line="goal"');
     expect(html).toContain('data-line="plan.linesOfOperation.0.nextActions.0"');
     expect(html).toContain('data-line="criteriaStatus.0"');
     expect(html).toContain('Lately');
@@ -126,10 +139,49 @@ describe('tab content components render the right lines', () => {
     expect(html).toContain('entry 6');
   });
 
-  it('MovesTab does not render people, risk, or capacity content', () => {
+  it('MovesTab does not render the goal title, people, risk, or capacity content', () => {
     const html = render(<MovesTab g={g} goalId="g1" />);
+    expect(html).not.toContain('data-line="goal"');
     expect(html).not.toContain('data-line="people.0"');
     expect(html).not.toContain('data-line="riskNotes.0"');
+  });
+
+  it('GoalTab shows the goal title, successCriteria, and subGoals', () => {
+    const html = render(<GoalTab g={g} goalId="g1" />);
+    expect(html).toContain('data-line="goal"');
+    expect(html).toContain('Ship the thing');
+    expect(html).toContain('data-line="successCriteria.0"');
+    expect(html).toContain('Launched');
+    expect(html).toContain('Parts of this goal');
+    expect(html).toContain('data-line="subGoals.0"');
+    expect(html).toContain('Without burning out the team');
+  });
+
+  it('GoalTab renders nothing for subGoals when the goal has none', () => {
+    const html = render(<GoalTab g={{ ...g, subGoals: undefined }} goalId="g1" />);
+    expect(html).not.toContain('Parts of this goal');
+  });
+
+  it('InsideCoverTab renders its four page sections', () => {
+    // DataPanel (nested under "Keep it safe") checks `window` for File
+    // System Access support at render time; this repo's test environment
+    // is 'node' (see vite.config.ts), which has no `window` global at all,
+    // so this static-render test stubs the one property it reads rather
+    // than pulling in jsdom just for this one page.
+    const hadWindow = 'window' in globalThis;
+    const prevWindow = (globalThis as { window?: unknown }).window;
+    (globalThis as { window?: unknown }).window = {};
+    try {
+      const html = render(<InsideCoverTab goalId="g1" goals={[]} />);
+      expect(html).toContain('Your notebooks');
+      expect(html).toContain('Model and key');
+      expect(html).toContain('Keep it safe');
+      expect(html).toContain('This device');
+      expect(html).toContain('New goal');
+    } finally {
+      if (hadWindow) (globalThis as { window?: unknown }).window = prevWindow;
+      else delete (globalThis as { window?: unknown }).window;
+    }
   });
 
   it('PeopleTab shows people and stakeholders only', () => {

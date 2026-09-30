@@ -7,7 +7,10 @@ import { TAB_LABELS, type TabId } from './tabDefs';
 // right at every width, per the owner's override — mobile no longer moves
 // the strip to the top; Dashboard.tsx narrows the page itself on mobile
 // (mr-9) to leave the same kind of desk sliver on the right that desktop
-// already has in its 132px gap before the conversation leaf.
+// already has in its 132px gap before the conversation leaf. The last tab,
+// "Inside cover", is a real tab like the rest (in the tablist, reachable by
+// keyboard nav) — it just carries its own icon and a small gap above it so
+// it still reads as set apart, at the foot of the stack.
 //
 // Shape and stacking rules (owner correction, still in force):
 //   - No outlines/borders anywhere — shape comes from fill, shadow and
@@ -90,6 +93,7 @@ export function DividerTabs({
             const activeIdx = tabs.indexOf(active);
             const rank = isActive ? 0 : Math.abs(i - activeIdx);
             const depth = Math.min(rank, 4);
+            const isInsideCover = t === 'inside-cover';
             return (
               <button
                 key={t}
@@ -99,47 +103,29 @@ export function DividerTabs({
                 id={`tab-${t}`}
                 aria-selected={isActive}
                 aria-controls={`tabpanel-${t}`}
+                aria-label={isInsideCover ? 'Inside cover: notebooks and settings' : undefined}
                 tabIndex={isActive ? 0 : -1}
                 onClick={() => onChange(t)}
-                style={{ zIndex: tabs.length - depth }}
+                style={{ zIndex: tabs.length - depth, marginTop: isInsideCover ? '12px' : undefined }}
                 className={`tab-leaf anim-press relative flex shrink-0 items-center justify-center font-sans text-[14px] font-medium text-ink ${
                   isActive ? 'tab-active' : 'tab-inactive'
-                }`}
+                } ${isInsideCover ? 'tab-inside-cover' : ''}`}
               >
                 <span className="tab-leaf-fill" aria-hidden="true" />
-                <span className="tab-leaf-label">{TAB_LABELS[t]}</span>
+                <span className="tab-leaf-label">
+                  {isInsideCover && (
+                    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true" className="tab-menu-icon shrink-0">
+                      <path d="M2.5 5.5h15M2.5 10h15M2.5 14.5h15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  )}
+                  {TAB_LABELS[t]}
+                </span>
                 {changed && <span aria-hidden="true" className="tab-leaf-dot pencil bg-graphite" />}
                 {changed && <span className="sr-only"> (changed)</span>}
               </button>
             );
           })}
         </div>
-        {/* The menu action, pinned to the bottom of the divider stack as
-         * its own paper tab (owner correction) so the whole strip reads as
-         * one notebook — a section divider for every content tab, plus a
-         * last one for the app's own menu. It isn't a tabpanel tab: it's a
-         * plain button outside role="tablist", after the tabs in focus
-         * order, dispatching the same gambit:menu event the old in-page
-         * icon used to (Settings.tsx already listens for it). The old
-         * header icon is gone (MovesTab.tsx's PageHeader) so this is the
-         * only menu control on the page. */}
-        <button
-          type="button"
-          aria-label="Menu"
-          data-tab="menu"
-          data-depth={0}
-          onClick={() => window.dispatchEvent(new CustomEvent('gambit:menu'))}
-          style={{ zIndex: 0, marginTop: '12px' }}
-          className="tab-leaf tab-menu anim-press relative flex shrink-0 items-center justify-center font-sans text-[14px] font-medium text-ink tab-inactive"
-        >
-          <span className="tab-leaf-fill" aria-hidden="true" />
-          <span className="tab-leaf-label flex items-center gap-1.5">
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true" className="shrink-0">
-              <path d="M2.5 5.5h15M2.5 10h15M2.5 14.5h15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-            Menu
-          </span>
-        </button>
       </div>
       <style>{`
         /* The positioning anchor: fixed to the page sheet's real right
@@ -198,6 +184,9 @@ export function DividerTabs({
         .tab-leaf-label {
           position: relative;
           z-index: 1;
+          display: flex;
+          align-items: center;
+          gap: 6px;
           padding: 0 10px 0 44px;
           white-space: nowrap;
         }
@@ -263,12 +252,18 @@ export function DividerTabs({
             transform: rotate(180deg);
             padding: 14px 0;
           }
-          /* The menu tab's icon reads oddly caught in a vertical writing
-             mode alongside rotated text; the task explicitly allows
-             dropping it ("optional, and only alongside the text"), so
-             narrow layouts keep just the rotated "Menu" label. */
-          .tab-menu .tab-leaf-label svg {
+          /* The Inside cover tab's icon reads oddly caught in a vertical
+             writing mode alongside rotated text; the task explicitly
+             allows dropping it ("hamburger glyph is optional, and only
+             alongside the text"), so narrow layouts keep just the rotated
+             "Inside cover" label. It's also the longest label in the
+             stack, so it gets a taller box in this orientation so the
+             rotated text isn't clipped. */
+          .tab-inside-cover .tab-menu-icon {
             display: none;
+          }
+          .tab-inside-cover {
+            height: 120px;
           }
         }
 

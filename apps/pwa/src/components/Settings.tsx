@@ -7,16 +7,24 @@ import { readDurability, requestPersistence, isIos, useUi, type Durability } fro
 import { bindExportFile, commitImport, downloadExport, fileSyncState, fsAccessSupported, planImport, reauthorizeFileSync, unbindExportFile, type Choice, type ImportItem } from '../lib/portability';
 import { methodsLicense } from '../lib/skills';
 import { fmtUsd } from '../lib/cost';
-import { TextAction, InkButton, Leaf, PencilWord } from './ui';
+import { TextAction, InkButton, PencilWord } from './ui';
 import { ProviderForm } from './Setup';
 import { CostPanel } from './CostPanel';
 import type { GoalRecord } from '../lib/db';
 
-const Section = ({ title, children, open }: { title: string; children: ReactNode; open?: boolean }) => (
-  <details open={open} className="border-b border-rule">
-    <summary className="py-3 text-[17px] font-medium text-ink">{title}</summary>
-    <div className="space-y-3 pb-4">{children}</div>
-  </details>
+// The Inside cover page (owner correction: no longer a Leaf/popup — a real
+// tab+panel, so its content is plain page sections per brand/identity.md
+// §05 ("no containers around ordinary text" — a heading and text on the
+// page, separated by whitespace), not the old <details> accordion. Order
+// follows the task spec: Your notebooks, Model and key, Keep it safe
+// (export/backup), This device (clear chat + remaining settings), with
+// About/licenses and the danger zone kept at the end.
+
+const PageSection = ({ title, children }: { title: string; children: ReactNode }) => (
+  <section className="space-y-3">
+    <h2 className="font-sans text-[17px] font-semibold leading-6">{title}</h2>
+    {children}
+  </section>
 );
 
 function DataPanel() {
@@ -47,7 +55,7 @@ function DataPanel() {
       <div className="text-[17px]">Backup file{last ? <span className="text-[14px] text-graphite"> · last written {new Date(last).toLocaleString()}</span> : null}</div>
       <div className="flex flex-wrap items-center gap-4">
         <TextAction className="underline underline-offset-[3px]" onClick={guard(downloadExport)}>Export all goals (JSON)</TextAction>
-        <TextAction className="cursor-pointer underline underline-offset-[3px]" onClick={() => document.getElementById('import-file-input')?.click()}>
+        <TextAction className="underline underline-offset-[3px]" onClick={() => document.getElementById('import-file-input')?.click()}>
           Import…
         </TextAction>
         <input id="import-file-input" type="file" accept="application/json,.json" className="hidden" onChange={async (e) => {
@@ -107,8 +115,7 @@ function Licenses() {
 }
 
 /** The goal switcher, as a shelf of notebooks (menu.html's "Notebooks"
- * group) — the current one marked with a pencilled word, matching the
- * mockup rather than the old header's plain <select>. */
+ * group) — the current one marked with a pencilled word. */
 function NotebookShelf({ goals, activeId, onSwitch, onNew }: { goals: GoalRecord[]; activeId?: string; onSwitch: (id: string) => void; onNew: () => void }) {
   return (
     <div className="space-y-4">
@@ -130,8 +137,7 @@ function NotebookShelf({ goals, activeId, onSwitch, onNew }: { goals: GoalRecord
   );
 }
 
-/** The export-status line + Export action — lives only here (work item 5),
- * never on the main page. */
+/** The export-status line + Export action, part of "Keep it safe". */
 function ExportStatus() {
   const [sync, setSync] = useState<'off' | 'active' | 'needs_permission'>('off');
   const last = useLiveQuery(() => getSetting<number>('lastExportAt'), []);
@@ -146,7 +152,7 @@ function ExportStatus() {
   );
 }
 
-interface SettingsProps {
+export interface SettingsPageProps {
   goalId?: string;
   goals?: GoalRecord[];
   activeId?: string;
@@ -155,37 +161,40 @@ interface SettingsProps {
   onNewGoal?: () => void;
 }
 
-export function Settings({ goalId, goals, activeId, cost, onSwitchGoal, onNewGoal }: SettingsProps) {
-  const close = () => useUi.getState().openSettings(false);
+/** Inside cover: everything the old menu Leaf had, laid out as plain page
+ * sections (owner correction — "it's a page, not a Leaf"). Order per the
+ * task spec: Your notebooks, Model and key, Keep it safe, This device,
+ * then About/licenses and the danger zone. */
+export function SettingsPage({ goalId, goals, activeId, cost, onSwitchGoal, onNewGoal }: SettingsPageProps) {
   return (
-    <Leaf title="Menu" onClose={close} wide>
-      <div>
-        <Section title="Notebooks" open>
-          <NotebookShelf goals={goals ?? []} activeId={activeId} onSwitch={(id) => { onSwitchGoal?.(id); }} onNew={() => onNewGoal?.()} />
-        </Section>
-        <Section title="This device" open>
-          <ExportStatus />
-          {cost && cost.turns > 0 && <p className="text-[14px] text-graphite">Estimated session spend: {fmtUsd(cost.dollars)}</p>}
-          {goalId && (
-            <TextAction className="text-[14px] text-graphite underline underline-offset-[3px]" onClick={() => confirm('Clear the conversation? The goal itself is kept.') && void clearChat(goalId)}>
-              Clear the conversation
-            </TextAction>
-          )}
-        </Section>
-        <Section title="Model and key"><ProviderForm /></Section>
-        <Section title="Data and durability"><DataPanel /></Section>
-        <Section title="Cost"><CostPanel /></Section>
-        <Section title="About and licenses">
-          <p className="text-[14px] text-graphite">App {__APP_VERSION__}. No analytics, no third-party scripts, no account.</p>
-          <Licenses />
-        </Section>
-        <Section title="Danger zone">
-          <div className="flex flex-wrap items-center gap-4">
-            {goalId && <TextAction className="text-ink underline underline-offset-[3px]" onClick={() => confirm('Delete the active goal and its chat? This cannot be undone. Export first if unsure.') && void deleteGoal(goalId).then(close)}>Delete active goal</TextAction>}
-            <TextAction className="text-ink underline underline-offset-[3px]" onClick={() => confirm('Erase ALL Gambit data on this device, including your saved key?') && void db.delete().then(() => location.reload())}>Erase everything</TextAction>
-          </div>
-        </Section>
-      </div>
-    </Leaf>
+    <div className="space-y-8">
+      <PageSection title="Your notebooks">
+        <NotebookShelf goals={goals ?? []} activeId={activeId} onSwitch={(id) => onSwitchGoal?.(id)} onNew={() => onNewGoal?.()} />
+      </PageSection>
+      <PageSection title="Model and key"><ProviderForm /></PageSection>
+      <PageSection title="Keep it safe">
+        <ExportStatus />
+        <DataPanel />
+      </PageSection>
+      <PageSection title="This device">
+        {goalId && (
+          <TextAction className="text-[14px] text-graphite underline underline-offset-[3px]" onClick={() => confirm('Clear the conversation? The goal itself is kept.') && void clearChat(goalId)}>
+            Clear the conversation
+          </TextAction>
+        )}
+        {cost && cost.turns > 0 && <p className="text-[14px] text-graphite">Estimated session spend: {fmtUsd(cost.dollars)}</p>}
+        <CostPanel />
+      </PageSection>
+      <PageSection title="About and licenses">
+        <p className="text-[14px] text-graphite">App {__APP_VERSION__}. No analytics, no third-party scripts, no account.</p>
+        <Licenses />
+      </PageSection>
+      <PageSection title="Danger zone">
+        <div className="flex flex-wrap items-center gap-4">
+          {goalId && <TextAction className="text-ink underline underline-offset-[3px]" onClick={() => confirm('Delete the active goal and its chat? This cannot be undone. Export first if unsure.') && void deleteGoal(goalId)}>Delete active goal</TextAction>}
+          <TextAction className="text-ink underline underline-offset-[3px]" onClick={() => confirm('Erase ALL Gambit data on this device, including your saved key?') && void db.delete().then(() => location.reload())}>Erase everything</TextAction>
+        </div>
+      </PageSection>
+    </div>
   );
 }

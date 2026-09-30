@@ -10,7 +10,6 @@ import { startFileSync, fileSyncState, reauthorizeFileSync } from './lib/portabi
 import { Setup } from './components/Setup';
 import { Chat } from './components/Chat';
 import { Dashboard, useGoalView } from './components/Dashboard';
-import { Settings } from './components/Settings';
 import { NewGoalDialog } from './components/NewGoal';
 import { useSessionCost } from './components/CostPanel';
 import { TextAction } from './components/ui';
@@ -59,7 +58,7 @@ function Banners() {
 function Main() {
   const goals = useLiveQuery(() => db.goals.orderBy('updatedAt').reverse().toArray(), []);
   const activeId = useLiveQuery(async () => (await getActiveGoalId()) ?? null, []);
-  const { chatOpen, setChatOpen, settingsOpen, openSettings } = useUi();
+  const { chatOpen, setChatOpen } = useUi();
   const [creating, setCreating] = useState(false);
   const cost = useSessionCost();
   const current = goals?.find((g) => g.id === activeId) ?? goals?.[0];
@@ -75,15 +74,9 @@ function Main() {
     window.addEventListener('gambit:compose', onCompose);
     return () => window.removeEventListener('gambit:compose', onCompose);
   }, [setChatOpen]);
-  // The wordmark and menu icon now render inside the page itself (another
-  // builder's work); it dispatches this event to open the menu leaf, which
-  // now lives in Settings.tsx (its goal switcher / new goal / settings /
-  // export-status sections — work item 4).
-  useEffect(() => {
-    const onMenu = () => openSettings(true);
-    window.addEventListener('gambit:menu', onMenu);
-    return () => window.removeEventListener('gambit:menu', onMenu);
-  }, [openSettings]);
+  // gambit:menu used to open a Settings Leaf; Inside cover is now a real
+  // page in the tab stack instead (Tabs.tsx listens for this event itself
+  // and switches to it), so there's nothing left for App.tsx to do here.
 
   if (!goals) return null;
   return (
@@ -97,7 +90,17 @@ function Main() {
              on mobile reserves space for the collapsed composer slip
              fixed over it, so it never covers the page's last content. */}
           <section className="h-full min-h-0 overflow-y-auto pb-24 md:px-10 md:pb-0">
-            <Dashboard goalId={current.id} />
+            <Dashboard
+              goalId={current.id}
+              settings={{
+                goalId: current.id,
+                goals,
+                activeId: current.id,
+                cost,
+                onSwitchGoal: (id) => void setActiveGoal(id),
+                onNewGoal: () => setCreating(true),
+              }}
+            />
           </section>
           <section className="hidden h-full min-h-0 md:block">
             <Chat goalId={current.id} stub={!!stub} variant="desktop" open onCollapse={() => {}} onExpand={() => {}} />
@@ -115,16 +118,6 @@ function Main() {
         </div>
       )}
       {creating && <NewGoalDialog onClose={() => { setCreating(false); setChatOpen(true); }} />}
-      {settingsOpen && (
-        <Settings
-          goalId={current?.id}
-          goals={goals}
-          activeId={current?.id}
-          cost={cost}
-          onSwitchGoal={(id) => void setActiveGoal(id)}
-          onNewGoal={() => { openSettings(false); setCreating(true); }}
-        />
-      )}
     </div>
   );
 }
