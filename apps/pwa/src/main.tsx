@@ -7,6 +7,9 @@ import '@fontsource-variable/noto-sans-mono';
 import '@fontsource/caveat/latin-500.css';
 import './styles.css';
 import App from './App';
+import { applyTheme } from './lib/theme';
+
+applyTheme();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

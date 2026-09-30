@@ -19,6 +19,7 @@ export const BASE_CONNECT_SRC = [
   'https://api.anthropic.com',
   'https://api.openai.com',
   'https://openrouter.ai',
+  'https://api.deepseek.com',
 ];
 const extra = (process.env.VITE_EXTRA_CONNECT_SRC ?? '').split(/\s+/).filter(Boolean);
 const connectSrc = [...BASE_CONNECT_SRC, ...extra];

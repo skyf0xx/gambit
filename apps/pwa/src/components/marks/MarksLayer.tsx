@@ -115,6 +115,7 @@ export function MarksLayer() {
     document.fonts?.ready?.then(schedule).catch(() => {});
     const mq = matchMedia('(prefers-color-scheme: dark)');
     mq.addEventListener('change', schedule);
+    window.addEventListener('gambit:theme', schedule);
     window.addEventListener('resize', schedule);
     // A tab switch (or any other content swap under `host` that doesn't
     // touch the goal or session) replaces which [data-line] elements exist

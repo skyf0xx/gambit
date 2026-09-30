@@ -44,17 +44,21 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
     setS({ kind, model: PROVIDERS[kind].defaultModel, baseURL: undefined, webSearch: false });
     setSaved(await hasApiKey(kind));
     setKey('');
+    setDetected(null);
     setErr('');
     setUnchecked(false);
   };
 
-  // A recognised key picks its own provider (OpenRouter as a custom endpoint).
+  // A recognised key picks its own provider, and that provider's recommended
+  // model (OpenRouter and DeepSeek as custom endpoints).
+  const [detected, setDetected] = useState<keyof typeof KEY_LABEL | null>(null);
   function onKey(k: string) {
     setKey(k);
     const p = keyProvider(k);
+    setDetected(p);
     if (!p || (firstRun && p === 'google')) return;
     const next = settingsForKey(p);
-    const same = next.kind === s.kind && (next.kind !== 'custom' || (s.baseURL ?? '').startsWith(OPENROUTER_BASE));
+    const same = next.kind === s.kind && (next.kind !== 'custom' || (s.baseURL ?? '').startsWith(next.baseURL ?? ''));
     if (same) return;
     setS({ ...next, webSearch: false });
     setShowBase(!!next.baseURL);
@@ -95,16 +99,17 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
 
   return (
     <div className="space-y-4">
+      <Field label={saved ? 'API key (saved; leave blank to keep)' : 'API key'} hint="Encrypted on this device and sent only to the provider you selected.">
+        <input className={`${inputCls} font-mono`} type="password" autoComplete="off" value={key} onChange={(e) => onKey(e.target.value)} placeholder={saved ? '••••••••••••' : 'Paste your key'} />
+        {detected && <span className="anim-fade-in block text-[14px] text-ink">{KEY_LABEL[detected]} key detected. Provider and model are set below.</span>}
+      </Field>
       <Field label="Provider" hint={PROVIDERS[s.kind].help}>
         <select className={inputCls} value={s.kind} onChange={(e) => void change(e.target.value as ProviderKind)}>
           {(Object.keys(PROVIDERS) as ProviderKind[]).filter((k) => !(firstRun && k === 'google')).map((k) => <option key={k} value={k}>{PROVIDERS[k].label}</option>)}
         </select>
       </Field>
       <Field label="Model id">
-        <input className={inputCls} value={s.model} onChange={(e) => setS({ ...s, model: e.target.value })} placeholder={s.kind === 'custom' ? 'e.g. anthropic/claude-sonnet-4.5' : 'model id'} />
-      </Field>
-      <Field label={saved ? 'API key (saved; leave blank to keep)' : 'API key'} hint="Encrypted on this device and sent only to the provider you selected.">
-        <input className={`${inputCls} font-mono`} type="password" autoComplete="off" value={key} onChange={(e) => onKey(e.target.value)} placeholder={saved ? '••••••••••••' : 'Paste your key'} />
+        <input className={inputCls} value={s.model} onChange={(e) => setS({ ...s, model: e.target.value })} placeholder={s.kind === 'custom' ? 'e.g. deepseek-chat' : 'model id'} />
       </Field>
       {s.kind === 'custom' || showBase ? (
         <Field label={s.kind === 'custom' ? 'Base URL' : 'Proxy / base URL (optional)'} hint={s.kind === 'custom' ? `For OpenRouter, use ${OPENROUTER_BASE}` : 'Needed for providers without browser CORS support.'}>

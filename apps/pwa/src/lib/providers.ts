@@ -26,6 +26,7 @@ export const PROVIDERS: Record<ProviderKind, { label: string; defaultModel: stri
 export const GOOGLE_KEY_URL = 'https://aistudio.google.com/api-keys';
 export const GOOGLE_FALLBACK_MODEL = 'gemini-3.5-flash-lite';
 export const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
+export const DEEPSEEK_BASE = 'https://api.deepseek.com/v1';
 
 /** A key as copied, minus what tends to come with it: surrounding quotes or
  * backticks, a "Key:" style label, stray spaces and line breaks. */
@@ -34,20 +35,25 @@ export function cleanKey(raw: string): string {
   return k.replace(/\s+/g, '');
 }
 
-/** Guess a key's provider from its prefix. `openrouter` maps to a custom endpoint. */
-export function keyProvider(key: string): Exclude<ProviderKind, 'custom'> | 'openrouter' | null {
+/** Guess a key's provider from its shape. `openrouter` and `deepseek` map to
+ * custom endpoints. DeepSeek keys are a bare `sk-` plus 32 hex characters,
+ * which OpenAI's (`sk-proj-…`, or 48+ mixed characters) never are. */
+export function keyProvider(key: string): Exclude<ProviderKind, 'custom'> | 'openrouter' | 'deepseek' | null {
   const k = cleanKey(key);
   if (k.startsWith('sk-ant-')) return 'anthropic';
   if (k.startsWith('sk-or-')) return 'openrouter';
+  if (/^sk-[a-f0-9]{32}$/.test(k)) return 'deepseek';
   if (k.startsWith('sk-')) return 'openai';
   if (k.startsWith('AQ.') || k.startsWith('AIza')) return 'google';
   return null;
 }
 
-export const KEY_LABEL = { google: 'Google', anthropic: 'Anthropic', openai: 'OpenAI', openrouter: 'OpenRouter' } as const;
+export const KEY_LABEL = { google: 'Google', anthropic: 'Anthropic', openai: 'OpenAI', openrouter: 'OpenRouter', deepseek: 'DeepSeek' } as const;
 
-/** Settings for a detected key: the provider's default model, with OpenRouter as a custom endpoint. */
+/** Settings for a detected key: the provider's default model, with OpenRouter
+ * and DeepSeek as custom endpoints. */
 export function settingsForKey(p: NonNullable<ReturnType<typeof keyProvider>>): ProviderSettings {
+  if (p === 'deepseek') return { kind: 'custom', model: 'deepseek-chat', baseURL: DEEPSEEK_BASE };
   if (p === 'openrouter') return { kind: 'custom', model: 'anthropic/claude-sonnet-4.5', baseURL: OPENROUTER_BASE };
   return { kind: p, model: PROVIDERS[p].defaultModel };
 }

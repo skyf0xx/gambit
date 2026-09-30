@@ -5,6 +5,7 @@ import { deleteGoal } from '../lib/goals';
 import { clearChat } from '../lib/agent';
 import { readDurability, requestPersistence, installRoute, installSteps, useUi, type Durability } from '../lib/persist';
 import { bindExportFile, commitImport, downloadExport, fileSyncState, fsAccessSupported, planImport, reauthorizeFileSync, unbindExportFile, type Choice, type ImportItem } from '../lib/portability';
+import { setTheme, useTheme, type Theme } from '../lib/theme';
 import { methodsLicense } from '../lib/skills';
 import { fmtUsd } from '../lib/cost';
 import { TextAction, InkButton, PencilWord } from './ui';
@@ -180,6 +181,24 @@ function KeepSafe() {
   );
 }
 
+const THEMES: { id: Theme; label: string }[] = [{ id: 'system', label: 'Match my device' }, { id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' }];
+
+/** Light or dark paper, or whichever the device is using. */
+function Appearance() {
+  const theme = useTheme();
+  return (
+    <Group label="Paper" note={THEMES.find((t) => t.id === theme)?.label}>
+      <div role="radiogroup" aria-label="Paper" className="flex flex-wrap items-center gap-x-5">
+        {THEMES.map((t) => (
+          <TextAction key={t.id} role="radio" aria-checked={theme === t.id} className={`${linkCls} ${theme === t.id ? 'font-semibold' : 'no-underline text-graphite'}`} onClick={() => setTheme(t.id)}>
+            {t.label}
+          </TextAction>
+        ))}
+      </div>
+    </Group>
+  );
+}
+
 function Licenses() {
   const [t, setT] = useState('');
   useEffect(() => { void methodsLicense().then(setT); }, []);
@@ -257,6 +276,7 @@ export function SettingsPage({ goalId, goals, activeId, cost, onSwitchGoal, onNe
         <NotebookShelf goals={goals ?? []} activeId={activeId} onSwitch={(id) => onSwitchGoal?.(id)} onNew={() => onNewGoal?.()} />
       </PageSection>
       <PageSection title="Model and key"><ProviderForm /></PageSection>
+      <PageSection title="Appearance"><Appearance /></PageSection>
       <PageSection title="Saving your work"><KeepSafe /></PageSection>
       <PageSection title="Conversation and cost">
         <div className="space-y-6">
