@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
 // Paper-system primitives (brand/identity.md §03-05). Materials, not
 // colours, carry meaning: ink is committed, pencil is changeable, a slip is
@@ -8,13 +8,24 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 const tapTarget = 'inline-flex min-h-[44px] items-center';
 
+/** Exit-animation durations in ms, matching styles.css's --dur-* custom
+ * properties (kept in sync by hand: peel 220, card-out 180, sheet-down
+ * 200 — other builders who can't import this hard-code the same numbers).
+ * Returns 0 under reduced motion so a caller can `await` this many ms
+ * before unmounting or writing, without special-casing reduced motion
+ * itself. */
+export function motionMs(name: 'peel' | 'card-out' | 'sheet-down'): number {
+  if (typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches) return 0;
+  return { peel: 220, 'card-out': 180, 'sheet-down': 200 }[name];
+}
+
 /** A plain typed-word action. Pencil-circled on hover/focus by the marks layer via `data-circle`. */
 export function TextAction({ className = '', ...p }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       data-circle
       {...p}
-      className={`${tapTarget} bg-transparent p-0 font-sans text-[17px] text-ink underline-offset-[3px] disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
+      className={`anim-press ${tapTarget} bg-transparent p-0 font-sans text-[17px] text-ink underline-offset-[3px] disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
     />
   );
 }
@@ -24,7 +35,7 @@ export function InkButton({ className = '', ...p }: ButtonHTMLAttributes<HTMLBut
   return (
     <button
       {...p}
-      className={`ink-bleed min-h-[44px] rounded-[3px] bg-ink px-5 py-3 font-sans text-[17px] font-medium text-bg disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
+      className={`anim-press ink-bleed min-h-[44px] rounded-[3px] bg-ink px-5 py-3 font-sans text-[17px] font-medium text-bg disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
     />
   );
 }
@@ -51,19 +62,62 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
   );
 }
 
+const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 /** A slip laid over the page, with a shadow (the shadow is a drop-shadow on
  * the wrapper, since a torn slip's clip-path would otherwise cut off a
  * box-shadow). Exported as `Leaf`; `Modal` is kept as an alias so existing
- * callers compile unchanged. */
+ * callers compile unchanged. Animates in (backdrop fade, leaf slide-up),
+ * traps focus, closes on Escape, and returns focus to whatever opened it. */
 export function Leaf({ title, onClose, children, wide }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<Element | null>(null);
+
+  useEffect(() => {
+    openerRef.current = document.activeElement;
+    const dialog = dialogRef.current;
+    const focusable = dialog?.querySelectorAll<HTMLElement>(FOCUSABLE);
+    (focusable?.[0] ?? dialog)?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+        return;
+      }
+      if (e.key !== 'Tab' || !dialog) return;
+      const items = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.offsetParent !== null);
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, true);
+      const opener = openerRef.current;
+      if (opener instanceof HTMLElement) opener.focus();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" onClick={onClose}>
+    <div className="anim-fade-in fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" onClick={onClose}>
       <div
+        ref={dialogRef}
         role="dialog"
         aria-label={title}
+        aria-modal="true"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{ filter: 'drop-shadow(0 1px 1px var(--lift)) drop-shadow(0 8px 30px -8px var(--lift-far))', paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
-        className={`slip max-h-[92dvh] w-full overflow-y-auto rounded-t-[3px] p-5 sm:rounded-[3px] ${wide ? 'sm:max-w-3xl' : 'sm:max-w-md'}`}
+        className={`slip anim-card-in max-h-[92dvh] w-full overflow-y-auto rounded-t-[3px] p-5 sm:rounded-[3px] ${wide ? 'sm:max-w-3xl' : 'sm:max-w-md'}`}
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-serif text-[20px] font-medium text-ink">{title}</h2>

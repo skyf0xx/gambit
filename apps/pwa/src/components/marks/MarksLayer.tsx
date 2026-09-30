@@ -8,7 +8,7 @@ import {
   hashSeed,
   highlightPoints,
   squigglePoints,
-  strikePoints,
+  zigzagPoints,
   starPoints,
   strokePath,
   tickPoints,
@@ -78,6 +78,8 @@ export function MarksLayer() {
   const underRef = useRef<SVGSVGElement>(null);
   const overRef = useRef<SVGSVGElement>(null);
   const [tick, forceTick] = useState(0);
+  const prevTicksRef = useRef<Set<LinePath> | null>(null);
+  const prevCancelsRef = useRef<Set<LinePath> | null>(null);
 
   // Schedule a redraw (debounced) on resize, font load, and colour-scheme
   // change — bumping `tick` is the only thing this effect does; the actual
@@ -186,19 +188,42 @@ export function MarksLayer() {
     });
 
     const marginX = MARGIN_X;
+    const nextTicks = new Set<LinePath>();
+    const nextCancels = new Set<LinePath>();
 
-    for (const { path, mark, lines } of placed) {
+    for (const { path, mark, lines, el } of placed) {
       const seed = hashSeed(path);
 
+      // Give each marked line the mark's meaning as a pencil-note (brand/
+      // identity.md §05 pencil-note tooltips): the simplest hookup is
+      // setting data-note directly on the [data-line] element MarksLayer
+      // already owns, rather than a separate hit target.
+      const note = noteForMark(mark);
+      if (note) el.setAttribute('data-note', note);
+      else el.removeAttribute('data-note');
+
+      if (mark.kind === 'tick') nextTicks.add(path);
+      if (mark.kind === 'cancel') nextCancels.add(path);
+
       if (mark.kind === 'tick') {
-        const box = lines[0];
+        const line = lines[0];
         const lineEl = placed.find((p) => p.path === path)?.el;
         const boxEl = lineEl?.querySelector('[data-box], .box') ?? null;
-        const target = boxEl ? rel(boxEl.getBoundingClientRect(), origin) : box;
-        for (const side of boxPoints(target, seed)) {
-          drawStroke(side, over, { size: 1.5, thinning: 0.45, taper: false, grain: false, opacity: 0.85 });
+        // Degrade gracefully: when the page hasn't rendered a box span for
+        // this line (older builder state), tick at the line start instead of
+        // drawing a checkbox that doesn't exist.
+        const target = boxEl
+          ? rel(boxEl.getBoundingClientRect(), origin)
+          : { l: line.l, t: line.t, r: line.l + 18, b: line.t + 18, w: 18, h: 18 };
+        if (boxEl) {
+          for (const side of boxPoints(target, seed)) {
+            drawStroke(side, over, { size: 1.5, thinning: 0.45, taper: false, grain: false, opacity: 0.85 });
+          }
         }
-        drawStroke(tickPoints(target), over, { color: ink, size: 2.6, thinning: 0.6, grain: false });
+        const pts = tickPoints(target);
+        const p = drawStroke(pts, over, { color: ink, size: 2.6, thinning: 0.6, grain: false });
+        const isNew = prevTicksRef.current ? !prevTicksRef.current.has(path) : false;
+        if (isNew && !reduced) drawIn(p, pts, 180, 0, 12);
       }
 
       if (mark.kind === 'highlight') {
@@ -219,9 +244,12 @@ export function MarksLayer() {
         });
       }
 
-      if (mark.kind === 'eraser') {
+      if (mark.kind === 'cancel') {
+        const isNew = prevCancelsRef.current ? !prevCancelsRef.current.has(path) : false;
         lines.forEach((L, j) => {
-          drawStroke(strikePoints(L, seed + j), over, { size: 1.7 });
+          const pts = zigzagPoints(L, seed + j);
+          const p = drawStroke(pts, over, { size: 1.7 });
+          if (isNew && !reduced) drawIn(p, pts, 300, 0, 12);
         });
       }
 
@@ -289,6 +317,9 @@ export function MarksLayer() {
       }
     }
 
+    prevTicksRef.current = nextTicks;
+    prevCancelsRef.current = nextCancels;
+
     // Hover circles: delegated pointerenter/focusin on [data-circle].
     const circles = new Map<Element, { g: SVGGElement; fadeTimer?: ReturnType<typeof setTimeout> }>();
     const onEnter = (e: Event) => {
@@ -336,6 +367,29 @@ export function MarksLayer() {
       <svg ref={overRef} className="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true" />
     </div>
   );
+}
+
+/** The pencil-note text for a mark, per brand/identity.md §05's SR-text
+ * table — same meaning, surfaced as a tooltip instead of only to a screen
+ * reader. `arrow-text`'s fallback line already renders its own "→ Name"
+ * text inline, so it needs no separate note. */
+export function noteForMark(mark: Mark): string | null {
+  switch (mark.kind) {
+    case 'star':
+      return 'everything else waits on this';
+    case 'arrow':
+      return mark.sr;
+    case 'question':
+      return 'open question';
+    case 'squiggle':
+      return 'not checked yet';
+    case 'loop':
+      return 'new from your chat';
+    case 'highlight':
+      return 'the focus right now';
+    default:
+      return null;
+  }
 }
 
 function cssEscape(s: string): string {

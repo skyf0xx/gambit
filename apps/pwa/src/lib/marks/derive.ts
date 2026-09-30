@@ -59,7 +59,7 @@ function collectPeopleAndStakeholders(goal: Goal): Named[] {
 
 /**
  * Derive every line's mark plus the arrow list, from the goal record and the
- * in-tab session snapshot. One mark per line; event marks (loop, eraser) win
+ * in-tab session snapshot. One mark per line; event marks (loop, cancel) win
  * over derived ones. At most one loop, one highlight and one star.
  */
 export function deriveMarks(goal: Goal, goalId: string, sessionState: SessionSnapshot): DerivedMarks {
@@ -155,10 +155,10 @@ export function deriveMarks(goal: Goal, goalId: string, sessionState: SessionSna
     if (d.status === 'open') set(`decisions.${i}`, { kind: 'question', sr: 'open question' });
   });
 
-  // --- event marks: eraser (dropped) and loop (last turn's writes) win ---
+  // --- event marks: cancel (dropped) and loop (last turn's writes) win ---
   const droppedForGoal = sessionState.dropped.get(goalId) ?? new Set<LinePath>();
   for (const path of droppedForGoal) {
-    byPath.set(path, { kind: 'eraser', sr: 'dropped' });
+    byPath.set(path, { kind: 'cancel', sr: 'cancelled', pencil: true });
   }
 
   const turn = sessionState.turn;

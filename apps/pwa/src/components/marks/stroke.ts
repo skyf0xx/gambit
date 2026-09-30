@@ -144,10 +144,15 @@ export function squigglePoints(line: Box, seed: number): Point[] {
   });
 }
 
-/** A strikethrough across one line of text (the eraser). */
-export function strikePoints(line: Box, seed: number): Point[] {
+/** A loose pencil zigzag through one line of text (cancelled/dropped). */
+export function zigzagPoints(line: Box, seed: number): Point[] {
   const y = line.t + line.h * 0.56;
-  return hand((t) => [line.l - 4 + t * (line.w + 8), y + 1.5 - t * 3], { n: 24, wobble: 0.5, seed });
+  const amp = Math.max(3, line.h * 0.22);
+  const teeth = Math.max(3, Math.round(line.w / 22));
+  return hand(
+    (t) => [line.l - 4 + t * (line.w + 8), y + Math.sin(t * teeth * Math.PI) * amp],
+    { n: teeth * 6, wobble: 0.6, seed, press: [0.4, 0.5] },
+  );
 }
 
 /** A five-point star in the margin, next to one line of text. */

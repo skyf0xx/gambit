@@ -143,6 +143,128 @@ details > summary::-webkit-details-marker { display: none; }
 
 :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 3px; }
 
+/* Motion primitives (brand/identity.md §05 "tasteful paper-metaphor
+   motion"). Durations are exported as CSS custom properties so ui.tsx's
+   `motionMs` can read the same numbers JS-side (for waiting out an exit
+   animation before unmount/write), and so other builders who can't import
+   it can hard-code the matching ms values: peel 220, card-out 180,
+   sheet-down 200. Every one of these becomes a short opacity-only fade (or
+   nothing) under prefers-reduced-motion, below. */
+:root {
+  --dur-press: 80ms;
+  --dur-peel: 220ms;
+  --dur-card-out: 180ms;
+  --dur-card-in: 240ms;
+  --dur-rise: 160ms;
+  --dur-sheet-up: 260ms;
+  --dur-sheet-down: 200ms;
+  --dur-write: 300ms;
+  --dur-fade-in: 150ms;
+}
+
+@keyframes press-scale {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+.anim-press:active {
+  animation: press-scale var(--dur-press) ease-out;
+}
+
+@keyframes peel-off {
+  from { transform: rotate(0deg) translate(0, 0); opacity: 1; }
+  to { transform: rotate(8deg) translate(6px, -18px); opacity: 0; }
+}
+.anim-peel {
+  animation: peel-off var(--dur-peel) ease-in forwards;
+}
+
+@keyframes card-lift-out {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(-10px); opacity: 0; }
+}
+.anim-card-out {
+  animation: card-lift-out var(--dur-card-out) ease-in forwards;
+}
+
+@keyframes card-drop-in {
+  0% { transform: translateY(-12px) rotate(-1.2deg); opacity: 0; }
+  70% { transform: translateY(1px) rotate(0.4deg); opacity: 1; }
+  100% { transform: translateY(0) rotate(0deg); opacity: 1; }
+}
+.anim-card-in {
+  animation: card-drop-in var(--dur-card-in) ease-out;
+}
+
+@keyframes rise-in {
+  from { transform: translateY(4px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.anim-rise {
+  animation: rise-in var(--dur-rise) ease-out;
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.anim-sheet-up {
+  animation: sheet-up var(--dur-sheet-up) ease-out;
+}
+
+@keyframes sheet-down {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(100%); opacity: 0; }
+}
+.anim-sheet-down {
+  animation: sheet-down var(--dur-sheet-down) ease-in forwards;
+}
+
+@keyframes write-reveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+.anim-write {
+  animation: write-reveal var(--dur-write) ease-out forwards;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.anim-fade-in {
+  animation: fade-in var(--dur-fade-in) ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-press: 0ms;
+    --dur-peel: 100ms;
+    --dur-card-out: 100ms;
+    --dur-card-in: 0ms;
+    --dur-rise: 0ms;
+    --dur-sheet-up: 0ms;
+    --dur-sheet-down: 100ms;
+    --dur-write: 0ms;
+    --dur-fade-in: 100ms;
+  }
+  /* anim-press, anim-card-in, anim-rise, anim-sheet-up and anim-write are
+     silenced by the catch-all further down (animation-duration: 0.001ms).
+     anim-peel / anim-card-out / anim-sheet-down are exempted from that
+     catch-all (see below) so they can still resolve to opacity 0 through a
+     short, opacity-only fade instead of a transform. */
+  .anim-peel,
+  .anim-card-out,
+  .anim-sheet-down {
+    animation-name: fade-in;
+    animation-direction: reverse;
+    animation-duration: 100ms;
+    animation-timing-function: ease-in;
+    animation-fill-mode: forwards;
+    transform: none;
+  }
+}
+
 /* The mobile conversation leaf sliding up over the page when expanded
    (brand/identity.md §05's "conversation is a loose leaf over the page").
    Skipped entirely under prefers-reduced-motion via the motion-safe: variant
@@ -153,7 +275,9 @@ details > summary::-webkit-details-marker { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *:not(.anim-peel):not(.anim-card-out):not(.anim-sheet-down),
+  *::before,
+  *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;

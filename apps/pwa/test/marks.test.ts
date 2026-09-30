@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { stubGoal } from '@gambit/core';
 import { deriveMarks, type SessionSnapshot } from '../src/lib/marks/derive';
 import { hashSeed, rng, ellipsePoints, unionBox, type Box } from '../src/components/marks/stroke';
+import { noteForMark } from '../src/components/marks/MarksLayer';
 import type { Goal } from '../src/lib/types';
 
 const emptySession: SessionSnapshot = { turn: null, dropped: new Map() };
@@ -202,8 +203,8 @@ describe('deriveMarks — question', () => {
   });
 });
 
-describe('deriveMarks — event marks win: eraser and loop', () => {
-  it('eraser overrides a derived mark on the same path', () => {
+describe('deriveMarks — event marks win: cancel and loop', () => {
+  it('cancel overrides a derived mark on the same path, in pencil, with SR "cancelled"', () => {
     const goal = withPlan(stubGoal('Goal') as Goal, {
       nextActions: [{ action: 'Call Priya', who: 'me', when: 'fri', status: 'done' as const }],
     });
@@ -212,7 +213,7 @@ describe('deriveMarks — event marks win: eraser and loop', () => {
       dropped: new Map([['g1', new Set(['plan.linesOfOperation.0.nextActions.0'])]]),
     };
     const { byPath } = deriveMarks(goal, 'g1', session);
-    expect(byPath.get('plan.linesOfOperation.0.nextActions.0')).toEqual({ kind: 'eraser', sr: 'dropped' });
+    expect(byPath.get('plan.linesOfOperation.0.nextActions.0')).toEqual({ kind: 'cancel', sr: 'cancelled', pencil: true });
   });
 
   it('loop overrides a derived mark on the same path', () => {
@@ -268,6 +269,37 @@ describe('deriveMarks — event marks win: eraser and loop', () => {
     };
     const { byPath } = deriveMarks(goal, 'g1', session);
     expect(byPath.get('plan.linesOfOperation.0.nextActions.0')).toBeUndefined();
+  });
+});
+
+describe('noteForMark — pencil-note tooltip text per mark', () => {
+  it('gives the star its "waits on this" meaning', () => {
+    expect(noteForMark({ kind: 'star', sr: 'next up' })).toBe('everything else waits on this');
+  });
+
+  it('gives an arrow its "depends on <name>" text verbatim from sr', () => {
+    expect(noteForMark({ kind: 'arrow', sr: 'depends on Priya', to: 'people.0' })).toBe('depends on Priya');
+  });
+
+  it('gives an open question its meaning', () => {
+    expect(noteForMark({ kind: 'question', sr: 'open question' })).toBe('open question');
+  });
+
+  it('gives the not-checked-yet squiggle its meaning', () => {
+    expect(noteForMark({ kind: 'squiggle', sr: 'not checked yet', pencil: true })).toBe('not checked yet');
+  });
+
+  it('gives the loop its "new from your chat" meaning', () => {
+    expect(noteForMark({ kind: 'loop', sr: 'changed in your last chat', note: 'changed' })).toBe('new from your chat');
+  });
+
+  it('gives the highlighter its "focus right now" meaning', () => {
+    expect(noteForMark({ kind: 'highlight', sr: 'focus' })).toBe('the focus right now');
+  });
+
+  it('has no note for a tick or a cancel mark', () => {
+    expect(noteForMark({ kind: 'tick', sr: 'done' })).toBeNull();
+    expect(noteForMark({ kind: 'cancel', sr: 'cancelled', pencil: true })).toBeNull();
   });
 });
 
