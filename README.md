@@ -1,115 +1,57 @@
-# G A M B I T ⭐ A.I.
+# Gambit
+
+**The notebook that thinks back.**
 
 ![Gambit](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/banner.jpg)
 
-## Planning your next move?
+Stuck on something hard? Changing careers, starting a business, running a
+campaign, and going in circles on what to do next?
 
-Starting a business, organizing a campaign, **changing your life**.
+Gambit is a strategist you think it through with. It asks the questions
+you've been avoiding, tells you where the plan is weak, and writes it all
+down on one page beside the chat: your plan, risks, decisions, the people
+involved, and whether you're actually making progress.
 
-Trying to **make something happen**.
+Every conversation ends with your next move.
 
-**Gambit is a strategist** that helps you think it through, **make better decisions, and get it done.**
+**[Open Gambit →](https://<your-vercel-domain>)**
 
-Figure out:
+## What it helps with
 
-- What truly matters
-- What to do next
-- Who you need
-- What you don't know
-- What could go wrong
-- And whether you're actually making progress.
+- **Deciding.** Work an open choice down to a call you can stand behind.
+- **Planning.** Turn a goal into the next few concrete steps.
+- **Finding weak spots.** Imagine it failed, then work out why, before it does.
+- **People.** Map who matters, and prepare for the hard conversation.
+- **Checking progress.** An honest read on whether you're on track.
 
-## Get 10X better outcomes for your goals
+It uses methods professional planners use (premortems, red-teaming,
+negotiation prep, forecasting) without making you learn them.
 
-Use Gambit for almost anything:
+## Private by design
 
-- **Business**: find opportunities, make decisions, execute
-- **Marketing**: sharpen your strategy and messaging
-- **Fitness**: set goals, build a plan, stay on track
-- **Life goals**: work out what matters and what to do about it
-- **Anything you can imagine**: Gambit helps you think clearly and move forward
+No account and no server. Your goals, chats, and key stay in your browser.
+You bring an API key from Anthropic, OpenAI, OpenRouter, or any
+OpenAI-compatible provider, and pay them directly for what you use.
 
-## Why Gambit works
+## For developers
 
-<img src="https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/plan.jpg" alt="A strategic execution plan annotated with leverage points, dependencies, and constraints">
-
-### Gambit combines powerful frameworks for:
-
-- **Strategy & systems thinking**: understand the bigger picture and what actually drives outcomes
-- **Decision-making & forecasting**: make better calls under uncertainty
-- **Risk & red-teaming**: expose weaknesses before they become problems
-- **Stakeholder analysis & negotiation**: understand people, incentives, and competing interests
-- **Planning & execution**: turn strategy into concrete next steps
-- **Experimentation & after-action review**: test, learn, adapt, and improve
-
-**Better thinking. Clearer decisions. Plans you can execute today.**
-
-## What it is
-
-Gambit is a local-first web app (PWA). Chat with an agent that runs
-Gambit's strategy skills — onboarding, strategy setting, planning,
-threat/premortem, stakeholder mapping, negotiation prep, forecasting, and
-more — next to a live dashboard of your goal. There's no backend and no
-account: your goal, your chat history, and your model API key live only in
-your browser.
-
-## The skills
-
-| Group | Skills |
-|---|---|
-| Orient | `onboard`, `brief`, `status` |
-| Direct | `strategy`, `systems`, `plan`, `decide` |
-| Establish | `experiment`, `forecast` |
-| Stress | `threat`, `premortem`, `exposure`, `capacity` |
-| People | `stakeholders`, `negotiate`, `comms` |
-| Assess | `eval`, `review` |
-
-See `AGENTS.md` for what each skill does and how they fit together.
-
-## Privacy and how it stores data
-
-- **Local-first.** Your goal, chat history, and API key are stored in your
-  browser's IndexedDB. Nothing is sent anywhere except the model provider
-  you configure, and only when you send a message.
-- **Your own key.** Bring a key for Anthropic, OpenAI, OpenRouter, or any
-  OpenAI-compatible endpoint. The app never sees or stores it anywhere but
-  your own browser.
-- **No analytics, no accounts.** Nothing about your usage is collected or
-  transmitted.
-- **Strict Content-Security-Policy.** The build ships a locked-down CSP
-  that only allows network calls to your configured model provider.
-- **Export / import.** Your goal and settings can be exported to a file and
-  re-imported later, or on another device.
-
-## Use the hosted app
-
-`https://<your-vercel-domain>` — the app is deployed on Vercel. Open it,
-add your model API key in Settings, and start a goal.
-
-## Run it locally
+Local-first PWA (Vite, React, Dexie). The agent runs in the browser and
+talks only to the provider you configure, enforced by a strict CSP.
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Deploy your own
+Deploy your own by importing the repo into Vercel; `vercel.json` handles
+the rest. To route model calls through a proxy, set
+`VITE_EXTRA_CONNECT_SRC` at build time and match the CSP in `vercel.json`
+(a test keeps them in sync).
 
-Import this repository into Vercel. `vercel.json` at the repo root sets
-the build command, output directory, and headers — no other configuration
-is required.
+How the skills and goal record work: [AGENTS.md](AGENTS.md).
 
-If you're routing model API calls through your own proxy rather than
-calling providers directly from the browser, set `VITE_EXTRA_CONNECT_SRC`
-as a build-time environment variable to the proxy's origin, and update the
-`Content-Security-Policy` in `vercel.json` to match (a test enforces that
-the two stay in sync).
+## License
 
-## License and attribution
-
-MIT licensed — see `LICENSE`.
-
-Gambit's elicitation method catalog is vendored from
-[BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD)
-(`apps/pwa/vendor/BMAD/`) — see `ATTRIBUTION.md` there for the pinned
-source, license, and any local changes.
+MIT. The elicitation method catalog is vendored from
+[BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD); see
+`apps/pwa/vendor/BMAD/ATTRIBUTION.md`.

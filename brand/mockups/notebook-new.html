@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gambit new notebook</title>
+<script>
+  const q = new URLSearchParams(location.search);
+  if (q.get("theme")) document.documentElement.dataset.theme = q.get("theme");
+</script>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="notebook.css">
+</head>
+<body>
+<main class="page">
+  <div class="topbar">
+    <span class="wordmark-sm">gambit</span>
+    <button class="iconbtn" aria-label="Menu" title="Menu"><i data-lucide="menu"></i></button>
+  </div>
+
+  <!-- Nothing due yet: the card is there, with the brand question on it -->
+  <div class="card">
+    <div class="card-label">Your next move</div>
+    <p class="next-move">What’s your next move?</p>
+    <p class="next-meta hand">nothing due yet, think out loud below</p>
+  </div>
+
+  <header>
+    <h1 class="goal-title">Decide on the third site before the lease offer expires</h1>
+    <p class="goal-meta hand">6 weeks left</p>
+  </header>
+
+  <section>
+    <h2>What done looks like</h2>
+    <ul>
+      <li class="check">
+        <span class="box" data-box></span>
+        <span class="text">Know the real hours and cash a third site needs</span>
+      </li>
+      <li class="check">
+        <span class="box" data-box></span>
+        <span class="text">A yes or no on Edgbaston before 11 Nov</span>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Who’s involved</h2>
+    <button class="textaction empty">Nobody named yet. Who has a say in this?</button>
+  </section>
+
+  <section>
+    <h2>What could go wrong</h2>
+    <button class="textaction empty">Not looked at yet. Imagine it failed, and work out why.</button>
+  </section>
+
+  <div class="composer-gap"></div>
+  <div class="composer">
+    <div class="line-input">
+      <input placeholder="Think out loud…" aria-label="Think out loud">
+      <button class="iconbtn send" aria-label="Send"><i data-lucide="arrow-up"></i></button>
+    </div>
+  </div>
+</main>
+<script src="icons.js"></script>
+<script type="module" src="marks.js"></script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gambit setup kit</title>
+  <script>
+    const t = new URLSearchParams(location.search).get("theme");
+    if (t) document.documentElement.dataset.theme = t;
+  </script>
+  <link rel="stylesheet" href="tokens.css">
+  <style>
+    .back {
+      align-self: flex-start;
+      margin-left: -6px;
+    }
+
+    h1 {
+      filter: url(#bleed);
+      margin-top: 28px;
+      font-size: 30px;
+      line-height: 38px;
+      font-weight: 500;
+      text-wrap: balance;
+    }
+
+    .intro {
+      margin-top: 12px;
+      color: var(--graphite);
+    }
+
+    .part {
+      margin-top: 44px;
+    }
+
+    .part h2 {
+      font-size: 17px;
+      line-height: 24px;
+      font-weight: 500;
+    }
+
+    .part h2 .n {
+      font-family: var(--hand);
+      font-size: 24px;
+      color: var(--graphite);
+      font-weight: 500;
+      margin-right: 10px;
+      filter: url(#graphite);
+    }
+
+    /* The message is a torn-off slip, ready to hand over */
+    .message-wrap {
+      margin: 16px -6px 0 -12px;
+      filter: drop-shadow(0 1px 1px var(--lift)) drop-shadow(0 8px 12px var(--lift-far));
+      transform: rotate(-.6deg);
+    }
+
+    .message {
+      padding: 20px 18px 16px;
+      background: var(--grain), var(--surface);
+      clip-path: var(--torn, none);
+    }
+
+    .message p+p {
+      margin-top: 12px;
+    }
+
+    .link {
+      margin-top: 12px;
+      font-family: var(--mono);
+      font-size: 15px;
+      line-height: 22px;
+      word-break: break-all;
+    }
+
+    .part .actions {
+      margin-top: 12px;
+      display: flex;
+      gap: 18px;
+      font-size: 15px;
+    }
+
+    .part .note {
+      margin-top: 6px;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <button class="iconbtn back" aria-label="Back" title="Back"><i data-lucide="arrow-left"></i></button>
+    <h1>Setting this up for someone?</h1>
+    <p class="intro">Send them these. They can do it alone, or you can sit with them.</p>
+
+    <div class="part">
+      <h2><span class="n">1</span>A message to send</h2>
+      <div class="message-wrap">
+        <div class="message" data-torn>
+          <p>I think you’d like Gambit. It’s a notebook for one hard goal that asks good questions and keeps track of your
+            next move.</p>
+        </div>
+      </div>
+      <div class="actions"><button class="textaction">Copy message</button><button class="textaction">Share</button>
+      </div>
+    </div>
+
+    <div class="part">
+      <h2><span class="n">2</span>A link that opens Gambit ready for Google</h2>
+      <p class="link">gambit.app/#setup=google</p>
+      <div class="actions"><button class="textaction">Copy link</button></div>
+      <p class="note hand">it never carries a key, so keys stay out of chat history</p>
+    </div>
+
+    <div class="part">
+      <h2><span class="n">3</span>A one-page key sheet</h2>
+      <p class="note small">The same three steps, printed, for sitting down together.</p>
+      <div class="actions"><button class="textaction">Print the key sheet</button></div>
+    </div>
+  </main>
+  <script src="icons.js"></script>
+  <script type="module" src="marks.js"></script>
+</body>
+
+</html>

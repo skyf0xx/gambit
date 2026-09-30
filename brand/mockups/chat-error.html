@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gambit chat error</title>
+<script>
+  const q = new URLSearchParams(location.search);
+  if (q.get("theme")) document.documentElement.dataset.theme = q.get("theme");
+  document.documentElement.dataset.kind = q.get("kind") || "busy";
+</script>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="sheet.css">
+<style>
+  .layer .page { padding-top: 36px; }
+  .you { padding-left: 18px; border-left: 1.5px solid color-mix(in srgb, var(--graphite) 55%, transparent); font-weight: 500; }
+  .saved { margin-top: 8px; padding-left: 20px; }
+
+  /* Error text is one of the accent's three jobs */
+  .err { margin-top: 28px; color: var(--accent); }
+  .err-actions { margin-top: 12px; display: flex; gap: 18px; font-size: 15px; }
+  .err-actions .quiet { color: var(--graphite); }
+  .details { display: none; margin-top: 12px; font-family: var(--mono); font-size: 13px; line-height: 20px; color: var(--graphite); }
+  .open .details { display: block; }
+
+  .kind { display: none; }
+  [data-kind="busy"] .busy, [data-kind="limit"] .limit, [data-kind="offline"] .offline { display: block; }
+
+</style>
+</head>
+<body>
+  <div class="behind">
+    <p class="small">Your next move</p>
+    <p>Ask the landlord’s agent about a break clause at year 3.</p>
+  </div>
+
+  <div class="layer">
+    <main class="page">
+      <p class="you">The agent says no break clause, but they’d do 6 months rent-free.</p>
+      <p class="saved hand">saved</p>
+
+      <div class="kind busy">
+        <p class="err">Google’s models are busy right now. Your message is saved, so try again in a minute.</p>
+        <div class="err-actions"><button class="textaction">Try again</button><button class="textaction link quiet" onclick="this.closest('.kind').classList.toggle('open')">Details</button></div>
+        <p class="details">503 · gemini-flash-latest, then gemini-3.5-flash-lite · “The model is overloaded.”</p>
+      </div>
+
+      <div class="kind limit">
+        <p class="err">You’ve used Google’s free limit for now. To keep going, add credit to this key in AI Studio or switch to another provider. Your message is saved.</p>
+        <div class="err-actions"><button class="textaction">Add credit in AI Studio</button><button class="textaction">Switch provider</button><button class="textaction link quiet" onclick="this.closest('.kind').classList.toggle('open')">Details</button></div>
+        <p class="details">429 · RESOURCE_EXHAUSTED</p>
+      </div>
+
+      <div class="kind offline">
+        <p class="err">You’re offline. Your notebook is here, and messages will work when you’re back online.</p>
+        <div class="err-actions"><button class="textaction">Send when I’m back</button></div>
+      </div>
+
+      <div class="composer-gap"></div>
+      <div class="composer">
+        <div class="line-input">
+          <input placeholder="Reply to keep thinking…" aria-label="Reply to keep thinking">
+          <button class="iconbtn send" aria-label="Send"><i data-lucide="arrow-up"></i></button>
+        </div>
+      </div>
+    </main>
+  </div>
+<script src="icons.js"></script>
+<script type="module" src="marks.js"></script>
+</body>
+</html>

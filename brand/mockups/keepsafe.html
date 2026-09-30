@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gambit keep safe</title>
+<script>
+  const q = new URLSearchParams(location.search);
+  if (q.get("theme")) document.documentElement.dataset.theme = q.get("theme");
+  document.documentElement.dataset.platform = q.get("platform") || "iphone";
+</script>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  h1 { filter: url(#bleed); font-size: 30px; line-height: 38px; font-weight: 500; text-wrap: balance; }
+  .why { margin-top: 16px; color: var(--graphite); }
+
+  .steps { list-style: none; margin-top: 44px; counter-reset: s; }
+  .steps li { counter-increment: s; display: grid; grid-template-columns: 36px 1fr; font-size: 18px; line-height: 28px; }
+  .steps li + li { margin-top: 20px; }
+  .steps li::before { content: counter(s); font-family: var(--hand); font-size: 24px; color: var(--graphite); filter: url(#graphite); }
+  .steps svg { width: 18px; height: 18px; vertical-align: -3px; margin: 0 2px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+  .primary { margin-top: 44px; }
+  .after { margin-top: 36px; }
+  .after .textaction { font-size: 15px; }
+
+  .foot { margin-top: auto; padding-top: 56px; }
+  .foot .textaction { font-size: 14px; color: var(--graphite); }
+
+  [data-platform="iphone"] .chrome-only, [data-platform="chrome"] .iphone-only { display: none; }
+</style>
+</head>
+<body>
+<main class="page">
+  <h1>Keep your notebook safe</h1>
+
+  <p class="why iphone-only">Your notebook lives only on this iPhone. Safari clears pages it hasn’t seen in 7 days, unless Gambit is on your Home Screen.</p>
+  <p class="why chrome-only">Your notebook lives only in this browser. Install Gambit so it stays put, and keep a backup file in case this device goes.</p>
+
+  <ol class="steps iphone-only">
+    <li><span>Tap Share
+      <i data-lucide="share" aria-label="Share"></i>
+      in Safari</span></li>
+    <li><span>Choose Add to Home Screen</span></li>
+    <li><span>Open Gambit from there</span></li>
+  </ol>
+
+  <button class="primary chrome-only">Install Gambit</button>
+  <p class="after chrome-only"><button class="textaction">Keep a backup file too</button><span class="hand" style="display:block;margin-top:6px">it updates by itself every time the page changes</span></p>
+
+  <div class="foot">
+    <button class="textaction link iphone-only">Can’t do this? Save a backup file instead</button>
+    <button class="textaction link chrome-only">Can’t install? Save a backup file instead</button>
+  </div>
+</main>
+<script src="icons.js"></script>
+<script type="module" src="marks.js"></script>
+</body>
+</html>

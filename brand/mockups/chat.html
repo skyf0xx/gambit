@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gambit chat</title>
+<script>
+  const t = new URLSearchParams(location.search).get("theme");
+  if (t) document.documentElement.dataset.theme = t;
+</script>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="sheet.css">
+<style>
+  .working { font-size: 14px; line-height: 20px; color: var(--accent); }
+  .working .method { color: var(--graphite); }
+
+  /* You: indented, medium weight. The advisor: flush, regular. */
+  /* You: indented behind a pencilled rule. The advisor: flush, typed. */
+  .you {
+    margin-top: 24px; padding-left: 18px;
+    border-left: 1.5px solid color-mix(in srgb, var(--graphite) 55%, transparent);
+    font-weight: 500;
+  }
+  .advisor { margin-top: 32px; }
+  .advisor p + p, .advisor p + ul, .advisor ul + p { margin-top: 16px; }
+  .advisor ul { list-style: none; }
+  .advisor li { display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; }
+  .advisor li + li { margin-top: 6px; }
+  .advisor li::before { content: "\2013"; color: var(--graphite); }
+  .advisor .nextline { font-weight: 600; }
+
+  .wrote { margin-top: 24px; }
+
+</style>
+</head>
+<body>
+  <div class="behind">
+    <p class="small">Your next move</p>
+    <p>Ask the landlord’s agent about a break clause at year 3.</p>
+  </div>
+
+  <div class="layer">
+    <main class="page">
+      <p class="working">Pressure-testing <span class="method">· elicit</span></p>
+
+      <p class="you">Priya said yes to managing Moseley, but only with a £3k raise.</p>
+
+      <div class="advisor">
+        <p>That’s manageable if Moseley’s margin holds at 18%, but it sharpens the dependency.</p>
+        <ul>
+          <li>If Edgbaston needs you on Saturdays, Priya has all the leverage.</li>
+          <li>If she leaves in year one, you’re running two sites alone.</li>
+        </ul>
+        <p class="nextline">Next: agree the £3k in writing before the landlord meeting.</p>
+      </div>
+
+      <p class="wrote hand">wrote to your page: <a href="notebook.html?fresh=1">Priya confirmed · 1 new risk</a></p>
+
+      <div class="composer-gap"></div>
+      <div class="composer">
+        <div class="line-input">
+          <input placeholder="Reply to keep thinking…" aria-label="Reply to keep thinking">
+          <button class="iconbtn send" aria-label="Send"><i data-lucide="arrow-up"></i></button>
+        </div>
+      </div>
+    </main>
+  </div>
+<script src="icons.js"></script>
+<script type="module" src="marks.js"></script>
+</body>
+</html>

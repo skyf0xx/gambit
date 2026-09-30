@@ -1,0 +1,28 @@
+schema_version: 1
+slug: gambit
+name: Gambit
+one_liner: A strategist in your pocket that helps you think a hard goal through, decide, and do the next thing.
+tagline: "The notebook that thinks back"
+archetype: "Sage (with a streak of the Explorer)"
+status: draft
+stage: "built, pre-audience"
+industry: "personal strategy / AI thinking tools"
+languages: [en]
+links:
+  domain: ""
+  repo: "https://github.com/skyf0xx/gambit"
+created: 2026-09-30
+updated: 2026-09-30
+version: 1
+artifacts:
+  context: true
+  naming: false
+  strategy: false
+  architecture: false
+  identity: true
+  voice: true
+  messaging: false
+  positioning: true
+  story: false
+  guidelines: false
+  audit: false

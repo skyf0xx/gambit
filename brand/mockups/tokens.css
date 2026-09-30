@@ -1,0 +1,190 @@
+/* Paper foundation (identity.md). Hierarchy is carried by material:
+     desk         outside the page, nothing lives here
+     page         the record: flat, grained, read-only
+     ink          committed: crisp
+     pencil       changeable or unproven: grainy graphite, sometimes handwritten
+     margin       where marks and notes live, never over the text
+     slip / leaf  on top of the page, and the only things that cast a shadow: you can touch them
+   The #graphite and #bleed filters are injected by marks.js. */
+@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Inter:wght@400;500;600&family=Noto+Sans+Mono:wght@400&family=Noto+Serif:wght@400;500;600&display=swap");
+
+:root {
+  --desk: #E7E1D4;
+  --bg: #F8F5EE;          /* the page */
+  --surface: #FFFDF8;     /* slips and leaves laid on the page */
+  --rule: #E6E0D4;
+  --ink: #1F2733;
+  --graphite: #6B665D;
+  --accent: #B83A26;
+
+  --margin-rule: #EBC8BE;
+  --card-rule: #C9DCEB;
+  --card-head: #E7A89B;
+  --tape: rgba(222, 206, 170, .62);
+  --hi: rgba(250, 214, 80, .55);
+  --note: #FBEFA6;
+  --note-edge: #EEDC7C;
+  --lift: rgba(70, 50, 25, .16);
+  --lift-far: rgba(70, 50, 25, .10);
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .33 0 0 0 0 .26 0 0 0 0 .17 0 0 0 .55 -.2'/%3E%3C/filter%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006 .09' numOctaves='2' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .4 0 0 0 0 .32 0 0 0 0 .2 0 0 0 .5 -.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.3'/%3E%3C/svg%3E");
+
+  --sans: "Inter", system-ui, sans-serif;
+  --serif: "Noto Serif", Georgia, serif;
+  --mono: "Noto Sans Mono", ui-monospace, monospace;
+  --hand: "Caveat", "Bradley Hand", cursive;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --desk: #0F0E0D; --bg: #1D1B18; --surface: #262320; --rule: #34312C;
+    --ink: #ECE8E1; --graphite: #A39C8E; --accent: #E2694F;
+    --margin-rule: #4A2E28; --card-rule: #2C3A45; --card-head: #6E3A30;
+    --tape: rgba(150, 135, 105, .35); --hi: rgba(214, 170, 60, .30);
+    --note: #3B3522; --note-edge: #4A4229;
+    --lift: rgba(0, 0, 0, .5); --lift-far: rgba(0, 0, 0, .35);
+    --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .9 0 0 0 0 .85 0 0 0 0 .75 0 0 0 .35 -.14'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  }
+}
+:root[data-theme="dark"] {
+  --desk: #0F0E0D; --bg: #1D1B18; --surface: #262320; --rule: #34312C;
+  --ink: #ECE8E1; --graphite: #A39C8E; --accent: #E2694F;
+  --margin-rule: #4A2E28; --card-rule: #2C3A45; --card-head: #6E3A30;
+  --tape: rgba(150, 135, 105, .35); --hi: rgba(214, 170, 60, .30);
+  --note: #3B3522; --note-edge: #4A4229;
+  --lift: rgba(0, 0, 0, .5); --lift-far: rgba(0, 0, 0, .35);
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .9 0 0 0 0 .85 0 0 0 0 .75 0 0 0 .35 -.14'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; }
+
+body {
+  background: var(--desk);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 27px;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv11", "ss01";
+  text-wrap: pretty;
+}
+
+/* ---------- The page: a grained sheet on the desk, with a legal-pad margin ---------- */
+.page {
+  position: relative;
+  max-width: 36rem;
+  margin: 10px auto 0;
+  min-height: calc(100vh - 10px);
+  padding: 44px 22px 40px 46px;
+  background: var(--grain), var(--bg);
+  border-radius: 3px 3px 0 0;
+  box-shadow: 0 1px 1px var(--lift), 0 8px 30px -8px var(--lift-far);
+  display: flex; flex-direction: column;
+}
+.page::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 34px;
+  border-left: 1px solid var(--margin-rule);
+  box-shadow: 3px 0 0 -2px var(--margin-rule);
+  pointer-events: none;
+}
+@media (min-width: 700px) {
+  .page { margin-top: 32px; min-height: calc(100vh - 32px); padding-left: 64px; padding-right: 48px; }
+  .page::before { left: 48px; }
+}
+
+/* Mark layers (marks.js): highlighter under the text, pencil over it */
+.marks-under, .marks-over { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.marks-under { z-index: 0; }
+.marks-over { z-index: 3; }
+.page > :not(svg):not(.composer) { position: relative; z-index: 1; }
+
+.small { font-size: 14px; line-height: 20px; color: var(--graphite); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* ---------- Ink and pencil ---------- */
+.ink-bleed { filter: url(#bleed); }
+.pencil { color: var(--graphite); filter: url(#graphite); }
+.hand {
+  font-family: var(--hand); font-weight: 500;
+  font-size: 21px; line-height: 22px; letter-spacing: .1px;
+  color: var(--graphite); filter: url(#graphite);
+}
+
+/* ---------- Text actions: a pencil circles them on hover (marks.js) ---------- */
+.textaction {
+  position: relative;
+  background: none; border: 0; padding: 0;
+  font: inherit; color: var(--ink); cursor: pointer;
+}
+.textaction::after { content: ""; position: absolute; inset: -12px -8px; }  /* 44px hit area */
+.textaction:active { transform: translateY(1px); }
+/* Quiet links stay underlined instead of circled */
+.textaction.link, a { color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 3px; }
+.line-input input:focus-visible { outline: none; }
+
+/* A writing line: where you write is ruled */
+.line-input {
+  display: flex; align-items: baseline; gap: 12px;
+  border-bottom: 1px solid var(--card-rule);
+  padding: 10px 0;
+}
+.line-input input {
+  flex: 1; min-width: 0;
+  background: none; border: 0; outline: none;
+  font: inherit; font-size: 17px; color: var(--ink);
+}
+.line-input input::placeholder { color: var(--graphite); }
+.line-input:focus-within { border-bottom-color: var(--ink); }
+
+/* The one filled button a screen may have: a block of ink, slightly soaked in */
+.primary {
+  width: 100%;
+  background: var(--ink); color: var(--bg);
+  border: 0; border-radius: 3px;
+  font: inherit; font-size: 17px; font-weight: 500;
+  padding: 15px 20px; cursor: pointer;
+  filter: url(#bleed);
+  box-shadow: 0 1px 0 var(--lift);
+}
+.primary:active { transform: translateY(1px); }
+
+/* ---------- Icons (Lucide) ---------- */
+i[data-lucide], svg.lucide { display: inline-block; width: 20px; height: 20px; flex: none; }
+.iconbtn {
+  position: relative; flex: none;
+  display: inline-grid; place-items: center;
+  width: 32px; height: 32px; padding: 0;
+  background: none; border: 0; border-radius: 50%;
+  color: var(--graphite); cursor: pointer;
+}
+.iconbtn:hover { color: var(--ink); }
+.iconbtn::after { content: ""; position: absolute; inset: -6px; }
+
+/* ---------- Composer: a torn slip resting on the bottom of the page ---------- */
+.composer {
+  position: sticky; bottom: 0; z-index: 4;
+  margin: auto -10px 0 -24px;
+  padding-top: 40px;
+  filter: drop-shadow(0 -2px 2px var(--lift-far)) drop-shadow(0 -8px 14px var(--lift-far));
+  pointer-events: none;
+}
+.composer .line-input {
+  pointer-events: auto;
+  align-items: center; gap: 8px;
+  border: 0;
+  background: var(--grain), var(--surface);
+  padding: 18px 16px calc(16px + env(safe-area-inset-bottom)) 22px;
+  clip-path: var(--torn, none);
+}
+.composer .line-input input { padding: 8px 0; }
+.composer .line-input input::placeholder { font-family: var(--hand); font-size: 23px; }
+.page:has(> .composer) { padding-bottom: 0; }
+.page > .composer-gap { height: 36px; flex: none; }
+
+/* Send: ink once there's something to send, a pencil ring until then */
+.composer .send { width: 34px; height: 34px; background: var(--ink); color: var(--bg); }
+.composer .send:hover { color: var(--bg); }
+.composer .send svg { width: 18px; height: 18px; }
+.composer input:placeholder-shown ~ .send { background: transparent; color: var(--graphite); box-shadow: inset 0 0 0 1.2px var(--graphite); cursor: default; }

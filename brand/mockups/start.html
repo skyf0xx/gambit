@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gambit start</title>
+  <script>
+    const t = new URLSearchParams(location.search).get("theme");
+    if (t) document.documentElement.dataset.theme = t;
+  </script>
+  <link rel="stylesheet" href="tokens.css">
+  <style>
+    .wordmark {
+      font-family: var(--serif);
+      font-weight: 600;
+      font-size: 22px;
+      line-height: 28px;
+      letter-spacing: -0.01em;
+    }
+
+    .question {
+      margin-top: 96px;
+      filter: url(#bleed);
+      font-size: 30px;
+      line-height: 38px;
+      font-weight: 500;
+      text-wrap: balance;
+    }
+
+    /* Where you write is ruled, like the rest of the pad */
+    .writing {
+      margin-top: 40px;
+      font-size: 20px;
+      line-height: 32px;
+      outline: none;
+      min-height: 160px;
+      caret-color: var(--accent);
+      background: repeating-linear-gradient(transparent 0 31px, var(--card-rule) 31px 32px);
+    }
+
+    .writing:empty::before {
+      content: attr(data-placeholder);
+      color: var(--graphite);
+    }
+
+    .hint {
+      margin-top: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <div class="wordmark">gambit</div>
+    <h1 class="question">What are you trying to make happen?</h1>
+    <div class="writing" contenteditable="true" data-placeholder="Write it the way you’d say it to a friend.">I have six
+      weeks to decide whether to take on a third salon site in Edgbaston on a 10-year lease.</div>
+    <p class="hint hand">Next you’ll get a free key from Google.</p>
+  </main>
+  <script type="module" src="marks.js"></script>
+  <script>
+    const w = document.querySelector(".writing");
+    w.focus();
+    const r = document.createRange(); r.selectNodeContents(w); r.collapse(false);
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,88 @@
+/* ---------- Chrome: small wordmark and one menu ---------- */
+.page > .topbar { display: flex; justify-content: space-between; align-items: center; margin: -24px 0 28px; }
+.wordmark-sm { font-family: var(--serif); font-weight: 600; font-size: 17px; }
+
+/* ---------- The next move: an index card taped to the page ---------- */
+.card {
+  position: relative; z-index: 2;
+  margin: 0 -6px 56px -14px;
+  padding: 18px 18px 10px 20px;
+  background:
+    linear-gradient(var(--card-head), var(--card-head)) 0 44px / 100% 1px no-repeat,
+    repeating-linear-gradient(transparent 0 27px, var(--card-rule) 27px 28px) 0 44px / 100% calc(100% - 54px) no-repeat,
+    var(--grain), var(--surface);
+  transform: rotate(-.7deg);
+  box-shadow: 0 1px 1px var(--lift), 0 10px 22px -10px var(--lift), 0 22px 40px -24px var(--lift-far);
+  border-radius: 1px;
+}
+.card::before {          /* tape */
+  content: ""; position: absolute; top: -11px; left: 50%;
+  width: 92px; height: 24px; margin-left: -46px;
+  background: var(--tape);
+  transform: rotate(2.5deg);
+  clip-path: polygon(3% 8%, 0 25%, 4% 50%, 1% 78%, 4% 100%, 97% 94%, 100% 70%, 96% 45%, 100% 20%, 97% 0);
+}
+.card-label { font-size: 14px; line-height: 20px; color: var(--graphite); height: 26px; }
+.card .next-move { font-size: 20px; line-height: 28px; font-weight: 500; text-wrap: pretty; }
+.card .next-meta { font-size: 21px; line-height: 28px; }
+.card .next-actions { display: flex; gap: 14px; font-size: 16px; line-height: 28px; }
+
+/* ---------- Goal ---------- */
+.goal-title { font-family: var(--serif); font-weight: 500; font-size: 29px; line-height: 37px; text-wrap: pretty; filter: url(#bleed); }
+.goal-meta { margin-top: 6px; }
+
+/* ---------- Sections ---------- */
+section { margin-top: 44px; }
+h2 { font-size: 17px; line-height: 24px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: baseline; gap: 10px; }
+h2 .method { font-family: var(--hand); font-weight: 500; font-size: 19px; color: var(--graphite); filter: url(#graphite); }
+ul, ol { list-style: none; }
+li + li { margin-top: 12px; }
+
+/* Criteria: hand-drawn boxes (marks.js), ticked in ink */
+.check { display: grid; grid-template-columns: 24px 1fr; column-gap: 10px; align-items: start; }
+.box { width: 20px; height: 20px; margin-top: 3px; }
+.done .text { color: var(--graphite); }
+.sub { display: block; margin-top: 2px; }
+
+/* People: status is a pencilled word, because it changes */
+.people li { display: grid; grid-template-columns: 1fr auto; column-gap: 12px; align-items: baseline; }
+.people .role { color: var(--graphite); }
+
+/* Moves ahead: pencilled numbers */
+.numbered li { display: grid; grid-template-columns: 24px 1fr; column-gap: 10px; }
+.numbered .n { font-family: var(--hand); font-size: 22px; line-height: 27px; color: var(--graphite); filter: url(#graphite); }
+.numbered .when { display: block; }
+
+.risks li { display: grid; grid-template-columns: 24px 1fr; column-gap: 10px; }
+.risks li::before { content: "\2013"; color: var(--graphite); }
+
+/* Rubbed out this session: struck, smudged, fading */
+.erased { position: relative; color: var(--graphite); opacity: .55; filter: url(#graphite) blur(.25px); }
+.erased::before {
+  content: ""; position: absolute; inset: -4px -10px -4px -6px; z-index: -1;
+  background: radial-gradient(60% 70% at 40% 55%, color-mix(in srgb, var(--graphite) 14%, transparent), transparent 75%);
+  filter: blur(3px);
+}
+
+/* The note under a just-changed line, in the accent */
+.annot { display: block; color: var(--accent); margin-top: 6px; filter: none; }
+.annot .textaction { color: var(--accent); }
+
+/* An empty section: a faint pencilled question you can tap */
+.empty { display: block; text-align: left; font-family: var(--hand); font-size: 22px; line-height: 26px; color: var(--graphite); filter: url(#graphite); }
+
+/* ---------- The advisor's suggestion: a sticky note you keep or toss ---------- */
+.sticky {
+  position: relative; z-index: 2;
+  margin: 36px -4px 0 auto; width: 82%;
+  padding: 16px 16px 12px;
+  background:
+    linear-gradient(135deg, transparent 0 88%, var(--note-edge) 88% 100%) 100% 100% / 26px 26px no-repeat,
+    var(--grain), var(--note);
+  transform: rotate(1.6deg);
+  box-shadow: 0 1px 1px var(--lift), 0 12px 18px -12px var(--lift), 6px 18px 26px -18px var(--lift-far);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 26px), calc(100% - 26px) 100%, 0 100%);
+}
+.sticky-from { font-size: 13px; line-height: 18px; color: var(--graphite); margin-bottom: 4px; }
+.sticky p { font-size: 17px; line-height: 25px; }
+.sticky .next-actions { margin-top: 10px; display: flex; gap: 16px; font-size: 16px; }

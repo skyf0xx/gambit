@@ -1,0 +1,23 @@
+/* A loose leaf laid over the page: the page stays faintly visible behind it */
+body:has(.behind) { background: var(--grain), var(--bg); overflow-x: hidden; }
+.behind { max-width: 36rem; margin: 0 auto; padding: 16px 22px 20px 46px; opacity: .4; }
+.behind p:last-child { font-size: 20px; line-height: 28px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.layer { filter: drop-shadow(0 -1px 1px var(--lift)) drop-shadow(0 -10px 18px var(--lift-far)); }
+.layer .page {
+  margin-top: 0;
+  min-height: calc(100vh - 90px);
+  padding-top: 36px;
+  background: var(--grain), var(--surface);
+  box-shadow: none;
+  clip-path: var(--torn, none);
+}
+
+.sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+.sheet-head h1 { font-size: 20px; line-height: 28px; font-weight: 500; }
+
+/* A plain list of rows: a primary line and a pencilled line under it */
+.rows { list-style: none; }
+.rows li + li { margin-top: 22px; }
+.rows .row { display: block; width: 100%; text-align: left; }
+.rows .sub { display: block; margin-top: 4px; }

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gambit mockups</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  body { background: var(--desk); }
+  .bar {
+    display: flex; flex-wrap: wrap; gap: 20px; align-items: baseline;
+    padding: 20px 24px; font-size: 14px; color: var(--graphite);
+  }
+  .bar strong { color: var(--ink); font-weight: 600; font-size: 15px; margin-right: 8px; }
+  .opt button {
+    background: none; border: 0; font: inherit; color: var(--graphite);
+    cursor: pointer; padding: 2px 4px;
+  }
+  .opt button[aria-pressed="true"] { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
+  .grid {
+    display: flex; flex-wrap: wrap; gap: 28px;
+    padding: 4px 24px 40px;
+  }
+  figure { flex: 0 0 auto; }
+  figcaption { font-size: 13px; color: var(--graphite); margin-bottom: 8px; }
+  iframe {
+    width: 390px; height: 844px; border: 0; border-radius: 28px;
+    background: var(--bg); display: block;
+  }
+  iframe.desk { width: 1280px; height: 800px; border-radius: 12px; }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <strong>Gambit screens</strong>
+    <span class="opt" data-key="theme">Theme
+      <button data-v="light" aria-pressed="true">Light</button>
+      <button data-v="dark">Dark</button>
+    </span>
+  </div>
+  <div class="grid">
+    <figure><figcaption>Start</figcaption><iframe data-src="start.html"></iframe></figure>
+    <figure><figcaption>Key</figcaption><iframe data-src="key.html"></iframe></figure>
+    <figure><figcaption>Key works</figcaption><iframe data-src="key.html" data-q="state=works"></iframe></figure>
+    <figure><figcaption>Key error</figcaption><iframe data-src="key.html" data-q="state=error"></iframe></figure>
+    <figure><figcaption>Notebook, first day</figcaption><iframe data-src="notebook-new.html"></iframe></figure>
+    <figure><figcaption>Notebook</figcaption><iframe data-src="notebook.html"></iframe></figure>
+    <figure><figcaption>Notebook, just changed</figcaption><iframe data-src="notebook.html" data-q="fresh=1"></iframe></figure>
+    <figure><figcaption>Pencil marks, all at once</figcaption><iframe data-src="notebook-marks.html"></iframe></figure>
+    <figure><figcaption>Chat</figcaption><iframe data-src="chat.html"></iframe></figure>
+    <figure><figcaption>Menu and shelf</figcaption><iframe data-src="menu.html"></iframe></figure>
+    <figure><figcaption>Keep it safe, iPhone</figcaption><iframe data-src="keepsafe.html"></iframe></figure>
+    <figure><figcaption>Keep it safe, Chrome</figcaption><iframe data-src="keepsafe.html" data-q="platform=chrome"></iframe></figure>
+    <figure><figcaption>Setup kit</figcaption><iframe data-src="setup-kit.html"></iframe></figure>
+    <figure><figcaption>Error, busy</figcaption><iframe data-src="chat-error.html" data-q="kind=busy"></iframe></figure>
+    <figure><figcaption>Error, free limit</figcaption><iframe data-src="chat-error.html" data-q="kind=limit"></iframe></figure>
+    <figure><figcaption>Error, offline</figcaption><iframe data-src="chat-error.html" data-q="kind=offline"></iframe></figure>
+  </div>
+  <div class="grid">
+    <figure><figcaption>Desktop</figcaption><iframe class="desk" data-src="desktop.html"></iframe></figure>
+  </div>
+<script>
+  const state = { theme: "light" };
+  function render() {
+    document.documentElement.dataset.theme = state.theme;
+    for (const f of document.querySelectorAll("iframe")) {
+      f.src = `${f.dataset.src}?theme=${state.theme}${f.dataset.q ? "&" + f.dataset.q : ""}`;
+    }
+  }
+  for (const group of document.querySelectorAll(".opt")) {
+    group.addEventListener("click", e => {
+      const b = e.target.closest("button"); if (!b) return;
+      state[group.dataset.key] = b.dataset.v;
+      group.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+      render();
+    });
+  }
+  render();
+</script>
+</body>
+</html>

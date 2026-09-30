@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gambit menu</title>
+<script>
+  const t = new URLSearchParams(location.search).get("theme");
+  if (t) document.documentElement.dataset.theme = t;
+</script>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="sheet.css">
+<style>
+  h2 { font-size: 14px; line-height: 20px; font-weight: 400; color: var(--graphite); margin-bottom: 14px; }
+  .group + .group { margin-top: 44px; }
+
+  /* Shelf: goal titles in serif, the one place besides the page it appears */
+  .shelf .row { font-family: var(--serif); font-size: 18px; line-height: 26px; font-weight: 500; }
+  .shelf .row .sub { font-weight: 500; }
+  .shelf-actions { margin-top: 22px; display: flex; gap: 20px; font-size: 15px; }
+  .shelf-actions .quiet { color: var(--graphite); }
+  .archive { color: var(--graphite); }
+
+  .links { list-style: none; }
+  .links li + li { margin-top: 14px; }
+  .safe { margin-top: 6px; }
+</style>
+</head>
+<body>
+  <div class="behind">
+    <p class="small">Your next move</p>
+    <p>Ask the landlord’s agent about a break clause at year 3.</p>
+  </div>
+
+  <div class="layer">
+    <main class="page">
+      <div class="sheet-head">
+        <span></span>
+        <button class="iconbtn" aria-label="Close" title="Close"><i data-lucide="x"></i></button>
+      </div>
+
+      <div class="group">
+        <h2>Notebooks</h2>
+        <ul class="rows shelf">
+          <li class="current"><button class="textaction row">Decide on the third site before the lease offer expires
+            <span class="sub hand">on track · today · open now</span></button></li>
+          <li><button class="textaction row">Get Priya ready to run Moseley on her own
+            <span class="sub hand">waiting · 12 Sep</span></button></li>
+          <li><span class="row">Hire a second senior stylist
+            <span class="sub hand">done · 2 Aug · <button class="textaction link archive">archive</button></span></span></li>
+        </ul>
+        <div class="shelf-actions">
+          <button class="textaction">New notebook</button>
+          <button class="textaction link quiet">Archived (2)</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2>This notebook</h2>
+        <ul class="links">
+          <li><button class="textaction">New conversation</button></li>
+          <li><button class="textaction">Notes</button></li>
+        </ul>
+      </div>
+
+      <div class="group">
+        <h2>This device</h2>
+        <ul class="links">
+          <li><button class="textaction">Keep it safe</button>
+            <p class="safe hand">saved on this device · backed up 3 days ago</p></li>
+          <li><button class="textaction">Settings</button></li>
+        </ul>
+      </div>
+    </main>
+  </div>
+<script src="icons.js"></script>
+<script type="module" src="marks.js"></script>
+</body>
+</html>

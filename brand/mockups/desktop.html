@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gambit desktop</title>
+<script>
+  const q = new URLSearchParams(location.search);
+  if (q.get("theme")) document.documentElement.dataset.theme = q.get("theme");
+  if (q.get("fresh")) document.documentElement.dataset.fresh = "";
+</script>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="notebook.css">
+<style>
+  body { height: 100vh; overflow: hidden; }
+  .app { display: grid; grid-template-columns: 1fr 440px; height: 100vh; }
+
+  /* The notebook: the page on the desk, scrolling on its own */
+  .notebook { overflow-y: auto; padding: 0 40px; }
+  .notebook .page { min-height: auto; margin: 32px auto 48px; padding-bottom: 64px; border-radius: 3px; }
+  .notebook .page > .topbar { margin-top: -20px; }
+
+  /* The conversation: a leaf laid along the right, over the desk */
+  .convo {
+    position: relative; z-index: 5;
+    background: var(--grain), var(--surface);
+    box-shadow: -1px 0 1px var(--lift), -12px 0 30px -12px var(--lift-far);
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  .convo-body { flex: 1; overflow-y: auto; padding: 40px 32px 24px; }
+  .working { font-size: 14px; line-height: 20px; color: var(--accent); }
+  .working .method { color: var(--graphite); }
+  .you { margin-top: 24px; padding-left: 18px; border-left: 1.5px solid color-mix(in srgb, var(--graphite) 55%, transparent); font-weight: 500; }
+  .advisor { margin-top: 28px; }
+  .advisor p + p, .advisor p + ul, .advisor ul + p { margin-top: 16px; }
+  .advisor ul { list-style: none; }
+  .advisor li { display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; margin: 0; }
+  .advisor li + li { margin-top: 6px; }
+  .advisor li::before { content: "\2013"; color: var(--graphite); }
+  .advisor .nextline { font-weight: 600; }
+  .wrote { margin-top: 24px; }
+  .convo .composer { position: static; margin: 0; padding-top: 16px; }
+  .convo .composer .line-input { background: var(--grain), var(--bg); padding-left: 32px; padding-right: 24px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="notebook">
+    <main class="page">
+  <div class="topbar">
+    <span class="wordmark-sm">gambit</span>
+    <button class="iconbtn" aria-label="Menu" title="Menu"><i data-lucide="menu"></i></button>
+  </div>
+
+  <!-- Touchable, and the thing to do: a card taped on top of the page -->
+  <div class="card">
+    <div class="card-label">Your next move</div>
+    <p class="next-move">Ask the landlord’s agent about a break clause at year 3.</p>
+    <p class="next-meta hand">by Friday 3 Oct</p>
+    <div class="next-actions">
+      <button class="textaction">Done</button>
+      <button class="textaction">Not yet</button>
+      <button class="textaction">Something changed</button>
+    </div>
+  </div>
+
+  <header>
+    <h1 class="goal-title">Decide on the third site before the lease offer expires</h1>
+    <p class="goal-meta hand">6 weeks left</p>
+  </header>
+
+  <section>
+    <h2>What done looks like</h2>
+    <ul>
+      <li class="check done">
+        <span class="box" data-box="done"></span>
+        <span class="text">Someone I trust runs Moseley without me<span class="sr"> (done)</span></span>
+      </li>
+      <li class="check">
+        <span class="box" data-box></span>
+        <span class="text"><span data-mark="highlight">Know the real hours and cash a third site needs</span><span class="sr"> (focus)</span></span>
+      </li>
+      <li class="check">
+        <span class="box" data-box></span>
+        <span class="text">Walk-away terms written before the landlord meeting
+          <span class="sub hand">up to the landlord, not me</span></span>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Who’s involved</h2>
+    <ul class="people">
+      <li><span id="priya">Priya <span class="role">· runs Moseley</span></span><span class="hand">confirmed</span></li>
+      <li><span>Landlord’s agent</span><span class="hand">waiting</span></li>
+      <li><span>Dev <span class="role">· accountant</span></span><span class="hand">not asked</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Moves ahead</h2>
+    <ol class="numbered">
+      <li><span class="n">1</span><span>Agree Priya’s £3k in writing<span class="when hand">this week</span></span></li>
+      <li><span class="n">2</span><span><span data-mark="star">Cost the fit-out with Dev</span><span class="sr"> (everything else waits on this)</span><span class="when hand">by Wed 8 Oct</span></span></li>
+      <li><span class="n">3</span><span>Write the walk-away terms<span class="when hand">before the landlord meeting</span></span></li>
+    </ol>
+  </section>
+
+  <!-- Proposed, not yet yours: a sticky note you can keep or toss -->
+  <aside class="sticky" aria-label="Suggestion from Gambit">
+    <div class="sticky-from">Gambit suggests</div>
+    <p>Get two fit-out quotes, not one. Dev’s number will anchor every other figure.</p>
+    <div class="next-actions">
+      <button class="textaction">Keep it</button>
+      <button class="textaction">Toss</button>
+    </div>
+  </aside>
+
+  <section>
+    <h2>Still a guess <span class="method">experiment</span></h2>
+    <ul class="risks">
+      <li><span class="pencil" data-mark="squiggle">A third site pays back inside 18 months</span><span class="sr"> (not checked yet)</span></li>
+      <li><span class="pencil" data-mark="squiggle">Priya wants the bigger role</span><span class="sr"> (not checked yet)</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>What could go wrong</h2>
+    <ul class="risks">
+      <li>
+        <span>
+          <span data-mark="loop">Moseley depends on one person</span>
+          <span class="annot hand">new, from your chat · <button class="textaction link">undo</button></span>
+        </span>
+      </li>
+      <li><span data-mark="question">Landlord won’t offer a break, so it’s ten years or nothing</span><span class="sr"> (open question)</span></li>
+      <li><span class="erased" data-mark="strike">Fit-out runs past the rent-free period</span><span class="sr"> (dropped)</span></li>
+    </ul>
+  </section>
+</main>
+  </div>
+
+  <aside class="convo">
+    <div class="convo-body">
+      <p class="working">Pressure-testing <span class="method">· elicit</span></p>
+      <p class="you">Priya said yes to managing Moseley, but only with a £3k raise.</p>
+      <div class="advisor">
+        <p>That’s manageable if Moseley’s margin holds at 18%, but it sharpens the dependency.</p>
+        <ul>
+          <li>If Edgbaston needs you on Saturdays, Priya has all the leverage.</li>
+          <li>If she leaves in year one, you’re running two sites alone.</li>
+        </ul>
+        <p class="nextline">Next: agree the £3k in writing before the landlord meeting.</p>
+      </div>
+      <p class="wrote hand">wrote to your page: Priya confirmed · 1 new risk</p>
+    </div>
+    <div class="composer">
+      <div class="line-input">
+        <input placeholder="Reply to keep thinking…" aria-label="Reply">
+        <button class="iconbtn send" aria-label="Send"><i data-lucide="arrow-up"></i></button>
+      </div>
+    </div>
+  </aside>
+
+</div>
+<script src="icons.js"></script>
+<script type="module" src="marks.js"></script>
+</body>
+</html>

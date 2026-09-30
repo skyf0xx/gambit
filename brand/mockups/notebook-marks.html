@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gambit pencil marks</title>
+<script>
+  const q = new URLSearchParams(location.search);
+  if (q.get("theme")) document.documentElement.dataset.theme = q.get("theme");
+  if (q.get("fresh")) document.documentElement.dataset.fresh = "";
+</script>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="notebook.css">
+</head>
+<body>
+
+
+<main class="page">
+  <div class="topbar">
+    <span class="wordmark-sm">gambit</span>
+    <button class="iconbtn" aria-label="Menu" title="Menu"><i data-lucide="menu"></i></button>
+  </div>
+
+  <!-- Touchable, and the thing to do: a card taped on top of the page -->
+  <div class="card">
+    <div class="card-label">Your next move</div>
+    <p class="next-move">Ask the landlord’s agent about a break clause at year 3.</p>
+    <p class="next-meta hand">by Friday 3 Oct</p>
+    <div class="next-actions">
+      <button class="textaction">Done</button>
+      <button class="textaction">Not yet</button>
+      <button class="textaction">Something changed</button>
+    </div>
+  </div>
+
+  <header>
+    <h1 class="goal-title">Decide on the third site before the lease offer expires</h1>
+    <p class="goal-meta hand">6 weeks left</p>
+  </header>
+
+  <section>
+    <h2>What done looks like</h2>
+    <ul>
+      <li class="check done">
+        <span class="box" data-box="done"></span>
+        <span class="text">Someone I trust runs Moseley without me<span class="sr"> (done)</span></span>
+      </li>
+      <li class="check">
+        <span class="box" data-box></span>
+        <span class="text"><span data-mark="highlight">Know the real hours and cash a third site needs</span><span class="sr"> (focus)</span></span>
+      </li>
+      <li class="check">
+        <span class="box" data-box></span>
+        <span class="text">Walk-away terms written before the landlord meeting
+          <span class="sub hand">up to the landlord, not me</span></span>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Who’s involved</h2>
+    <ul class="people">
+      <li><span id="priya">Priya <span class="role">· runs Moseley</span></span><span class="hand">confirmed</span></li>
+      <li><span>Landlord’s agent</span><span class="hand">waiting</span></li>
+      <li><span>Dev <span class="role">· accountant</span></span><span class="hand">not asked</span></li>
+    </ul>
+  </section>
+  <section>
+    <h2>What could go wrong</h2>
+    <ul class="risks">
+      <li><span data-mark="arrow:priya">Priya asks for more once Edgbaston opens</span><span class="sr"> (depends on Priya)</span></li>
+      <li>
+        <span>
+          <span data-mark="loop">Moseley depends on one person</span>
+          <span class="annot hand">new, from your chat · <button class="textaction link">undo</button></span>
+        </span>
+      </li>
+      <li><span data-mark="question">Landlord won’t offer a break, so it’s ten years or nothing</span><span class="sr"> (open question)</span></li>
+      <li><span>Fit-out runs past the rent-free period</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Moves ahead</h2>
+    <ol class="numbered">
+      <li><span class="n">1</span><span>Agree Priya’s £3k in writing<span class="when hand">this week</span></span></li>
+      <li><span class="n">2</span><span><span data-mark="star">Cost the fit-out with Dev</span><span class="sr"> (everything else waits on this)</span><span class="when hand">by Wed 8 Oct</span></span></li>
+      <li><span class="n">3</span><span>Write the walk-away terms<span class="when hand">before the landlord meeting</span></span></li>
+      <li><span class="n">4</span><span><span class="erased" data-mark="strike">Look at the Harborne site instead</span><span class="sr"> (dropped)</span><span class="when hand">dropped today</span></span></li>
+    </ol>
+  </section>
+
+  <!-- Proposed, not yet yours: a sticky note you can keep or toss -->
+  <aside class="sticky" aria-label="Suggestion from Gambit">
+    <div class="sticky-from">Gambit suggests</div>
+    <p>Get two fit-out quotes, not one. Dev’s number will anchor every other figure.</p>
+    <div class="next-actions">
+      <button class="textaction">Keep it</button>
+      <button class="textaction">Toss</button>
+    </div>
+  </aside>
+
+  <section>
+    <h2>Still a guess <span class="method">experiment</span></h2>
+    <ul class="risks">
+      <li><span class="pencil" data-mark="squiggle">A third site pays back inside 18 months</span><span class="sr"> (not checked yet)</span></li>
+      <li><span class="pencil" data-mark="squiggle">Priya wants the bigger role</span><span class="sr"> (not checked yet)</span></li>
+    </ul>
+  </section>
+
+
+  <div class="composer-gap"></div>
+  <div class="composer">
+    <div class="line-input">
+      <input placeholder="Think out loud…" aria-label="Think out loud">
+      <button class="iconbtn send" aria-label="Send"><i data-lucide="arrow-up"></i></button>
+    </div>
+  </div>
+</main>
+<script src="icons.js"></script>
+<script type="module" src="marks.js"></script>
+</body>
+</html>
