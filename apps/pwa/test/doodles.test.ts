@@ -305,6 +305,36 @@ describe('buildDoodleLayout — radial at real desktop widths', () => {
     expect(a.nodes).toEqual(b.nodes);
   });
 
+  it('keeps a long twig label clear of its own line\'s branch heading (regression: "Priya leaves before site opens" overlapping "Staffing")', () => {
+    const goal = stubGoal('Open a second location downtown') as Goal;
+    const withPlan: Goal = {
+      ...goal,
+      plan: {
+        linesOfOperation: [
+          {
+            label: 'Staffing',
+            criticalPath: [
+              { label: 'Priya leaves before site opens', status: 'pending' as const },
+            ],
+            nextActions: [],
+          },
+        ],
+      },
+    };
+    const layout = buildDoodleLayout(withPlan, { width: 576, height: 600, mode: 'radial' });
+    const branch = layout.nodes.find((n) => n.kind === 'line')!;
+    const twig = layout.nodes.find((n) => n.fullLabel === 'Priya leaves before site opens')!;
+    // The twig's real label width (used by the collision pass for
+    // line-vs-twig pairs) must clear the branch heading, not just the
+    // generic 52px tap-target half-width.
+    const twigHalfWidth = Math.max(52, (Math.max(twig.label.length, twig.label2?.length ?? 0) * 6.5) / 2 + 6);
+    const dx = Math.abs(branch.x - twig.x);
+    const dy = Math.abs(branch.y - twig.y);
+    const minDy = (branch.label2 || twig.label2) ? 64 : 48;
+    const overlaps = dx < twigHalfWidth + 52 && dy < minDy;
+    expect(overlaps).toBe(false);
+  });
+
   it('spreads sector angle by weight: a line with more children gets more angular room', () => {
     const layout = buildDoodleLayout(denseGoal(), { width: 576, height: 600, mode: 'radial' });
     const angleOf = (n: { x: number; y: number }, cx: number, cy: number) => Math.atan2(n.y - cy, n.x - cx);
