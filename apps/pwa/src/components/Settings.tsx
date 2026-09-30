@@ -241,7 +241,7 @@ function Colophon() {
   return (
     <footer className="space-y-1">
       <div className="font-serif text-[17px] font-semibold leading-[25.5px] tracking-[-0.01em] text-ink">gambit</div>
-      <p className={smallCls}>Version {__APP_VERSION__}. No analytics, no third-party scripts, no account.</p>
+      <p className={smallCls}>Version {__APP_VERSION__}.</p>
       <TextAction className={`${linkCls} text-[14px]! text-graphite!`} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Hide licenses' : 'Licenses'}</TextAction>
       {open && <div className="anim-fade-in"><Licenses /></div>}
     </footer>
