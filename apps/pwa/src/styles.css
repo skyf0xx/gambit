@@ -1,8 +1,153 @@
 @import "tailwindcss";
 
-:root { color-scheme: dark; }
+/* Paper foundation (brand/identity.md §03). Hierarchy is carried by
+   material, not colour: desk (outside the record) / page (the record) /
+   ink (committed) / pencil (changeable or unproven) / margin (notes about
+   a line) / slip (touchable, casts a shadow). Reference implementation:
+   brand/mockups/tokens.css, notebook.css, marks.js. The #graphite and
+   #bleed filters are mounted once by src/components/paper/Filters.tsx. */
+
+:root {
+  color-scheme: light dark;
+
+  --desk: #E7E1D4;
+  --bg: #F8F5EE;
+  --surface: #FFFDF8;
+  --rule: #E6E0D4;
+  --ink: #1F2733;
+  --graphite: #6B665D;
+  --accent: #B83A26;
+
+  --margin-rule: #EBC8BE;
+  --card-rule: #C9DCEB;
+  --card-head: #E7A89B;
+  --tape: rgba(222, 206, 170, .62);
+  --hi: rgba(250, 214, 80, .55);
+  --note: #FBEFA6;
+  --note-edge: #EEDC7C;
+  --lift: rgba(70, 50, 25, .16);
+  --lift-far: rgba(70, 50, 25, .10);
+
+  /* Tiled SVG grain (feTurbulence), rendered once as a background image —
+     never as a live full-screen filter. Fibres in light, plain speckle in
+     dark (see the dark blocks below). */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .33 0 0 0 0 .26 0 0 0 0 .17 0 0 0 .55 -.2'/%3E%3C/filter%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006 .09' numOctaves='2' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .4 0 0 0 0 .32 0 0 0 0 .2 0 0 0 .5 -.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.3'/%3E%3C/svg%3E");
+
+  --font-sans: "Inter Variable", system-ui, sans-serif;
+  --font-serif: "Noto Serif Variable", Georgia, serif;
+  --font-mono: "Noto Sans Mono Variable", ui-monospace, monospace;
+  --font-hand: "Caveat", "Bradley Hand", cursive;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --desk: #0F0E0D; --bg: #1D1B18; --surface: #262320; --rule: #34312C;
+    --ink: #ECE8E1; --graphite: #A39C8E; --accent: #E2694F;
+    --margin-rule: #4A2E28; --card-rule: #2C3A45; --card-head: #6E3A30;
+    --tape: rgba(150, 135, 105, .35); --hi: rgba(214, 170, 60, .30);
+    --note: #3B3522; --note-edge: #4A4229;
+    --lift: rgba(0, 0, 0, .5); --lift-far: rgba(0, 0, 0, .35);
+    --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .9 0 0 0 0 .85 0 0 0 0 .75 0 0 0 .35 -.14'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  }
+}
+:root[data-theme="dark"] {
+  --desk: #0F0E0D; --bg: #1D1B18; --surface: #262320; --rule: #34312C;
+  --ink: #ECE8E1; --graphite: #A39C8E; --accent: #E2694F;
+  --margin-rule: #4A2E28; --card-rule: #2C3A45; --card-head: #6E3A30;
+  --tape: rgba(150, 135, 105, .35); --hi: rgba(214, 170, 60, .30);
+  --note: #3B3522; --note-edge: #4A4229;
+  --lift: rgba(0, 0, 0, .5); --lift-far: rgba(0, 0, 0, .35);
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .9 0 0 0 0 .85 0 0 0 0 .75 0 0 0 .35 -.14'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
+@theme inline {
+  --color-desk: var(--desk);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-rule: var(--rule);
+  --color-ink: var(--ink);
+  --color-graphite: var(--graphite);
+  --color-accent: var(--accent);
+  --color-margin-rule: var(--margin-rule);
+  --color-card-rule: var(--card-rule);
+  --color-card-head: var(--card-head);
+  --color-hi: var(--hi);
+  --color-note: var(--note);
+  --color-note-edge: var(--note-edge);
+  --color-tape: var(--tape);
+
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+  --font-hand: var(--font-hand);
+  --font-mono: var(--font-mono);
+}
+
 html, body, #root { height: 100%; }
-body { margin: 0; background: #020617; color: #e2e8f0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-tap-highlight-color: transparent; }
-* { scrollbar-width: thin; scrollbar-color: #334155 transparent; }
+body {
+  margin: 0;
+  background: var(--desk);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 27px;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  font-feature-settings: "cv11", "ss01";
+}
+* { scrollbar-width: thin; scrollbar-color: var(--graphite) transparent; }
 details > summary { list-style: none; cursor: pointer; }
 details > summary::-webkit-details-marker { display: none; }
+
+/* Paper: a grained sheet — the page and any surface resting on the desk. */
+@utility paper {
+  background: var(--grain), var(--bg);
+}
+
+/* Slip: a touchable surface laid on the page — its own grain, same as the
+   page. The shadow that marks it as touchable goes through a drop-shadow
+   filter on the parent element instead of box-shadow, since torn slips are
+   clipped with clip-path (which would otherwise cut a box-shadow off). */
+@utility slip {
+  background: var(--grain), var(--surface);
+}
+
+/* Pencil: graphite colour, grained by the #graphite filter. */
+@utility pencil {
+  color: var(--graphite);
+  filter: url(#graphite);
+}
+
+/* Hand: a short pencilled word, in Caveat. */
+@utility hand {
+  font-family: var(--font-hand);
+  font-weight: 500;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--graphite);
+  filter: url(#graphite);
+}
+
+/* Ink-bleed: ink that's slightly soaked into the page. */
+@utility ink-bleed {
+  filter: url(#bleed);
+}
+
+/* Box: hook for a hand-drawn checkbox, drawn by the marks layer. Reserves
+   the tap target; the box glyph itself is drawn by MarksLayer. */
+@utility box {
+  position: relative;
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+}
+
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

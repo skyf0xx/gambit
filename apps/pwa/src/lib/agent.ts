@@ -7,6 +7,8 @@ import { getProvider, makeModel } from './providers';
 import { PREAMBLE, getSkillStore, skillIndexText, skillText } from './skills';
 import { makeTools, goalStateJson, toolLabel } from './tools';
 import { readRecord, restoreSnapshot, snapshot } from './goals';
+import { changedLines } from './changes';
+import { session } from './session';
 
 export type AgentEvent =
   | { type: 'text'; text: string }
@@ -146,13 +148,25 @@ export async function runTurn(opts: {
   const summary = after?.status === 'ok' ? summarizeChange(before, after.data) : [];
 
   const fresh = (await db.chats.get(goalId)) ?? chat;
+  const displayId = uid();
   fresh.model = [...chat.model, userMsg, ...newMessages];
   fresh.activeSkill = activeSkill;
   fresh.display = [
     ...fresh.display,
-    { id: uid(), role: 'assistant', text: out, tools: entries, summary, snapshotId: summary.length || error ? snapshotId : undefined, error },
+    { id: displayId, role: 'assistant', text: out, tools: entries, summary, snapshotId: summary.length || error ? snapshotId : undefined, error },
   ];
   await db.chats.put(fresh);
+
+  if (after?.status === 'ok') {
+    const lines = changedLines(before, after.data);
+    session.setTurn(goalId, displayId, lines);
+    for (const line of lines) {
+      const node = pathValue(after.data as unknown as Record<string, unknown>, line.path);
+      if (node && typeof node === 'object' && (node as { status?: string }).status === 'dropped') {
+        session.markDropped(goalId, line.path);
+      }
+    }
+  }
 
   if (usage.input || usage.output || usage.cached) {
     await db.usage.add({
@@ -160,6 +174,13 @@ export async function runTurn(opts: {
       parts: { system: stable.length, skill: skillBlock.length, state: state.length, history: JSON.stringify(history).length },
     });
   }
+}
+
+function pathValue(root: Record<string, unknown>, path: string): unknown {
+  return path.split('.').filter(Boolean).reduce<unknown>((node, key) => {
+    if (node && typeof node === 'object') return (node as Record<string, unknown>)[key];
+    return undefined;
+  }, root);
 }
 
 function errorText(e: unknown): string {
@@ -176,6 +197,7 @@ export async function undoTurn(goalId: string, displayId: string) {
   if (!chat || !msg?.snapshotId) return;
   await restoreSnapshot(msg.snapshotId);
   msg.undone = true;
+  session.clearLoop();
   chat.model.push(
     { role: 'user', content: '(System note: the user undid your previous turn; its goal changes were rolled back. The goal state in the system prompt is authoritative.)' },
     { role: 'assistant', content: 'Understood.' },

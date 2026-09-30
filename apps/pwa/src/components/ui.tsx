@@ -1,49 +1,96 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
-const base = 'rounded-md px-3 py-1.5 text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed';
-const styles = {
-  primary: 'bg-sky-500 text-slate-950 hover:bg-sky-400',
-  ghost: 'bg-slate-800 text-slate-200 hover:bg-slate-700',
-  danger: 'bg-red-500/15 text-red-300 hover:bg-red-500/25',
-};
+// Paper-system primitives (brand/identity.md §03-05). Materials, not
+// colours, carry meaning: ink is committed, pencil is changeable, a slip is
+// touchable. `Btn` and `Pill` stay exported with their current props so
+// other (not-yet-restyled) files keep compiling; they now render through
+// the new primitives underneath.
 
-export function Btn({ kind = 'ghost', className = '', ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { kind?: keyof typeof styles }) {
-  return <button {...p} className={`${base} ${styles[kind]} ${className}`} />;
+const tapTarget = 'inline-flex min-h-[44px] items-center';
+
+/** A plain typed-word action. Pencil-circled on hover/focus by the marks layer via `data-circle`. */
+export function TextAction({ className = '', ...p }: ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      data-circle
+      {...p}
+      className={`${tapTarget} bg-transparent p-0 font-sans text-[17px] text-ink underline-offset-[3px] disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
+    />
+  );
 }
 
-export const inputCls = 'w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:outline-none';
+/** The one filled ink button a screen may have, with a slight bleed. */
+export function InkButton({ className = '', ...p }: ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      {...p}
+      className={`ink-bleed min-h-[44px] rounded-[3px] bg-ink px-5 py-3 font-sans text-[17px] font-medium text-bg disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
+    />
+  );
+}
+
+/** A short pencilled word (Caveat), for statuses, dates and the like. */
+export function PencilWord({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <span className={`hand ${className}`}>{children}</span>;
+}
+
+export const inputCls =
+  'w-full border-0 border-b border-card-rule bg-transparent px-0 py-2.5 text-[17px] text-ink placeholder-graphite focus:border-ink focus:outline-none';
+
+export function RuledInput(p: React.InputHTMLAttributes<HTMLInputElement>) {
+  return <input {...p} className={`${inputCls} ${p.className ?? ''}`} />;
+}
 
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className="block space-y-1">
-      <span className="text-xs font-medium text-slate-400">{label}</span>
+      <span className="text-[14px] font-medium text-graphite">{label}</span>
       {children}
-      {hint && <span className="block text-xs text-slate-500">{hint}</span>}
+      {hint && <span className="block text-[14px] text-graphite">{hint}</span>}
     </label>
   );
 }
 
-export function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
+/** A slip laid over the page, with a shadow (the shadow is a drop-shadow on
+ * the wrapper, since a torn slip's clip-path would otherwise cut off a
+ * box-shadow). Exported as `Leaf`; `Modal` is kept as an alias so existing
+ * callers compile unchanged. */
+export function Leaf({ title, onClose, children, wide }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" onClick={onClose}>
       <div
         role="dialog"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        className={`max-h-[92dvh] w-full overflow-y-auto rounded-t-xl border border-slate-800 bg-slate-950 p-5 sm:rounded-xl ${wide ? 'sm:max-w-3xl' : 'sm:max-w-md'}`}
-        style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
+        style={{ filter: 'drop-shadow(0 1px 1px var(--lift)) drop-shadow(0 8px 30px -8px var(--lift-far))', paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
+        className={`slip max-h-[92dvh] w-full overflow-y-auto rounded-t-[3px] p-5 sm:rounded-[3px] ${wide ? 'sm:max-w-3xl' : 'sm:max-w-md'}`}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold">{title}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200" aria-label="Close">✕</button>
+          <h2 className="font-serif text-[20px] font-medium text-ink">{title}</h2>
+          <TextAction onClick={onClose} aria-label="Close" className="text-graphite">
+            close
+          </TextAction>
         </div>
         {children}
       </div>
     </div>
   );
 }
+export const Modal = Leaf;
 
+/** @deprecated kept for callers not yet ported to `TextAction`/`InkButton`. */
+export function Btn({ kind = 'ghost', className = '', children, ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { kind?: 'primary' | 'ghost' | 'danger' }) {
+  if (kind === 'primary') return <InkButton {...p} className={className}>{children}</InkButton>;
+  const tone = kind === 'danger' ? 'text-accent' : 'text-ink';
+  return (
+    <TextAction {...p} className={`${tone} ${className}`}>
+      {children}
+    </TextAction>
+  );
+}
+
+/** @deprecated kept for callers not yet ported; renders as a pencilled word. */
 export const Pill = ({ children, tone = 'slate' }: { children: ReactNode; tone?: 'slate' | 'green' | 'amber' | 'red' | 'sky' }) => {
-  const t = { slate: 'bg-slate-800 text-slate-300', green: 'bg-emerald-500/15 text-emerald-300', amber: 'bg-amber-500/15 text-amber-300', red: 'bg-red-500/15 text-red-300', sky: 'bg-sky-500/15 text-sky-300' }[tone];
-  return <span className={`inline-block rounded-full px-2 py-0.5 text-xs ${t}`}>{children}</span>;
+  const cls = tone === 'red' ? 'text-accent' : '';
+  return <PencilWord className={cls}>{children}</PencilWord>;
 };

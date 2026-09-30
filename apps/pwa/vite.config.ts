@@ -72,8 +72,8 @@ export default defineConfig({
         name: 'Gambit',
         short_name: 'Gambit',
         description: 'Local-first strategy and planning with your own model key.',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
+        theme_color: '#F8F5EE',
+        background_color: '#F8F5EE',
         display: 'standalone',
         start_url: '/',
         icons: [
@@ -81,13 +81,17 @@ export default defineConfig({
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
         ],
       },
-      workbox: { navigateFallback: '/index.html', globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'] },
+      workbox: { navigateFallback: '/index.html', globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2}'] },
     }),
   ],
   define: {
     __APP_VERSION__: JSON.stringify(appPkg.version),
     __CONNECT_SRC__: JSON.stringify(connectSrc),
   },
+  // Font files must never be inlined as data: URIs — the CSP's img-src
+  // allows data: but there is no font-src exception for it, so an inlined
+  // font would be blocked at runtime. 8KB default -> 0 disables inlining.
+  build: { assetsInlineLimit: 0 },
   server: { fs: { allow: [root] } },
-  test: { environment: 'node', include: ['test/**/*.test.ts'] },
+  test: { environment: 'node', include: ['test/**/*.test.{ts,tsx}'] },
 });

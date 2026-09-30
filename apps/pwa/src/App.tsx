@@ -15,6 +15,7 @@ import { NewGoalDialog } from './components/NewGoal';
 import { fmtUsd } from './lib/cost';
 import { useSessionCost } from './components/CostPanel';
 import { Btn } from './components/ui';
+import { Filters } from './components/paper/Filters';
 
 function Banner({ children, onClose }: { children: React.ReactNode; onClose?: () => void }) {
   return (
@@ -113,5 +114,10 @@ export default function App() {
   useEffect(() => { void (async () => { await migrateAll(); await initDurability(); setReady(true); })(); }, []);
   const needsSetup = useLiveQuery(async () => { const p = await getProvider(); return !p || !(await hasApiKey(p.kind)); }, []);
   if (!ready || needsSetup === undefined) return null;
-  return needsSetup ? <Setup /> : <Main />;
+  return (
+    <>
+      <Filters />
+      {needsSetup ? <Setup /> : <Main />}
+    </>
+  );
 }
