@@ -60,9 +60,18 @@ export function Tabs({ g, goalId, settings }: { g: Goal; goalId: string; setting
   // to a tab later doesn't replay an old jump.
   const [goto, setGoto] = useState<GotoTarget | null>(null);
   const gotoSeq = useRef(0);
-  const pickTab = (t: TabId) => { setGoto(null); setActive(t); };
   const session = useSession();
   const pageRef = useRef<HTMLDivElement>(null);
+  // A new tab starts at the top of the page, not wherever the last one was
+  // scrolled to. The scroller is the nearest overflow-y ancestor (App.tsx's
+  // dashboard section), so walk up to it rather than scrolling the window.
+  const pickTab = (t: TabId) => {
+    setGoto(null);
+    setActive(t);
+    let el = pageRef.current?.parentElement ?? null;
+    while (el && !/(auto|scroll)/.test(getComputedStyle(el).overflowY)) el = el.parentElement;
+    el?.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' });
+  };
 
   // Every visit opens on Moves — reset when the goal itself changes (a goal
   // switch, not a re-render of the same goal), so switching goals doesn't
