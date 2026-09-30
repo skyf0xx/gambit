@@ -131,7 +131,7 @@ export function MarksLayer() {
       const external = records.some((r) => !ownContainer || !ownContainer.contains(r.target as Node));
       if (external) schedule();
     });
-    mo.observe(host, { childList: true, subtree: true });
+    mo.observe(host, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-selected'] });
     // Content that animates in (a tab's page turn, a plan sheet coming to
     // the front) is still mid-transform when the mutation-triggered redraw
     // above measures it; redraw once more when it has settled, so marks
@@ -374,6 +374,14 @@ export function MarksLayer() {
 
     prevTicksRef.current = nextTicks;
     prevCancelsRef.current = nextCancels;
+
+    // The chosen option in a set of options stays circled: any
+    // [data-selected="true"] (a choice in a list, say) gets a resting ring.
+    host.querySelectorAll('[data-selected="true"]').forEach((el, i) => {
+      const lines = lineRects(el, origin);
+      if (!lines.length) return;
+      drawStroke(ellipsePoints(unionBox(lines), hashSeed(`selected:${i}`), 1.05, [9, 5]), over, { size: 1.6, thinning: 0.5 });
+    });
 
     // Hover circles: delegated pointerenter/focusin on [data-circle].
     const circles = new Map<Element, { g: SVGGElement; fadeTimer?: ReturnType<typeof setTimeout> }>();

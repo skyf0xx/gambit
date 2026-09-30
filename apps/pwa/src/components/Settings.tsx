@@ -183,24 +183,17 @@ function KeepSafe() {
 
 const THEMES: { id: Theme; label: string }[] = [{ id: 'system', label: 'Match my device' }, { id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' }];
 
-/** Light or dark paper, or whichever the device is using: one line per
- * choice, the one in use pencilled at its end. */
+/** Light or dark paper, or whichever the device is using: one option per
+ * line, the one in use circled in pencil. */
 function Appearance() {
   const theme = useTheme();
   return (
-    <div role="radiogroup" aria-label="Appearance" className="flex flex-col items-stretch">
+    <div role="radiogroup" aria-label="Appearance" className="flex flex-col items-start gap-1.5 pl-2">
       {THEMES.map((t) => {
         const on = theme === t.id;
         return (
-          <TextAction
-            key={t.id}
-            role="radio"
-            aria-checked={on}
-            className={`flex w-full items-baseline justify-between gap-3 text-left ${on ? '' : 'text-graphite!'}`}
-            onClick={() => setTheme(t.id)}
-          >
-            <span>{t.label}</span>
-            {on && <PencilWord className="shrink-0">on</PencilWord>}
+          <TextAction key={t.id} role="radio" aria-checked={on} data-selected={on} className={on ? '' : 'text-graphite!'} onClick={() => setTheme(t.id)}>
+            {t.label}
           </TextAction>
         );
       })}
