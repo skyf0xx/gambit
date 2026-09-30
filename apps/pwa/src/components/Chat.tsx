@@ -2,10 +2,57 @@ import { useEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { runTurn, undoTurn, clearChat } from '../lib/agent';
-import { Btn, Pill } from './ui';
+import { TextAction } from './ui';
+import { useTornEdge } from './marks/torn';
 import { Md } from './Md';
 
 interface Draft { text: string; tools: { id: string; label: string; ok?: boolean }[] }
+
+/** A pencil ring until there's text to send, then an ink circle. */
+function SendButton({ ready, busy, onClick }: { ready: boolean; busy: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={busy ? 'Stop' : 'Send'}
+      onClick={onClick}
+      disabled={!ready && !busy}
+      className={`grid h-9 w-9 flex-none place-items-center rounded-full disabled:cursor-default ${
+        ready || busy ? 'bg-ink text-bg' : 'text-graphite shadow-[inset_0_0_0_1.2px_var(--graphite)]'
+      }`}
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {busy ? <rect x="6" y="6" width="12" height="12" rx="1.5" /> : <><path d="M12 19V5" /><path d="M5 12l7-7 7 7" /></>}
+      </svg>
+    </button>
+  );
+}
+
+/** Plain-language names for goal keys, for the "wrote to your page" line. */
+const KEY_WORDS: Record<string, string> = {
+  successCriteria: 'what done looks like',
+  people: 'people',
+  posture: 'posture',
+  plan: 'the plan',
+  systemsNotes: 'systems notes',
+  riskNotes: 'risks',
+  decisions: 'decisions',
+  stakeholders: 'stakeholders',
+  exposure: 'exposure',
+  capacity: 'capacity',
+  forecasts: 'forecasts',
+  experiments: 'experiments',
+  criteriaStatus: 'progress',
+};
+
+function plainSummary(items: string[]): string[] {
+  return items.map((s) => {
+    for (const [key, word] of Object.entries(KEY_WORDS)) {
+      const re = new RegExp(`\\b${key}\\b`, 'i');
+      if (re.test(s)) return s.replace(re, word);
+    }
+    return s;
+  });
+}
 
 export function Chat({ goalId, stub }: { goalId: string; stub: boolean }) {
   const chat = useLiveQuery(() => db.chats.get(goalId), [goalId]);
@@ -14,6 +61,8 @@ export function Chat({ goalId, stub }: { goalId: string; stub: boolean }) {
   const [error, setError] = useState('');
   const abort = useRef<AbortController | null>(null);
   const end = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
+  useTornEdge(composerRef, goalId, 'top');
   const busy = draft !== null;
   const display = chat?.display ?? [];
   const lastUndoable = [...display].reverse().find((m) => m.role === 'assistant' && m.snapshotId);
@@ -48,66 +97,74 @@ export function Chat({ goalId, stub }: { goalId: string; stub: boolean }) {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
+    <div className="slip flex h-full min-h-0 flex-col">
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-6">
         {display.length === 0 && !busy && (
-          <p className="mx-auto mt-10 max-w-sm text-center text-sm text-slate-500">
+          <p className="mx-auto mt-10 max-w-sm text-center text-[14px] text-graphite">
             {stub ? 'Tell me what you want to achieve, as much or as little as you have.' : 'Ask for a status, a next step, or a hard question about the plan.'}
           </p>
         )}
         {display.map((m) =>
           m.role === 'user' ? (
-            <div key={m.id} className="ml-auto max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-sky-600/30 px-3 py-2 text-sm">{m.text}</div>
+            <p key={m.id} className="mt-6 border-l-[1.5px] border-graphite/55 pl-[18px] text-[17px] leading-[27px] font-medium whitespace-pre-wrap text-ink">
+              {m.text}
+            </p>
           ) : (
-            <div key={m.id} className="max-w-[95%] space-y-2">
+            <div key={m.id} className="mt-8 space-y-2">
               {m.text && <Md text={m.text} />}
-              {m.error && <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-300">{m.error}</p>}
+              {m.error && <p className="text-[15px] text-accent">{m.error}</p>}
               {(m.tools?.length ?? 0) > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {m.tools!.map((t, i) => <Pill key={i} tone={t.ok ? 'slate' : 'red'}>{t.label}</Pill>)}
-                </div>
+                <p className="hand text-[16px]">{m.tools!.map((t) => t.label).join(' · ')}</p>
               )}
               {(m.summary?.length ?? 0) > 0 && (
-                <div className="flex flex-wrap items-center gap-2 text-xs text-emerald-300">
-                  <span>Goal updated: {m.summary!.join(', ')}</span>
+                <p className="hand mt-6 flex flex-wrap items-center gap-2 text-[16px]">
+                  <span>wrote to your page: {plainSummary(m.summary!).join(' · ')}</span>
                   {m.id === lastUndoable?.id && !m.undone && !busy && (
-                    <button className="rounded bg-slate-800 px-2 py-0.5 text-slate-200 hover:bg-slate-700" onClick={() => void undoTurn(goalId, m.id)}>Undo</button>
+                    <TextAction className="!min-h-0 font-sans text-[14px] not-italic underline underline-offset-[3px]" onClick={() => void undoTurn(goalId, m.id)}>
+                      undo
+                    </TextAction>
                   )}
-                  {m.undone && <span className="text-slate-500">undone</span>}
-                </div>
+                  {m.undone && <span>undone</span>}
+                </p>
               )}
-              {m.error && (m.summary?.length ?? 0) === 0 && m.id === lastUndoable?.id && !m.undone && <span className="text-xs text-slate-500">No goal changes were applied.</span>}
-              {m.error && (m.summary?.length ?? 0) > 0 && <span className="text-xs text-amber-300">Partial progress was kept; Undo rolls the whole turn back.</span>}
+              {m.error && (m.summary?.length ?? 0) === 0 && m.id === lastUndoable?.id && !m.undone && (
+                <p className="text-[14px] text-graphite">No goal changes were applied.</p>
+              )}
+              {m.error && (m.summary?.length ?? 0) > 0 && (
+                <p className="text-[14px] text-graphite">Partial progress was kept; Undo rolls the whole turn back.</p>
+              )}
             </div>
           ),
         )}
         {draft && (
-          <div className="max-w-[95%] space-y-2">
-            {draft.text ? <Md text={draft.text} /> : <p className="text-sm text-slate-500">Thinking…</p>}
-            <div className="flex flex-wrap gap-1">
-              {draft.tools.map((t) => <Pill key={t.id} tone={t.ok === undefined ? 'sky' : t.ok ? 'slate' : 'red'}>{t.label}</Pill>)}
-            </div>
+          <div className="mt-8 space-y-2">
+            {draft.text ? <Md text={draft.text} /> : <p className="text-[14px] text-graphite">Thinking…</p>}
+            {draft.tools.length > 0 && <p className="hand text-[16px]">{draft.tools.map((t) => t.label).join(' · ')}</p>}
           </div>
         )}
-        {error && <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</p>}
+        {error && <p className="text-[15px] text-accent">{error}</p>}
         <div ref={end} />
       </div>
-      <div className="border-t border-slate-800 p-3" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-        <div className="flex items-end gap-2">
-          <textarea
+      <div
+        ref={composerRef}
+        style={{ filter: 'drop-shadow(0 -2px 2px var(--lift-far)) drop-shadow(0 -8px 14px var(--lift-far))', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+        className="slip -mx-px px-5 pt-4"
+      >
+        <div className="flex items-center gap-3 border-b border-card-rule py-2.5 focus-within:border-ink">
+          <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); } }}
-            rows={2}
-            placeholder="Message Gambit"
-            className="max-h-40 min-h-[2.75rem] flex-1 resize-none rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm placeholder-slate-500 focus:border-sky-500 focus:outline-none"
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); } }}
+            placeholder="What's your next move?"
+            aria-label="Message"
+            className="min-w-0 flex-1 border-0 bg-transparent py-2 font-sans text-[17px] text-ink placeholder:font-hand placeholder:text-[23px] placeholder:text-graphite focus:outline-none"
           />
-          {busy ? <Btn kind="danger" onClick={() => abort.current?.abort()}>Stop</Btn> : <Btn kind="primary" onClick={() => void send()} disabled={!input.trim()}>Send</Btn>}
+          <SendButton ready={!!input.trim()} busy={busy} onClick={() => (busy ? abort.current?.abort() : void send())} />
         </div>
         {display.length > 0 && !busy && (
-          <button className="mt-2 text-xs text-slate-500 hover:text-slate-300" onClick={() => confirm('Clear this chat? The goal itself is kept.') && void clearChat(goalId)}>
+          <TextAction className="!min-h-0 mt-2 text-[14px] text-graphite underline underline-offset-[3px]" onClick={() => confirm('Clear this chat? The goal itself is kept.') && void clearChat(goalId)}>
             Clear chat
-          </button>
+          </TextAction>
         )}
       </div>
     </div>
