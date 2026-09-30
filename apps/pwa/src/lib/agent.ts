@@ -240,6 +240,9 @@ function pathValue(root: Record<string, unknown>, path: string): unknown {
 }
 
 export function errorText(e: unknown, kind?: ProviderKind): string {
+  // A retried call wraps the provider's own error ("Failed after 2 attempts").
+  const inner = (e as { lastError?: unknown })?.lastError;
+  if (inner) e = inner;
   const err = e as { message?: string; statusCode?: number; responseBody?: string };
   if (typeof navigator !== 'undefined' && !navigator.onLine)
     return "You're offline. Your notebook is here, and messages will work when you're back online.";

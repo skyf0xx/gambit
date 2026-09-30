@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { runTurn, undoTurn } from '../lib/agent';
@@ -179,6 +179,24 @@ interface ChatProps {
   onExpand: () => void;
 }
 
+/** An error notice that clears itself: it fades after a few seconds, or on a
+ * tap, instead of sitting in the conversation for good. */
+function Fleeting({ ms = 10000, onGone, children }: { ms?: number; onGone?: () => void; children: ReactNode }) {
+  const [phase, setPhase] = useState<'in' | 'out' | 'gone'>('in');
+  useEffect(() => {
+    if (phase === 'gone') { onGone?.(); return; }
+    const t = setTimeout(() => setPhase(phase === 'in' ? 'out' : 'gone'), phase === 'in' ? ms : 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, ms]);
+  if (phase === 'gone') return null;
+  return (
+    <div role="alert" onClick={() => setPhase('out')} className="space-y-2 transition-opacity duration-[400ms]" style={{ opacity: phase === 'out' ? 0 : 1 }}>
+      {children}
+    </div>
+  );
+}
+
 export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: ChatProps) {
   const chat = useLiveQuery(() => db.chats.get(goalId), [goalId]);
   const [input, setInputState] = useState(() => loadDraft(goalId));
@@ -188,6 +206,8 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
   const dictation = useDictation({ onText: setInput, onError: setVoiceNote });
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState('');
+  // Errors already in the saved conversation when it opened: old news, not shown again.
+  const staleErrors = useRef<{ goalId: string; ids: Set<string> } | null>(null);
   const [showJump, setShowJump] = useState(false);
   const [closing, setClosing] = useState(false);
   const abort = useRef<AbortController | null>(null);
@@ -202,6 +222,10 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
   useTornEdge(leafRef, `${goalId}:leaf`, 'top');
   const busy = draft !== null;
   const display = chat?.display ?? [];
+  if (chat && staleErrors.current?.goalId !== goalId) {
+    staleErrors.current = { goalId, ids: new Set(chat.display.filter((m) => m.error).map((m) => m.id)) };
+  }
+  const showsError = (m: { id: string; error?: string }) => !!m.error && !staleErrors.current?.ids.has(m.id);
   const lastUndoable = [...display].reverse().find((m) => m.role === 'assistant' && m.snapshotId);
   const workingSkill = busy ? activeSkillFrom(draft.tools) : null;
   const hasContent = useRef(false);
@@ -510,7 +534,6 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
         ) : (
           <div key={m.id} className="anim-rise mt-8 space-y-2">
             {m.text && <Md text={m.text} />}
-            {m.error && <p className="anim-fade-in text-[15px] text-accent">{m.error}</p>}
             {(m.tools?.length ?? 0) > 0 && (
               <p className="hand text-[16px]">{m.tools!.map((t) => t.label).join(' · ')}</p>
             )}
@@ -525,11 +548,16 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
                 {m.undone && <span>undone</span>}
               </p>
             )}
-            {m.error && (m.summary?.length ?? 0) === 0 && m.id === lastUndoable?.id && !m.undone && (
-              <p className="text-[14px] text-graphite">No goal changes were applied.</p>
-            )}
-            {m.error && (m.summary?.length ?? 0) > 0 && (
-              <p className="text-[14px] text-graphite">Partial progress was kept; Undo rolls the whole turn back.</p>
+            {showsError(m) && (
+              <Fleeting>
+                <p className="anim-fade-in text-[15px] text-accent">{m.error}</p>
+                {(m.summary?.length ?? 0) === 0 && m.id === lastUndoable?.id && !m.undone && (
+                  <p className="text-[14px] text-graphite">No goal changes were applied.</p>
+                )}
+                {(m.summary?.length ?? 0) > 0 && (
+                  <p className="text-[14px] text-graphite">Partial progress was kept; Undo rolls the whole turn back.</p>
+                )}
+              </Fleeting>
             )}
           </div>
         ),
@@ -541,7 +569,9 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
         </div>
       )}
       {error && (
-        <p className="anim-fade-in text-[15px] text-accent">{error}</p>
+        <Fleeting key={error} onGone={() => setError('')}>
+          <p className="anim-fade-in text-[15px] text-accent">{error}</p>
+        </Fleeting>
       )}
       <div ref={end} />
       {showJump && (
