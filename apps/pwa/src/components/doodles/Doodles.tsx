@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { Goal } from '../../lib/types';
 import { timeLeft } from '../../lib/dates';
 import { buildDoodleLayout, nodeJitter, RADIAL_MIN_WIDTH, type DoodleNode, type DoodleEdge } from './layout';
@@ -128,6 +128,31 @@ function NodeLabel({ node, onActivate }: { node: DoodleNode; onActivate: (path: 
 
 interface Dims { width: number; height: number; mode: 'radial' | 'tree' }
 
+/** Walk up from the Doodles container to the scrollable page section that
+ * holds the whole notebook column (App.tsx's grid cell) — the real desktop
+ * budget for the mind map, which is much wider than the page's own
+ * reading-width column (`max-w-xl`, brand/identity.md §05). Falls back to
+ * the container's own width if no such ancestor is found (tests, narrow
+ * layouts). Doodles is the one tab that needs this: every other tab's
+ * content is prose, which wants the narrow column; the mind map wants the
+ * desk's full spread. */
+function findWideAncestorWidth(el: HTMLElement): number {
+  let node: HTMLElement | null = el;
+  let best = el.clientWidth;
+  while (node) {
+    if (node.classList?.contains('overflow-y-auto')) {
+      // Subtract this section's own horizontal padding so the map never
+      // overlaps the tab strip living in the desk gap just past it.
+      const cs = getComputedStyle(node);
+      const pad = parseFloat(cs.paddingLeft || '0') + parseFloat(cs.paddingRight || '0');
+      best = Math.max(best, node.clientWidth - pad);
+      break;
+    }
+    node = node.parentElement;
+  }
+  return best;
+}
+
 export function Doodles({ goal, goalId: _goalId }: { goal: Goal; goalId: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState<Dims>({ width: 640, height: 480, mode: 'radial' });
@@ -137,8 +162,16 @@ export function Doodles({ goal, goalId: _goalId }: { goal: Goal; goalId: string 
     const el = containerRef.current;
     if (!el) return;
     const update = () => {
-      const w = el.clientWidth || 640;
-      const mode: 'radial' | 'tree' = w >= RADIAL_MIN_WIDTH ? 'radial' : 'tree';
+      const w = Math.round(findWideAncestorWidth(el)) || el.clientWidth || 640;
+      // Radial is the desktop shape at every desktop width; the vertical
+      // tree is mobile-only. 768px is the viewport breakpoint the rest of
+      // the page already treats as "desktop" (Tailwind's `md:`), so radial
+      // mode keys off the real viewport width, not just the measured
+      // container — a narrow container within a wide viewport (before this
+      // fix, the page's own max-w-xl column) must still go radial once
+      // it's handed the desk's real width above.
+      const viewportIsDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
+      const mode: 'radial' | 'tree' = viewportIsDesktop || w >= RADIAL_MIN_WIDTH ? 'radial' : 'tree';
       // Height is a starting guess only — buildDoodleLayout computes the
       // real height it needs (radial can grow taller than wide) and the
       // viewBox below uses that instead.
@@ -148,7 +181,8 @@ export function Doodles({ goal, goalId: _goalId }: { goal: Goal; goalId: string 
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
-    return () => ro.disconnect();
+    window.addEventListener('resize', update);
+    return () => { ro.disconnect(); window.removeEventListener('resize', update); };
   }, []);
 
   const layout = useMemo(() => buildDoodleLayout(goal, dims), [goal, dims]);
@@ -177,6 +211,15 @@ export function Doodles({ goal, goalId: _goalId }: { goal: Goal; goalId: string 
   const reduced = prefersReducedMotion();
   const deadline = goal.deadline ? timeLeft(goal.deadline) : null;
 
+  // Break the SVG's own box out to the measured desk-wide budget
+  // (dims.width) even though this element's DOM parent is still the
+  // page's narrow reading-width column — a fixed pixel width plus a
+  // centring negative margin, rather than a percentage, since a percentage
+  // would just re-inherit the narrow parent. Below the 768px desktop
+  // breakpoint (mobile tree mode) dims.width already equals the real
+  // (narrow) container width, so this collapses to a no-op there.
+  const breakoutStyle: CSSProperties = { width: dims.width, marginLeft: 'auto', marginRight: 'auto' };
+
   return (
     <div ref={containerRef} className="w-full">
       <svg
@@ -185,6 +228,7 @@ export function Doodles({ goal, goalId: _goalId }: { goal: Goal; goalId: string 
         width="100%"
         viewBox={`0 0 ${layout.width} ${layout.height}`}
         className="block"
+        style={breakoutStyle}
       >
         <g
           style={

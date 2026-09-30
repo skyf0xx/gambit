@@ -24,6 +24,33 @@ export type NodeKind = 'goal' | 'criteria' | 'line' | 'step' | 'action' | 'perso
 const HALF_W = 52;
 const HALF_H = 24;
 
+// A node's real half-width, from its actual label text rather than the
+// fixed HALF_W constant — a long label (e.g. a two-line branch heading, or
+// a long twig like "neighborhood association") is wider on screen than the
+// generic tap-target minimum, and comparing every pair at the same fixed
+// width let a long branch label and a long twig label pass as
+// non-overlapping when their rendered text actually collided (bug: a twig
+// label overlapping its own line's branch heading). Mirrors Doodles.tsx's
+// boxFor (~6.5px/char), floored at HALF_W so short labels still get the
+// full tap-target clearance.
+//
+// The goal node is deliberately excluded from this per-character estimate:
+// it sits alone at the hub with the criteria column reserved directly
+// above it and every branch/twig projected outward starting at
+// `branchRadius`, so nothing is actually laid out beside it at label
+// height — unlike every other node, whose neighbours are placed without
+// that reservation. Using the same character-proportional width for a long
+// goal sentence made it collide with the nearest branch on every dense
+// goal at real desktop widths (576px) even though the two labels never
+// visually overlap, and since the goal node never moves (it's the fixed
+// anchor), that collision could never resolve — the nudge pass would just
+// spin on it. It keeps the generic tap-target half-width instead.
+function labelHalfWidth(node: Pick<DoodleNode, 'label' | 'label2' | 'kind'>): number {
+  if (node.kind === 'goal') return HALF_W;
+  const longest = Math.max(node.label.length, node.label2?.length ?? 0);
+  return Math.max(HALF_W, (longest * 6.5) / 2 + 6);
+}
+
 export interface DoodleNode {
   id: string;
   kind: NodeKind;
@@ -303,7 +330,12 @@ function buildRadial(goal: Goal, ctx: BuildCtx & { height: number }): { nodes: D
   // from the centre than one near the left/right without ever leaving the
   // container. `project` below implements this: same angle and a generous
   // radius, but x is capped independently of y.
-  const marginX = 30;
+  // A label's text can extend up to ~90px either side of its node's centre
+  // (Doodles.tsx's foreignObject is 200px wide, centred on the node), so
+  // the safe horizontal margin has to clear that overhang, not just the
+  // 44px tap target — otherwise a node sitting near the container edge
+  // still spills its label past the page's real edge.
+  const marginX = 50;
   const maxRadiusX = Math.max(90, width / 2 - marginX);
   const branchRadius = Math.min(maxRadiusX * 0.75, 150);
   const twigDepthRadius = branchRadius + (maxChildren + 1) * TWIG_RADIUS_STEP;
@@ -472,7 +504,10 @@ function buildRadial(goal: Goal, ctx: BuildCtx & { height: number }): { nodes: D
 // ---------------------------------------------------------------------------
 
 function nudgeCollisions(nodes: DoodleNode[], width: number): void {
-  const marginX = 8;
+  // Matches buildRadial's own label-overhang margin so the nudge pass never
+  // pushes a node into a position whose label would spill past the
+  // container edge, even after collision resolution moves it.
+  const marginX = 50;
   const ITERATIONS = 60;
   for (let iter = 0; iter < ITERATIONS; iter++) {
     let moved = false;
@@ -488,10 +523,19 @@ function nudgeCollisions(nodes: DoodleNode[], width: number): void {
         if (aFixed && bFixed) continue;
         const dx = b.x - a.x;
         const dy = b.y - a.y;
-        // Two full tap-target half-widths/heights (one per node) is the
-        // real safe distance between centres — matches boxesOverlap in the
-        // test suite, which checks the same 2x threshold.
-        const minDx = HALF_W * 2;
+        // Two full tap-target half-widths (one per node) is the general
+        // safe distance between centres — but a branch (line) label is
+        // wider on screen than the generic tap-target minimum (it can wrap
+        // to two lines, or run long even on one), so a twig-vs-line pair
+        // uses the line's own real label width instead of the fixed
+        // constant. That's what catches a twig label overlapping its own
+        // line's branch heading (the reported bug). Scoped to twig/action
+        // pairs against a line (not line-vs-goal, which is a separate,
+        // structural radius concern) so this doesn't reopen crowding this
+        // constant already handles correctly elsewhere.
+        const aIsLineVsTwig = a.kind === 'line' && (b.kind === 'step' || b.kind === 'action');
+        const bIsLineVsTwig = b.kind === 'line' && (a.kind === 'step' || a.kind === 'action');
+        const minDx = aIsLineVsTwig ? labelHalfWidth(a) + HALF_W : bIsLineVsTwig ? labelHalfWidth(b) + HALF_W : HALF_W * 2;
         const minDy = (a.label2 || b.label2 ? 32 : HALF_H) * 2;
         if (Math.abs(dx) < minDx && Math.abs(dy) < minDy) {
           moved = true;
@@ -501,13 +545,18 @@ function nudgeCollisions(nodes: DoodleNode[], width: number): void {
           const r = rng(hashSeed(a.path + '|' + b.path + '|' + iter))();
           const overlapX = minDx - Math.abs(dx);
           const overlapY = minDy - Math.abs(dy);
-          // Prefer pushing apart vertically — height is free to grow, width
-          // is not, so a horizontal push risks shoving a node past the
-          // container edge. Only push horizontally when the two nodes are
-          // already at (almost) the same x, where a vertical push wouldn't
-          // separate them at all. A fixed node (the goal) never moves —
-          // its whole share of the separation falls on the other node.
-          if (Math.abs(dx) > 4) {
+          // Push apart on whichever axis is actually the tighter fit — the
+          // one with more overlap to close — rather than always preferring
+          // vertical whenever the two nodes aren't dead-aligned on x. A
+          // pair can be closer than minDx on x while already clearing minDy
+          // on y (e.g. a long node like the goal label against an
+          // off-angle twig at real desktop widths); pushing vertically in
+          // that case does nothing; the loop must close the x gap instead.
+          // Height is still free to grow and width is not, so vertical
+          // remains the tie-breaker when both axes are equally tight. A
+          // fixed node (the goal) never moves — its whole share of the
+          // separation falls on the other node.
+          if (overlapY <= overlapX) {
             const push = overlapY / 2 + 0.5;
             const dir = dy === 0 ? (r < 0.5 ? -1 : 1) : Math.sign(dy);
             if (!aFixed) a.y -= dir * (bFixed ? push * 2 : push);
