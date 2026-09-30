@@ -6,11 +6,16 @@
 
 import { goalSchema } from './schema.mjs';
 
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 // Declarative migrations: { from: n, to: n + 1, transform: (doc) => doc }.
 // `transform` is a pure data function shipped in-app, never downloaded code.
-export const MIGRATIONS = [];
+export const MIGRATIONS = [
+  // v2 only adds optional fields and enum values (proposed next actions,
+  // riskNotes.dependsOn, criteriaStatus 'met', open decisions, log focusLine),
+  // so every v1 document is already a valid v2 one.
+  { from: 1, to: 2, transform: (doc) => doc },
+];
 
 function formatIssues(error) {
   return error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ');

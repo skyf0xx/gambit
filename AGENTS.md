@@ -148,6 +148,11 @@ reports a next-action item done, blocked, or dropped in passing, that still
 routes to `plan`'s lightweight status-update mode rather than sitting
 unrecorded. Nothing else writes that field.
 
+A move the advisor suggests that the user hasn't agreed to yet is written
+as a next action with `status: "proposed"`, which the page shows as a
+sticky note. The user keeping or tossing it flips that status to
+`pending` or `dropped`; nothing else promotes it.
+
 `premortem` and `review` deliberately own no key — they append to
 `riskNotes` and `plan.nextActions` respectively, labelled with their
 source, so findings live where the owning skill will see them. A new skill

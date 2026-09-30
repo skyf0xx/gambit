@@ -134,17 +134,17 @@ successCriteria: [{text ≤120, kind: control|influence, lineOfOperation?: S, de
 deadline: date | null
 people: [{name: S, status: confirmed|tentative|lead, doing: M, detail?}]
 posture: null | {current: {level: int ≥1, label: S}, levels: [{level, label: S, meaning?: M}], triggers: [M] ≤10, lastReviewed: date}
-plan: {linesOfOperation: [{label: S, criticalPath: [{label: S, detail?, items?: [{label: S, status}] ≤10, status}] ≤6, nextActions: [{action: M, who: S, when: S, status, detail?}] ≤5, status?: on_schedule|at_risk|blocked|done, blocker?: M}]} (at least 1 line); status = pending|done|dropped
+plan: {linesOfOperation: [{label: S, criticalPath: [{label: S, detail?, items?: [{label: S, status}] ≤10, status}] ≤6, nextActions: [{action: M, who: S, when: S, status, detail?}] ≤5, status?: on_schedule|at_risk|blocked|done, blocker?: M}]} (at least 1 line); status = pending|done|dropped, and a next action may also be proposed (a move you suggest that the user hasn't agreed to yet; they keep or toss it)
 systemsNotes: null | {schwerpunkt: M, rationale?: M, confidence: high|moderate|low, topFindings: [{label: M, detail?, items?}] ≤5, lastReviewed: date}
-riskNotes: [{item: M, detail?: M, source: threat|premortem, accepted: boolean}]
-criteriaStatus: [{text ≤120, kind, lineOfOperation?, status: on_track|at_risk|stalled|regressing, detail?}]
+riskNotes: [{item: M, detail?: M, source: threat|premortem, accepted: boolean, dependsOn?: S (a people or stakeholders name, verbatim)}]
+criteriaStatus: [{text ≤120, kind, lineOfOperation?, status: met|on_track|at_risk|stalled|regressing, detail?}]
 stakeholders: [{name: S, power: high|med|low, stanceCurrent: S, stanceTarget: S, via: M, detail?}]
 exposure: [{item: M, status: open|accepted, mustHandleBefore?: S, acceptedDate?: date, why?: M}]
 capacity: null | {availableHrsPerWeek: number ≥0 | null, runway: S, watch?: M, detail?, lastReviewed: date}
 forecasts: [{statement: M, probability: int 0-100, resolvesBy: date, resolvesVia: S, resolved: boolean, outcome?: yes|no, verdict?: M, detail?}]
 experiments: [{assumption: M, test: M, passIf: M, by: date, done: boolean, result?: M, changedAsResult?: M, detail?}]
-decisions: [{date, choice: M, because?: M, reverseIf: M, reviewBy?: date}]
-log entry (append_log): {date?, assessment?: on_track|at_risk|stalled|regressing, focus: ≤160 | null, notes: [M] ≤200, source?: S}`;
+decisions: [{date, status?: open|decided (default decided), question?: M, choice?: M, because?: M, reverseIf?: M, reviewBy?: date}]; open needs question, decided needs choice and reverseIf
+log entry (append_log): {date?, assessment?: on_track|at_risk|stalled|regressing, focus: ≤160 | null, focusLine?: ≤120 (verbatim text of the one criterion, next action or step the focus lands on), notes: [M] ≤200, source?: S}`;
 
 export const PREAMBLE = `You are Gambit, a strategic advisor running inside a local-first web app. The user's goal lives in an on-device store and is shown live on a dashboard beside this chat.
 

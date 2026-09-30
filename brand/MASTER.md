@@ -35,7 +35,8 @@ The single entry point for the UX rethink: what Gambit is, where each decision l
 | `provider-facts.md` | Provider signup, billing, data terms, live API checks and costs (checked 2026-09-30) |
 | `research/walkthrough.md`, `research/screens/` | Screen-by-screen audit and screenshots of the current app |
 | `research/comparables.md`, `research/onboarding-comparables.md` | Patterns from comparable products |
-| `research/stitch-prompt.md` | The Google Stitch prompt for inspiration screens |
+| `research/stitch-prompt.md` | The Google Stitch prompt for inspiration screens. It predates the paper system, and is kept as a record of the prompt that was used. |
+| `mockups/` | HTML mockups of every screen in the paper system, light and dark (`index.html` shows them all; `python3 serve.py` serves them on port 4719). `tokens.css`, `notebook.css`, `sheet.css` and `marks.js` are the reference implementation for `identity.md` §05. |
 | [Layout canvas](https://claude.ai/artifact/RH171w62jhMXFwRxfaDVJ5) | Unwired mockups of the page-first layout (B) against the side-by-side spread (A) |
 
 ## To do
@@ -56,6 +57,8 @@ The single entry point for the UX rethink: what Gambit is, where each decision l
 - [x] Typography: Inter by default, Noto Serif for the goal title and wordmark, Caveat for pencilled words, Noto Sans Mono for keys and figures (`identity.md` §04)
 - [x] HTML mockups in the paper system (`mockups/index.html`), in light and dark, with perfect-freehand pencil marks (`mockups/marks.js`)
 - [x] Mock the remaining screens: the menu with the notebook shelf, the setup kit, the keep-it-safe step (iPhone and Chrome), and the busy, free-limit and offline errors
+- [x] Every mockup screen in the paper system: the taped index card, the sticky note, the torn composer slip, the conversation as a loose leaf, ruled writing lines, and pencil circles on hover
+- [x] `ux-general.md` and `ux-onboarding.md` decisions brought in line with the paper system
 
 ### Foundations
 - [ ] Gemini provider: `thought_signature` replay (saved history included), its CSP entry, and `gemini-flash-latest` as the default once it holds up on real skill runs
@@ -65,8 +68,10 @@ The single entry point for the UX rethink: what Gambit is, where each decision l
 ### Core experience, step 1 (no layout change)
 - [ ] Plain-names layer: card titles, hints, group labels, the summary card, change summaries (`ux-general.md` §3)
 - [ ] Change marks: a pencilled accent loop and a "new, from your chat · undo" note on lines a turn changed
-- [ ] The other pencil marks (`identity.md` §05), drawn with perfect-freehand: tick, highlighter, star, arrow, squiggle, eraser, margin "?". Arrows need a link between two lines, which `goalSchema` doesn't have yet.
-- [ ] Sticky-note suggestions (keep or toss). They need a pending-proposal state that the agent writes and the person accepts, which `goalSchema` doesn't have yet.
+- [x] Goal schema v2 for the marks: proposed next actions (sticky notes), `riskNotes[].dependsOn` (arrows), `criteriaStatus` `met` (ticks), open decisions ("?"), `log[].focusLine` (highlighter). Only next actions can be proposed. The star isn't stored: it's the first pending step on the focus line's critical path.
+- [x] Schema v2 wired through: the v1→v2 migration, core tests, the owning skills (`plan`, `threat`, `eval`, `decide`, `strategy`), `AGENTS.md`, the model-facing contract in `skills.ts` and the tool inputs in `tools.ts`. The current dashboard shows open decisions, proposed moves and met criteria.
+- [ ] The other pencil marks (`identity.md` §05), drawn with perfect-freehand: tick, highlighter, star, arrow, squiggle, eraser, margin "?"
+- [ ] Sticky-note suggestions: render proposed next actions as sticky notes, with Keep it and Toss flipping the status
 - [ ] The next move on open, built on the device, on the taped index card with three text actions
 - [ ] Keep-your-notebook-safe step. Safety then lives in the menu, and every banner goes except the app update.
 - [ ] A fresh conversation per session, with the goal loaded and the previous note carried in

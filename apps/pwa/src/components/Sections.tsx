@@ -35,13 +35,13 @@ export function hintFor(key: string, d: Any): string {
   }
 }
 
-const toneFor = (s: string) => (['on_track', 'confirmed', 'done', 'on_schedule', 'yes'].includes(s) ? 'green' : ['at_risk', 'tentative', 'med', 'open'].includes(s) ? 'amber' : ['stalled', 'regressing', 'blocked', 'high'].includes(s) ? 'red' : 'slate') as 'green' | 'amber' | 'red' | 'slate';
+const toneFor = (s: string) => (['met', 'on_track', 'confirmed', 'done', 'on_schedule', 'yes'].includes(s) ? 'green' : ['at_risk', 'tentative', 'med', 'open'].includes(s) ? 'amber' : ['stalled', 'regressing', 'blocked', 'high'].includes(s) ? 'red' : 'slate') as 'green' | 'amber' | 'red' | 'slate';
 const St = ({ s }: { s: string }) => <Pill tone={toneFor(s)}>{s.replace('_', ' ')}</Pill>;
 const Detail = ({ children }: { children?: ReactNode }) => (children ? <div className="mt-0.5 text-xs text-slate-500">{children}</div> : null);
-const icon = (s: string) => (s === 'done' ? '✓' : s === 'dropped' ? '✕' : '○');
+const icon = (s: string) => (s === 'done' ? '✓' : s === 'dropped' ? '✕' : s === 'proposed' ? '?' : '○');
 
 function Toggle({ goalId, path, status, editable, children }: { goalId: string; path: string; status: string; editable: boolean; children: ReactNode }) {
-  const next = status === 'done' ? 'pending' : 'done';
+  const next = status === 'done' || status === 'proposed' ? 'pending' : 'done';
   const cls = status === 'done' ? 'text-slate-500 line-through' : status === 'dropped' ? 'text-slate-600 line-through' : 'text-slate-200';
   return (
     <li className={`flex items-start gap-2 text-sm ${cls}`}>
@@ -166,9 +166,15 @@ export function SectionBody({ k, data, goalId, editable }: { k: keyof Goal; data
         {list.map((d, i) => (
           <div key={i} className={i === 0 ? 'rounded-md border-l-2 border-sky-500 bg-slate-900/70 p-3' : 'pl-3 text-slate-400'}>
             <div className="text-xs text-slate-500">{formatDate(d.date)}</div>
-            <div className="text-sm font-medium text-slate-100">{d.choice}</div>
-            {d.because && <Detail>Because {d.because}</Detail>}
-            <Detail>Reverse if {d.reverseIf}{d.reviewBy ? ` · review by ${formatDate(d.reviewBy)}` : ''}</Detail>
+            {d.status === 'open' ? (
+              <div className="text-sm font-medium text-slate-100">Open: {d.question}</div>
+            ) : (
+              <>
+                <div className="text-sm font-medium text-slate-100">{d.choice}</div>
+                {d.because && <Detail>Because {d.because}</Detail>}
+                <Detail>Reverse if {d.reverseIf}{d.reviewBy ? ` · review by ${formatDate(d.reviewBy)}` : ''}</Detail>
+              </>
+            )}
           </div>
         ))}
       </div>

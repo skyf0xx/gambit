@@ -47,7 +47,7 @@ Every element on screen is made of one of these, and each one means something:
 
 **Slips.** Each touchable surface is a different kind of paper, so its shape says what it is:
 - **The next move is an index card, taped to the top of the page.** It has a red header rule, blue ruled lines, and a slight tilt. It carries the move, its date in pencil, and three text actions.
-- **A suggestion from the advisor is a sticky note.** It's proposed, not yet yours, so it sits on the page but not in the record, with "Keep it" and "Toss". Keeping it writes it to the page in ink, and tossing it removes it.
+- **A suggestion from the advisor is a sticky note.** It's proposed, not yet yours, so it sits on the page but isn't the next move yet, with "Keep it" and "Toss". Keeping it turns it into a next move in ink, and tossing it drops it.
 - **The composer is a torn slip** resting on the bottom edge of the page.
 - **The conversation is a loose leaf** laid over the page, with a torn top edge. On desktop it lies along the right-hand side.
 - **Something to hand over** (the setup kit's message) is a torn-off slip.
@@ -136,16 +136,16 @@ Strokes are drawn with **perfect-freehand**, so they taper with pressure like a 
 
 | Mark | Means | Comes from | Material | Lasts |
 |---|---|---|---|---|
-| Index card | Your next move | The recorded next action | Slip, taped | Always, for the next move only |
+| Index card | Your next move | The first `pending` next action | Slip, taped | Always, for the next move only |
 | Open loop | The most important change from the last conversation | The last turn's writes | Pencil, in the accent | Until the next session, a tap on the line, or undo. Draws in once, then stays still. |
-| Tick | Done | A next action or criterion marked done | Ink, overshooting a hand-drawn box | While true |
-| Highlighter | The focus: the one thing that matters most right now | The current focus set by `strategy` | Highlighter, behind the text | While it's the focus |
-| Star | A move everything else waits on | A step on the plan's critical path | Pencil, in the margin | While it's pending |
-| Arrow | This depends on that, for example a risk and the person it hangs on | A link between two lines | Pencil, out through the margin and back | While the link holds |
+| Tick | Done | A next action or step with status `done`, or a criterion `eval` scored `met` | Ink, overshooting a hand-drawn box | While true |
+| Highlighter | The focus: the one thing that matters most right now | The line named by `focusLine` on the latest log entry with a focus, set by `strategy` | Highlighter, behind the text | While it's the focus |
+| Star | A move everything else waits on | The first pending step on the Schwerpunkt line's critical path | Pencil, in the margin | While it's pending |
+| Arrow | This depends on that: a risk and the person it hangs on | A risk's `dependsOn`, pointing at a name in people or stakeholders | Pencil, out through the margin and back | While the link holds |
 | Squiggly underline | Not checked yet: an assumption, not a fact | An open experiment's assumption, or an open forecast | Pencil, and the text itself is in pencil | Until a test or forecast settles it |
-| Erased | No longer true: dropped, disproved, or a risk that went away | A dropped item, a failed experiment, a removed risk | Pencil strikethrough, smudge and fade | Only in the session it happened. After that the line leaves the page, and the log keeps it. |
-| "?" in the margin | An open question waiting on a decision | An open decision | Pencil, handwritten | Until it's decided |
-| Sticky note | A suggestion you haven't taken yet | A proposal from the advisor | Slip | Until you keep it or toss it |
+| Erased | No longer true: dropped, disproved, or a risk that went away | An item set to `dropped` (including a tossed suggestion), a failed experiment, a removed risk | Pencil strikethrough, smudge and fade | Only in the session it happened. After that the line leaves the page, and the log keeps it. |
+| "?" in the margin | An open question waiting on a decision | A decision with status `open` | Pencil, handwritten | Until it's decided |
+| Sticky note | A suggestion you haven't taken yet | A next action with status `proposed` | Slip | Until you keep it or toss it |
 
 **Rules:**
 - **The loop is the only mark in the accent,** so it stays the one thing on screen to look at.

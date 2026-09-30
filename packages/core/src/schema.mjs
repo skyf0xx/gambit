@@ -57,11 +57,14 @@ const posture = z.object({
   lastReviewed: dateString,
 });
 
+// 'proposed' is a move the advisor suggested that the user hasn't agreed to
+// yet — shown as a sticky note to keep (→ 'pending') or toss (→ 'dropped').
+// Only next actions can be proposed; steps and sub-items can't.
 const nextAction = z.object({
   action: mediumLabel,
   who: shortLabel,
   when: shortLabel,
-  status: z.enum(['pending', 'done', 'dropped']).default('pending'),
+  status: z.enum(['proposed', 'pending', 'done', 'dropped']).default('pending'),
   detail,
 });
 
@@ -112,18 +115,23 @@ const systemsNotes = z.object({
   lastReviewed: dateString,
 });
 
+// dependsOn: the name of the one person this risk hangs on, matching a
+// `people[].name` or `stakeholders[].name` — drawn as an arrow between them.
 const riskNote = z.object({
   item: mediumLabel,
   detail: mediumLabel.optional(),
   source: z.enum(['threat', 'premortem']),
   accepted: z.boolean(),
+  dependsOn: shortLabel.optional(),
 });
 
+// A criterion can be 'met' outright, which a log assessment can't: the
+// goal as a whole is never "met" mid-run, one of its criteria can be.
 const criterionStatus = z.object({
   text: z.string().min(1).max(120),
   kind,
   lineOfOperation: shortLabel.optional(),
-  status: assessment,
+  status: z.enum(['met', 'on_track', 'at_risk', 'stalled', 'regressing']),
   detail,
 });
 
@@ -174,24 +182,41 @@ const experiment = z.object({
   detail,
 });
 
-const decision = z.object({
-  date: dateString,
-  choice: mediumLabel,
-  because: mediumLabel.optional(),
-  reverseIf: mediumLabel,
-  reviewBy: dateString.optional(),
-});
+// An 'open' decision is a choice named but not yet made: it carries the
+// question (and optionally when it must be settled by), and gets its
+// choice and reverse-if condition once it's decided.
+const decision = z
+  .object({
+    date: dateString,
+    status: z.enum(['open', 'decided']).default('decided'),
+    question: mediumLabel.optional(),
+    choice: mediumLabel.optional(),
+    because: mediumLabel.optional(),
+    reverseIf: mediumLabel.optional(),
+    reviewBy: dateString.optional(),
+  })
+  .superRefine((d, ctx) => {
+    if (d.status === 'open' && !d.question) ctx.addIssue({ code: 'custom', path: ['question'], message: 'an open decision needs its question' });
+    if (d.status === 'decided') {
+      if (!d.choice) ctx.addIssue({ code: 'custom', path: ['choice'], message: 'a decided decision needs its choice' });
+      if (!d.reverseIf) ctx.addIssue({ code: 'custom', path: ['reverseIf'], message: 'a decided decision needs its reverse-if condition' });
+    }
+  });
 
+// focusLine: the verbatim text of the one line on the page the focus lands
+// on (a success criterion, next action or critical-path step), so the page
+// can highlight it. The latest entry with a focus is the current focus.
 const logEntry = z.object({
   date: dateString,
   assessment: assessment.optional(),
   focus: z.string().max(160).nullable(),
+  focusLine: z.string().min(1).max(120).optional(),
   notes: z.array(mediumLabel).max(200),
   source: shortLabel.optional(),
 });
 
 export const goalSchema = z.object({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   goal: z.string().min(1).max(200),
   successCriteria: z.array(successCriterion).min(1),
   deadline: dateString.nullable(),
@@ -215,7 +240,7 @@ export const goalSchema = z.object({
 // is valid the instant it's written.
 export function stubGoal(title) {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     goal: title,
     successCriteria: [{ text: 'define success criteria', kind: 'control' }],
     deadline: null,
@@ -249,6 +274,12 @@ export function parseGoalJson(raw) {
 // failure.
 export function reconcileGoal(data) {
   const warnings = [];
+  const names = new Set([...data.people, ...data.stakeholders].map((p) => p.name));
+  for (const r of data.riskNotes) {
+    if (r.dependsOn && !names.has(r.dependsOn)) {
+      warnings.push(`riskNote "${r.item}": dependsOn "${r.dependsOn}" matches no people or stakeholders name`);
+    }
+  }
   for (const line of data.plan?.linesOfOperation ?? []) {
     if (line.criticalPath.length > 0 && line.criticalPath.every((s) => s.status === 'done') && line.status !== 'done') {
       warnings.push(`lineOfOperation "${line.label}": all criticalPath steps done but status is "${line.status ?? 'unset'}"`);

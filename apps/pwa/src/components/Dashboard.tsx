@@ -16,7 +16,7 @@ const weeksUntil = (d: string) => {
   const n = new Date();
   return Math.round((t - Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate(), 12)) / 6048e5);
 };
-const segColor = (s: string) => ({ on_track: 'bg-emerald-500', at_risk: 'bg-amber-500', stalled: 'bg-orange-600', regressing: 'bg-red-500' }[s] ?? 'bg-slate-700');
+const segColor = (s: string) => ({ met: 'bg-emerald-500', on_track: 'bg-emerald-500', at_risk: 'bg-amber-500', stalled: 'bg-orange-600', regressing: 'bg-red-500' }[s] ?? 'bg-slate-700');
 
 function EditJson({ goalId, k, value, onDone }: { goalId: string; k: string; value: unknown; onDone: () => void }) {
   const [text, setText] = useState(JSON.stringify(value, null, 2));
@@ -61,7 +61,7 @@ function Bridge({ g, goalId }: { g: Goal; goalId: string }) {
   const status = new Map(g.criteriaStatus.map((c) => [c.text, c.status]));
   const focus = [...g.log].reverse().find((e) => e.focus)?.focus;
   const next = g.plan?.linesOfOperation.flatMap((l) => l.nextActions).find((a) => a.status === 'pending');
-  const met = g.criteriaStatus.filter((c) => c.status === 'on_track').length;
+  const met = g.criteriaStatus.filter((c) => c.status === 'met' || c.status === 'on_track').length;
   const stub = g.successCriteria.length === 1 && g.successCriteria[0].text === 'define success criteria';
   return (
     <div className="space-y-3 rounded-lg border border-slate-800 bg-slate-900/60 p-4">

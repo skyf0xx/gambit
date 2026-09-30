@@ -168,7 +168,7 @@ intensity themselves changed. Whenever this step runs at all — posture changed
 set `posture.lastReviewed` to today's date, so a later session can tell a genuinely
 current posture read from one that just hasn't been looked at in weeks.
 
-Call `append_log` with an entry — date, assessment, and the focus just set. `notes` isn't rendered in the visual layer — it's the agent's own working record, not a user-scanned label — so don't force findings into an artificially short list; each entry still has its own 120-char cap (see AGENTS.md's char-cap note), so split a long finding into multiple entries rather than cramming it into one.
+Call `append_log` with an entry — date, assessment, and the focus just set. When the focus lands on one line already on the page (a success criterion, a next action or a critical-path step), set `focusLine` to that line's text verbatim, so the page can highlight it; leave it out when the focus doesn't map to a single line. `notes` isn't rendered in the visual layer — it's the agent's own working record, not a user-scanned label — so don't force findings into an artificially short list; each entry still has its own 120-char cap (see AGENTS.md's char-cap note), so split a long finding into multiple entries rather than cramming it into one.
 
 Apply `skills/_shared/NO_HISTORY.md` here specifically — this step is where it's easiest to
 break. When a prior focus turns out to have been wrong or under-specified (e.g. a Schwerpunkt
@@ -182,7 +182,7 @@ its own correction is the violation, not the presence of a fix.
 {
   "posture": { "current": { "level": 2, "label": "Heightened" }, "lastReviewed": "YYYY-MM-DD" },
   "log": [
-    { "date": "YYYY-MM-DD", "assessment": "on_track", "focus": "...", "notes": ["..."] }
+    { "date": "YYYY-MM-DD", "assessment": "on_track", "focus": "...", "focusLine": "[optional — verbatim text of the line the focus lands on]", "notes": ["..."] }
   ]
 }
 ```
@@ -222,7 +222,7 @@ the two ever disagree, the schema wins.
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "goal": "[one or two sentence description, max ~200 chars]",
   "successCriteria": [
     { "text": "[specific, measurable condition]", "kind": "control" },

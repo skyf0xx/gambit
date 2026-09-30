@@ -170,6 +170,7 @@ Each entry must have:
 - `detail` (optional, max 120 chars): additional context on the risk or mitigation
 - `source` (required): must be "threat" for items this skill adds
 - `accepted` (required): boolean; true if user explicitly chose to accept this risk
+- `dependsOn` (optional, max 40 chars): when the risk hangs on one person, their name exactly as it appears in `people` or `stakeholders`. The page draws an arrow between the two. Leave it out when the risk doesn't hang on a single named person.
 
 ```json
 {

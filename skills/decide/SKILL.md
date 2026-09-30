@@ -156,19 +156,24 @@ permanent by inertia — nobody notices the moment it stopped being right.
 
 ### 9. Update the Goal and Hand Off
 
-Call `write_section` on `decisions` with the new decision added to the existing array. Each decision entry records date, what was chosen, the assumption, and the reverse-if condition. If the decision changes the plan, say so and hand off to `plan` to resequence. If it changes what matters most, hand off to `strategy` to reset the focus.
+Call `write_section` on `decisions` with the new decision added to the existing array. Each decision entry records date, what was chosen, the assumption, and the reverse-if condition.
 
-Required fields per decision entry:
-- `date` (required, YYYY-MM-DD format): when this decision was made
-- `choice` (required, max 120 chars): the option chosen
+If the user isn't ready to choose, record the choice as **open** rather than leaving it unrecorded: `status: "open"`, the `question` in one line, and `reviewBy` if there's a date it must be settled by. The page marks an open decision with a "?" in the margin until it's settled. When it's decided later, replace that same entry in place with `status: "decided"`, the `choice` and the `reverseIf` (drop the `question`), per `skills/_shared/NO_HISTORY.md` — don't add a second entry beside it. If the decision changes the plan, say so and hand off to `plan` to resequence. If it changes what matters most, hand off to `strategy` to reset the focus.
+
+Fields per decision entry:
+- `date` (required, YYYY-MM-DD format): when this decision was made, or when an open one was raised
+- `status` (optional): `decided` (the default) or `open`
+- `question` (required when open, max 120 chars): the choice still to be made
+- `choice` (required when decided, max 120 chars): the option chosen
 - `because` (optional, max 120 chars): the user's reasoning
-- `reverseIf` (required, max 120 chars): the specific signal that would reverse it
-- `reviewBy` (optional, YYYY-MM-DD format): when to review whether it's still right
+- `reverseIf` (required when decided, max 120 chars): the specific signal that would reverse it
+- `reviewBy` (optional, YYYY-MM-DD format): when to review whether it's still right, or when an open one must be settled
 
 ```json
 {
   "decisions": [
-    { "date": "YYYY-MM-DD", "choice": "...", "because": "...", "reverseIf": "...", "reviewBy": "YYYY-MM-DD" }
+    { "date": "YYYY-MM-DD", "choice": "...", "because": "...", "reverseIf": "...", "reviewBy": "YYYY-MM-DD" },
+    { "date": "YYYY-MM-DD", "status": "open", "question": "...", "reviewBy": "YYYY-MM-DD" }
   ]
 }
 ```

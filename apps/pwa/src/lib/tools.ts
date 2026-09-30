@@ -68,14 +68,15 @@ export function makeTools(ctx: ToolContext) {
         date: z.string().optional(),
         assessment: z.enum(['on_track', 'at_risk', 'stalled', 'regressing']).optional(),
         focus: z.string().nullable(),
+        focusLine: z.string().optional(),
         notes: z.array(z.string()),
         source: z.string().optional(),
       }),
       execute: async (entry) => result(await applyOp(ctx.goalId, (g) => appendLog(g, { ...entry, date: entry.date ?? today() }) as never)),
     }),
     set_status: tool({
-      description: 'Flip one step, sub-item or next action to pending, done or dropped without rewriting the section. path is dotted, e.g. "plan.linesOfOperation.0.nextActions.2".',
-      inputSchema: z.object({ path: z.string(), status: z.enum(['pending', 'done', 'dropped']) }),
+      description: 'Flip one step, sub-item or next action to pending, done or dropped without rewriting the section (a next action can also be set to proposed). path is dotted, e.g. "plan.linesOfOperation.0.nextActions.2".',
+      inputSchema: z.object({ path: z.string(), status: z.enum(['proposed', 'pending', 'done', 'dropped']) }),
       execute: async ({ path, status }) => result(await applyOp(ctx.goalId, (g) => setStatus(g, path, status) as never)),
     }),
     elicitation_methods: tool({

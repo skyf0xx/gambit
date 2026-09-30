@@ -81,7 +81,7 @@ Overall: on_track | at_risk | stalled | regressing
 
 ### 7. Update the Goal
 
-Call `write_section` on `criteriaStatus` with one entry per success criterion, scored this run. `text` must match `successCriteria[].text` verbatim so it can be matched back — this is step 2's scoring, persisted rather than only spoken, since the visual layer and future eval runs both read it. Carry over `lineOfOperation` verbatim too if the matching `successCriteria` entry has one set — that's what lets a stalled line be traced to the criterion it's supposed to serve. `detail` (optional, max 280 chars) is a hover tooltip — why this status, e.g. what changed since last eval. Fill in only when the status alone doesn't explain itself.
+Call `write_section` on `criteriaStatus` with one entry per success criterion, scored this run. `text` must match `successCriteria[].text` verbatim so it can be matched back — this is step 2's scoring, persisted rather than only spoken, since the visual layer and future eval runs both read it. Carry over `lineOfOperation` verbatim too if the matching `successCriteria` entry has one set — that's what lets a stalled line be traced to the criterion it's supposed to serve. `status` is one of `met`, `on_track`, `at_risk`, `stalled`, `regressing`. Use `met` only when the criterion is satisfied now, as a fact, not when it's merely going well; the page ticks a met criterion. `detail` (optional, max 280 chars) is a hover tooltip — why this status, e.g. what changed since last eval. Fill in only when the status alone doesn't explain itself.
 
 ```json
 {

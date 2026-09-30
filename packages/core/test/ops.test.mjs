@@ -33,6 +33,14 @@ test('setStatus flips one node and surfaces reconcile warnings', () => {
   assert.equal(setStatus(g, 'plan.linesOfOperation.0.nextActions.0', 'maybe').ok, false);
 });
 
+test('setStatus: a proposed next action is kept or tossed; steps cannot be proposed', () => {
+  const g = writeSection(stubGoal('g'), 'plan', plan).goal;
+  const proposed = setStatus(g, 'plan.linesOfOperation.0.nextActions.1', 'proposed');
+  assert.equal(proposed.ok, true);
+  assert.equal(setStatus(proposed.goal, 'plan.linesOfOperation.0.nextActions.1', 'pending').goal.plan.linesOfOperation[0].nextActions[1].status, 'pending');
+  assert.equal(setStatus(g, 'plan.linesOfOperation.0.criticalPath.0', 'proposed').ok, false);
+});
+
 test('appendLog is append-only and validated', () => {
   const g = stubGoal('g');
   const r = appendLog(g, { date: '2026-09-19', focus: null, notes: ['started'] });

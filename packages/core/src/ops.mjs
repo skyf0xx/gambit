@@ -12,7 +12,7 @@ import { goalSchema, reconcileGoal } from './schema.mjs';
 export const WRITABLE_KEYS = Object.keys(goalSchema.shape).filter((k) => k !== 'schemaVersion' && k !== 'log');
 
 const logEntrySchema = goalSchema.shape.log.element;
-const STATUSES = ['pending', 'done', 'dropped'];
+const STATUSES = ['proposed', 'pending', 'done', 'dropped'];
 
 const toIssues = (error, prefix = []) =>
   error.issues.map((i) => ({ path: [...prefix, ...i.path].join('.') || '(root)', message: i.message }));
@@ -43,7 +43,8 @@ export function appendLog(goal, entry) {
 }
 
 /**
- * Flip a single step, sub-item or next action to pending/done/dropped.
+ * Flip a single step, sub-item or next action to proposed/pending/done/dropped
+ * ('proposed' is valid on next actions only; the schema rejects it elsewhere).
  * `path` is dotted, e.g. "plan.linesOfOperation.0.nextActions.2".
  */
 export function setStatus(goal, path, status) {
@@ -56,7 +57,7 @@ export function setStatus(goal, path, status) {
     if (node === undefined) return { ok: false, errors: [{ path, message: `nothing at "${p}"` }] };
   }
   if (typeof node !== 'object' || node === null || !STATUSES.includes(node.status ?? 'pending')) {
-    return { ok: false, errors: [{ path, message: 'target is not a step, sub-item or next action with a pending/done/dropped status' }] };
+    return { ok: false, errors: [{ path, message: 'target is not a step, sub-item or next action with a proposed/pending/done/dropped status' }] };
   }
   node.status = status;
   const next = goalSchema.safeParse(copy);
