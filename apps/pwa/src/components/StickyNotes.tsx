@@ -59,6 +59,8 @@ function Note({ goalId, item }: { goalId: string; item: SlipItem }) {
       className={`slip group/note motion-safe:transform-[rotate(1.6deg)] relative ml-auto mt-9 w-[82%] bg-note px-4 pb-3 pt-4 ${leaving === 'toss' ? 'anim-peel' : leaving === 'keep' ? 'anim-press' : ''}`}
       style={{
         filter: 'drop-shadow(0 1px 1px var(--lift)) drop-shadow(0 12px 18px -12px var(--lift)) drop-shadow(6px 18px 26px -18px var(--lift-far))',
+        // Inline so the note's yellow wins over the `slip` utility's surface colour.
+        backgroundColor: 'var(--note)',
         backgroundImage: 'linear-gradient(135deg, transparent 0 88%, var(--note-edge) 88% 100%), var(--grain)',
         backgroundPosition: '100% 100%, 0 0',
         backgroundSize: '26px 26px, auto',

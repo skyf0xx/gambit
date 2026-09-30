@@ -173,7 +173,7 @@ export function PencilNotes() {
         <path d={caretPath(8, 0)} fill="var(--graphite)" filter="url(#graphite)" />
       </svg>
       <div
-        className={`hand whitespace-nowrap px-1.5 py-0.5 text-[20px] leading-tight text-graphite ${reduced ? '' : phase === 'in' ? 'anim-write' : 'anim-fade-in'} ${note.backed ? 'paper rounded-[2px]' : ''}`}
+        className={`hand whitespace-nowrap px-1.5 py-0.5 text-[20px] leading-tight text-graphite ${reduced ? '' : phase === 'in' ? 'anim-write' : 'anim-fade-in'} paper rounded-[2px]`}
         style={{ filter: 'url(#graphite)', animationDirection: phase === 'out' ? 'reverse' : 'normal' }}
       >
         {note.text}

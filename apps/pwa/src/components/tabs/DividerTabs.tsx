@@ -170,7 +170,9 @@ export function DividerTabs({
           min-width: ${TAB_SIZE}px;
           width: 100px;
           height: 44px;
-          margin-left: -40px;
+          /* Only the tab's base tucks under the page edge; the rest sits
+             out on the desk. */
+          margin-left: -8px;
           margin-bottom: -10px;
           transition: transform 160ms ease-out, filter 160ms ease-out;
           filter: drop-shadow(0 2px 2px var(--lift-far));
@@ -187,7 +189,7 @@ export function DividerTabs({
           display: flex;
           align-items: center;
           gap: 6px;
-          padding: 0 10px 0 44px;
+          padding: 0 10px 0 16px;
           white-space: nowrap;
         }
         .tab-leaf.tab-active .tab-leaf-fill {
@@ -214,11 +216,12 @@ export function DividerTabs({
           width: 6px;
           border-radius: 9999px;
         }
-        /* Progressive darkening for tabs further back in the stack. */
-        .tab-leaf.tab-inactive[data-depth="1"] .tab-leaf-fill { filter: brightness(0.97); }
-        .tab-leaf.tab-inactive[data-depth="2"] .tab-leaf-fill { filter: brightness(0.94); }
-        .tab-leaf.tab-inactive[data-depth="3"] .tab-leaf-fill { filter: brightness(0.91); }
-        .tab-leaf.tab-inactive[data-depth="4"] .tab-leaf-fill { filter: brightness(0.88); }
+        /* Inactive tabs sit a step behind the page, darker the further back
+           they are, so the active one reads as the page itself. */
+        .tab-leaf.tab-inactive .tab-leaf-fill { filter: brightness(0.94); }
+        .tab-leaf.tab-inactive[data-depth="2"] .tab-leaf-fill { filter: brightness(0.91); }
+        .tab-leaf.tab-inactive[data-depth="3"] .tab-leaf-fill { filter: brightness(0.88); }
+        .tab-leaf.tab-inactive[data-depth="4"] .tab-leaf-fill { filter: brightness(0.85); }
 
         /* Below 1100px (narrow desktop and every mobile width) the desk
            strip is narrower, so tabs shrink to a slim vertical column with

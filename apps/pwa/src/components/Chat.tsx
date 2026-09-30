@@ -242,6 +242,9 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
     const el = leafRef.current;
     if (!el) return;
     const onKey = (e: KeyboardEvent) => {
+      // Escape is handled here too, on the overlay that holds focus, so it
+      // still closes when something upstream swallows the window listener.
+      if (e.key === 'Escape') { e.preventDefault(); requestClose(); return; }
       if (e.key !== 'Tab') return;
       const focusables = el.querySelectorAll<HTMLElement>('button, input, textarea, a[href], [tabindex]:not([tabindex="-1"])');
       if (focusables.length === 0) return;
@@ -254,11 +257,15 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
     return () => el.removeEventListener('keydown', onKey);
   }, [variant, open]);
 
+  const closingRef = useRef(false);
   function requestClose() {
+    if (closingRef.current) return;
+    closingRef.current = true;
     setClosing(true);
     window.setTimeout(() => {
       onCollapse();
       setClosing(false);
+      closingRef.current = false;
       // The collapsed composer only mounts once React processes the state
       // updates above, so wait a frame before focusing it (mirrors Leaf's
       // opener-focus-return in ui.tsx).

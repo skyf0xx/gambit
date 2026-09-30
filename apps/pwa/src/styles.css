@@ -154,6 +154,10 @@ button:not(:disabled),
 [role="tab"],
 a[href],
 label[for],
+label:has(> input:not(:disabled)),
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
+select:not(:disabled),
 summary {
   cursor: pointer;
 }
