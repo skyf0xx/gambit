@@ -14,22 +14,70 @@ export type AgentEvent =
   | { type: 'text'; text: string }
   | { type: 'tool'; id: string; label: string; ok?: boolean };
 
-const HISTORY_CHAR_BUDGET = 80_000;
+/** Context sent to the model per turn: about 60k characters of message
+ * content, oldest whole turns dropped first. */
+export const HISTORY_CHAR_BUDGET = 60_000;
+/** Newest chat messages kept in storage per goal, after each completed turn. */
+export const CHAT_WINDOW = 40;
 const STUBBED = new Set(['load_skill', 'read_skill_file', 'get_goal']);
 const CACHE = { anthropic: { cacheControl: { type: 'ephemeral' as const } } };
 const uid = () => Math.random().toString(36).slice(2, 10);
 
-/** Newest messages within a character budget, always starting on a user message so tool pairs stay whole. */
+/**
+ * Newest messages within a character budget, dropping the oldest whole
+ * turns first. A turn starts at a 'user' message and runs through every
+ * assistant/tool message that follows it, so the cut point only ever lands
+ * on a 'user' message — never mid-turn, so tool-call/tool-result pairs stay
+ * intact and no tool-result is left dangling at the start of the window.
+ * The most recent turn (and within it, at minimum the latest user message)
+ * is always kept even if it alone exceeds the budget.
+ */
 export function trimHistory(messages: ModelMessage[], budget = HISTORY_CHAR_BUDGET): { messages: ModelMessage[]; trimmed: boolean } {
+  const turnStarts: number[] = [];
+  messages.forEach((m, i) => { if (m.role === 'user') turnStarts.push(i); });
+  if (turnStarts.length === 0) return { messages, trimmed: false };
+
   let total = 0;
   let start = messages.length;
-  for (let i = messages.length - 1; i >= 0; i--) {
-    total += JSON.stringify(messages[i]).length;
-    if (total > budget) break;
-    start = i;
+  for (let t = turnStarts.length - 1; t >= 0; t--) {
+    const turnStart = turnStarts[t];
+    const turnEnd = t + 1 < turnStarts.length ? turnStarts[t + 1] : messages.length;
+    let turnLen = 0;
+    for (let i = turnStart; i < turnEnd; i++) turnLen += JSON.stringify(messages[i]).length;
+    if (total + turnLen > budget && start < messages.length) break;
+    total += turnLen;
+    start = turnStart;
   }
-  while (start < messages.length && messages[start].role !== 'user') start++;
   return { messages: messages.slice(start), trimmed: start > 0 };
+}
+
+/**
+ * Keep at most `limit` newest model messages, but never split a turn: a
+ * turn is one user message followed by everything the model produced in
+ * response (assistant text, tool-call messages, and their paired tool
+ * results), so the cut point is always pushed forward to the next user
+ * message. This also guarantees no tool-result message is ever left
+ * dangling at the start of the kept window, since a tool-result can only
+ * follow within the same turn as the user message that starts it.
+ */
+export function trimChatWindow(messages: ModelMessage[], limit = CHAT_WINDOW): ModelMessage[] {
+  if (messages.length <= limit) return messages;
+  let start = messages.length - limit;
+  while (start < messages.length && messages[start].role !== 'user') start++;
+  return messages.slice(start);
+}
+
+/**
+ * Keep at most `limit` newest display messages, but never split a
+ * user/assistant reply pair — display holds exactly one 'user' entry
+ * followed by one 'assistant' entry per turn, so the cut point is pushed
+ * forward to the next 'user' entry.
+ */
+export function trimDisplayWindow(messages: DisplayMsg[], limit = CHAT_WINDOW): DisplayMsg[] {
+  if (messages.length <= limit) return messages;
+  let start = messages.length - limit;
+  while (start < messages.length && messages[start].role !== 'user') start++;
+  return messages.slice(start);
 }
 
 /** Loaded skill text lives in the system prompt while active, so old copies in history are dropped. */
@@ -149,12 +197,12 @@ export async function runTurn(opts: {
 
   const fresh = (await db.chats.get(goalId)) ?? chat;
   const displayId = uid();
-  fresh.model = [...chat.model, userMsg, ...newMessages];
+  fresh.model = trimChatWindow([...chat.model, userMsg, ...newMessages]);
   fresh.activeSkill = activeSkill;
-  fresh.display = [
+  fresh.display = trimDisplayWindow([
     ...fresh.display,
     { id: displayId, role: 'assistant', text: out, tools: entries, summary, snapshotId: summary.length || error ? snapshotId : undefined, error },
-  ];
+  ]);
   await db.chats.put(fresh);
 
   if (after?.status === 'ok') {

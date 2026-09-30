@@ -22,7 +22,7 @@ Senior independent auditor: measured, exact, no editorializing. You don't soften
 
 ### 1. Load Context
 
-Read the goal in full — the goal statement, success criteria, deadline, plan, and the complete log history since the goal was set (or since the last eval entry).
+Read the goal in full — the goal statement, success criteria, deadline, plan, and the recent log history kept on the goal (or since the last eval entry, whichever is shorter — the log is a rolling window, not a full history).
 
 ### 2. Score Progress
 

@@ -5,6 +5,7 @@
 // data cannot be silently downgraded.
 
 import { goalSchema } from './schema.mjs';
+import { capLog } from './ops.mjs';
 
 export const CURRENT_SCHEMA_VERSION = 2;
 
@@ -48,5 +49,8 @@ export function readGoal(raw, { migrations = MIGRATIONS, current = CURRENT_SCHEM
 
   const result = goalSchema.safeParse(doc);
   if (!result.success) return { status: 'invalid', error: formatIssues(result.error) };
-  return migratedFrom ? { status: 'ok', data: result.data, migratedFrom } : { status: 'ok', data: result.data };
+  const data = Array.isArray(result.data.log) && result.data.log.length > 0
+    ? { ...result.data, log: capLog(result.data.log) }
+    : result.data;
+  return migratedFrom ? { status: 'ok', data, migratedFrom } : { status: 'ok', data };
 }

@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { WRITABLE_KEYS } from '@gambit/core';
 import { PREAMBLE, SECTION_SHAPES, buildStore, bundledFiles, guidedRules, methods, skillFile, elicitationMethods } from '../src/lib/skills';
-import { compactToolResults, trimHistory } from '../src/lib/agent';
+import { compactToolResults, trimHistory, trimChatWindow, trimDisplayWindow, CHAT_WINDOW, HISTORY_CHAR_BUDGET } from '../src/lib/agent';
+import type { ModelMessage } from 'ai';
+import type { DisplayMsg } from '../src/lib/db';
 
 describe('skills and preamble', () => {
   const store = buildStore(bundledFiles, 'test');
@@ -38,5 +40,75 @@ describe('history', () => {
     expect(t.messages[0].role).toBe('user');
     const c = compactToolResults([{ role: 'tool', content: [{ type: 'tool-result', toolCallId: '1', toolName: 'load_skill', output: { type: 'json', value: { text: 'BIG' } } }] }]);
     expect(JSON.stringify(c)).not.toContain('BIG');
+  });
+
+  // A synthetic turn: one user message plus an assistant reply that itself
+  // includes a tool-call and its paired tool-result, matching the shape
+  // ai's `streamText` response messages actually take.
+  function turn(n: number, big = false): ModelMessage[] {
+    const pad = big ? 'x'.repeat(2000) : 'x';
+    return [
+      { role: 'user', content: `user ${n} ${pad}` } as ModelMessage,
+      { role: 'assistant', content: [{ type: 'tool-call', toolCallId: `t${n}`, toolName: 'write_section', input: {} }] } as ModelMessage,
+      { role: 'tool', content: [{ type: 'tool-result', toolCallId: `t${n}`, toolName: 'write_section', output: { type: 'json', value: { ok: true } } }] } as ModelMessage,
+      { role: 'assistant', content: `reply ${n} ${pad}` } as ModelMessage,
+    ];
+  }
+
+  it('trimHistory drops whole turns and never starts the window mid-turn', () => {
+    const msgs = Array.from({ length: 10 }, (_, i) => turn(i, true)).flat();
+    const budget = JSON.stringify(turn(0, true)).length * 3.5; // room for ~3 turns
+    const { messages, trimmed } = trimHistory(msgs, budget);
+    expect(trimmed).toBe(true);
+    expect(messages[0].role).toBe('user');
+    // No dangling tool-result at the start.
+    expect(messages[0].role).not.toBe('tool');
+    // Turns are intact: every tool-call is immediately followed later by its matching tool-result within the kept slice.
+    const toolCallIds = messages.filter((m) => m.role === 'assistant' && Array.isArray(m.content)).flatMap((m) => (m.content as { toolCallId?: string }[]).map((p) => p.toolCallId).filter(Boolean));
+    const toolResultIds = messages.filter((m) => m.role === 'tool').flatMap((m) => (m.content as { toolCallId?: string }[]).map((p) => p.toolCallId));
+    expect(toolResultIds.sort()).toEqual(toolCallIds.sort());
+  });
+
+  it('trimHistory always keeps at least the latest user message even over budget', () => {
+    const msgs = turn(0, true);
+    const { messages } = trimHistory(msgs, 10); // tiny budget
+    expect(messages.length).toBeGreaterThan(0);
+    expect(messages[0].role).toBe('user');
+    expect(messages[0].content).toContain('user 0');
+  });
+
+  it('trimHistory keeps everything when under budget', () => {
+    const msgs = Array.from({ length: 3 }, (_, i) => turn(i)).flat();
+    const { messages, trimmed } = trimHistory(msgs, HISTORY_CHAR_BUDGET);
+    expect(trimmed).toBe(false);
+    expect(messages).toEqual(msgs);
+  });
+
+  it('trimChatWindow caps to the newest N messages without splitting a turn', () => {
+    const msgs = Array.from({ length: 20 }, (_, i) => turn(i)).flat(); // 80 messages
+    const windowed = trimChatWindow(msgs, CHAT_WINDOW);
+    expect(windowed.length).toBeLessThanOrEqual(CHAT_WINDOW + 3); // pushed forward to next user msg
+    expect(windowed[0].role).toBe('user');
+    expect(windowed.at(-1)).toEqual(msgs.at(-1));
+  });
+
+  it('trimChatWindow is a no-op under the limit', () => {
+    const msgs = turn(0);
+    expect(trimChatWindow(msgs, CHAT_WINDOW)).toEqual(msgs);
+  });
+
+  function displayTurn(i: number): DisplayMsg[] {
+    return [
+      { id: `u${i}`, role: 'user', text: `hi ${i}` },
+      { id: `a${i}`, role: 'assistant', text: `reply ${i}`, tools: [], summary: [] },
+    ];
+  }
+
+  it('trimDisplayWindow keeps user/assistant pairs intact', () => {
+    const msgs = Array.from({ length: 30 }, (_, i) => displayTurn(i)).flat(); // 60 entries
+    const windowed = trimDisplayWindow(msgs, CHAT_WINDOW);
+    expect(windowed[0].role).toBe('user');
+    expect(windowed.length).toBeLessThanOrEqual(CHAT_WINDOW);
+    expect(windowed.at(-1)).toEqual(msgs.at(-1));
   });
 });

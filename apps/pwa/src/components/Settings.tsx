@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, getSetting } from '../lib/db';
 import { deleteGoal } from '../lib/goals';
+import { clearChat } from '../lib/agent';
 import { readDurability, requestPersistence, isIos, useUi, type Durability } from '../lib/persist';
 import { bindExportFile, commitImport, downloadExport, fileSyncState, fsAccessSupported, planImport, reauthorizeFileSync, unbindExportFile, type Choice, type ImportItem } from '../lib/portability';
 import { methodsLicense } from '../lib/skills';
@@ -165,6 +166,11 @@ export function Settings({ goalId, goals, activeId, cost, onSwitchGoal, onNewGoa
         <Section title="This device" open>
           <ExportStatus />
           {cost && cost.turns > 0 && <p className="text-[14px] text-graphite">Estimated session spend: {fmtUsd(cost.dollars)}</p>}
+          {goalId && (
+            <TextAction className="text-[14px] text-graphite underline underline-offset-[3px]" onClick={() => confirm('Clear the conversation? The goal itself is kept.') && void clearChat(goalId)}>
+              Clear the conversation
+            </TextAction>
+          )}
         </Section>
         <Section title="Model and key"><ProviderForm /></Section>
         <Section title="Data and durability"><DataPanel /></Section>

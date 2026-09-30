@@ -140,7 +140,17 @@ in place rather than accumulating:
 - `experiments` ← `experiment`
 - `criteriaStatus` ← `eval`
 
-`log` is the only append-only key.
+`log` is the only append-only key, capped at the newest 30 entries —
+`append_log` (`packages/core/src/ops.mjs`) drops the oldest entries past
+that cap, except it always keeps the most recent entry that carries a
+`focusLine`, even when older than the cap, since the dashboard's
+highlighter reads it. Chat history is a rolling window, not a persisted
+transcript: only the newest messages are kept in storage per goal (see
+`CHAT_WINDOW` in `apps/pwa/src/lib/agent.ts`), and the model request applies
+a further character budget on top of that (`HISTORY_CHAR_BUDGET`), dropping
+the oldest whole turns first. The goal record is the durable memory across
+both caps — old chat and old log entries are safe to lose because the
+current goal state captures what matters.
 
 Ownership is per key, not per full rewrite — `plan` owns
 `nextActions[].status` even for a single-field flip. When the user simply
