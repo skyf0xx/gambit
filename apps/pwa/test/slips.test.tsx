@@ -5,7 +5,7 @@ import { stubGoal, setStatus } from '@gambit/core';
 import { nextMove, proposals } from '../src/lib/slips';
 import { IndexCard } from '../src/components/IndexCard';
 import { StickyNotes } from '../src/components/StickyNotes';
-import { timeLeft, pencilDate, byDate } from '../src/lib/dates';
+import { timeLeft, pencilDate, byDate, proseDates, withProseDates } from '../src/lib/dates';
 import type { Goal } from '../src/lib/types';
 
 type Plan = NonNullable<Goal['plan']>;
@@ -166,13 +166,28 @@ describe('IndexCard markup', () => {
     expect(html).toContain('nothing due yet');
   });
 
-  it('shows the move, Done/Not yet/Something changed, and data-line when pending', () => {
+  it('shows the move with one tick box for done, and data-line when pending', () => {
     const goal = withActions(stubGoal('Goal') as Goal, [{ action: 'Call Priya', who: 'me', when: 'fri', status: 'pending' }]);
     const html = renderToStaticMarkup(createElement(IndexCard, { goal, goalId: 'g1' }));
     expect(html).toContain('Call Priya');
-    expect(html).toContain('Done');
-    expect(html).toContain('Not yet');
-    expect(html).toContain('Something changed');
+    expect(html).toContain('Mark done');
+    expect(html).not.toContain('Not yet');
+    expect(html).not.toContain('Something changed');
     expect(html).toContain('data-line="plan.linesOfOperation.0.nextActions.0"');
+  });
+});
+
+describe('dates inside sentences', () => {
+  const today = new Date(Date.UTC(2026, 8, 30, 12));
+
+  it('rewrites an ISO date in running text, with the year only when it differs', () => {
+    expect(proseDates('until 2027-03-19 at 3 hrs/week', today)).toBe('until 19 Mar 2027 at 3 hrs/week');
+    expect(proseDates('moved from 2026-12-19', today)).toBe('moved from 19 Dec');
+    expect(proseDates('version 2026-13-40', today)).toBe('version 2026-13-40');
+  });
+
+  it('leaves a bare date field for its own formatter', () => {
+    const data = { runway: 'until 2027-03-19', lastReviewed: '2026-09-19', items: ['by 2026-10-03'] };
+    expect(withProseDates(data, today)).toEqual({ runway: 'until 19 Mar 2027', lastReviewed: '2026-09-19', items: ['by 3 Oct'] });
   });
 });

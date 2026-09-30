@@ -13,7 +13,7 @@ The page is still mostly empty. Paper earns its place by carrying meaning, and w
 
 ## 02 — Logo
 
-**Wordmark:** "gambit" in lowercase Noto Serif Semibold, drawn as an SVG so it never waits on a font. Inside the app it appears small, and only on the first screen and at the top of the page.
+**Wordmark:** "gambit" in lowercase Noto Serif Semibold, drawn as an SVG so it never waits on a font. Inside the app it appears small, and only on the first screen and inside the cover: the foot of the Settings page.
 
 **Symbol:** **"!?"**, the chess annotation for a *speculative, interesting move*, which is exactly what a gambit is. It's drawn with a single pencil stroke in the accent colour. It's the app icon and favicon. Inside the app, it's never used as decoration.
 
@@ -99,7 +99,7 @@ All fonts are **self-hosted** (`@fontsource-variable/*` and `@fontsource/caveat`
 - Large question (first screen): 30/38, weight 500, with the ink bleed
 - Goal title: Noto Serif 29/37, weight 500, with the ink bleed
 - Next move, on the card: 20/28, weight 500
-- Section heading: 17/24, weight 600
+- Section heading: 20/28, weight 600 (an empty section's heading: weight 400, `--graphite`)
 - Body, the advisor's text and your text: 17/27, weight 400. The advisor's text and yours are told apart by position and indentation, never by bubbles.
 - Pencilled words: Caveat 21–24px, weight 500, `--graphite` with the graphite grain, sentence case ("by Friday 3 Oct", "6 weeks left")
 - Small typed text (labels, hints that need to be exact): 14/20, weight 400, `--graphite`
@@ -118,7 +118,7 @@ All fonts are **self-hosted** (`@fontsource-variable/*` and `@fontsource/caveat`
 
 - **The page is one sheet on the desk.** On mobile it fills the screen, with a sliver of desk at the top. On desktop it's a centred column at reading width. The margin rule sits 34px in on mobile and 48px in on desktop, and text starts just past it.
 - **No containers around ordinary text.** Sections are a heading and text on the page, separated by whitespace. A container means a slip, and a slip means you can touch it.
-- **Actions are text by default.** "Done", "Not yet" and "Something changed" are plain typed words. On hover or keyboard focus, a pencil circles the action. Quiet secondary links ("undo", "Details") stay underlined instead of circled. A screen has at most one filled button, a block of ink with a slight bleed, and only when a single action is clearly the way forward ("Open Google AI Studio").
+- **Actions are text by default.** "Keep it" and "Toss" are plain typed words. Marking something done is the exception: it is always a hand-drawn tick box, on the index card as on every other line. On hover or keyboard focus, a pencil circles the action. Quiet secondary links ("undo", "Details") stay underlined instead of circled. A screen has at most one filled button, a block of ink with a slight bleed, and only when a single action is clearly the way forward ("Open Google AI Studio").
 - **The next move is the index card at the top of the page** (§03). When nothing is due, the card asks "What's your next move?", and its pencilled line says there's nothing due yet.
 - **Where you write is ruled.** The first-screen writing area and text fields sit on `--card-rule` lines.
 - **The conversation is a loose leaf over the page.** Your words and the advisor's are typed text, with no bubbles and no avatars. Your words are indented behind a pencilled rule. What the turn wrote to the page is summed up in one pencilled line ("wrote to your page: Priya confirmed · 1 new risk").
@@ -142,7 +142,7 @@ Strokes are drawn with **perfect-freehand**, so they taper with pressure like a 
 | Highlighter | The focus: the one thing that matters most right now | The line named by `focusLine` on the latest log entry with a focus, set by `strategy` | Highlighter, behind the text | While it's the focus |
 | Star | A move everything else waits on | The first pending step on the Schwerpunkt line's critical path | Pencil, in the margin | While it's pending |
 | Arrow | This depends on that: a risk and the person it hangs on | A risk's `dependsOn`, pointing at a name in people or stakeholders | Pencil, out through the margin and back | While the link holds |
-| Squiggly underline | Not checked yet: an assumption, not a fact | An open experiment's assumption, or an open forecast | Pencil, and the text itself is in pencil | Until a test or forecast settles it |
+| Status label | Not known yet: an assumption or prediction, not a fact | Open experiments grouped under "not tested yet", open forecasts under "waiting to find out", open decisions under "still to decide" | A pencilled label over the group, and the unproven text itself is in pencil | Until a test, forecast or decision settles it, when the item moves to the settled group |
 | Erased | No longer true: dropped, disproved, or a risk that went away | An item set to `dropped` (including a tossed suggestion), a failed experiment, a removed risk | Pencil strikethrough, smudge and fade | Only in the session it happened. After that the line leaves the page, and the log keeps it. |
 | "?" in the margin | An open question waiting on a decision | A decision with status `open` | Pencil, handwritten | Until it's decided |
 | Sticky note | A suggestion you haven't taken yet | A next action with status `proposed` | Slip | Until you keep it or toss it |
@@ -150,7 +150,7 @@ Strokes are drawn with **perfect-freehand**, so they taper with pressure like a 
 **Rules:**
 - **The loop is the only mark in the accent,** so it stays the one thing on screen to look at.
 - **At most one mark per line.** When two apply, the event mark (the loop or the eraser) wins while it's showing.
-- **One loop and one highlighter per page.** A star is always single, never two or three, so it can't read as a rating.
+- **One loop and one highlighter per page.** The Moves divider tab also carries a faint wash of the highlighter, to mark it as the tab the notebook is for; it sits on the desk, outside the page, so it doesn't count against this. A star is always single, never two or three, so it can't read as a rating.
 - **Margin marks stay in the margin.** An arrow runs through the margin, never across text, and only one is visible at a time. When its two ends are more than a screen apart, it becomes a pencilled note on the line instead ("→ Priya").
 - **The eraser is the one mark that shows something that is no longer true,** and it lasts only one session, so the page still reads as current state.
 - **No boxes drawn around text.** A drawn box reads as a container, and containers are slips.
@@ -179,6 +179,7 @@ For the README, website and social posts only. The app itself has no imagery.
 
 - Line icons (Lucide), 1.5px stroke, rounded caps, in `--ink` or `--graphite`
 - Used only when essential, and never decoratively or on every row
+- The one exception is section glyphs. On a tab that mixes several kinds of record (Bets: decisions, tests, predictions, leverage), each section heading can carry a small pencil glyph so its kind can be recognised at a glance. The glyphs are hand-drawn with perfect-freehand like the other marks, grained, in `--graphite`, and hidden from screen readers because the heading already names the section. They never go on the tabs themselves.
 - No emoji in the interface. The advisor's replies follow GUIDED.md's formatting rules, which allow at most one emoji per heading. Gambit's own output should use them rarely.
 
 ## 08 — Design principles

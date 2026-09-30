@@ -15,6 +15,7 @@ const appPkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8
 // the test in test/vercel.test.ts only checks the two stay in sync when no
 // VITE_EXTRA_CONNECT_SRC is set at build time.
 export const BASE_CONNECT_SRC = [
+  'https://generativelanguage.googleapis.com',
   'https://api.anthropic.com',
   'https://api.openai.com',
   'https://openrouter.ai',
@@ -60,14 +61,31 @@ function cspPlugin(): Plugin {
   };
 }
 
+// Link-preview scrapers need absolute URLs for og:image / og:url. Self-hosted
+// builds override the origin with SITE_URL (e.g. "https://gambit.example").
+const siteUrl = (process.env.SITE_URL || 'https://gambit-notes.vercel.app').replace(/\/+$/, '');
+
+function ogPlugin(): Plugin {
+  return {
+    name: 'gambit-og',
+    transformIndexHtml: () => [
+      { tag: 'meta', attrs: { property: 'og:image', content: `${siteUrl}/og-image.jpg` }, injectTo: 'head' },
+      { tag: 'meta', attrs: { name: 'twitter:image', content: `${siteUrl}/og-image.jpg` }, injectTo: 'head' },
+      { tag: 'meta', attrs: { property: 'og:url', content: `${siteUrl}/` }, injectTo: 'head' },
+      { tag: 'link', attrs: { rel: 'canonical', href: `${siteUrl}/` }, injectTo: 'head' },
+    ],
+  };
+}
+
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
     cspPlugin(),
+    ogPlugin(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png'],
+      includeAssets: ['favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Gambit',
         short_name: 'Gambit',
@@ -77,8 +95,8 @@ export default defineConfig({
         display: 'standalone',
         start_url: '/',
         icons: [
-          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: 'android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
         ],
       },
       workbox: { navigateFallback: '/index.html', globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2}'] },

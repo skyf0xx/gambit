@@ -31,6 +31,9 @@ export interface ChatRecord {
   model: ModelMessage[];
   display: DisplayMsg[];
   activeSkill?: string;
+  /** Older turns have been dropped from this chat (agent.ts's CHAT_TURNS),
+   * so the conversation says so above its first message. */
+  trimmed?: boolean;
 }
 export interface UsageRecord {
   id?: number;

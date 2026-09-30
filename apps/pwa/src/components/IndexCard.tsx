@@ -1,24 +1,19 @@
-import { useRef, useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import type { Goal } from '../lib/types';
 import { nextMove, markDone } from '../lib/slips';
-import { byDate } from '../lib/dates';
+import { byDate, proseDates } from '../lib/dates';
 import { TextAction, PencilWord } from './ui';
+import { HandBox } from './paper/HandBox';
+import { FreshTag } from './paper/FreshTag';
 
 // The taped index card (brand/identity.md §03/§05): the single next move,
 // shown as an index card taped to the top of the page — red header rule,
 // blue ruled lines, a slight tilt. Reference: brand/mockups/notebook.css
 // (.card, .card::before) and notebook.html / notebook-new.html.
 //
-// "Not yet" and "Something changed" don't write to the goal themselves —
-// they hand off to the composer via a `gambit:compose` CustomEvent, so the
-// user's own words (and the `plan` skill acting on them) do the write. The
-// composer is expected to listen for `window.addEventListener('gambit:compose', ...)`
-// and prefill its input from `event.detail.text`.
-export const COMPOSE_EVENT = 'gambit:compose';
-
-function dispatchCompose(text: string) {
-  window.dispatchEvent(new CustomEvent(COMPOSE_EVENT, { detail: { text } }));
-}
+// The card's one action is its checkbox: ticking it marks the move done,
+// the same way a tick box does on every other line of the page. Anything
+// else about the move ("not yet", "something changed") is said in the chat.
 
 const reducedMotion = () =>
   typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -26,39 +21,43 @@ const reducedMotion = () =>
 // 220ms peel / 180ms card-out, or 0 under reduced motion — the shared exit
 // timing other builders' animation classes use (see AGENTS.md task notes).
 const CARD_OUT_MS = () => (reducedMotion() ? 0 : 180);
+// How long the tick gets to land in its box before the card lifts away.
+const TICK_MS = () => (reducedMotion() ? 0 : 260);
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export function IndexCard({ goal, goalId }: { goal: Goal; goalId: string }) {
   const [busy, setBusy] = useState(false);
+  const [ticked, setTicked] = useState(false);
   const [leaving, setLeaving] = useState(false);
-  const [revealed, setRevealed] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
   const move = nextMove(goal);
 
   const onDone = async () => {
     if (!move || busy) return;
     setBusy(true);
-    setLeaving(true);
+    setTicked(true);
     try {
-      await new Promise((r) => setTimeout(r, CARD_OUT_MS()));
+      await wait(TICK_MS());
+      setLeaving(true);
+      await wait(CARD_OUT_MS());
       await markDone(goalId, move.path);
     } finally {
       setBusy(false);
+      setTicked(false);
       setLeaving(false);
     }
   };
 
-  const onCardClick = (e: React.MouseEvent) => {
-    // Touch-only reveal: tapping the card toggles the action row; tapping a
-    // button inside (a TextAction) shouldn't also toggle it shut first.
-    if ((e.target as HTMLElement).closest('button')) return;
-    setRevealed((r) => !r);
+  // The move's text ticks the box too, as a row does in the plan; it
+  // stands aside for the box's own click and for a drag that selected text.
+  const onRowClick = (e: MouseEvent) => {
+    if ((e.target as Element).closest('button, a')) return;
+    if (window.getSelection()?.toString()) return;
+    void onDone();
   };
 
   return (
     <div
-      ref={cardRef}
-      onClick={onCardClick}
-      className={`slip group/card motion-safe:transform-[rotate(-0.7deg)] relative -mx-1.5 mb-14 -ml-3.5 rounded-[1px] px-4.5 pb-2.5 pt-4.5 ${leaving ? 'anim-card-out' : 'anim-card-in'}`}
+      className={`slip motion-safe:transform-[rotate(-0.7deg)] relative -mx-1.5 mb-14 -ml-3.5 rounded-[1px] px-4.5 pb-2.5 pt-4.5 ${leaving ? 'anim-card-out' : 'anim-card-in'}`}
       style={{
         filter: 'drop-shadow(0 1px 1px var(--lift)) drop-shadow(0 10px 22px -10px var(--lift)) drop-shadow(0 22px 40px -24px var(--lift-far))',
         // Layered on top of (not replacing) the `slip` utility's grain +
@@ -81,40 +80,25 @@ export function IndexCard({ goal, goalId }: { goal: Goal; goalId: string }) {
       <div className="h-6.5 text-[14px] leading-5 text-graphite">Your next move</div>
 
       {move ? (
-        <>
-          <p data-line={move.path} className="text-[20px] font-medium leading-7 text-ink">
-            {move.action}
-          </p>
-          {(move.when || move.who) && (
-            <p className="leading-7">
-              <PencilWord>{move.when ? byDate(move.when) : move.who}</PencilWord>
+        <div className="flex cursor-pointer items-start" onClick={onRowClick}>
+          <TextAction title="Mark done" aria-label="Mark done" className="-ml-3 w-11 shrink-0 justify-center" onClick={() => void onDone()}>
+            {/* The 44px tap area centres the box 8px below the centre of the
+             * 28px first text line beside it; lift it back onto that line. */}
+            <HandBox seed={move.path} checked={ticked} className="-top-2" />
+          </TextAction>
+          <div className="min-w-0 flex-1">
+            <p data-line={move.path} className="text-[20px] font-medium leading-7 text-ink">
+              {proseDates(move.action)}
+              <FreshTag path={move.path} />
             </p>
-          )}
-          <div
-            className={`mt-1 flex gap-4 transition-opacity duration-150 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/card:opacity-100 [@media(hover:hover)]:group-focus-within/card:opacity-100 ${revealed ? 'opacity-100' : 'opacity-0 [@media(hover:none)]:pointer-events-none'}`}
-          >
-            <TextAction disabled={busy} onClick={() => void onDone()}>
-              Done
-            </TextAction>
-            <TextAction
-              disabled={busy}
-              onClick={() => dispatchCompose(`Not yet: ${move.action} — `)}
-            >
-              Not yet
-            </TextAction>
-            <TextAction
-              disabled={busy}
-              onClick={() => dispatchCompose('Something changed: ')}
-            >
-              Something changed
-            </TextAction>
+            {move.detail && <p className="mt-0.5 text-[14px] leading-5 text-graphite">{proseDates(move.detail)}</p>}
+            {(move.when || move.who) && (
+              <p className="leading-7">
+                <PencilWord>{move.when ? byDate(move.when) : move.who}</PencilWord>
+              </p>
+            )}
           </div>
-          {!revealed && (
-            <p aria-hidden="true" className="hand mt-0.5 text-[14px] opacity-60 [@media(hover:hover)]:hidden">
-              tap for options
-            </p>
-          )}
-        </>
+        </div>
       ) : (
         <>
           <p className="text-[20px] font-medium leading-7 text-ink">What&rsquo;s your next move?</p>

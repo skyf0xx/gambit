@@ -1,5 +1,6 @@
 import guidedMd from '../../../../skills/_shared/GUIDED.md?raw';
 import methodsCsv from '../../vendor/BMAD/methods.csv?raw';
+import { pageGlossary } from './glossary';
 
 const packGlob = import.meta.glob('../../../../skills/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 const nativeGlob = import.meta.glob('../../skills/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
@@ -128,14 +129,14 @@ export function elicitationMethods(args: { command: string; categories?: string[
 
 export const guidedRules = guidedMd.trim();
 
-export const SECTION_SHAPES = `Section shapes. Caps are hard: S = 40 chars, M = 120, D = 280 for optional detail. Dates are YYYY-MM-DD.
+export const SECTION_SHAPES = `Section shapes. Caps are hard: S = 40 chars, M = 120, D = 280 for optional detail. Date fields are YYYY-MM-DD; inside a sentence, write a date the way it is said ("19 Mar 2027"), never YYYY-MM-DD.
 goal: string, 10 words max — one plain idea, no dash-joined clauses. A write over 10 words is rejected; put parts or conditions in subGoals instead.
 subGoals?: [string] ≤5 entries, each ≤12 words / 100 chars — the parts or conditions of the aim itself (e.g. "without burning out"), not success criteria. Optional; omit if the goal has no distinct parts.
 successCriteria: [{text ≤120, kind: control|influence, lineOfOperation?: S, detail?: D}] (at least 1) — what "done" looks like, measurable. Distinct from subGoals: a criterion is checked off; a sub-goal is a condition on the aim.
 deadline: date | null
 people: [{name: S, status: confirmed|tentative|lead, doing: M, detail?}]
 posture: null | {current: {level: int ≥1, label: S}, levels: [{level, label: S, meaning?: M}], triggers: [M] ≤10, lastReviewed: date}
-plan: {linesOfOperation: [{label: S, criticalPath: [{label: S, detail?, items?: [{label: S, status}] ≤10, status}] ≤6, nextActions: [{action: M, who: S, when: S, status, detail?}] ≤5, status?: on_schedule|at_risk|blocked|done, blocker?: M}]} (at least 1 line); status = pending|done|dropped, and a next action may also be proposed (a move you suggest that the user hasn't agreed to yet; they keep or toss it)
+plan: {linesOfOperation: [{label: S, criticalPath: [{label: S, detail?, items?: [{label: S, status}] ≤10, status}] ≤6, nextActions: [{action: M, who: S, when: S, status, detail?: D (required when proposed: why this, why now)}] ≤5, status?: on_schedule|at_risk|blocked|done, blocker?: M}]} (at least 1 line); status = pending|done|dropped, and a next action may also be proposed (a move you suggest that the user hasn't agreed to yet; they keep or toss it)
 systemsNotes: null | {schwerpunkt: M, rationale?: M, confidence: high|moderate|low, topFindings: [{label: M, detail?, items?}] ≤5, lastReviewed: date}
 riskNotes: [{item: M, detail?: M, source: threat|premortem, accepted: boolean, dependsOn?: S (a people or stakeholders name, verbatim)}]
 criteriaStatus: [{text ≤120, kind, lineOfOperation?, status: met|on_track|at_risk|stalled|regressing, detail?}]
@@ -164,6 +165,8 @@ The skill index below lists every skill. When one applies, call load_skill(name)
 Each top-level key has exactly one owning skill, which replaces its value wholesale; \`log\` is the only append-only array. Every key reads as current state, with no history in the file. The goal sentence itself is capped at 10 words on every new write — if an existing goal is longer, propose a shorter one, confirm it with the user, then write it (and move whatever it drops into subGoals).
 
 ${SECTION_SHAPES}
+
+${pageGlossary()}
 
 ${guidedRules}`;
 

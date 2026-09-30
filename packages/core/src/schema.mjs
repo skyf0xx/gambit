@@ -256,6 +256,26 @@ export const goalSchema = z.object({
 // share one number.
 export const GOAL_MAX_WORDS = 10;
 
+// Write-only rules: Zod conditions checked by writeSection (ops.mjs) on top
+// of goalSchema, but never on the read path — a goal saved before a rule
+// existed must still load, and picks the rule up on its owner's next write.
+//
+// A proposed move needs its `detail`: the sticky note asks the user to keep
+// or toss it, and the why is what makes that an informed choice.
+export const writeRules = {
+  plan: plan.superRefine((p, ctx) => {
+    p.linesOfOperation.forEach((l, li) => l.nextActions.forEach((a, ai) => {
+      if (a.status === 'proposed' && !a.detail?.trim()) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['linesOfOperation', li, 'nextActions', ai, 'detail'],
+          message: 'a proposed move needs its detail: one sentence on why this, why now',
+        });
+      }
+    }));
+  }),
+};
+
 export function wordCount(s) {
   return s.trim().split(/\s+/).filter(Boolean).length;
 }

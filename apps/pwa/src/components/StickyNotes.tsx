@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import type { Goal } from '../lib/types';
 import { proposals, keep, toss } from '../lib/slips';
-import { byDate } from '../lib/dates';
+import { byDate, proseDates } from '../lib/dates';
 import { TextAction, PencilWord } from './ui';
 import type { SlipItem } from '../lib/slips';
+import { FreshTag } from './paper/FreshTag';
 
 // Sticky notes (brand/identity.md §03/§05): one `--note` slip per
 // `proposed` next action, with a folded corner and a slight tilt. Reference:
@@ -70,9 +71,12 @@ function Note({ goalId, item }: { goalId: string; item: SlipItem }) {
     >
       <div className="mb-1 text-[13px] leading-4.5 text-graphite">Gambit suggests</div>
       <p data-line={item.path} className="text-[17px] leading-6.25 text-ink">
-        {item.action}
+        {proseDates(item.action)}
+        <FreshTag path={item.path} />
         <span className="sr-only"> (suggestion)</span>
       </p>
+      {/* The why: what makes "keep or toss" an informed choice. */}
+      {item.detail && <p className="mt-1 text-[14px] leading-5 text-graphite">{proseDates(item.detail)}</p>}
       {(item.when || item.who) && (
         <p className="leading-6.25">
           <PencilWord>{item.when ? byDate(item.when) : item.who}</PencilWord>

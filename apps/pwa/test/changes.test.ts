@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { stubGoal } from '@gambit/core';
-import { changedLines } from '../src/lib/changes';
+import { changedKeys, changedLines } from '../src/lib/changes';
 import type { Goal } from '../src/lib/types';
 
 function withPlan(goal: Goal, overrides: Partial<NonNullable<Goal['plan']>['linesOfOperation'][number]> = {}): Goal {
@@ -73,5 +73,23 @@ describe('changedLines', () => {
     expect(criteriaIdx).toBeLessThan(riskIdx);
     expect(riskIdx).toBeLessThan(peopleIdx);
     expect(peopleIdx).toBeLessThan(decisionsIdx);
+  });
+});
+
+describe('changedKeys', () => {
+  it('reports sections changedLines does not index, and skips log and posture', () => {
+    const before = stubGoal('Goal') as Goal;
+    const after: Goal = {
+      ...before,
+      capacity: { lastReviewed: '2026-10-01', availableHrsPerWeek: 10, runway: '3 months' },
+      posture: { stance: 'push' } as unknown as Goal['posture'],
+      log: [...before.log, { date: '2026-10-01', focus: null, notes: ['set hours'] }],
+    };
+    expect(changedKeys(before, after)).toEqual(['capacity']);
+  });
+
+  it('is empty when nothing changed', () => {
+    const g = stubGoal('Goal') as Goal;
+    expect(changedKeys(g, structuredClone(g))).toEqual([]);
   });
 });

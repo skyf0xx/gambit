@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Goal } from '../../lib/types';
-import { useSession } from '../../lib/session';
+import { session as sessionStore, useSession } from '../../lib/session';
+import { GotoContext, type GotoTarget } from '../gotoContext';
 import { Doodles } from '../doodles/Doodles';
 import type { SettingsPageProps } from '../Settings';
 import { DividerTabs } from './DividerTabs';
@@ -10,8 +11,9 @@ import { GoalTab } from './GoalTab';
 import { MovesTab } from './MovesTab';
 import { PeopleTab } from './PeopleTab';
 import { RisksTab } from './RisksTab';
-import { ChoicesTab } from './ChoicesTab';
+import { BetsTab } from './BetsTab';
 import { CapacityTab } from './CapacityTab';
+import { LogsTab } from './LogsTab';
 import { InsideCoverTab } from './InsideCoverTab';
 import { TAB_ORDER, tabForPath, tabHasContent, type TabId } from './tabDefs';
 
@@ -47,19 +49,25 @@ function flashLine(el: HTMLElement) {
 /** The notebook page, split into divider tabs (task: "the page is too
  * long; there's too much scrolling"). Owns which tab is selected — never
  * persisted, every visit opens on Moves (task spec) — the `gambit:goto`
- * jump target, and the changed-elsewhere pencil dot fed by the session's
- * open change loop. `settings` carries the goal-switcher/provider-form
+ * jump target, and the changed-elsewhere pencil dots fed by the session's
+ * record of the last turn's writes. `settings` carries the goal-switcher/provider-form
  * props the Inside cover tab needs; App.tsx passes through what it used to
  * hand the old Settings Leaf. */
 export function Tabs({ g, goalId, settings }: { g: Goal; goalId: string; settings: SettingsPageProps }) {
   const [active, setActive] = useState<TabId>('moves');
+  // The latest goto target, for content that keeps part of itself tucked
+  // away (gotoContext.ts). A tab change by hand clears it, so coming back
+  // to a tab later doesn't replay an old jump.
+  const [goto, setGoto] = useState<GotoTarget | null>(null);
+  const gotoSeq = useRef(0);
+  const pickTab = (t: TabId) => { setGoto(null); setActive(t); };
   const session = useSession();
   const pageRef = useRef<HTMLDivElement>(null);
 
   // Every visit opens on Moves — reset when the goal itself changes (a goal
   // switch, not a re-render of the same goal), so switching goals doesn't
   // strand the user on a tab the new goal doesn't have.
-  useEffect(() => { setActive('moves'); }, [goalId]);
+  useEffect(() => { setGoto(null); setActive('moves'); }, [goalId]);
 
   // `gambit:goto`: switch to the tab holding the path, then scroll+flash
   // the line once that tab's content is in the DOM. `gambit:menu` (the
@@ -70,6 +78,7 @@ export function Tabs({ g, goalId, settings }: { g: Goal; goalId: string; setting
       const path = (e as CustomEvent<{ path?: string }>).detail?.path;
       if (!path) return;
       const target = tabForPath(path);
+      setGoto({ path, seq: ++gotoSeq.current });
       setActive(target);
       // Wait a tick for the tab switch to render before querying the DOM;
       // two rAFs cover the TabPanel remount plus MarksLayer's own redraw.
@@ -80,7 +89,7 @@ export function Tabs({ g, goalId, settings }: { g: Goal; goalId: string; setting
         flashLine(el);
       }));
     };
-    const onMenu = () => setActive('inside-cover');
+    const onMenu = () => { setGoto(null); setActive('inside-cover'); };
     window.addEventListener('gambit:goto', onGoto);
     window.addEventListener('gambit:menu', onMenu);
     return () => {
@@ -89,9 +98,18 @@ export function Tabs({ g, goalId, settings }: { g: Goal; goalId: string; setting
     };
   }, []);
 
+  // A pencil dot on every tab the last turn wrote to, until that tab is
+  // opened. The tab on screen when the turn lands counts as opened.
+  const fresh = session.fresh?.goalId === goalId ? session.fresh : null;
+  useEffect(() => { sessionStore.markTabSeen(goalId, active); }, [goalId, active, fresh]);
+
   const tabs = TAB_ORDER.filter((t) => tabHasContent(t, g));
-  const changeTab = session.turn?.goalId === goalId ? tabForPath(session.turn.lines[0]?.path ?? '') : null;
-  const changedTabs = new Set<TabId>(changeTab && changeTab !== active ? [changeTab] : []);
+  const changedTabs = new Set<TabId>();
+  if (fresh) {
+    for (const p of [...fresh.lines, ...fresh.keys]) changedTabs.add(tabForPath(p));
+    for (const t of fresh.seenTabs) changedTabs.delete(t as TabId);
+    changedTabs.delete(active);
+  }
 
   return (
     <div ref={pageRef} className="relative">
@@ -102,7 +120,8 @@ export function Tabs({ g, goalId, settings }: { g: Goal; goalId: string; setting
        * That's what lets it stick out past the page's real edge into the
        * desk, never inside the page's own margin/padding, and never affect
        * the page's width (task: tabs sit outside the notebook). */}
-      <DividerTabs tabs={tabs} active={active} onChange={setActive} changedTabs={changedTabs} />
+      <DividerTabs tabs={tabs} active={active} onChange={pickTab} changedTabs={changedTabs} />
+      <GotoContext.Provider value={goto}>
       <div className="px-8.5 pb-6 md:px-16 md:pb-11">
         <TabPanel tab="goal" active={active === 'goal'}>
           <TitleBar goalTitle={g.goal} hideTitle />
@@ -120,9 +139,9 @@ export function Tabs({ g, goalId, settings }: { g: Goal; goalId: string; setting
           <TitleBar goalTitle={g.goal} />
           <RisksTab g={g} goalId={goalId} />
         </TabPanel>
-        <TabPanel tab="choices" active={active === 'choices'}>
+        <TabPanel tab="bets" active={active === 'bets'}>
           <TitleBar goalTitle={g.goal} />
-          <ChoicesTab g={g} goalId={goalId} />
+          <BetsTab g={g} goalId={goalId} />
         </TabPanel>
         <TabPanel tab="capacity" active={active === 'capacity'}>
           <TitleBar goalTitle={g.goal} />
@@ -132,11 +151,16 @@ export function Tabs({ g, goalId, settings }: { g: Goal; goalId: string; setting
           <TitleBar goalTitle={g.goal} />
           <Doodles goal={g} goalId={goalId} />
         </TabPanel>
+        <TabPanel tab="logs" active={active === 'logs'}>
+          <TitleBar goalTitle={g.goal} />
+          <LogsTab g={g} />
+        </TabPanel>
         <TabPanel tab="inside-cover" active={active === 'inside-cover'}>
           <TitleBar goalTitle={g.goal} />
           <InsideCoverTab {...settings} />
         </TabPanel>
       </div>
+      </GotoContext.Provider>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { WRITABLE_KEYS } from '@gambit/core';
 import { PREAMBLE, SECTION_SHAPES, buildStore, bundledFiles, guidedRules, methods, skillFile, elicitationMethods } from '../src/lib/skills';
-import { compactToolResults, trimHistory, trimChatWindow, trimDisplayWindow, CHAT_WINDOW, HISTORY_CHAR_BUDGET } from '../src/lib/agent';
+import { compactToolResults, trimHistory, keepLastTurns, CHAT_TURNS, HISTORY_CHAR_BUDGET } from '../src/lib/agent';
 import type { ModelMessage } from 'ai';
 import type { DisplayMsg } from '../src/lib/db';
 
@@ -84,17 +84,18 @@ describe('history', () => {
     expect(messages).toEqual(msgs);
   });
 
-  it('trimChatWindow caps to the newest N messages without splitting a turn', () => {
-    const msgs = Array.from({ length: 20 }, (_, i) => turn(i)).flat(); // 80 messages
-    const windowed = trimChatWindow(msgs, CHAT_WINDOW);
-    expect(windowed.length).toBeLessThanOrEqual(CHAT_WINDOW + 3); // pushed forward to next user msg
+  it('keepLastTurns keeps the newest N whole turns of model history', () => {
+    const msgs = Array.from({ length: 20 }, (_, i) => turn(i)).flat(); // 20 turns, 80 messages
+    const windowed = keepLastTurns(msgs, CHAT_TURNS);
+    expect(windowed.filter((m) => m.role === 'user')).toHaveLength(CHAT_TURNS);
+    expect(windowed).toHaveLength(CHAT_TURNS * 4);
     expect(windowed[0].role).toBe('user');
     expect(windowed.at(-1)).toEqual(msgs.at(-1));
   });
 
-  it('trimChatWindow is a no-op under the limit', () => {
+  it('keepLastTurns is a no-op under the limit', () => {
     const msgs = turn(0);
-    expect(trimChatWindow(msgs, CHAT_WINDOW)).toEqual(msgs);
+    expect(keepLastTurns(msgs, CHAT_TURNS)).toEqual(msgs);
   });
 
   function displayTurn(i: number): DisplayMsg[] {
@@ -104,11 +105,13 @@ describe('history', () => {
     ];
   }
 
-  it('trimDisplayWindow keeps user/assistant pairs intact', () => {
-    const msgs = Array.from({ length: 30 }, (_, i) => displayTurn(i)).flat(); // 60 entries
-    const windowed = trimDisplayWindow(msgs, CHAT_WINDOW);
-    expect(windowed[0].role).toBe('user');
-    expect(windowed.length).toBeLessThanOrEqual(CHAT_WINDOW);
-    expect(windowed.at(-1)).toEqual(msgs.at(-1));
+  it('keepLastTurns keeps the display to the same turns as the model history', () => {
+    const model = Array.from({ length: 30 }, (_, i) => turn(i)).flat();
+    const display = Array.from({ length: 30 }, (_, i) => displayTurn(i)).flat();
+    const keptModel = keepLastTurns(model, CHAT_TURNS);
+    const keptDisplay = keepLastTurns(display, CHAT_TURNS);
+    expect(keptDisplay).toHaveLength(CHAT_TURNS * 2);
+    expect(keptDisplay[0]).toEqual({ id: 'u18', role: 'user', text: 'hi 18' });
+    expect(keptModel[0]).toEqual(model[18 * 4]);
   });
 });

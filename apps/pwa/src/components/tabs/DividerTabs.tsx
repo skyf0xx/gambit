@@ -8,7 +8,7 @@ import { TAB_LABELS, type TabId } from './tabDefs';
 // the strip to the top; Dashboard.tsx narrows the page itself on mobile
 // (mr-9) to leave the same kind of desk sliver on the right that desktop
 // already has in its 132px gap before the conversation leaf. The last tab,
-// "Inside cover", is a real tab like the rest (in the tablist, reachable by
+// "Settings" (id `inside-cover`), is a real tab like the rest (in the tablist, reachable by
 // keyboard nav) — it just carries its own icon and a small gap above it so
 // it still reads as set apart, at the foot of the stack.
 //
@@ -26,9 +26,10 @@ import { TAB_LABELS, type TabId } from './tabDefs';
 //     reduced motion).
 //   - The ink focus ring still draws on the tab's own clipped shape.
 //
-// Mobile-specific requirements from the owner's override:
-//   - Labels rotate 90°, same reading direction as the narrow-desktop
-//     rotation below, at >=13px Inter.
+// One shape at every width (owner's override): a slim vertical tab with
+// its label rotated 90° — no wide horizontal-label variant on roomy
+// desktop.
+//   - Labels are >=13px Inter.
 //   - Each tap area is still >=44px tall.
 //   - The strip stays reachable while the page scrolls (position: sticky
 //     within the page wrapper) and, if the stack is taller than the
@@ -37,13 +38,13 @@ import { TAB_LABELS, type TabId } from './tabDefs';
 
 const TAB_SIZE = 44; // px, matches the shared 44px minimum tap target
 
-/** The folder-tab silhouette: a rounded-shoulder shape that tapers toward
- * the page (its left edge, since every breakpoint now stacks vertically off
- * the page's right edge), full width at the right (free) edge — drawn as a
- * clip-path polygon (percentages, so it scales with the button's own box)
- * rather than a hard rectangle. This is what makes it read as a tab and not
- * a bordered box. */
-const TAB_CLIP = 'polygon(0% 22%, 22% 0%, 100% 0%, 100% 100%, 22% 100%, 0% 78%)';
+/** The folder-tab silhouette: straight and full height along the page (its
+ * left edge, since every breakpoint stacks vertically off the page's right
+ * edge), with the shoulders tapering in at the right (free) edge — drawn
+ * as a clip-path polygon (percentages, so it scales with the button's own
+ * box) rather than a hard rectangle. This is what makes it read as a tab
+ * and not a bordered box. */
+const TAB_CLIP = 'polygon(0% 0%, 78% 0%, 100% 22%, 100% 78%, 78% 100%, 0% 100%)';
 
 export function DividerTabs({
   tabs,
@@ -103,13 +104,13 @@ export function DividerTabs({
                 id={`tab-${t}`}
                 aria-selected={isActive}
                 aria-controls={`tabpanel-${t}`}
-                aria-label={isInsideCover ? 'Inside cover: notebooks and settings' : undefined}
+                aria-label={isInsideCover ? 'Settings and notebooks' : undefined}
                 tabIndex={isActive ? 0 : -1}
                 onClick={() => onChange(t)}
                 style={{ zIndex: tabs.length - depth, marginTop: isInsideCover ? '12px' : undefined }}
                 className={`tab-leaf anim-press relative flex shrink-0 items-center justify-center font-sans text-[14px] font-medium text-ink ${
                   isActive ? 'tab-active' : 'tab-inactive'
-                } ${isInsideCover ? 'tab-inside-cover' : ''}`}
+                } ${isInsideCover ? 'tab-inside-cover' : ''} ${t === 'moves' ? 'tab-moves' : ''}`}
               >
                 <span className="tab-leaf-fill" aria-hidden="true" />
                 <span className="tab-leaf-label">
@@ -151,11 +152,19 @@ export function DividerTabs({
         .tab-strip-scroll {
           position: sticky;
           top: 0;
-          overflow-y: visible;
-          overflow-x: visible;
+          /* The full stack at 102px a tab can exceed a short viewport's
+             height once the top padding and safe areas are subtracted, so
+             it scrolls vertically within itself instead of overflowing the
+             screen or forcing page scroll. */
+          overflow-y: auto;
+          max-height: 100dvh;
+          scrollbar-width: none;
           padding-top: 28px;
-          padding-left: 24px;
-          margin-left: -24px;
+          /* Room below the last tab for its drop shadow, which this
+             scroll container would otherwise clip. */
+          padding-bottom: 16px;
+          padding-left: 6px;
+          margin-left: -6px;
         }
         .tab-strip-scroll::-webkit-scrollbar { display: none; }
 
@@ -168,14 +177,20 @@ export function DividerTabs({
           padding: 0;
           min-height: ${TAB_SIZE}px;
           min-width: ${TAB_SIZE}px;
-          width: 100px;
-          height: 44px;
+          width: 40px;
+          height: 102px;
           /* Only the tab's base tucks under the page edge; the rest sits
              out on the desk. */
-          margin-left: -8px;
-          margin-bottom: -10px;
+          margin-left: -6px;
+          margin-bottom: -18px;
           transition: transform 160ms ease-out, filter 160ms ease-out;
           filter: drop-shadow(0 2px 2px var(--lift-far));
+        }
+        /* The overlap margin is for tucking under the next tab down; on the
+           last tab it would pull the scroll container's bottom edge up
+           over the tab's own tapered bottom shoulder and clip it square. */
+        .tab-leaf:last-child {
+          margin-bottom: 0;
         }
         .tab-leaf-fill {
           position: absolute;
@@ -189,11 +204,23 @@ export function DividerTabs({
           display: flex;
           align-items: center;
           gap: 6px;
-          padding: 0 10px 0 16px;
+          padding: 14px 0;
           white-space: nowrap;
+          writing-mode: vertical-rl;
+          text-orientation: mixed;
+          transform: rotate(180deg);
         }
         .tab-leaf.tab-active .tab-leaf-fill {
           background: var(--grain), var(--bg);
+        }
+        /* Moves is the tab the notebook is for, so it alone carries a
+           wash of highlighter, active or not. The wash fades out toward
+           the page, so the active tab still meets the page with no seam. */
+        .tab-moves .tab-leaf-fill::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(to right, transparent, color-mix(in srgb, var(--hi) 60%, transparent) 60%);
         }
         .tab-leaf.tab-active {
           filter: drop-shadow(0 2px 2px var(--lift)) drop-shadow(0 6px 14px -6px var(--lift-far));
@@ -215,6 +242,14 @@ export function DividerTabs({
           height: 6px;
           width: 6px;
           border-radius: 9999px;
+          animation: tab-dot-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+        @keyframes tab-dot-in {
+          from { transform: scale(0); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .tab-leaf-dot { animation: none; }
         }
         /* Inactive tabs sit a step behind the page, darker the further back
            they are, so the active one reads as the page itself. */
@@ -223,51 +258,11 @@ export function DividerTabs({
         .tab-leaf.tab-inactive[data-depth="3"] .tab-leaf-fill { filter: brightness(0.88); }
         .tab-leaf.tab-inactive[data-depth="4"] .tab-leaf-fill { filter: brightness(0.85); }
 
-        /* Below 1100px (narrow desktop and every mobile width) the desk
-           strip is narrower, so tabs shrink to a slim vertical column with
-           a rotated label instead of the wide horizontal-label tab used at
-           roomy desktop widths. This is also mobile's shape per the
-           owner's override: vertical, right-hand, rotated 90°. */
-        @media (max-width: 1099.98px) {
-          .tab-strip-scroll {
-            padding-left: 6px;
-            margin-left: -6px;
-            /* A 6-tab stack at 92px each (552px) can exceed a short mobile
-               viewport's height once the top padding and safe areas are
-               subtracted, so this width range scrolls vertically within
-               itself instead of overflowing the screen or forcing page
-               scroll (task: "the stack scrolls vertically within itself,
-               or tabs compress their spacing"). Wider desktop never needs
-               this — six 44px-tall tabs comfortably fit any viewport. */
-            overflow-y: auto;
-            max-height: 100dvh;
-            scrollbar-width: none;
-          }
-          .tab-leaf {
-            width: 40px;
-            height: 92px;
-            margin-left: -6px;
-            margin-bottom: -18px;
-          }
-          .tab-leaf-label {
-            writing-mode: vertical-rl;
-            text-orientation: mixed;
-            transform: rotate(180deg);
-            padding: 14px 0;
-          }
-          /* The Inside cover tab's icon reads oddly caught in a vertical
-             writing mode alongside rotated text; the task explicitly
-             allows dropping it ("hamburger glyph is optional, and only
-             alongside the text"), so narrow layouts keep just the rotated
-             "Inside cover" label. It's also the longest label in the
-             stack, so it gets a taller box in this orientation so the
-             rotated text isn't clipped. */
-          .tab-inside-cover .tab-menu-icon {
-            display: none;
-          }
-          .tab-inside-cover {
-            height: 120px;
-          }
+        /* The Settings tab's icon reads oddly caught in a vertical writing
+           mode alongside rotated text, so the tab keeps just its rotated
+           label. */
+        .tab-inside-cover .tab-menu-icon {
+          display: none;
         }
 
         @media (prefers-reduced-motion: reduce) {

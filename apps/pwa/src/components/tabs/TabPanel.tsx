@@ -17,7 +17,7 @@ export function TabPanel({ tab, active, children }: { tab: TabId; active: boolea
       id={`tabpanel-${tab}`}
       aria-labelledby={`tab-${tab}`}
       tabIndex={0}
-      className="page-turn-in space-y-6"
+      className="page-turn-in space-y-10"
     >
       {children}
       <style>{`

@@ -13,7 +13,7 @@ function parseIsoDateUTC(d: string): Date | null {
 
 /** Whole days between today (UTC midday) and the given ISO date. Positive:
  * in the future. Negative: in the past. */
-function daysUntil(d: string, now = new Date()): number | null {
+export function daysUntil(d: string, now = new Date()): number | null {
   const t = parseIsoDateUTC(d);
   if (!t) return null;
   const n = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12);
@@ -50,6 +50,32 @@ export function pencilDate(d: string | null | undefined, now = new Date()): stri
   const year = t.getUTCFullYear();
   const thisYear = now.getUTCFullYear();
   return year === thisYear ? `${weekday} ${day} ${month}` : `${weekday} ${day} ${month} ${year}`;
+}
+
+const ISO_IN_TEXT = /\b(\d{4})-(\d{2})-(\d{2})\b/g;
+
+/** A date inside a sentence: "19 Mar", or "19 Mar 2027" when it isn't this
+ * year. Shorter than the pencilled form — no weekday — because it sits in
+ * running text rather than standing alone. */
+export function proseDates(text: string, now = new Date()): string {
+  return text.replace(ISO_IN_TEXT, (iso, y, m, d) => {
+    if (+m < 1 || +m > 12 || +d < 1 || +d > 31) return iso;
+    const short = `${+d} ${MONTHS[+m - 1]}`;
+    return +y === now.getUTCFullYear() ? short : `${short} ${y}`;
+  });
+}
+
+/** Every free-text string in a section's data with its ISO dates rewritten
+ * by `proseDates`, for display only. A string that is nothing but an ISO
+ * date is left alone: that is a date field, and the renderer formats it
+ * itself (`pencilDate`, `byDate`, `timeLeft`). */
+export function withProseDates<T>(value: T, now = new Date()): T {
+  if (typeof value === 'string') return (parseIsoDateUTC(value) ? value : proseDates(value, now)) as T;
+  if (Array.isArray(value)) return value.map((v) => withProseDates(v, now)) as T;
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, withProseDates(v, now)])) as T;
+  }
+  return value;
 }
 
 /** "by Friday 3 Oct" — the mockup's pencilled-date phrasing for a due-by

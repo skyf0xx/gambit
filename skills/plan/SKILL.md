@@ -151,9 +151,13 @@ If something in an existing line has failed or stalled, name it, name the altern
 
 Call `write_section` on `plan` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?, items?, status}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `status` is one of `pending` (default), `done`, `dropped` — same enum and meaning as a `nextAction`'s, so a step that's finished or abandoned shows that in the visual layer instead of relying on prose in `detail`); `nextActions` is capped at 5 entries, each `{action, who, when, status, detail?}` where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `status` is one of `pending` (default), `proposed`, `done`, `dropped`. Set that line's own `status` to `on_schedule`, `at_risk`, `blocked`, or `done` — `done` means every `criticalPath` step and every `nextActions` entry on that line is itself `done` or `dropped`; don't set the line to `done` while any step or action is still `pending`. Set `blocker` only when `status` is `blocked`.
 
-`detail` on a `criticalPath` step or a `nextAction` (max 280 chars, optional) is a hover
-tooltip in the visual layer — the reason this step is on the path, not a restatement of
-the label. Fill it in only when the label alone won't jog memory later. It is never a
+`detail` on a `criticalPath` step or a `nextAction` (max 280 chars) is shown in small
+grey text right under the move: in the plan, on the "Your next move" card, and on the
+sticky note. Write it as one plain sentence on why this move, why now: what it unblocks,
+what it tests, or which criterion it serves. Don't restate the label. A `proposed` action
+must carry it, because the sticky note asks the user to keep or toss the move and the
+detail is their reason to decide; a write without it is rejected. Give a `pending` action
+or step a detail too, unless the label alone makes the why obvious. It is never a
 substitute for `status` — "Done — see log" belongs in `status: "done"` with an optional
 short `detail` for context, not in `detail` alone with `status` left `pending`.
 

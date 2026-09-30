@@ -140,16 +140,6 @@ export function deriveMarks(goal: Goal, goalId: string, sessionState: SessionSna
     }
   });
 
-  // --- squiggle: open experiment's assumption, or unresolved forecast ---
-  (goal.experiments ?? []).forEach((e, i) => {
-    if (e.done) return;
-    set(`experiments.${i}`, { kind: 'squiggle', sr: 'not checked yet', pencil: true });
-  });
-  (goal.forecasts ?? []).forEach((f, i) => {
-    if (f.resolved) return;
-    set(`forecasts.${i}`, { kind: 'squiggle', sr: 'not checked yet', pencil: true });
-  });
-
   // --- question: an open decision ---
   (goal.decisions ?? []).forEach((d, i) => {
     if (d.status === 'open') set(`decisions.${i}`, { kind: 'question', sr: 'open question' });

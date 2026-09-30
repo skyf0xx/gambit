@@ -2,7 +2,7 @@
 // document and returns a result object instead of throwing, so an agent tool
 // can hand structured errors straight back to the model.
 
-import { goalSchema, reconcileGoal, GOAL_MAX_WORDS, wordCount } from './schema.mjs';
+import { goalSchema, reconcileGoal, writeRules, GOAL_MAX_WORDS, wordCount } from './schema.mjs';
 
 /** @typedef {import('zod').infer<typeof goalSchema>} Goal */
 /** @typedef {{ path: string, message: string }} Issue */
@@ -60,7 +60,7 @@ export function writeSection(goal, key, value) {
       }],
     };
   }
-  const part = goalSchema.shape[key].safeParse(value);
+  const part = (writeRules[key] ?? goalSchema.shape[key]).safeParse(value);
   if (!part.success) return { ok: false, errors: toIssues(part.error, [key]) };
   const next = goalSchema.safeParse({ ...goal, [key]: part.data });
   if (!next.success) return { ok: false, errors: toIssues(next.error) };
@@ -94,6 +94,13 @@ export function setStatus(goal, path, status) {
     return { ok: false, errors: [{ path, message: 'target is not a step, sub-item or next action with a proposed/pending/done/dropped status' }] };
   }
   node.status = status;
+  // Turning a move into a proposal is a write of that proposal, so it meets
+  // the same rule as write_section (writeRules.plan). Keeping or tossing a
+  // proposal that predates the rule stays allowed.
+  if (status === 'proposed' && parts[0] === 'plan') {
+    const rule = writeRules.plan.safeParse(copy.plan);
+    if (!rule.success) return { ok: false, errors: toIssues(rule.error, ['plan']) };
+  }
   const next = goalSchema.safeParse(copy);
   if (!next.success) return { ok: false, errors: toIssues(next.error) };
   return { ok: true, goal: next.data, warnings: reconcileGoal(next.data) };

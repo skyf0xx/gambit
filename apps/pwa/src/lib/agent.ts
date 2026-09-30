@@ -3,11 +3,11 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { summarizeChange } from '@gambit/core';
 import { db, type ChatRecord, type DisplayMsg } from './db';
 import { loadApiKey } from './crypto';
-import { getProvider, makeModel } from './providers';
+import { getProvider, makeModel, GOOGLE_FALLBACK_MODEL, type ProviderKind } from './providers';
 import { PREAMBLE, getSkillStore, skillIndexText, skillText } from './skills';
 import { makeTools, goalStateJson, toolLabel } from './tools';
 import { readRecord, restoreSnapshot, snapshot } from './goals';
-import { changedLines } from './changes';
+import { changedKeys, changedLines } from './changes';
 import { session } from './session';
 
 export type AgentEvent =
@@ -17,8 +17,11 @@ export type AgentEvent =
 /** Context sent to the model per turn: about 60k characters of message
  * content, oldest whole turns dropped first. */
 export const HISTORY_CHAR_BUDGET = 60_000;
-/** Newest chat messages kept in storage per goal, after each completed turn. */
-export const CHAT_WINDOW = 40;
+/** Newest turns kept in storage per goal, after each completed turn. A turn
+ * is one user message and everything that answers it, so the model's
+ * history (which also holds every tool call and result) and the chat the
+ * user sees always cover the same exchanges. */
+export const CHAT_TURNS = 12;
 const STUBBED = new Set(['load_skill', 'read_skill_file', 'get_goal']);
 const CACHE = { anthropic: { cacheControl: { type: 'ephemeral' as const } } };
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -52,32 +55,18 @@ export function trimHistory(messages: ModelMessage[], budget = HISTORY_CHAR_BUDG
 }
 
 /**
- * Keep at most `limit` newest model messages, but never split a turn: a
- * turn is one user message followed by everything the model produced in
- * response (assistant text, tool-call messages, and their paired tool
- * results), so the cut point is always pushed forward to the next user
- * message. This also guarantees no tool-result message is ever left
- * dangling at the start of the kept window, since a tool-result can only
- * follow within the same turn as the user message that starts it.
+ * Keep the newest `turns` turns. A turn starts at a 'user' message and runs
+ * through everything after it until the next one, so the cut only ever
+ * lands on a user message: a tool call and its result are never split, and
+ * no tool result is left dangling at the start. Counting turns rather than
+ * messages is what keeps the model's history (several messages a turn) and
+ * the display (two entries a turn) covering the same exchanges.
  */
-export function trimChatWindow(messages: ModelMessage[], limit = CHAT_WINDOW): ModelMessage[] {
-  if (messages.length <= limit) return messages;
-  let start = messages.length - limit;
-  while (start < messages.length && messages[start].role !== 'user') start++;
-  return messages.slice(start);
-}
-
-/**
- * Keep at most `limit` newest display messages, but never split a
- * user/assistant reply pair — display holds exactly one 'user' entry
- * followed by one 'assistant' entry per turn, so the cut point is pushed
- * forward to the next 'user' entry.
- */
-export function trimDisplayWindow(messages: DisplayMsg[], limit = CHAT_WINDOW): DisplayMsg[] {
-  if (messages.length <= limit) return messages;
-  let start = messages.length - limit;
-  while (start < messages.length && messages[start].role !== 'user') start++;
-  return messages.slice(start);
+export function keepLastTurns<T extends { role: string }>(messages: T[], turns = CHAT_TURNS): T[] {
+  const starts: number[] = [];
+  messages.forEach((m, i) => { if (m.role === 'user') starts.push(i); });
+  if (starts.length <= turns) return messages;
+  return messages.slice(starts[starts.length - turns]);
 }
 
 /** Loaded skill text lives in the system prompt while active, so old copies in history are dropped. */
@@ -100,8 +89,11 @@ export async function runTurn(opts: {
   text: string;
   signal: AbortSignal;
   onEvent: (e: AgentEvent) => void;
+  /** Lead with the fastest model (Gemini Flash-Lite): the first reply of
+   * onboarding, where a quick answer matters more than a deep one. */
+  quick?: boolean;
 }): Promise<void> {
-  const { goalId, text, signal, onEvent } = opts;
+  const { goalId, text, signal, onEvent, quick } = opts;
   const prov = await getProvider();
   if (!prov) throw new Error('No provider configured. Open Settings.');
   const apiKey = await loadApiKey(prov.kind);
@@ -154,37 +146,51 @@ export async function runTurn(opts: {
   let newMessages: ModelMessage[] = [];
   let usage = { input: 0, cached: 0, output: 0 };
 
-  try {
-    const result = streamText({
-      model,
-      messages: [...system, ...history, userMsg],
-      tools: tools as ToolSet,
-      stopWhen: stepCountIs(12),
-      abortSignal: signal,
-      maxRetries: 1,
-    });
-    for await (const part of result.fullStream) {
-      if (part.type === 'start-step' && out) out += '\n\n';
-      else if (part.type === 'text-delta') { out += part.text; onEvent({ type: 'text', text: out }); }
-      else if (part.type === 'tool-call') {
-        const label = toolLabel(part.toolName, part.input);
-        labels.set(part.toolCallId, label);
-        onEvent({ type: 'tool', id: part.toolCallId, label });
-      } else if (part.type === 'tool-result') {
-        const ok = (part.output as { ok?: boolean } | undefined)?.ok !== false;
-        entries.push({ name: part.toolName, label: labels.get(part.toolCallId) ?? part.toolName, ok });
-        onEvent({ type: 'tool', id: part.toolCallId, label: labels.get(part.toolCallId) ?? part.toolName, ok });
-      } else if (part.type === 'error') {
-        error = errorText(part.error);
+  // A busy Gemini model (503) falls back to the other one quietly, as long
+  // as nothing has streamed yet: the default then Flash-Lite, or the other
+  // way round for a quick turn.
+  const lite = () => makeModel({ ...prov, model: GOOGLE_FALLBACK_MODEL }, apiKey);
+  const models = prov.kind !== 'google' || prov.model === GOOGLE_FALLBACK_MODEL
+    ? [model]
+    : quick ? [lite(), model] : [model, lite()];
+  for (const [i, m] of models.entries()) {
+    let raw: unknown;
+    try {
+      const result = streamText({
+        model: m,
+        messages: [...system, ...history, userMsg],
+        tools: tools as ToolSet,
+        stopWhen: stepCountIs(12),
+        abortSignal: signal,
+        maxRetries: 1,
+      });
+      for await (const part of result.fullStream) {
+        if (part.type === 'start-step' && out) out += '\n\n';
+        else if (part.type === 'text-delta') { out += part.text; onEvent({ type: 'text', text: out }); }
+        else if (part.type === 'tool-call') {
+          const label = toolLabel(part.toolName, part.input);
+          labels.set(part.toolCallId, label);
+          onEvent({ type: 'tool', id: part.toolCallId, label });
+        } else if (part.type === 'tool-result') {
+          const ok = (part.output as { ok?: boolean } | undefined)?.ok !== false;
+          entries.push({ name: part.toolName, label: labels.get(part.toolCallId) ?? part.toolName, ok });
+          onEvent({ type: 'tool', id: part.toolCallId, label: labels.get(part.toolCallId) ?? part.toolName, ok });
+        } else if (part.type === 'error') {
+          raw = part.error;
+        }
       }
+      if (!raw) {
+        newMessages = compactToolResults((await result.response).messages);
+        const u = await result.totalUsage;
+        usage = { input: u.inputTokens ?? 0, cached: u.cachedInputTokens ?? 0, output: u.outputTokens ?? 0 };
+      }
+    } catch (e) {
+      raw = e;
     }
-    if (!error) {
-      newMessages = compactToolResults((await result.response).messages);
-      const u = await result.totalUsage;
-      usage = { input: u.inputTokens ?? 0, cached: u.cachedInputTokens ?? 0, output: u.outputTokens ?? 0 };
-    }
-  } catch (e) {
-    error = signal.aborted ? 'Cancelled.' : errorText(e);
+    if (!raw) { error = undefined; break; }
+    error = signal.aborted ? 'Cancelled.' : errorText(raw, prov.kind);
+    const busy = (raw as { statusCode?: number })?.statusCode === 503;
+    if (!busy || signal.aborted || out || entries.length || i === models.length - 1) break;
   }
 
   if (error) {
@@ -197,17 +203,19 @@ export async function runTurn(opts: {
 
   const fresh = (await db.chats.get(goalId)) ?? chat;
   const displayId = uid();
-  fresh.model = trimChatWindow([...chat.model, userMsg, ...newMessages]);
+  fresh.model = keepLastTurns([...chat.model, userMsg, ...newMessages]);
   fresh.activeSkill = activeSkill;
-  fresh.display = trimDisplayWindow([
+  const display: DisplayMsg[] = [
     ...fresh.display,
     { id: displayId, role: 'assistant', text: out, tools: entries, summary, snapshotId: summary.length || error ? snapshotId : undefined, error },
-  ]);
+  ];
+  fresh.display = keepLastTurns(display);
+  if (fresh.display.length < display.length) fresh.trimmed = true;
   await db.chats.put(fresh);
 
   if (after?.status === 'ok') {
     const lines = changedLines(before, after.data);
-    session.setTurn(goalId, displayId, lines);
+    session.setTurn(goalId, displayId, lines, changedKeys(before, after.data));
     for (const line of lines) {
       const node = pathValue(after.data as unknown as Record<string, unknown>, line.path);
       if (node && typeof node === 'object' && (node as { status?: string }).status === 'dropped') {
@@ -231,10 +239,21 @@ function pathValue(root: Record<string, unknown>, path: string): unknown {
   }, root);
 }
 
-function errorText(e: unknown): string {
+export function errorText(e: unknown, kind?: ProviderKind): string {
   const err = e as { message?: string; statusCode?: number; responseBody?: string };
-  if (err?.statusCode === 401 || err?.statusCode === 403) return 'The provider rejected the API key.';
-  if (err?.statusCode === 429) return 'Rate limited by the provider. Try again shortly.';
+  if (typeof navigator !== 'undefined' && !navigator.onLine)
+    return "You're offline. Your notebook is here, and messages will work when you're back online.";
+  const google = kind === 'google';
+  if (err?.statusCode === 401 || err?.statusCode === 403 || (google && err?.statusCode === 400 && /api key/i.test(err.message ?? '')))
+    return 'The provider rejected your key. Check it under Model and key in the menu, or paste a new one there.';
+  if (err?.statusCode === 429)
+    return google
+      ? "You've used Google's free limit for now. To keep going, add credit to this key in AI Studio (aistudio.google.com) or switch to another provider under Model and key. Your message is saved."
+      : 'The provider is limiting requests right now. Your message is saved, so try again in a minute.';
+  if (err?.statusCode === 503 || err?.statusCode === 529)
+    return google
+      ? "Google's models are busy right now. Your message is saved, so try again in a minute."
+      : 'The provider is busy right now. Your message is saved, so try again in a minute.';
   return err?.message ?? String(e);
 }
 
@@ -246,6 +265,7 @@ export async function undoTurn(goalId: string, displayId: string) {
   await restoreSnapshot(msg.snapshotId);
   msg.undone = true;
   session.clearLoop();
+  session.clearFresh();
   chat.model.push(
     { role: 'user', content: '(System note: the user undid your previous turn; its goal changes were rolled back. The goal state in the system prompt is authoritative.)' },
     { role: 'assistant', content: 'Understood.' },
