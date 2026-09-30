@@ -81,3 +81,15 @@ export function changedLines(before: Goal, after: Goal): ChangedLine[] {
 
   return out.map(({ path, text }) => ({ path, text }));
 }
+
+// Keys that change on nearly every turn (log) or aren't drawn on the page
+// (schemaVersion, posture), so they'd flag a tab with nothing new to see.
+const IGNORED_KEYS = new Set(['schemaVersion', 'log', 'posture']);
+
+/** Top-level goal keys whose value differs between the two documents — the
+ * section-level counterpart to `changedLines`, covering keys it doesn't
+ * index line by line (capacity, exposure, experiments, …). */
+export function changedKeys(before: Goal, after: Goal): string[] {
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  return [...keys].filter((k) => !IGNORED_KEYS.has(k) && !eq((before as Record<string, unknown>)[k], (after as Record<string, unknown>)[k]));
+}

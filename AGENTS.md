@@ -4,8 +4,8 @@ Gambit is a local-first PWA: a strategic-advisor chat agent that applies a
 set of prompt-based skills against a single goal, shown live on a dashboard
 beside the chat. No backend, no accounts — goals, chat history, and the
 user's own model API key live in the browser (IndexedDB). The user brings
-their own key — Anthropic, OpenAI, OpenRouter, or any OpenAI-compatible
-endpoint.
+their own key — Google AI Studio (the default), Anthropic, OpenAI, or any
+OpenAI-compatible endpoint (OpenRouter included).
 
 This file is for coding agents working ON this repo, not the product's own
 system prompt — the app's runtime instructions to the model live in
@@ -158,8 +158,9 @@ in place rather than accumulating:
 that cap, except it always keeps the most recent entry that carries a
 `focusLine`, even when older than the cap, since the dashboard's
 highlighter reads it. Chat history is a rolling window, not a persisted
-transcript: only the newest messages are kept in storage per goal (see
-`CHAT_WINDOW` in `apps/pwa/src/lib/agent.ts`), and the model request applies
+transcript: only the newest turns are kept in storage per goal (see
+`CHAT_TURNS` in `apps/pwa/src/lib/agent.ts`), counted the same way for the
+model's history and the chat the user sees, and the model request applies
 a further character budget on top of that (`HISTORY_CHAR_BUDGET`), dropping
 the oldest whole turns first. The goal record is the durable memory across
 both caps — old chat and old log entries are safe to lose because the

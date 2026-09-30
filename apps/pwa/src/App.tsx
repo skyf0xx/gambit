@@ -3,9 +3,9 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { db } from './lib/db';
 import { getActiveGoalId, migrateAll, setActiveGoal } from './lib/goals';
-import { getProvider } from './lib/providers';
+import { getProvider, PROVIDERS } from './lib/providers';
 import { hasApiKey } from './lib/crypto';
-import { initDurability, isIos, isStandalone, useUi } from './lib/persist';
+import { initDurability, useUi } from './lib/persist';
 import { startFileSync, fileSyncState, reauthorizeFileSync } from './lib/portability';
 import { Setup } from './components/Setup';
 import { Chat } from './components/Chat';
@@ -34,22 +34,16 @@ function Banner({ children, onClose }: { children: React.ReactNode; onClose?: ()
   );
 }
 
-/** The app-update and install banners only — the export-status banner is
- * never shown here; it lives in the menu/settings leaf (work item 5). */
+/** The app-update and backup-permission banners only. Install lives on the
+ * Goal page (KeepNotebook, shown once there's something to lose) and on the
+ * Inside cover; the export-status banner lives in the menu/settings leaf. */
 function Banners() {
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW();
-  const { installEvent, installDismissed, dismissInstall } = useUi();
   const [sync, setSync] = useState<'off' | 'active' | 'needs_permission'>('off');
-  useEffect(() => { void fileSyncState().then(setSync); }, [installEvent]);
+  useEffect(() => { void fileSyncState().then(setSync); }, []);
   return (
     <>
       {needRefresh && <Banner>New app version ready. <TextAction className="underline underline-offset-[3px]" onClick={() => void updateServiceWorker(true)}>Reload</TextAction></Banner>}
-      {!installDismissed && !isStandalone() && (installEvent || isIos()) && (
-        <Banner onClose={dismissInstall}>
-          Install Gambit to keep your data safe: browsers can erase data for sites that aren't installed.
-          {installEvent ? <TextAction className="underline underline-offset-[3px]" onClick={() => void installEvent.prompt()}>Install</TextAction> : <span>Tap Share, then Add to Home Screen.</span>}
-        </Banner>
-      )}
       {sync === 'needs_permission' && <Banner>Backup file needs permission again. <TextAction className="underline underline-offset-[3px]" onClick={() => void reauthorizeFileSync()}>Re-authorize</TextAction></Banner>}
     </>
   );
@@ -67,13 +61,6 @@ function Main() {
 
   useEffect(() => { if (current && current.id !== activeId) void setActiveGoal(current.id); }, [current, activeId]);
   useEffect(() => startFileSync(), []);
-  // The index card's "Not yet" / "Something changed" should bring the
-  // conversation to the front on mobile too, not just fill the composer.
-  useEffect(() => {
-    const onCompose = () => setChatOpen(true);
-    window.addEventListener('gambit:compose', onCompose);
-    return () => window.removeEventListener('gambit:compose', onCompose);
-  }, [setChatOpen]);
   // gambit:menu used to open a Settings Leaf; Inside cover is now a real
   // page in the tab stack instead (Tabs.tsx listens for this event itself
   // and switches to it), so there's nothing left for App.tsx to do here.
@@ -125,12 +112,16 @@ function Main() {
 export default function App() {
   const [ready, setReady] = useState(false);
   useEffect(() => { void (async () => { await migrateAll(); await initDurability(); setReady(true); })(); }, []);
-  const needsSetup = useLiveQuery(async () => { const p = await getProvider(); return !p || !(await hasApiKey(p.kind)); }, []);
-  if (!ready || needsSetup === undefined) return null;
+  const setup = useLiveQuery(async () => {
+    const p = await getProvider();
+    const needed = !p || !(p.kind in PROVIDERS) || !(await hasApiKey(p.kind));
+    return { needed, hasGoals: (await db.goals.count()) > 0 };
+  }, []);
+  if (!ready || setup === undefined) return null;
   return (
     <>
       <Filters />
-      {needsSetup ? <Setup /> : <Main />}
+      {setup.needed ? <Setup hasGoals={setup.hasGoals} /> : <Main />}
     </>
   );
 }

@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, getSetting } from '../lib/db';
 import { deleteGoal } from '../lib/goals';
 import { clearChat } from '../lib/agent';
-import { readDurability, requestPersistence, isIos, useUi, type Durability } from '../lib/persist';
+import { readDurability, requestPersistence, installRoute, installSteps, useUi, type Durability } from '../lib/persist';
 import { bindExportFile, commitImport, downloadExport, fileSyncState, fsAccessSupported, planImport, reauthorizeFileSync, unbindExportFile, type Choice, type ImportItem } from '../lib/portability';
 import { methodsLicense } from '../lib/skills';
 import { fmtUsd } from '../lib/cost';
@@ -15,19 +15,60 @@ import type { GoalRecord } from '../lib/db';
 // The Inside cover page (owner correction: no longer a Leaf/popup — a real
 // tab+panel, so its content is plain page sections per brand/identity.md
 // §05 ("no containers around ordinary text" — a heading and text on the
-// page, separated by whitespace), not the old <details> accordion. Order
-// follows the task spec: Your notebooks, Model and key, Keep it safe
-// (export/backup), This device (clear chat + remaining settings), with
-// About/licenses and the danger zone kept at the end.
+// page, separated by whitespace), not the old <details> accordion. Order:
+// Your notebooks, Model and key, Saving your work (install + backup file),
+// Conversation and cost (clear chat, spend), the danger zone, and the maker's mark
+// with the version and licenses at the foot.
+//
+// Three levels, and no rules between them: a section heading, a small
+// graphite label over each group inside a section, then rows and actions.
+// Sections sit further apart than anything inside one, so the whitespace
+// alone shows where a section ends.
 
 const PageSection = ({ title, children }: { title: string; children: ReactNode }) => (
-  <section className="space-y-3">
-    <h2 className="font-sans text-[17px] font-semibold leading-6">{title}</h2>
+  <section className="space-y-4">
+    <h2 className="font-sans text-[20px] font-semibold leading-7">{title}</h2>
     {children}
   </section>
 );
 
-function DataPanel() {
+/** A labelled group inside a section. `note` is the group's current state,
+ * pencilled at the end of the label's line. */
+const Group = ({ label, note, children }: { label: string; note?: string; children: ReactNode }) => (
+  <div className="space-y-1">
+    <div className="flex items-baseline justify-between gap-3">
+      <h3 className="text-[14px] leading-5 text-graphite">{label}</h3>
+      {note && <PencilWord className="shrink-0 text-[19px]">{note}</PencilWord>}
+    </div>
+    {children}
+  </div>
+);
+
+/** One fact and its pencilled answer, at opposite ends of a line. */
+const Row = ({ label, children }: { label: string; children: ReactNode }) => (
+  <div className="flex items-baseline justify-between gap-3 text-[17px] leading-[27px]">
+    <span>{label}</span>
+    <PencilWord className="shrink-0">{children}</PencilWord>
+  </div>
+);
+
+const Actions = ({ children }: { children: ReactNode }) => (
+  <div className="flex flex-wrap items-center gap-x-5">{children}</div>
+);
+
+const linkCls = 'underline underline-offset-[3px]';
+const smallCls = 'text-[14px] leading-[22px] text-graphite';
+
+/** "19 Sep", with the year only when it isn't this one. */
+function shortDay(ts: number): string {
+  const d = new Date(ts);
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) });
+}
+
+/** "Saving your work": whether the browser will keep the notebooks, with
+ * the action that fixes it when it won't, and the backup file. */
+function KeepSafe() {
   const [d, setD] = useState<Durability | null>(null);
   const [sync, setSync] = useState<'off' | 'active' | 'needs_permission'>('off');
   const [items, setItems] = useState<ImportItem[] | null>(null);
@@ -39,79 +80,110 @@ function DataPanel() {
   useEffect(() => { void refresh(); }, []);
   const guard = (f: () => Promise<void>) => async () => { setMsg(''); try { await f(); } catch (e) { if ((e as Error).name !== 'AbortError') setMsg((e as Error).message); } await refresh(); };
 
+  const justInstalled = useUi((s) => s.justInstalled);
+  const [declined, setDeclined] = useState(false);
+  const installed = !!d?.installed || justInstalled;
+  const route = installRoute(!!installEvent);
+  // Either one stops the browser clearing the notebooks on its own.
+  const kept = installed || !!d?.persisted;
+  const stale = Date.now() - (last ?? 0) > 14 * 864e5;
+  const backupNote =
+    sync === 'active' ? 'backing up automatically'
+    : sync === 'needs_permission' ? 'needs permission'
+    : !last ? 'not saved yet'
+    : stale ? `last saved ${shortDay(last)}, a while ago`
+    : `saved ${shortDay(last)}`;
+
   return (
-    <>
-      <div className="space-y-1 text-[17px]">
-        <div>Persistent storage: <PencilWord>{d?.persisted === null ? 'unsupported' : d?.persisted ? 'granted' : 'not granted'}</PencilWord></div>
-        <div>Installed to home screen: <PencilWord>{d?.installed ? 'yes' : 'no'}</PencilWord></div>
-        {d?.usageMB != null && <div className="text-[14px] text-graphite">Using {d.usageMB.toFixed(1)} MB of {Math.round(d.quotaMB ?? 0)} MB</div>}
-        {!d?.installed && <p className="text-[14px] text-graphite">Browsers can erase data for sites that aren't installed after a stretch without use (Safari after about a week). Installing is the durability mechanism. {isIos() ? 'On iPhone/iPad: Share, then Add to Home Screen.' : ''}</p>}
-      </div>
-      <div className="flex flex-wrap items-center gap-4">
-        {!d?.persisted && <TextAction className="underline underline-offset-[3px]" onClick={guard(async () => { await requestPersistence(); })}>Request persistent storage</TextAction>}
-        {installEvent && <InkButton onClick={() => void installEvent.prompt()}>Install app</InkButton>}
-      </div>
-      <hr className="border-rule" />
-      <div className="text-[17px]">Backup file{last ? <span className="text-[14px] text-graphite"> · last written {new Date(last).toLocaleString()}</span> : null}</div>
-      <div className="flex flex-wrap items-center gap-4">
-        <TextAction className="underline underline-offset-[3px]" onClick={guard(downloadExport)}>Export all goals (JSON)</TextAction>
-        <TextAction className="underline underline-offset-[3px]" onClick={() => document.getElementById('import-file-input')?.click()}>
-          Import…
-        </TextAction>
-        <input id="import-file-input" type="file" accept="application/json,.json" className="hidden" onChange={async (e) => {
-          const input = e.target;
-          const f = input.files?.[0];
-          input.value = '';
-          if (!f) return;
-          setMsg('');
-          try { setItems(await planImport(await f.text())); setChoices({}); } catch (err) { setMsg((err as Error).message); }
-        }} />
-      </div>
-      {fsAccessSupported() ? (
-        <div className="space-y-1">
-          <div className="text-[14px] text-graphite">Bind a file once and every change is written through to it automatically.</div>
-          {sync === 'off' && <TextAction className="underline underline-offset-[3px]" onClick={guard(bindExportFile)}>Bind backup file</TextAction>}
-          {sync === 'active' && (
-            <div className="flex items-center gap-3 text-[17px]">
-              <PencilWord>write-through on</PencilWord>
-              <TextAction className="underline underline-offset-[3px]" onClick={guard(unbindExportFile)}>Unbind</TextAction>
-            </div>
-          )}
-          {sync === 'needs_permission' && <InkButton onClick={guard(reauthorizeFileSync)}>Re-authorize file access</InkButton>}
-        </div>
-      ) : <p className="text-[14px] text-graphite">This browser can't write to a bound file, so export regularly; you'll be reminded.</p>}
-      {items && (
-        <div className="space-y-2 border-t border-card-rule pt-3 text-[17px]">
-          {items.map((it) => (
-            <div key={it.id} className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <div className="truncate">{it.title}</div>
-                {it.error && <div className="text-[14px] text-accent">{it.error}</div>}
-                {it.conflict && !it.error && <div className="text-[14px] text-graphite">A goal with this id already exists</div>}
-              </div>
-              {!it.error && (
-                <select className="border-0 border-b border-card-rule bg-transparent px-1 py-1 text-[14px] text-ink focus:border-ink focus:outline-none" value={choices[it.id] ?? (it.conflict ? 'copy' : 'replace')} onChange={(e) => setChoices({ ...choices, [it.id]: e.target.value as Choice })}>
-                  {it.conflict ? <><option value="copy">Add as copy</option><option value="replace">Replace (backup kept)</option></> : <option value="replace">Add</option>}
-                  <option value="skip">Skip</option>
-                </select>
+    <div className="space-y-6">
+      <Group label="In this browser" note={d ? (kept ? 'kept' : 'could be cleared') : undefined}>
+        {d && (kept ? (
+          <p className={smallCls}>
+            Your notebooks live only in this browser, and it won't clear them on its own.
+            {installed ? ' Gambit is installed on this device.' : ' The browser has agreed to keep them.'}
+          </p>
+        ) : (
+          <>
+            <p className={smallCls}>
+              Your notebooks live only in this browser, and browsers clear sites you haven't opened in a while (Safari after about a week). Installing Gambit stops that.
+            </p>
+            <Actions>
+              {installEvent && <InkButton className="my-2" onClick={() => void installEvent.prompt()}>Install Gambit</InkButton>}
+              {d.persisted === false && !declined && (
+                <TextAction className={linkCls} onClick={guard(async () => { if (!(await requestPersistence())) setDeclined(true); })}>
+                  {installEvent ? 'Or ask the browser to keep them' : 'Ask the browser to keep them'}
+                </TextAction>
               )}
-            </div>
-          ))}
-          <div className="flex items-center gap-4">
-            <InkButton onClick={guard(async () => { const r = await commitImport(items, choices); setItems(null); setMsg(`Added ${r.added}, replaced ${r.replaced}.`); })}>Import</InkButton>
-            <TextAction className="underline underline-offset-[3px]" onClick={() => setItems(null)}>Cancel</TextAction>
-          </div>
+            </Actions>
+            {route === 'ios' || route === 'mac-safari' ? (
+              <p className={smallCls}>To install: {installSteps[route].charAt(0).toLowerCase() + installSteps[route].slice(1)}</p>
+            ) : route === 'none' ? (
+              <p className={smallCls}>This browser can't install apps, so a backup file is your safety net.</p>
+            ) : null}
+            {declined && <p className={smallCls}>The browser said no. Installing usually changes its mind, and a backup file covers you either way.</p>}
+          </>
+        ))}
+      </Group>
+
+      <Group label="Backup file" note={backupNote}>
+        {/* One action per line: the automatic backup first where the
+            browser supports it, the one-off save under it. */}
+        <div className="flex flex-col items-start">
+          {fsAccessSupported() && sync === 'off' && <TextAction className={linkCls} onClick={guard(bindExportFile)}>Back up to a file automatically…</TextAction>}
+          {fsAccessSupported() && sync === 'needs_permission' && <InkButton className="my-2" onClick={guard(reauthorizeFileSync)}>Resume automatic backups</InkButton>}
+          <TextAction className={linkCls} onClick={guard(downloadExport)}>{fsAccessSupported() ? 'Save a backup file now' : 'Save a backup file'}</TextAction>
+          {fsAccessSupported() && sync === 'active' && <TextAction className={linkCls} onClick={guard(unbindExportFile)}>Stop automatic backups</TextAction>}
         </div>
-      )}
+        {!fsAccessSupported() && <p className={smallCls}>This browser can't back up automatically, so save a backup file every so often.</p>}
+      </Group>
+
+      <Group label="Restore">
+        <Actions>
+          <TextAction className={linkCls} onClick={() => document.getElementById('import-file-input')?.click()}>
+            Import a backup file…
+          </TextAction>
+          <input id="import-file-input" type="file" accept="application/json,.json" className="hidden" onChange={async (e) => {
+            const input = e.target;
+            const f = input.files?.[0];
+            input.value = '';
+            if (!f) return;
+            setMsg('');
+            try { setItems(await planImport(await f.text())); setChoices({}); } catch (err) { setMsg((err as Error).message); }
+          }} />
+        </Actions>
+        {items && (
+          <div className="space-y-2 pt-2 text-[17px]">
+            {items.map((it) => (
+              <div key={it.id} className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="truncate">{it.title}</div>
+                  {it.error && <div className="text-[14px] text-accent">{it.error}</div>}
+                  {it.conflict && !it.error && <div className="text-[14px] text-graphite">A goal with this id already exists</div>}
+                </div>
+                {!it.error && (
+                  <select className="border-0 border-b border-card-rule bg-transparent px-1 py-1 text-[14px] text-ink focus:border-ink focus:outline-none" value={choices[it.id] ?? (it.conflict ? 'copy' : 'replace')} onChange={(e) => setChoices({ ...choices, [it.id]: e.target.value as Choice })}>
+                    {it.conflict ? <><option value="copy">Add as copy</option><option value="replace">Replace (backup kept)</option></> : <option value="replace">Add</option>}
+                    <option value="skip">Skip</option>
+                  </select>
+                )}
+              </div>
+            ))}
+            <div className="flex items-center gap-5 pt-1">
+              <InkButton onClick={guard(async () => { const r = await commitImport(items, choices); setItems(null); setMsg(`Added ${r.added}, replaced ${r.replaced}.`); })}>Import</InkButton>
+              <TextAction className={linkCls} onClick={() => setItems(null)}>Cancel</TextAction>
+            </div>
+          </div>
+        )}
+      </Group>
       {msg && <p className="text-[14px] text-ink">{msg}</p>}
-    </>
+    </div>
   );
 }
 
 function Licenses() {
   const [t, setT] = useState('');
   useEffect(() => { void methodsLicense().then(setT); }, []);
-  return <pre className="max-h-64 overflow-auto border-t border-card-rule pt-2 whitespace-pre-wrap font-mono text-[13px] text-graphite">{t}</pre>;
+  return <pre className="max-h-64 overflow-auto whitespace-pre-wrap font-mono text-[13px] text-graphite">{t}</pre>;
 }
 
 /** The goal switcher, as a shelf of notebooks (menu.html's "Notebooks"
@@ -132,23 +204,8 @@ function NotebookShelf({ goals, activeId, onSwitch, onNew }: { goals: GoalRecord
           </li>
         ))}
       </ul>
-      <TextAction className="underline underline-offset-[3px]" onClick={onNew}>New goal</TextAction>
+      <TextAction className={linkCls} onClick={onNew}>New goal</TextAction>
     </div>
-  );
-}
-
-/** The export-status line + Export action, part of "Keep it safe". */
-function ExportStatus() {
-  const [sync, setSync] = useState<'off' | 'active' | 'needs_permission'>('off');
-  const last = useLiveQuery(() => getSetting<number>('lastExportAt'), []);
-  useEffect(() => { void fileSyncState().then(setSync); }, []);
-  const stale = sync !== 'active' && Date.now() - (last ?? 0) > 14 * 864e5;
-  if (!stale) return <p className="text-[14px] text-graphite">Backed up{last ? ` ${new Date(last).toLocaleDateString()}` : ''}.</p>;
-  return (
-    <p className="hand text-[16px]">
-      Your goals haven't been exported in a while.{' '}
-      <TextAction className="!min-h-0 font-sans text-[15px] not-italic underline underline-offset-[3px]" onClick={() => downloadExport()}>Export</TextAction>
-    </p>
   );
 }
 
@@ -161,40 +218,67 @@ export interface SettingsPageProps {
   onNewGoal?: () => void;
 }
 
+/** The session's estimated spend on one line, with the token and prompt
+ * breakdown one tap behind it. Shows nothing until a turn has been billed. */
+function Spend({ cost }: { cost: SettingsPageProps['cost'] }) {
+  const [open, setOpen] = useState(false);
+  if (!cost || cost.turns === 0) return null;
+  return (
+    <Group label="Estimated spend, last six hours">
+      <Row label={cost.dollars === null ? 'No list price for this model' : fmtUsd(cost.dollars)}>{`${cost.turns} turn${cost.turns === 1 ? '' : 's'}`}</Row>
+      <Actions>
+        <TextAction className={linkCls} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Hide the breakdown' : 'Show the breakdown'}</TextAction>
+      </Actions>
+      {open && <div className="anim-fade-in pt-1"><CostPanel /></div>}
+    </Group>
+  );
+}
+
+/** The maker's mark, where a notebook carries it: inside the cover, at the
+ * foot. The only place the wordmark appears once a notebook is open. */
+function Colophon() {
+  const [open, setOpen] = useState(false);
+  return (
+    <footer className="space-y-1">
+      <div className="font-serif text-[17px] font-semibold leading-[25.5px] tracking-[-0.01em] text-ink">gambit</div>
+      <p className={smallCls}>Version {__APP_VERSION__}. No analytics, no third-party scripts, no account.</p>
+      <TextAction className={`${linkCls} text-[14px]! text-graphite!`} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Hide licenses' : 'Licenses'}</TextAction>
+      {open && <div className="anim-fade-in"><Licenses /></div>}
+    </footer>
+  );
+}
+
 /** Inside cover: everything the old menu Leaf had, laid out as plain page
- * sections (owner correction — "it's a page, not a Leaf"). Order per the
- * task spec: Your notebooks, Model and key, Keep it safe, This device,
- * then About/licenses and the danger zone. */
+ * sections (owner correction — "it's a page, not a Leaf"). */
 export function SettingsPage({ goalId, goals, activeId, cost, onSwitchGoal, onNewGoal }: SettingsPageProps) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-12">
       <PageSection title="Your notebooks">
         <NotebookShelf goals={goals ?? []} activeId={activeId} onSwitch={(id) => onSwitchGoal?.(id)} onNew={() => onNewGoal?.()} />
       </PageSection>
       <PageSection title="Model and key"><ProviderForm /></PageSection>
-      <PageSection title="Keep it safe">
-        <ExportStatus />
-        <DataPanel />
-      </PageSection>
-      <PageSection title="This device">
-        {goalId && (
-          <TextAction className="text-[14px] text-graphite underline underline-offset-[3px]" onClick={() => confirm('Clear the conversation? The goal itself is kept.') && void clearChat(goalId)}>
-            Clear the conversation
-          </TextAction>
-        )}
-        {cost && cost.turns > 0 && <p className="text-[14px] text-graphite">Estimated session spend: {fmtUsd(cost.dollars)}</p>}
-        <CostPanel />
-      </PageSection>
-      <PageSection title="About and licenses">
-        <p className="text-[14px] text-graphite">App {__APP_VERSION__}. No analytics, no third-party scripts, no account.</p>
-        <Licenses />
-      </PageSection>
-      <PageSection title="Danger zone">
-        <div className="flex flex-wrap items-center gap-4">
-          {goalId && <TextAction className="text-ink underline underline-offset-[3px]" onClick={() => confirm('Delete the active goal and its chat? This cannot be undone. Export first if unsure.') && void deleteGoal(goalId)}>Delete active goal</TextAction>}
-          <TextAction className="text-ink underline underline-offset-[3px]" onClick={() => confirm('Erase ALL Gambit data on this device, including your saved key?') && void db.delete().then(() => location.reload())}>Erase everything</TextAction>
+      <PageSection title="Saving your work"><KeepSafe /></PageSection>
+      <PageSection title="Conversation and cost">
+        <div className="space-y-6">
+          {goalId && (
+            <Group label="Conversation">
+              <Actions>
+                <TextAction className={linkCls} onClick={() => confirm('Clear the conversation? The goal itself is kept.') && void clearChat(goalId)}>
+                  Clear the conversation
+                </TextAction>
+              </Actions>
+            </Group>
+          )}
+          <Spend cost={cost} />
         </div>
       </PageSection>
+      <PageSection title="Danger zone">
+        <Actions>
+          {goalId && <TextAction className={linkCls} onClick={() => confirm('Delete the active goal and its chat? This cannot be undone. Export first if unsure.') && void deleteGoal(goalId)}>Delete active goal</TextAction>}
+          <TextAction className={linkCls} onClick={() => confirm('Erase ALL Gambit data on this device, including your saved key?') && void db.delete().then(() => location.reload())}>Erase everything</TextAction>
+        </Actions>
+      </PageSection>
+      <Colophon />
     </div>
   );
 }

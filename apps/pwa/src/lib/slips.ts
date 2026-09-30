@@ -17,6 +17,7 @@ export interface SlipItem {
   action: string;
   who?: string;
   when?: string;
+  detail?: string;
 }
 
 interface Found extends SlipItem {
@@ -36,6 +37,7 @@ function allNextActions(goal: Goal): Found[] {
         action: a.action,
         who: a.who,
         when: a.when,
+        detail: a.detail,
         li,
         ai,
       });
@@ -52,7 +54,7 @@ export function nextMove(goal: Goal): SlipItem | null {
     for (let ai = 0; ai < line.nextActions.length; ai++) {
       const a = line.nextActions[ai];
       if (a.status === 'pending') {
-        return { path: `plan.linesOfOperation.${li}.nextActions.${ai}`, action: a.action, who: a.who, when: a.when };
+        return { path: `plan.linesOfOperation.${li}.nextActions.${ai}`, action: a.action, who: a.who, when: a.when, detail: a.detail };
       }
     }
   }
@@ -66,7 +68,7 @@ export function proposals(goal: Goal): SlipItem[] {
   lines.forEach((line, li) => {
     line.nextActions.forEach((a, ai) => {
       if (a.status === 'proposed') {
-        out.push({ path: `plan.linesOfOperation.${li}.nextActions.${ai}`, action: a.action, who: a.who, when: a.when });
+        out.push({ path: `plan.linesOfOperation.${li}.nextActions.${ai}`, action: a.action, who: a.who, when: a.when, detail: a.detail });
       }
     });
   });

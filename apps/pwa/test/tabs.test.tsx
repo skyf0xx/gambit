@@ -6,8 +6,9 @@ import { GoalTab } from '../src/components/tabs/GoalTab';
 import { MovesTab } from '../src/components/tabs/MovesTab';
 import { PeopleTab } from '../src/components/tabs/PeopleTab';
 import { RisksTab } from '../src/components/tabs/RisksTab';
-import { ChoicesTab } from '../src/components/tabs/ChoicesTab';
+import { BetsTab } from '../src/components/tabs/BetsTab';
 import { CapacityTab } from '../src/components/tabs/CapacityTab';
+import { LogsTab } from '../src/components/tabs/LogsTab';
 import { InsideCoverTab } from '../src/components/tabs/InsideCoverTab';
 import type { Goal } from '../src/lib/types';
 
@@ -77,15 +78,16 @@ describe('tabForPath', () => {
     expect(tabForPath('exposure.0')).toBe('risks');
   });
 
-  it('routes decisions, experiments, forecasts, systemsNotes to choices', () => {
-    expect(tabForPath('decisions.0')).toBe('choices');
-    expect(tabForPath('experiments.0')).toBe('choices');
-    expect(tabForPath('forecasts.0')).toBe('choices');
-    expect(tabForPath('systemsNotes')).toBe('choices');
+  it('routes decisions, experiments, forecasts, systemsNotes to bets', () => {
+    expect(tabForPath('decisions.0')).toBe('bets');
+    expect(tabForPath('experiments.0')).toBe('bets');
+    expect(tabForPath('forecasts.0')).toBe('bets');
+    expect(tabForPath('systemsNotes')).toBe('bets');
   });
 
   it('routes capacity paths to capacity', () => {
     expect(tabForPath('capacity')).toBe('capacity');
+    expect(tabForPath('log.0')).toBe('logs');
   });
 
   it('falls back an unrecognized or empty path to moves', () => {
@@ -105,11 +107,12 @@ describe('tabHasContent', () => {
     expect(tabHasContent('inside-cover', empty)).toBe(true);
   });
 
-  it('people/risks/choices/capacity are hidden on a stub goal', () => {
+  it('people/risks/bets/capacity are hidden on a stub goal', () => {
     expect(tabHasContent('people', empty)).toBe(false);
     expect(tabHasContent('risks', empty)).toBe(false);
-    expect(tabHasContent('choices', empty)).toBe(false);
+    expect(tabHasContent('bets', empty)).toBe(false);
     expect(tabHasContent('capacity', empty)).toBe(false);
+    expect(tabHasContent('logs', empty)).toBe(false);
   });
 
   it('every tab shows once its keys are populated', () => {
@@ -130,13 +133,19 @@ function render(el: React.ReactElement) {
 describe('tab content components render the right lines', () => {
   const g = seededGoal();
 
-  it('MovesTab shows the plan, criteriaStatus and a 5-entry Lately list', () => {
+  it('MovesTab shows the plan and criteriaStatus, and leaves the log to Logs', () => {
     const html = render(<MovesTab g={g} goalId="g1" />);
     expect(html).toContain('data-line="plan.linesOfOperation.0.nextActions.0"');
     expect(html).toContain('data-line="criteriaStatus.0"');
-    expect(html).toContain('Lately');
-    expect(html).not.toContain('entry 1'); // oldest of 6 entries, trimmed to last 5
-    expect(html).toContain('entry 6');
+    expect(html).not.toContain('Logs');
+    expect(html).not.toContain('entry 6');
+  });
+
+  it('LogsTab shows the whole log, newest first', () => {
+    const html = render(<LogsTab g={g} />);
+    expect(html).toContain('Logs');
+    expect(html).toContain('entry 1');
+    expect(html.indexOf('entry 6')).toBeLessThan(html.indexOf('entry 1'));
   });
 
   it('MovesTab does not render the goal title, people, risk, or capacity content', () => {
@@ -175,8 +184,8 @@ describe('tab content components render the right lines', () => {
       const html = render(<InsideCoverTab goalId="g1" goals={[]} />);
       expect(html).toContain('Your notebooks');
       expect(html).toContain('Model and key');
-      expect(html).toContain('Keep it safe');
-      expect(html).toContain('This device');
+      expect(html).toContain('Saving your work');
+      expect(html).toContain('Conversation and cost');
       expect(html).toContain('New goal');
     } finally {
       if (hadWindow) (globalThis as { window?: unknown }).window = prevWindow;
@@ -197,8 +206,8 @@ describe('tab content components render the right lines', () => {
     expect(html).toContain('data-line="exposure.0"');
   });
 
-  it('ChoicesTab shows decisions, experiments, forecasts, and systemsNotes', () => {
-    const html = render(<ChoicesTab g={g} goalId="g1" />);
+  it('BetsTab shows decisions, experiments, forecasts, and systemsNotes', () => {
+    const html = render(<BetsTab g={g} goalId="g1" />);
     expect(html).toContain('data-line="decisions.0"');
     expect(html).toContain('data-line="experiments.0"');
     expect(html).toContain('data-line="forecasts.0"');
@@ -207,7 +216,8 @@ describe('tab content components render the right lines', () => {
 
   it('CapacityTab shows capacity', () => {
     const html = render(<CapacityTab g={g} goalId="g1" />);
-    expect(html).toContain('10 hrs/week');
+    expect(html).toContain('Hours a week');
+    expect(html).toContain('>10<');
     expect(html).toContain('6 months');
   });
 });

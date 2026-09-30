@@ -3,8 +3,12 @@ import { writeSection } from '@gambit/core';
 import { applyOp } from '../../lib/goals';
 import type { Goal } from '../../lib/types';
 import { RuledInput, PencilWord } from '../ui';
-import { timeLeft } from '../../lib/dates';
+import { timeLeft, proseDates } from '../../lib/dates';
 import { Section, isEmptySection } from './SectionRenderer';
+import { SectionHeading } from '../paper/SectionHeading';
+import { FreshTag } from '../paper/FreshTag';
+import { sectionTitleFor } from '../sectionTitles';
+import { KeepNotebook } from '../paper/KeepNotebook';
 
 function GoalHeader({ g, goalId }: { g: Goal; goalId: string }) {
   const [editing, setEditing] = useState(false);
@@ -28,12 +32,13 @@ function GoalHeader({ g, goalId }: { g: Goal; goalId: string }) {
           onDoubleClick={() => { setVal(g.goal); setEditing(true); }}
         >
           {g.goal}
+          <FreshTag path="goal" />
         </h1>
       )}
       {stub ? (
         <PencilWord>Not yet defined — describe the goal in the chat to fill this in.</PencilWord>
       ) : g.deadline ? (
-        <PencilWord>{timeLeft(g.deadline)}</PencilWord>
+        <PencilWord>{timeLeft(g.deadline)}<FreshTag path="deadline" /></PencilWord>
       ) : null}
     </header>
   );
@@ -46,26 +51,31 @@ function GoalHeader({ g, goalId }: { g: Goal; goalId: string }) {
 function SubGoals({ subGoals }: { subGoals: string[] }) {
   if (subGoals.length === 0) return null;
   return (
-    <section className="anim-fade-in space-y-2">
-      <h2 className="font-sans text-[17px] font-semibold leading-6">Parts of this goal</h2>
+    <section className="anim-fade-in space-y-3">
+      <SectionHeading k="subGoals">{sectionTitleFor('subGoals').title}</SectionHeading>
       <ul className="list-disc space-y-1 pl-5 text-[17px] leading-[27px]">
         {subGoals.map((s, i) => (
-          <li key={i} data-line={`subGoals.${i}`}>{s}</li>
+          <li key={i} data-line={`subGoals.${i}`}>{proseDates(s)}</li>
         ))}
       </ul>
     </section>
   );
 }
 
-/** Goal: the goal's own identity page — title, deadline, what done looks
- * like (successCriteria), and the parts of the goal (subGoals). Split out
- * of Moves (owner correction) so Moves stays about doing, not defining. */
+/** Goal: the goal's own identity page — title, deadline, the parts of the
+ * goal (subGoals), and what done looks like (successCriteria). It reads
+ * top down from the aim to its measure: the parts are the rest of the goal
+ * sentence, so they sit straight under the title, ahead of the criteria.
+ * Split out of Moves (owner correction) so Moves stays about doing, not
+ * defining. */
 export function GoalTab({ g, goalId }: { g: Goal; goalId: string }) {
+  const stub = g.successCriteria.length === 1 && g.successCriteria[0].text === 'define success criteria';
   return (
-    <>
+    <div className="space-y-8">
       <GoalHeader g={g} goalId={goalId} />
-      {isEmptySection(g.successCriteria) ? null : <Section goalId={goalId} k="successCriteria" data={g.successCriteria} />}
+      {!stub && <KeepNotebook />}
       <SubGoals subGoals={g.subGoals ?? []} />
-    </>
+      {isEmptySection(g.successCriteria) ? null : <Section goalId={goalId} k="successCriteria" data={g.successCriteria} />}
+    </div>
   );
 }

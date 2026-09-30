@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stubGoal, writeSection, appendLog, setStatus, summarizeChange, WRITABLE_KEYS, capLog, LOG_CAP, GOAL_MAX_WORDS } from '../src/index.mjs';
+import { stubGoal, writeSection, appendLog, setStatus, summarizeChange, WRITABLE_KEYS, capLog, LOG_CAP, GOAL_MAX_WORDS, goalSchema } from '../src/index.mjs';
 
 const plan = {
   linesOfOperation: [{
@@ -56,10 +56,33 @@ test('setStatus flips one node and surfaces reconcile warnings', () => {
 
 test('setStatus: a proposed next action is kept or tossed; steps cannot be proposed', () => {
   const g = writeSection(stubGoal('g'), 'plan', plan).goal;
+  g.plan.linesOfOperation[0].nextActions[1].detail = 'unblocks the lease talk';
   const proposed = setStatus(g, 'plan.linesOfOperation.0.nextActions.1', 'proposed');
   assert.equal(proposed.ok, true);
   assert.equal(setStatus(proposed.goal, 'plan.linesOfOperation.0.nextActions.1', 'pending').goal.plan.linesOfOperation[0].nextActions[1].status, 'pending');
   assert.equal(setStatus(g, 'plan.linesOfOperation.0.criticalPath.0', 'proposed').ok, false);
+  // No detail, no proposal.
+  const bare = setStatus(g, 'plan.linesOfOperation.0.nextActions.0', 'proposed');
+  assert.equal(bare.ok, false);
+  assert.equal(bare.errors[0].path, 'plan.linesOfOperation.0.nextActions.0.detail');
+});
+
+test('a proposed move needs its detail on write, but an older one without it still reads and can be kept', () => {
+  const g = stubGoal('g');
+  const withProposal = (detail) => ({
+    linesOfOperation: [{ ...plan.linesOfOperation[0], nextActions: [{ action: 'call the landlord', who: 'me', when: 'Fri', status: 'proposed', detail }] }],
+  });
+  const bare = writeSection(g, 'plan', withProposal(undefined));
+  assert.equal(bare.ok, false);
+  assert.equal(bare.errors[0].path, 'plan.linesOfOperation.0.nextActions.0.detail');
+  assert.match(bare.errors[0].message, /why this, why now/);
+  assert.equal(writeSection(g, 'plan', withProposal('  ')).ok, false);
+  assert.equal(writeSection(g, 'plan', withProposal('the lease renews in March')).ok, true);
+
+  // Saved before the rule: reads fine, and the user can still keep it.
+  const legacy = { ...g, plan: withProposal(undefined) };
+  assert.equal(goalSchema.safeParse(legacy).success, true);
+  assert.equal(setStatus(legacy, 'plan.linesOfOperation.0.nextActions.0', 'pending').ok, true);
 });
 
 test('appendLog is append-only and validated', () => {

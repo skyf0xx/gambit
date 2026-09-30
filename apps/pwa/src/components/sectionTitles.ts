@@ -4,7 +4,7 @@
 // key that can render as a section on the page.
 
 export interface SectionTitle {
-  /** Plain-language heading (Inter 17/24, weight 600). */
+  /** Plain-language heading (Inter 20/28, weight 600). */
   title: string;
   /** The method name, pencilled beside the heading in Caveat. Omitted when a plain heading needs no gloss. */
   method?: string;
@@ -16,6 +16,8 @@ export interface SectionTitle {
 
 const TITLES: Record<string, SectionTitle> = {
   successCriteria: { title: 'What done looks like' },
+  subGoals: { title: 'Parts of this goal' },
+  log: { title: 'Logs' },
   plan: { title: 'Future moves' },
   people: { title: "Who's involved" },
   stakeholders: { title: 'Who else has a say', method: 'stakeholders', methodNote: 'stakeholders: mapping who has power and what they want' },
@@ -23,11 +25,13 @@ const TITLES: Record<string, SectionTitle> = {
   riskNotes: { title: 'What could go wrong', method: 'red team', methodNote: 'red team: arguing against your own plan' },
   decisions: { title: 'Decisions', method: 'decide', methodNote: 'decide: a choice made, with what would reverse it' },
   exposure: { title: 'What you’re exposed to', method: 'exposure', methodNote: 'exposure: your personal legal, financial and safety risk' },
-  capacity: { title: 'What you actually have', method: 'capacity', methodNote: 'capacity: your real hours, money and runway' },
-  forecasts: { title: 'Bets on the record', method: 'forecast', methodNote: 'forecast: a dated prediction, scored later' },
-  experiments: { title: 'Still a guess', method: 'experiment', methodNote: 'experiment: the smallest test that could prove you wrong' },
+  capacity: { title: 'What you actually have' },
+  forecasts: { title: 'Predictions', method: 'forecast', methodNote: 'forecast: a dated prediction, checked later to see how well you called it' },
+  experiments: { title: 'Things to test', method: 'experiment', methodNote: 'experiment: the smallest test that could prove you wrong' },
   criteriaStatus: { title: 'How it’s going', method: 'eval', methodNote: 'eval: checking progress against done' },
 };
+
+export const hasSectionTitle = (key: string) => key in TITLES;
 
 export function sectionTitleFor(key: string): SectionTitle {
   return TITLES[key] ?? { title: key };

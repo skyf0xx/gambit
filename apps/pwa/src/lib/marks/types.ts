@@ -1,6 +1,6 @@
 import type { LinePath } from '../changes';
 
-export type MarkKind = 'tick' | 'highlight' | 'star' | 'arrow' | 'arrow-text' | 'squiggle' | 'cancel' | 'question' | 'loop';
+export type MarkKind = 'tick' | 'highlight' | 'star' | 'arrow' | 'arrow-text' | 'cancel' | 'question' | 'loop';
 
 export interface Mark {
   kind: MarkKind;

@@ -30,8 +30,9 @@ negotiation prep, forecasting) without making you learn them.
 ## Private by design
 
 No account and no server. Your goals, chats, and key stay in your browser.
-You bring an API key from Anthropic, OpenAI, OpenRouter, or any
-OpenAI-compatible provider, and pay them directly for what you use.
+You bring a key: a free one from Google AI Studio takes about two
+minutes, or use Anthropic, OpenAI, OpenRouter, or any OpenAI-compatible
+provider. You pay them directly for what you use.
 
 ## For developers
 

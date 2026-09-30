@@ -159,27 +159,18 @@ describe('deriveMarks — arrow', () => {
   });
 });
 
-describe('deriveMarks — squiggle', () => {
-  it('marks an open experiment assumption', () => {
+describe('deriveMarks — experiments and forecasts', () => {
+  // Their open/settled state is shown by grouping under a pencilled status
+  // on the page itself (Sections.tsx), not by a mark.
+  it('leaves open experiments and forecasts unmarked', () => {
     const goal: Goal = {
       ...(stubGoal('Goal') as Goal),
       experiments: [{ assumption: 'x works', test: 'try it', passIf: 'y', by: '2026-02-01', done: false }],
+      forecasts: [{ statement: 'will happen', probability: 60, resolvesBy: '2026-02-01', resolvesVia: 'check', resolved: false }],
     };
     const { byPath } = deriveMarks(goal, 'g1', emptySession);
-    expect(byPath.get('experiments.0')).toEqual({ kind: 'squiggle', sr: 'not checked yet', pencil: true });
-  });
-
-  it('marks an unresolved forecast, not a resolved one', () => {
-    const goal: Goal = {
-      ...(stubGoal('Goal') as Goal),
-      forecasts: [
-        { statement: 'will happen', probability: 60, resolvesBy: '2026-02-01', resolvesVia: 'check', resolved: false },
-        { statement: 'already known', probability: 90, resolvesBy: '2026-01-01', resolvesVia: 'check', resolved: true },
-      ],
-    };
-    const { byPath } = deriveMarks(goal, 'g1', emptySession);
-    expect(byPath.get('forecasts.0')).toEqual({ kind: 'squiggle', sr: 'not checked yet', pencil: true });
-    expect(byPath.get('forecasts.1')).toBeUndefined();
+    expect(byPath.get('experiments.0')).toBeUndefined();
+    expect(byPath.get('forecasts.0')).toBeUndefined();
   });
 });
 
@@ -283,10 +274,6 @@ describe('noteForMark — pencil-note tooltip text per mark', () => {
 
   it('gives an open question its meaning', () => {
     expect(noteForMark({ kind: 'question', sr: 'open question' })).toBe('open question');
-  });
-
-  it('gives the not-checked-yet squiggle its meaning', () => {
-    expect(noteForMark({ kind: 'squiggle', sr: 'not checked yet', pencil: true })).toBe('not checked yet');
   });
 
   it('gives the loop its "new from your chat" meaning', () => {

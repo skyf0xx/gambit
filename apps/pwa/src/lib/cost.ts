@@ -6,6 +6,8 @@ const TABLE: [RegExp, { in: number; out: number }][] = [
   [/opus/i, { in: 15, out: 75 }],
   [/sonnet/i, { in: 3, out: 15 }],
   [/haiku/i, { in: 1, out: 5 }],
+  [/flash-lite/i, { in: 0.3, out: 2.5 }],
+  [/flash/i, { in: 0.75, out: 3.75 }],
   [/gpt-4\.1-mini/i, { in: 0.4, out: 1.6 }],
   [/gpt-4\.1/i, { in: 2, out: 8 }],
 ];

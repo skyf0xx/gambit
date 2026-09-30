@@ -15,15 +15,29 @@ export interface TurnLines {
   animated: boolean;
 }
 
+/** Everything the last turn wrote, for the "new" pencil tags and the
+ * divider-tab dots. Outlives the loop (a tap on the loop's line clears only
+ * the loop) and clears on the next turn, undo, or reload. `seenTabs` are
+ * the tabs opened since the turn landed, whose dots are spent. */
+export interface FreshWrites {
+  goalId: string;
+  /** The line the loop went on — it has its own note, so no tag. */
+  lead?: LinePath;
+  lines: Set<LinePath>;
+  keys: Set<string>;
+  seenTabs: Set<string>;
+}
+
 interface SessionState {
   turn: TurnLines | null;
+  fresh: FreshWrites | null;
   dropped: Map<string, Set<LinePath>>;
 }
 
 type Listener = () => void;
 
 function createSessionStore() {
-  let state: SessionState = { turn: null, dropped: new Map() };
+  let state: SessionState = { turn: null, fresh: null, dropped: new Map() };
   const listeners = new Set<Listener>();
 
   const emit = () => listeners.forEach((l) => l());
@@ -36,8 +50,22 @@ function createSessionStore() {
     getSnapshot(): SessionState {
       return state;
     },
-    setTurn(goalId: string, turnId: string, lines: { path: LinePath; text: string }[]) {
-      state = { ...state, turn: { goalId, turnId, lines, animated: false } };
+    setTurn(goalId: string, turnId: string, lines: { path: LinePath; text: string }[], keys: string[] = []) {
+      const fresh = lines.length || keys.length
+        ? { goalId, lead: lines[0]?.path, lines: new Set(lines.map((l) => l.path)), keys: new Set(keys), seenTabs: new Set<string>() }
+        : null;
+      state = { ...state, turn: { goalId, turnId, lines, animated: false }, fresh };
+      emit();
+    },
+    markTabSeen(goalId: string, tab: string) {
+      const f = state.fresh;
+      if (!f || f.goalId !== goalId || f.seenTabs.has(tab)) return;
+      state = { ...state, fresh: { ...f, seenTabs: new Set([...f.seenTabs, tab]) } };
+      emit();
+    },
+    clearFresh() {
+      if (!state.fresh) return;
+      state = { ...state, fresh: null };
       emit();
     },
     clearLoop() {
@@ -70,6 +98,8 @@ export const session = {
   clearLoop: store.clearLoop,
   markDropped: store.markDropped,
   markAnimated: store.markAnimated,
+  markTabSeen: store.markTabSeen,
+  clearFresh: store.clearFresh,
 };
 
 /** Undo of a turn clears the open loop — exported here since undoTurn lives
@@ -78,6 +108,7 @@ export const session = {
  * the undo flow itself. */
 export function undoTurnMarks() {
   store.clearLoop();
+  store.clearFresh();
 }
 
 export function useSession(): SessionState {

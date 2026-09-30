@@ -135,15 +135,6 @@ export function highlightPoints(line: Box, seed: number): Point[] {
   });
 }
 
-/** A squiggly underline beneath one line of text. */
-export function squigglePoints(line: Box, seed: number): Point[] {
-  return hand((t) => [line.l + t * line.w, line.b + 1 + Math.sin((t * line.w) / 3.2) * 1.8], {
-    n: Math.max(4, Math.round(line.w / 1.5)),
-    wobble: 0.3,
-    seed,
-  });
-}
-
 /** A loose pencil zigzag through one line of text (cancelled/dropped). */
 export function zigzagPoints(line: Box, seed: number): Point[] {
   const y = line.t + line.h * 0.56;

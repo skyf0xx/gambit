@@ -9,13 +9,14 @@ import type { Goal } from '../../lib/types';
 //                 done looks like" (successCriteria), and "Parts of this
 //                 goal" (subGoals). Always shown, first in the stack.
 //   Moves       — the default selected tab on every load: index card,
-//                 sticky notes, future moves (plan), the focus, a short
-//                 "Lately" log tail. Always shown.
+//                 sticky notes, future moves (plan), the focus. Always
+//                 shown.
 //   People      — people, stakeholders
 //   Risks       — riskNotes, exposure
-//   Choices     — decisions, experiments, forecasts, systemsNotes
+//   Bets        — decisions, experiments, forecasts, systemsNotes
 //   Capacity    — capacity
 //   Doodles     — the whole plan as a pencil mind map. Always shown.
+//   Logs      — the log, newest first. Shown once the log has entries.
 //   Inside cover — always last: notebooks/goal-switcher, model and key,
 //                 keep-it-safe (export/backup), this device (clear chat,
 //                 danger zone). A real tab+panel now, not a Leaf.
@@ -27,29 +28,30 @@ import type { Goal } from '../../lib/types';
 //     riskNotes) because that dashboard's groups are collapsible-by-subject,
 //     not tabs. Here `decisions` reads better beside `experiments` and
 //     `forecasts` — all three are "an open question worked to a committed
-//     answer" — so it lives in Choices instead, and `riskNotes` moves to its
+//     answer" — so it lives in Bets instead, and `riskNotes` moves to its
 //     own Risks tab per the task's explicit spec.
 //   - `systemsNotes` isn't named in the task's tab list at all. It's
 //     decision-adjacent (the leverage point that feeds what to decide), so
-//     it's placed in Choices rather than dropped from the page.
+//     it's placed in Bets rather than dropped from the page.
 //   - `exposure` isn't under any registry.mjs group by itself (it's grouped
 //     with `capacity` there); the task spec explicitly calls for
 //     exposure to live in Risks and capacity to have its own tab, so that's
 //     what this file does.
 
-export type TabId = 'goal' | 'moves' | 'people' | 'risks' | 'choices' | 'capacity' | 'doodles' | 'inside-cover';
+export type TabId = 'goal' | 'moves' | 'people' | 'risks' | 'bets' | 'capacity' | 'doodles' | 'logs' | 'inside-cover';
 
-export const TAB_ORDER: TabId[] = ['goal', 'moves', 'people', 'risks', 'choices', 'capacity', 'doodles', 'inside-cover'];
+export const TAB_ORDER: TabId[] = ['goal', 'moves', 'people', 'risks', 'bets', 'capacity', 'doodles', 'logs', 'inside-cover'];
 
 export const TAB_LABELS: Record<TabId, string> = {
   goal: 'Goal',
   moves: 'Moves',
   people: 'People',
   risks: 'Risks',
-  choices: 'Choices',
+  bets: 'Bets',
   capacity: 'Capacity',
   doodles: 'Doodles',
-  'inside-cover': 'Inside cover',
+  logs: 'Logs',
+  'inside-cover': 'Settings',
 };
 
 // Section keys (goal-schema top-level keys rendered by Sections.tsx)
@@ -60,8 +62,9 @@ export const TAB_LABELS: Record<TabId, string> = {
 export const TAB_SECTION_KEYS: Partial<Record<TabId, (keyof Goal)[]>> = {
   people: ['people', 'stakeholders'],
   risks: ['riskNotes', 'exposure'],
-  choices: ['decisions', 'experiments', 'forecasts', 'systemsNotes'],
+  bets: ['decisions', 'experiments', 'forecasts', 'systemsNotes'],
   capacity: ['capacity'],
+  logs: ['log'],
 };
 
 const isEmpty = (v: unknown) => v == null || (Array.isArray(v) ? v.length === 0 : typeof v === 'object' && Object.keys(v as object).length === 0);
@@ -81,7 +84,7 @@ export function tabHasContent(tab: TabId, g: Goal): boolean {
  * `inside-cover` (App.tsx's gambit:menu handler) resolves directly. */
 export function tabForPath(path: string): TabId {
   if (path === 'inside-cover') return 'inside-cover';
-  if (path === 'goal' || path.startsWith('successCriteria') || path.startsWith('subGoals')) return 'goal';
+  if (path === 'goal' || path === 'deadline' || path.startsWith('successCriteria') || path.startsWith('subGoals')) return 'goal';
   const key = path.split('.')[0];
   for (const tab of TAB_ORDER) {
     const keys = TAB_SECTION_KEYS[tab];

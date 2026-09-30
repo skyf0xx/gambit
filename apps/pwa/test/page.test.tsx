@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { stubGoal } from '@gambit/core';
-import { SectionBody } from '../src/components/Sections';
+import { SectionBody, defaultOpenLine, lineProgress, planLineIndex } from '../src/components/Sections';
 import { sectionTitleFor } from '../src/components/sectionTitles';
 import type { Goal } from '../src/lib/types';
 
@@ -109,11 +109,58 @@ describe('notebook page markup', () => {
     expect(planHtml).toContain('data-box');
   });
 
-  it('gives every next action and step a box, not only criteria', () => {
+  it('gives every next action and step one box, not only criteria', () => {
     const planHtml = renderSection('plan', g.plan);
-    // one box per Toggle tap-area plus one per Line hook, for each of: the
-    // critical-path step and the two visible (pending + done) next actions
-    expect((planHtml.match(/data-box/g) ?? []).length).toBeGreaterThanOrEqual(6);
+    // one box per Toggle tap-area, for each of: the critical-path step and
+    // the two visible (pending + done) next actions
+    expect((planHtml.match(/data-box/g) ?? []).length).toBe(3);
+  });
+
+  it('marks only the done next action\'s box as checked', () => {
+    const planHtml = renderSection('plan', g.plan);
+    expect((planHtml.match(/data-checked/g) ?? []).length).toBe(1);
+  });
+});
+
+describe('plan as a stack of sheets', () => {
+  const lines = [
+    { label: 'Line A', criticalPath: [{ label: 'A step', status: 'done' }], nextActions: [] },
+    {
+      label: 'Line B',
+      criticalPath: [{ label: 'B step', status: 'done' }, { label: 'B dropped step', status: 'dropped' }],
+      nextActions: [
+        { action: 'B action', who: 'me', when: 'fri', status: 'pending' },
+        { action: 'B proposed', who: 'me', when: 'fri', status: 'proposed' },
+      ],
+    },
+    { label: 'Line C', criticalPath: [{ label: 'C step', status: 'pending' }], nextActions: [] },
+  ];
+
+  it('counts only pending and done items toward a line\'s progress', () => {
+    expect(lineProgress(lines[1])).toEqual({ done: 1, total: 2 });
+  });
+
+  it('opens the focus line, else the first line with something pending', () => {
+    expect(defaultOpenLine(lines, 2)).toBe(2);
+    expect(defaultOpenLine(lines, null)).toBe(1);
+    expect(defaultOpenLine([lines[0]], null)).toBe(0);
+  });
+
+  it('reads the line index out of a plan path only', () => {
+    expect(planLineIndex('plan.linesOfOperation.2.nextActions.0')).toBe(2);
+    expect(planLineIndex('riskNotes.0')).toBeNull();
+    expect(planLineIndex(undefined)).toBeNull();
+  });
+
+  it('lists every line as an edge and opens only one of them', () => {
+    const html = renderSection('plan', { linesOfOperation: lines });
+    expect(html).toContain('B action');
+    expect(html).not.toContain('A step');
+    expect(html).not.toContain('C step');
+    expect((html.match(/data-plan-sheet/g) ?? []).length).toBe(3);
+    expect((html.match(/aria-current/g) ?? []).length).toBe(1);
+    expect(html).toContain('1 of 1 done');
+    expect(html).toContain('0 of 1 done');
   });
 });
 

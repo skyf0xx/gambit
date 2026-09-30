@@ -7,7 +7,6 @@ import {
   ellipsePoints,
   hashSeed,
   highlightPoints,
-  squigglePoints,
   zigzagPoints,
   starPoints,
   strokePath,
@@ -35,11 +34,28 @@ function rel(r: DOMRect, origin: DOMRect): Box {
   return { l: r.left - origin.left, t: r.top - origin.top, r: r.right - origin.left, b: r.bottom - origin.top, w: r.width, h: r.height };
 }
 
-/** One box per visually rendered line inside `el`, merging fragments on the same baseline. */
+/** One box per visually rendered line inside `el`, merging fragments on the
+ * same baseline. Measured text node by text node so screen-reader-only text
+ * is left out: it's clipped to 1px on screen, but its text still reports its
+ * full unclipped width and would stretch a highlight or strike past the
+ * words it belongs to. An empty element (a checkbox slot) counts by its own
+ * box, as it did when the whole element was measured at once. */
 function lineRects(el: Element, origin: DOMRect): Box[] {
   const range = document.createRange();
-  range.selectNodeContents(el);
-  const rects = [...range.getClientRects()].filter((r) => r.width > 1).map((r) => rel(r, origin));
+  const rects: Box[] = [];
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+  for (let n: Node | null = walker.currentNode; n; n = walker.nextNode()) {
+    const inSrOnly = (n instanceof Element ? n : n.parentElement)?.closest('.sr-only');
+    if (inSrOnly) continue;
+    let found: Iterable<DOMRect> = [];
+    if (n.nodeType === Node.TEXT_NODE) {
+      range.selectNodeContents(n);
+      found = range.getClientRects();
+    } else if (n !== el && n.childNodes.length === 0) {
+      found = (n as Element).getClientRects();
+    }
+    for (const r of found) if (r.width > 1) rects.push(rel(r, origin));
+  }
   const lines: Box[] = [];
   for (const r of rects) {
     const same = lines.find((x) => Math.abs(x.b - r.b) < 4);
@@ -115,10 +131,20 @@ export function MarksLayer() {
       if (external) schedule();
     });
     mo.observe(host, { childList: true, subtree: true });
+    // Content that animates in (a tab's page turn, a plan sheet coming to
+    // the front) is still mid-transform when the mutation-triggered redraw
+    // above measures it; redraw once more when it has settled, so marks
+    // and checkboxes land on the lines' resting positions.
+    const onSettled = (e: Event) => {
+      const el = e.target as Element | null;
+      if (el?.querySelector?.('[data-line], [data-box]')) schedule();
+    };
+    host.addEventListener('animationend', onSettled);
     return () => {
       clearTimeout(t);
       ro.disconnect();
       mo.disconnect();
+      host.removeEventListener('animationend', onSettled);
       mq.removeEventListener('change', schedule);
       window.removeEventListener('resize', schedule);
     };
@@ -207,6 +233,37 @@ export function MarksLayer() {
     const nextTicks = new Set<LinePath>();
     const nextCancels = new Set<LinePath>();
 
+    function drawTick(path: LinePath, target: Box) {
+      nextTicks.add(path);
+      const pts = tickPoints(target);
+      const p = drawStroke(pts, over!, { color: ink, size: 2.6, thinning: 0.6, grain: false });
+      const isNew = prevTicksRef.current ? !prevTicksRef.current.has(path) : false;
+      if (isNew && !reduced) drawIn(p, pts, 180, 0, 12);
+    }
+
+    // Checkboxes: every [data-box] on the page gets its hand-drawn outline
+    // whether or not it's ticked, so an unticked box is visible at rest and
+    // not only a blank tap area. The tick comes from the box's own
+    // data-checked state rather than the line's mark, so a done line keeps
+    // its tick even while an event mark (the loop) holds that line's one
+    // mark slot. A `data-bare` box is a tick-only slot: it takes the tick
+    // without the outline, for a line that can be done but isn't the
+    // user's to tick (a success criterion).
+    const boxed = new Set<LinePath>();
+    host.querySelectorAll<HTMLElement>('[data-box]').forEach((boxEl) => {
+      const r = boxEl.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) return;
+      const path = boxEl.dataset.box as LinePath;
+      const target = rel(r, origin);
+      boxed.add(path);
+      if (boxEl.dataset.bare === undefined) {
+        for (const side of boxPoints(target, hashSeed(path))) {
+          drawStroke(side, over, { size: 1.5, thinning: 0.45, taper: false, grain: false, opacity: 0.85 });
+        }
+      }
+      if (boxEl.dataset.checked !== undefined) drawTick(path, target);
+    });
+
     for (const { path, mark, lines, el } of placed) {
       const seed = hashSeed(path);
 
@@ -218,28 +275,15 @@ export function MarksLayer() {
       if (note) el.setAttribute('data-note', note);
       else el.removeAttribute('data-note');
 
-      if (mark.kind === 'tick') nextTicks.add(path);
       if (mark.kind === 'cancel') nextCancels.add(path);
 
-      if (mark.kind === 'tick') {
+      // A ticked line with its own checkbox is drawn by the box pass above.
+      // This is the fallback for a ticked line the page renders no box for
+      // (a met success criterion): tick at the line start instead of
+      // drawing a checkbox that doesn't exist.
+      if (mark.kind === 'tick' && !boxed.has(path)) {
         const line = lines[0];
-        const lineEl = placed.find((p) => p.path === path)?.el;
-        const boxEl = lineEl?.querySelector('[data-box], .box') ?? null;
-        // Degrade gracefully: when the page hasn't rendered a box span for
-        // this line (older builder state), tick at the line start instead of
-        // drawing a checkbox that doesn't exist.
-        const target = boxEl
-          ? rel(boxEl.getBoundingClientRect(), origin)
-          : { l: line.l, t: line.t, r: line.l + 18, b: line.t + 18, w: 18, h: 18 };
-        if (boxEl) {
-          for (const side of boxPoints(target, seed)) {
-            drawStroke(side, over, { size: 1.5, thinning: 0.45, taper: false, grain: false, opacity: 0.85 });
-          }
-        }
-        const pts = tickPoints(target);
-        const p = drawStroke(pts, over, { color: ink, size: 2.6, thinning: 0.6, grain: false });
-        const isNew = prevTicksRef.current ? !prevTicksRef.current.has(path) : false;
-        if (isNew && !reduced) drawIn(p, pts, 180, 0, 12);
+        drawTick(path, { l: line.l, t: line.t, r: line.l + 18, b: line.t + 18, w: 18, h: 18 });
       }
 
       if (mark.kind === 'highlight') {
@@ -251,12 +295,6 @@ export function MarksLayer() {
             grain: false,
             taper: false,
           });
-        });
-      }
-
-      if (mark.kind === 'squiggle') {
-        lines.forEach((L, j) => {
-          drawStroke(squigglePoints(L, seed + j), over, { size: 1.5, thinning: 0.5 });
         });
       }
 
@@ -397,8 +435,6 @@ export function noteForMark(mark: Mark): string | null {
       return mark.sr;
     case 'question':
       return 'open question';
-    case 'squiggle':
-      return 'not checked yet';
     case 'loop':
       return 'new from your chat';
     case 'highlight':
