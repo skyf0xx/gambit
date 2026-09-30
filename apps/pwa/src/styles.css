@@ -285,95 +285,12 @@ details > summary::-webkit-details-marker { display: none; }
   }
 }
 
-/* Conversation and chrome motion (polish workstream 1). Each animation has
-   a reduced-motion fallback via the block above, which forces duration to
-   ~0 for every animation/transition class on the page. */
-
-@keyframes rise {
-  from { transform: translateY(6px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-/* A new message settling in. */
-.anim-rise { animation: rise 160ms ease-out both; }
-
-@keyframes write {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0 0 0 0); }
-}
-/* The "wrote to your page: …" line revealing left to right, like a pencil
-   stroke. */
-.anim-write { animation: write 300ms ease-out both; }
-
-@keyframes sheet-up {
-  from { transform: translateY(24px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-/* The mobile conversation overlay sliding up over the page. */
-.anim-sheet-up { animation: sheet-up 260ms ease-out both; }
-
-@keyframes sheet-down {
-  from { transform: translateY(0); opacity: 1; }
-  to { transform: translateY(24px); opacity: 0; }
-}
-/* The mobile overlay dismissing; unmount after this finishes (200ms, or
-   immediately under reduced motion). */
-.anim-sheet-down { animation: sheet-down 200ms ease-in forwards; }
-
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-.anim-fade-in { animation: fade-in 200ms ease-out both; }
-
-@keyframes press {
-  0% { transform: scale(1); }
-  40% { transform: scale(0.92); }
-  100% { transform: scale(1); }
-}
-/* Press feedback for TextAction/InkButton (bound automatically by those
-   primitives via a pointerdown-triggered class toggle, not a permanent
-   animation, so it only ever plays once per press). */
-.anim-press { animation: press 160ms ease-out; }
-
 @keyframes gentle-pulse {
   0%, 100% { opacity: 0.55; }
   50% { opacity: 1; }
 }
+/* The pencilled "thinking…" while a turn runs without a named skill. */
 .anim-pulse { animation: gentle-pulse 1.6s ease-in-out infinite; }
-
 @media (prefers-reduced-motion: reduce) {
-  .anim-sheet-down { animation-duration: 0.001ms !important; }
-}
-
-/* A pencilled tooltip for any [data-note] element, shown on hover or
-   keyboard focus. CSS-only fallback; a richer global handler may enhance
-   this later without conflicting (it targets the same attribute). */
-[data-note] { position: relative; }
-[data-note]::after {
-  content: attr(data-note);
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%) translateY(2px);
-  white-space: nowrap;
-  font-family: var(--font-hand);
-  font-size: 16px;
-  line-height: 1;
-  color: var(--graphite);
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-  padding: 3px 8px 4px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 120ms ease-out, transform 120ms ease-out;
-  z-index: 60;
-}
-[data-note]:hover::after,
-[data-note]:focus-visible::after {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-@media (hover: none) {
-  [data-note]::after { display: none; }
+  .anim-pulse { animation: none; }
 }
