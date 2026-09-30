@@ -5,9 +5,11 @@ import { deleteGoal } from '../lib/goals';
 import { readDurability, requestPersistence, isIos, useUi, type Durability } from '../lib/persist';
 import { bindExportFile, commitImport, downloadExport, fileSyncState, fsAccessSupported, planImport, reauthorizeFileSync, unbindExportFile, type Choice, type ImportItem } from '../lib/portability';
 import { methodsLicense } from '../lib/skills';
+import { fmtUsd } from '../lib/cost';
 import { TextAction, InkButton, Leaf, PencilWord } from './ui';
 import { ProviderForm } from './Setup';
 import { CostPanel } from './CostPanel';
+import type { GoalRecord } from '../lib/db';
 
 const Section = ({ title, children, open }: { title: string; children: ReactNode; open?: boolean }) => (
   <details open={open} className="border-b border-rule">
@@ -103,12 +105,68 @@ function Licenses() {
   return <pre className="max-h-64 overflow-auto border-t border-card-rule pt-2 whitespace-pre-wrap font-mono text-[13px] text-graphite">{t}</pre>;
 }
 
-export function Settings({ goalId }: { goalId?: string }) {
+/** The goal switcher, as a shelf of notebooks (menu.html's "Notebooks"
+ * group) — the current one marked with a pencilled word, matching the
+ * mockup rather than the old header's plain <select>. */
+function NotebookShelf({ goals, activeId, onSwitch, onNew }: { goals: GoalRecord[]; activeId?: string; onSwitch: (id: string) => void; onNew: () => void }) {
+  return (
+    <div className="space-y-4">
+      <ul className="space-y-3">
+        {goals.map((g) => (
+          <li key={g.id}>
+            <TextAction
+              className={`!min-h-0 block w-full py-1 text-left font-serif text-[18px] font-medium not-italic underline-offset-[3px] ${g.id === activeId ? '' : 'no-underline'}`}
+              onClick={() => onSwitch(g.id)}
+            >
+              <span className="block truncate">{g.title}</span>
+              {g.id === activeId && <PencilWord className="mt-0.5 block text-[16px]">current</PencilWord>}
+            </TextAction>
+          </li>
+        ))}
+      </ul>
+      <TextAction className="underline underline-offset-[3px]" onClick={onNew}>New goal</TextAction>
+    </div>
+  );
+}
+
+/** The export-status line + Export action — lives only here (work item 5),
+ * never on the main page. */
+function ExportStatus() {
+  const [sync, setSync] = useState<'off' | 'active' | 'needs_permission'>('off');
+  const last = useLiveQuery(() => getSetting<number>('lastExportAt'), []);
+  useEffect(() => { void fileSyncState().then(setSync); }, []);
+  const stale = sync !== 'active' && Date.now() - (last ?? 0) > 14 * 864e5;
+  if (!stale) return <p className="text-[14px] text-graphite">Backed up{last ? ` ${new Date(last).toLocaleDateString()}` : ''}.</p>;
+  return (
+    <p className="hand text-[16px]">
+      Your goals haven't been exported in a while.{' '}
+      <TextAction className="!min-h-0 font-sans text-[15px] not-italic underline underline-offset-[3px]" onClick={() => downloadExport()}>Export</TextAction>
+    </p>
+  );
+}
+
+interface SettingsProps {
+  goalId?: string;
+  goals?: GoalRecord[];
+  activeId?: string;
+  cost?: { dollars: number | null; turns: number } | null;
+  onSwitchGoal?: (id: string) => void;
+  onNewGoal?: () => void;
+}
+
+export function Settings({ goalId, goals, activeId, cost, onSwitchGoal, onNewGoal }: SettingsProps) {
   const close = () => useUi.getState().openSettings(false);
   return (
-    <Leaf title="Settings" onClose={close} wide>
+    <Leaf title="Menu" onClose={close} wide>
       <div>
-        <Section title="Model and key" open><ProviderForm /></Section>
+        <Section title="Notebooks" open>
+          <NotebookShelf goals={goals ?? []} activeId={activeId} onSwitch={(id) => { onSwitchGoal?.(id); }} onNew={() => onNewGoal?.()} />
+        </Section>
+        <Section title="This device" open>
+          <ExportStatus />
+          {cost && cost.turns > 0 && <p className="text-[14px] text-graphite">Estimated session spend: {fmtUsd(cost.dollars)}</p>}
+        </Section>
+        <Section title="Model and key"><ProviderForm /></Section>
         <Section title="Data and durability"><DataPanel /></Section>
         <Section title="Cost"><CostPanel /></Section>
         <Section title="About and licenses">

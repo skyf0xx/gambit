@@ -26,11 +26,11 @@ export function ProviderForm({ onDone }: { onDone?: () => void }) {
 
   async function save() {
     setErr('');
-    if (!s.model.trim()) return setErr('Enter a model id.');
+    if (!s.model.trim()) return setErr('Add a model (the default is fine).');
     const base = s.baseURL || PROVIDERS[s.kind].baseURL;
-    if (s.kind === 'custom' && !base) return setErr('A base URL is required for a custom provider.');
-    if (base && !originAllowed(base)) return setErr(`${new URL(base).origin} is not in this build's allowed origins. Self-hosters can add it with VITE_EXTRA_CONNECT_SRC at build time.`);
-    if (!key && !saved) return setErr('Enter your API key.');
+    if (s.kind === 'custom' && !base) return setErr('A custom provider needs a base URL.');
+    if (base && !originAllowed(base)) return setErr(`${new URL(base).origin} isn't in this build's allowed origins. Self-hosters can add it with VITE_EXTRA_CONNECT_SRC at build time.`);
+    if (!key && !saved) return setErr('Paste your API key to continue.');
     if (key) await saveApiKey(s.kind, key);
     await saveProvider({ ...s, baseURL: s.baseURL || undefined });
     setKey('');
@@ -60,7 +60,7 @@ export function ProviderForm({ onDone }: { onDone?: () => void }) {
           Allow provider-side web search (billed by Anthropic)
         </label>
       )}
-      {err && <p className="text-[15px] text-accent">{err}</p>}
+      {err && <p className="anim-fade-in text-[15px] text-accent">{err}</p>}
       <div className="flex items-center gap-4">
         <InkButton onClick={() => void save()}>Save</InkButton>
         {saved && <TextAction className="text-graphite underline underline-offset-[3px]" onClick={async () => { await clearApiKey(s.kind); setSaved(false); }}>Remove key</TextAction>}
@@ -72,13 +72,15 @@ export function ProviderForm({ onDone }: { onDone?: () => void }) {
 export function Setup() {
   return (
     <div className="paper mx-auto flex min-h-full max-w-md flex-col justify-center gap-6 p-6">
-      <div>
+      <div className="anim-rise">
         <h1 className="font-serif text-[29px] leading-[37px] font-medium text-ink ink-bleed">Gambit</h1>
         <p className="mt-2 text-[14px] text-graphite">
-          Strategy and planning with your own model key. Everything stays on this device: your goals, your chats and your key. There is no account and no server.
+          Strategy and planning with your own model key. Everything stays on this device: your goals, your chats and your key. There's no account and no server.
         </p>
       </div>
-      <ProviderForm />
+      <div className="anim-rise">
+        <ProviderForm />
+      </div>
     </div>
   );
 }
