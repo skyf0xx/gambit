@@ -278,6 +278,21 @@ export function SectionBody({ k, data, goalId, editable }: { k: keyof Goal; data
     );
   }
 
+  if (k === 'successCriteria') {
+    return (
+      <ul className="space-y-2 text-[17px] leading-[27px]">
+        {data.map((c: Any, i: number) => (
+          <li key={i}>
+            <Line goalId={goalId} path={`successCriteria.${i}`}>
+              <span>{c.text}</span>
+              <PencilWord className="ml-2">{c.kind}</PencilWord>
+            </Line>
+            <Detail>{c.detail}</Detail>
+          </li>
+        ))}
+      </ul>
+    );
+  }
   if (k === 'criteriaStatus') {
     return (
       <ul className="space-y-2 text-[17px] leading-[27px]">

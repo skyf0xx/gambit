@@ -100,9 +100,25 @@ export function MarksLayer() {
     const mq = matchMedia('(prefers-color-scheme: dark)');
     mq.addEventListener('change', schedule);
     window.addEventListener('resize', schedule);
+    // A tab switch (or any other content swap under `host` that doesn't
+    // touch the goal or session) replaces which [data-line] elements exist
+    // in the DOM without changing `ctx.derived` — nothing else would tell
+    // this layer to redraw against the new set of lines. Watching for
+    // childList/subtree mutations on the host covers that case generically,
+    // not just the tabs case, at the same debounce as resize/fonts. Ignore
+    // mutations inside this layer's own SVG container — every redraw
+    // rewrites `under`/`over`'s innerHTML, which would otherwise retrigger
+    // itself forever.
+    const ownContainer = containerRef.current;
+    const mo = new MutationObserver((records) => {
+      const external = records.some((r) => !ownContainer || !ownContainer.contains(r.target as Node));
+      if (external) schedule();
+    });
+    mo.observe(host, { childList: true, subtree: true });
     return () => {
       clearTimeout(t);
       ro.disconnect();
+      mo.disconnect();
       mq.removeEventListener('change', schedule);
       window.removeEventListener('resize', schedule);
     };
