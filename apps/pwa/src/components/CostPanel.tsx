@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { db, setSetting } from '../lib/db';
 import { fmtUsd, getPricingOverride, sessionCost } from '../lib/cost';
-import { Btn, Field, inputCls } from './ui';
+import { TextAction, Field, inputCls } from './ui';
 
 const SESSION_START = Date.now() - 6 * 3600_000;
 export const sessionStart = () => SESSION_START;
@@ -19,33 +19,39 @@ export function CostPanel() {
   if (!c) return null;
   const pct = (n: number) => `${Math.round(n * 100)}%`;
   return (
-    <div className="space-y-3 text-sm">
-      <p className="text-xs text-slate-500">Estimated from token counts and public list prices for the last six hours. Your provider's invoice is the authority.</p>
-      <div className="grid grid-cols-2 gap-2 text-sm">
-        <div className="rounded-md bg-slate-900 p-3"><div className="text-xs text-slate-500">Spend</div><div className="text-lg">{fmtUsd(c.dollars)}</div></div>
-        <div className="rounded-md bg-slate-900 p-3"><div className="text-xs text-slate-500">Turns · skill loads</div><div className="text-lg">{c.turns} · {c.skillLoads}</div></div>
+    <div className="space-y-3 text-[17px]">
+      <p className="text-[14px] text-graphite">Estimated from token counts and public list prices for the last six hours. Your provider's invoice is the authority.</p>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <div className="text-[14px] text-graphite">Spend</div>
+          <div className="text-[20px] text-ink">{fmtUsd(c.dollars)}</div>
+        </div>
+        <div>
+          <div className="text-[14px] text-graphite">Turns · skill loads</div>
+          <div className="text-[20px] text-ink">{c.turns} · {c.skillLoads}</div>
+        </div>
       </div>
-      <div className="text-xs text-slate-400">Tokens: {c.input.toLocaleString()} in, {c.cached.toLocaleString()} cached, {c.output.toLocaleString()} out</div>
+      <div className="text-[14px] text-graphite">Tokens: {c.input.toLocaleString()} in, {c.cached.toLocaleString()} cached, {c.output.toLocaleString()} out</div>
       <div>
-        <div className="mb-1 text-xs text-slate-500">What each prompt is made of</div>
+        <div className="mb-1 text-[14px] text-graphite">What each prompt is made of</div>
         {(['history', 'skill', 'system', 'state'] as const).map((k) => (
-          <div key={k} className="flex items-center gap-2 text-xs">
-            <span className="w-28 text-slate-400">{{ history: 'Transcript', skill: 'Active skill', system: 'Instructions + index', state: 'Goal state' }[k]}</span>
-            <div className="h-2 flex-1 rounded bg-slate-800"><div className={`h-2 rounded ${k === 'history' ? 'bg-amber-500' : 'bg-sky-500'}`} style={{ width: pct(c.shares[k]) }} /></div>
-            <span className="w-9 text-right text-slate-500">{pct(c.shares[k])}</span>
+          <div key={k} className="flex items-center gap-2 border-b border-card-rule py-1.5 text-[14px]">
+            <span className="w-28 text-graphite">{{ history: 'Transcript', skill: 'Active skill', system: 'Instructions + index', state: 'Goal state' }[k]}</span>
+            <div className="h-1 flex-1 bg-rule"><div className="h-1 bg-ink" style={{ width: pct(c.shares[k]) }} /></div>
+            <span className="w-9 text-right text-graphite">{pct(c.shares[k])}</span>
           </div>
         ))}
-        {c.shares.history > 0.5 && <p className="mt-1 text-xs text-amber-300">The transcript is over half of every request. Clearing the chat is the cheapest fix; the goal itself is kept.</p>}
+        {c.shares.history > 0.5 && <p className="mt-1 text-[14px] text-graphite">The transcript is over half of every request. Clearing the chat is the cheapest fix; the goal itself is kept.</p>}
       </div>
-      <details className="text-xs">
-        <summary className="cursor-pointer text-slate-400">Price override (USD per million tokens){override ? ` — ${override.in}/${override.out}` : ''}</summary>
-        <div className="mt-2 flex items-end gap-2">
+      <details className="text-[14px]">
+        <summary className="cursor-pointer text-graphite">Price override (USD per million tokens){override ? ` — ${override.in}/${override.out}` : ''}</summary>
+        <div className="mt-2 flex items-end gap-3">
           <Field label="Input"><input className={inputCls} inputMode="decimal" value={inP} onChange={(e) => setIn(e.target.value)} /></Field>
           <Field label="Output"><input className={inputCls} inputMode="decimal" value={outP} onChange={(e) => setOut(e.target.value)} /></Field>
-          <Btn onClick={() => void setSetting('pricing', inP && outP ? { in: Number(inP), out: Number(outP) } : undefined)}>Save</Btn>
+          <TextAction className="underline underline-offset-[3px]" onClick={() => void setSetting('pricing', inP && outP ? { in: Number(inP), out: Number(outP) } : undefined)}>Save</TextAction>
         </div>
       </details>
-      <Btn onClick={() => confirm('Delete usage history?') && void db.usage.clear()}>Reset usage</Btn>
+      <TextAction className="underline underline-offset-[3px]" onClick={() => confirm('Delete usage history?') && void db.usage.clear()}>Reset usage</TextAction>
     </div>
   );
 }

@@ -14,14 +14,20 @@ import { Settings } from './components/Settings';
 import { NewGoalDialog } from './components/NewGoal';
 import { fmtUsd } from './lib/cost';
 import { useSessionCost } from './components/CostPanel';
-import { Btn } from './components/ui';
+import { TextAction } from './components/ui';
 import { Filters } from './components/paper/Filters';
 
 function Banner({ children, onClose }: { children: React.ReactNode; onClose?: () => void }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-slate-800 bg-slate-900 px-4 py-2 text-xs text-slate-300">
+    <div className="hand flex items-center justify-between gap-3 border-b border-rule px-4 py-2 text-[16px]">
       <div className="flex flex-wrap items-center gap-2">{children}</div>
-      {onClose && <button onClick={onClose} className="text-slate-500 hover:text-slate-300" aria-label="Dismiss">✕</button>}
+      {onClose && (
+        <button onClick={onClose} aria-label="Dismiss" className="grid h-11 w-11 flex-none place-items-center text-graphite">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
@@ -43,15 +49,15 @@ function Banners() {
   const stale = d.hasGoals && d.sync !== 'active' && Date.now() - d.last > 14 * 864e5;
   return (
     <>
-      {needRefresh && <Banner>New app version ready. <Btn kind="primary" onClick={() => void updateServiceWorker(true)}>Reload</Btn></Banner>}
+      {needRefresh && <Banner>New app version ready. <TextAction className="underline underline-offset-[3px]" onClick={() => void updateServiceWorker(true)}>Reload</TextAction></Banner>}
       {!installDismissed && !isStandalone() && (installEvent || isIos()) && (
         <Banner onClose={dismissInstall}>
           Install Gambit to keep your data safe: browsers can erase data for sites that aren't installed.
-          {installEvent ? <Btn kind="primary" onClick={() => void installEvent.prompt()}>Install</Btn> : <span>Tap Share, then Add to Home Screen.</span>}
+          {installEvent ? <TextAction className="underline underline-offset-[3px]" onClick={() => void installEvent.prompt()}>Install</TextAction> : <span>Tap Share, then Add to Home Screen.</span>}
         </Banner>
       )}
-      {d.sync === 'needs_permission' && <Banner>Backup file needs permission again. <Btn kind="primary" onClick={() => void reauthorizeFileSync()}>Re-authorize</Btn></Banner>}
-      {stale && <Banner>Your goals haven't been exported in a while. <Btn onClick={() => openSettings(true)}>Export</Btn></Banner>}
+      {d.sync === 'needs_permission' && <Banner>Backup file needs permission again. <TextAction className="underline underline-offset-[3px]" onClick={() => void reauthorizeFileSync()}>Re-authorize</TextAction></Banner>}
+      {stale && <Banner>Your goals haven't been exported in a while. <TextAction className="underline underline-offset-[3px]" onClick={() => openSettings(true)}>Export</TextAction></Banner>}
     </>
   );
 }
@@ -71,36 +77,54 @@ function Main() {
 
   if (!goals) return null;
   return (
-    <div className="flex h-dvh flex-col" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-      <header className="flex items-center gap-2 border-b border-slate-800 px-3 py-2">
-        <span className="font-semibold">Gambit</span>
+    <div className="paper flex h-dvh flex-col" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <header className="flex items-center gap-3 border-b border-rule px-4 py-2.5">
+        <span className="font-serif text-[17px] font-medium text-ink">Gambit</span>
         {goals.length > 0 && (
-          <select className="min-w-0 max-w-[45vw] flex-1 truncate rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm md:max-w-xs" value={current?.id} onChange={(e) => void setActiveGoal(e.target.value)} aria-label="Active goal">
+          <select
+            className="min-w-0 max-w-[45vw] flex-1 truncate border-0 border-b border-card-rule bg-transparent px-0 py-1.5 text-[15px] text-ink focus:border-ink focus:outline-none md:max-w-xs"
+            value={current?.id}
+            onChange={(e) => void setActiveGoal(e.target.value)}
+            aria-label="Active goal"
+          >
             {goals.map((g) => <option key={g.id} value={g.id}>{g.title}</option>)}
           </select>
         )}
-        <Btn onClick={() => setCreating(true)}>＋ New goal</Btn>
+        <TextAction className="underline underline-offset-[3px]" onClick={() => setCreating(true)}>New goal</TextAction>
         <div className="flex-1" />
-        {cost && cost.turns > 0 && <button className="text-xs text-slate-400 hover:text-slate-200" onClick={() => openSettings(true)} title="Estimated session spend">{fmtUsd(cost.dollars)}</button>}
-        <Btn onClick={() => openSettings(true)} aria-label="Settings">⚙</Btn>
+        {cost && cost.turns > 0 && (
+          <TextAction className="text-[14px] text-graphite" onClick={() => openSettings(true)} title="Estimated session spend">
+            {fmtUsd(cost.dollars)}
+          </TextAction>
+        )}
+        <button
+          onClick={() => openSettings(true)}
+          aria-label="Settings"
+          className="grid h-11 w-11 flex-none place-items-center text-graphite hover:text-ink"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
       </header>
       <Banners />
       {current ? (
         <>
           <main className="min-h-0 flex-1 md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-            <section className={`${tab === 'chat' ? 'block' : 'hidden'} h-full min-h-0 border-slate-800 md:block md:border-r`}><Chat goalId={current.id} stub={!!stub} /></section>
+            <section className={`${tab === 'chat' ? 'block' : 'hidden'} h-full min-h-0 md:block md:border-r md:border-rule`}><Chat goalId={current.id} stub={!!stub} /></section>
             <section className={`${tab === 'dashboard' ? 'block' : 'hidden'} h-full min-h-0 overflow-y-auto md:block`}><Dashboard goalId={current.id} /></section>
           </main>
-          <nav className="grid grid-cols-2 border-t border-slate-800 md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <nav className="grid grid-cols-2 border-t border-rule md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             {(['chat', 'dashboard'] as const).map((t) => (
-              <button key={t} onClick={() => setTab(t)} className={`py-3 text-sm capitalize ${tab === t ? 'text-sky-300' : 'text-slate-400'}`}>{t}</button>
+              <button key={t} onClick={() => setTab(t)} className={`min-h-[44px] py-3 text-[15px] capitalize ${tab === t ? 'text-ink' : 'text-graphite'}`}>{t}</button>
             ))}
           </nav>
         </>
       ) : (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-          <p className="max-w-sm text-sm text-slate-400">Start with a goal. Give it a working title; you'll sharpen it in conversation while the dashboard fills in.</p>
-          <Btn kind="primary" onClick={() => setCreating(true)}>Start a goal</Btn>
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
+          <p className="max-w-sm text-[15px] text-graphite">Start with a goal. Give it a working title; you'll sharpen it in conversation while the dashboard fills in.</p>
+          <TextAction className="underline underline-offset-[3px]" onClick={() => setCreating(true)}>Start a goal</TextAction>
         </div>
       )}
       {creating && <NewGoalDialog onClose={() => { setCreating(false); setTab('chat'); }} />}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getProvider, saveProvider, PROVIDERS, originAllowed, type ProviderKind, type ProviderSettings } from '../lib/providers';
 import { saveApiKey, hasApiKey, clearApiKey } from '../lib/crypto';
-import { Btn, Field, inputCls } from './ui';
+import { InkButton, TextAction, Field, inputCls } from './ui';
 import { useEffect } from 'react';
 
 /** Provider, model and key entry. Used for first run and inside Settings. */
@@ -55,15 +55,15 @@ export function ProviderForm({ onDone }: { onDone?: () => void }) {
         <input className={inputCls} value={s.baseURL ?? ''} onChange={(e) => setS({ ...s, baseURL: e.target.value })} placeholder={PROVIDERS[s.kind].baseURL ?? 'https://…/v1'} />
       </Field>
       {s.kind === 'anthropic' && (
-        <label className="flex items-center gap-2 text-sm text-slate-300">
+        <label className="flex items-center gap-2 text-[14px] text-graphite">
           <input type="checkbox" checked={!!s.webSearch} onChange={(e) => setS({ ...s, webSearch: e.target.checked })} />
           Allow provider-side web search (billed by Anthropic)
         </label>
       )}
-      {err && <p className="text-sm text-red-300">{err}</p>}
-      <div className="flex gap-2">
-        <Btn kind="primary" onClick={() => void save()}>Save</Btn>
-        {saved && <Btn kind="danger" onClick={async () => { await clearApiKey(s.kind); setSaved(false); }}>Remove key</Btn>}
+      {err && <p className="text-[15px] text-accent">{err}</p>}
+      <div className="flex items-center gap-4">
+        <InkButton onClick={() => void save()}>Save</InkButton>
+        {saved && <TextAction className="text-graphite underline underline-offset-[3px]" onClick={async () => { await clearApiKey(s.kind); setSaved(false); }}>Remove key</TextAction>}
       </div>
     </div>
   );
@@ -71,10 +71,10 @@ export function ProviderForm({ onDone }: { onDone?: () => void }) {
 
 export function Setup() {
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col justify-center gap-6 p-6">
+    <div className="paper mx-auto flex min-h-full max-w-md flex-col justify-center gap-6 p-6">
       <div>
-        <h1 className="text-2xl font-semibold">Gambit</h1>
-        <p className="mt-2 text-sm text-slate-400">
+        <h1 className="font-serif text-[29px] leading-[37px] font-medium text-ink ink-bleed">Gambit</h1>
+        <p className="mt-2 text-[14px] text-graphite">
           Strategy and planning with your own model key. Everything stays on this device: your goals, your chats and your key. There is no account and no server.
         </p>
       </div>
