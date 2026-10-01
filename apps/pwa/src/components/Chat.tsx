@@ -7,7 +7,7 @@ import { useTornEdge } from './marks/torn';
 import { COMPOSE_EVENT } from '../lib/compose';
 import { takePendingSend } from '../lib/onboarding';
 import { Md } from './Md';
-import { ReplyView, Reasoning } from './Reply';
+import { ReplyView, Reasoning, lastParagraph } from './Reply';
 import type { Reply } from '../lib/tools';
 import { HandMic } from './paper/HandMic';
 import { dictationSupported, useDictation } from '../lib/dictation';
@@ -540,12 +540,11 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
                 <Reasoning text={m.text} tools={(m.tools ?? []).map((t) => t.label)} />
               </>
             ) : (
-              // No reply call (a model that skipped it): the text is the answer.
+              // No reply call (a model that skipped it): its last paragraph
+              // stands in as the answer; the rest stays collapsed.
               <>
-                {m.text && <Md text={m.text} />}
-                {(m.tools?.length ?? 0) > 0 && (
-                  <p className="hand text-[16px]">{m.tools!.map((t) => t.label).join(' · ')}</p>
-                )}
+                {lastParagraph(m.text).last && <Md text={lastParagraph(m.text).last} />}
+                <Reasoning text={lastParagraph(m.text).rest} tools={(m.tools ?? []).map((t) => t.label)} />
               </>
             )}
             {(m.summary?.length ?? 0) > 0 && (

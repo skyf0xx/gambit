@@ -50,3 +50,9 @@ export function Reasoning({ text, tools }: { text: string; tools: string[] }) {
     </details>
   );
 }
+
+/** Split text into its last paragraph and everything before it. */
+export function lastParagraph(text: string): { last: string; rest: string } {
+  const parts = text.trim().split(/\n\s*\n/);
+  return { last: (parts.pop() ?? '').trim(), rest: parts.join('\n\n') };
+}

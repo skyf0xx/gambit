@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { writeSection, appendLog, setStatus, WRITABLE_KEYS } from '@gambit/core';
+import { writeSection, appendLog, setStatus, WRITABLE_KEYS, readingGrade, READING_GRADE_MAX } from '@gambit/core';
 import { applyOp, readRecord } from './goals';
 import { db } from './db';
 import { getSkillStore, skillText, skillFile, elicitationMethods } from './skills';
@@ -33,9 +33,16 @@ export async function goalStateJson(goalId: string): Promise<string> {
  * the reply (Chat.tsx). Caps are tight on purpose — a reply that runs long
  * fails validation and the model rewrites it. */
 export const REPLY_KINDS = ['question', 'decision', 'confirm', 'fyi'] as const;
+export const REPLY_WORDS_MAX = 20;
+/** A shown line: capped in characters and words, and held to the same
+ * grade-7 reading level as goal writes (readability.mjs). */
+const shownLine = (chars: number) =>
+  z.string().min(1).max(chars)
+    .refine((s) => s.trim().split(/\s+/).length <= REPLY_WORDS_MAX, `must be ${REPLY_WORDS_MAX} words or fewer`)
+    .refine((s) => (readingGrade(s) ?? 0) <= READING_GRADE_MAX, `keep it at grade ${READING_GRADE_MAX} or below: shorter sentences, plainer words`);
 export const replySchema = z.object({
-  say: z.string().min(1).max(160).describe('One short plain sentence: what you found or did. No headings, no lists.'),
-  bottomLine: z.string().min(1).max(120).describe('What you need from the user now, or your one recommended next move. One sentence, with no label in front (the page adds one).'),
+  say: shownLine(160).describe(`One short plain sentence, at most ${REPLY_WORDS_MAX} words: what you found or did. No headings, no lists.`),
+  bottomLine: shownLine(120).describe(`What you need from the user now, or your one recommended next move. One sentence, at most ${REPLY_WORDS_MAX} words, with no label in front (the page adds one).`),
   kind: z.enum(REPLY_KINDS).describe('question: you need a fact only they have. decision: they must make a call. confirm: you want a yes before writing. fyi: nothing needed, here is the next move.'),
   options: z.array(z.string().min(1).max(40)).max(5).optional().describe('Up to 5 short answers the user can tap instead of typing, recommended one first. Omit for an open question.'),
 });

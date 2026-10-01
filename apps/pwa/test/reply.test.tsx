@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { replySchema } from '../src/lib/tools';
-import { ReplyView, Reasoning } from '../src/components/Reply';
+import { ReplyView, Reasoning, lastParagraph } from '../src/components/Reply';
 import { PREAMBLE } from '../src/lib/skills';
 import { replied } from '../src/lib/agent';
 import { streamText, stepCountIs, tool } from 'ai';
@@ -15,6 +15,18 @@ describe('reply', () => {
     expect(replySchema.safeParse({ ...reply, bottomLine: 'x'.repeat(121) }).success).toBe(false);
     expect(replySchema.safeParse({ ...reply, options: ['a', 'b', 'c', 'd', 'e', 'f'] }).success).toBe(false);
     expect(replySchema.safeParse({ ...reply, kind: 'essay' }).success).toBe(false);
+  });
+
+  it('rejects a reply line over the word cap or above grade 7', () => {
+    expect(replySchema.safeParse({ ...reply, say: 'a b c d e f g h i j k l m n o p q r s t u' }).success).toBe(false);
+    const dense = 'Organizational interdependencies necessitate comprehensive reconsideration of institutional prioritization methodologies.';
+    expect(replySchema.safeParse({ ...reply, bottomLine: dense + ' Consequently everything changes.' }).success).toBe(false);
+    expect(replySchema.safeParse({ ...reply, say: 'Your plan has one weak spot, and it is the vendor you pay most.' }).success).toBe(true);
+  });
+
+  it('splits text into its last paragraph and the rest', () => {
+    expect(lastParagraph('a\n\nb\n\n c ')).toEqual({ last: 'c', rest: 'a\n\nb' });
+    expect(lastParagraph('only')).toEqual({ last: 'only', rest: '' });
   });
 
   it('shows the sentence, the labelled bottom line, and options only when pickable', () => {
