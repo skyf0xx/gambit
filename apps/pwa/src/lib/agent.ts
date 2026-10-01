@@ -102,9 +102,9 @@ export async function runTurn(opts: {
 }): Promise<void> {
   const { goalId, text, signal, onEvent, quick } = opts;
   const prov = await getProvider();
-  if (!prov) throw new Error('No provider configured. Open Settings.');
+  if (!prov) throw new Error('No provider set. Open Settings.');
   const apiKey = await loadApiKey(prov.kind);
-  if (!apiKey) throw new Error('No API key saved for this provider. Open Settings.');
+  if (!apiKey) throw new Error('No key saved. Open Settings.');
   const model = makeModel(prov, apiKey);
 
   const rec = await db.goals.get(goalId);
@@ -259,18 +259,18 @@ export function errorText(e: unknown, kind?: ProviderKind): string {
   if (inner) e = inner;
   const err = e as { message?: string; statusCode?: number; responseBody?: string };
   if (typeof navigator !== 'undefined' && !navigator.onLine)
-    return "You're offline. Your notebook is here, and messages will work when you're back online.";
+    return "You're offline.";
   const google = kind === 'google';
   if (err?.statusCode === 401 || err?.statusCode === 403 || (google && err?.statusCode === 400 && /api key/i.test(err.message ?? '')))
-    return 'The provider rejected your key. Check it under Model in settings, or paste a new one there.';
+    return 'Key rejected. Check it in Settings.';
   if (err?.statusCode === 429)
     return google
-      ? "You've used Google's free limit for now. To keep going, add credit to this key in AI Studio (aistudio.google.com) or switch to another provider under Model in settings. Your message is saved."
-      : 'The provider is limiting requests right now. Your message is saved, so try again in a minute.';
+      ? "Google's free limit reached. Add credit in AI Studio or switch provider."
+      : 'Rate limited. Try again in a minute.';
   if (err?.statusCode === 503 || err?.statusCode === 529)
     return google
-      ? "Google's models are busy right now. Your message is saved, so try again in a minute."
-      : 'The provider is busy right now. Your message is saved, so try again in a minute.';
+      ? "Google is busy. Try again in a minute."
+      : 'Provider busy. Try again in a minute.';
   return err?.message ?? String(e);
 }
 

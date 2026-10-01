@@ -29,11 +29,11 @@ function recognitionCtor(): (new () => Recognition) | null {
 export const dictationSupported = () => recognitionCtor() !== null;
 
 const MESSAGES: Record<string, string> = {
-  'not-allowed': "The microphone is blocked for this page. Allow it in your browser's site settings to dictate.",
-  'service-not-allowed': "This browser won't dictate here. Allow the microphone in its site settings, or type instead.",
+  'not-allowed': 'Microphone blocked.',
+  'service-not-allowed': 'Dictation blocked here.',
   'audio-capture': 'No microphone found.',
-  network: 'Dictation needs a connection in this browser.',
-  'language-not-supported': "Dictation doesn't support your browser's language.",
+  network: 'Dictation needs a connection.',
+  'language-not-supported': 'Language not supported.',
 };
 
 /** Start and stop dictation into a piece of text. `onText` receives the

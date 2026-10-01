@@ -54,7 +54,7 @@ export function Doodles({ goal }: { goal: Goal; goalId: string }) {
   if (!tree) {
     return (
       <div className="flex min-h-[200px] items-center justify-center p-8">
-        <p className="hand text-[20px] text-graphite">Not much to draw yet. Ask for a plan.</p>
+        <p className="hand text-[20px] text-graphite">Nothing to draw yet.</p>
       </div>
     );
   }

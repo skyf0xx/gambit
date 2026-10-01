@@ -46,17 +46,17 @@ export function hintFor(key: string, d: Any): string {
 // (brand/identity.md §05 "An empty section is one pencilled question you
 // can tap").
 export const EMPTY_PROMPTS: Record<string, string> = {
-  plan: "No plan yet. What's the first move?",
-  people: 'Nobody named yet. Who has a say in this?',
-  stakeholders: 'Nobody else named yet. Whose decision does this hang on?',
-  systemsNotes: "Not looked at yet. Where's the leverage point here?",
-  riskNotes: "Nothing stress-tested yet. What could go wrong?",
-  decisions: 'Nothing decided yet. What choice is open?',
-  exposure: "Not looked at yet. What are you personally exposed to?",
-  capacity: "Not counted yet. What do you actually have to work with?",
-  forecasts: 'No predictions yet. What do you expect to happen?',
-  experiments: 'Nothing tested yet. What assumption needs checking?',
-  criteriaStatus: 'Not scored yet. How is this actually going?',
+  plan: "What's the first move?",
+  people: "Who's involved?",
+  stakeholders: 'Who else has a say?',
+  systemsNotes: "Where's the leverage?",
+  riskNotes: 'What could go wrong?',
+  decisions: 'Any choice to make?',
+  exposure: 'What do you risk personally?',
+  capacity: 'How much time and money?',
+  forecasts: 'What do you expect?',
+  experiments: 'What needs testing?',
+  criteriaStatus: "How's it going?",
 };
 
 // What tapping an empty section's question puts in the chat composer: the

@@ -36,7 +36,7 @@ function GoalHeader({ g, goalId }: { g: Goal; goalId: string }) {
         </h1>
       )}
       {stub ? (
-        <PencilWord>Not yet defined — describe the goal in the chat to fill this in.</PencilWord>
+        <PencilWord>Not set yet.</PencilWord>
       ) : g.deadline ? (
         <PencilWord>{timeLeft(g.deadline)}<FreshTag path="deadline" /></PencilWord>
       ) : null}

@@ -43,8 +43,8 @@ function Banners() {
   useEffect(() => { void fileSyncState().then(setSync); }, []);
   return (
     <>
-      {needRefresh && <Banner>New app version ready. <TextAction className="underline underline-offset-[3px]" onClick={() => void updateServiceWorker(true)}>Reload</TextAction></Banner>}
-      {sync === 'needs_permission' && <Banner>Backup file needs permission again. <TextAction className="underline underline-offset-[3px]" onClick={() => void reauthorizeFileSync()}>Re-authorize</TextAction></Banner>}
+      {needRefresh && <Banner>Update ready. <TextAction className="underline underline-offset-[3px]" onClick={() => void updateServiceWorker(true)}>Reload</TextAction></Banner>}
+      {sync === 'needs_permission' && <Banner>Backup paused. <TextAction className="underline underline-offset-[3px]" onClick={() => void reauthorizeFileSync()}>Resume</TextAction></Banner>}
     </>
   );
 }
@@ -100,7 +100,6 @@ function Main() {
         </main>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-          <p className="max-w-sm text-[15px] text-graphite">Start with a goal. Give it a working title; you'll sharpen it in conversation while the dashboard fills in.</p>
           <TextAction className="underline underline-offset-[3px]" onClick={() => setCreating(true)}>Start a goal</TextAction>
         </div>
       )}

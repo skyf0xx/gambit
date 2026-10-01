@@ -155,11 +155,11 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
 /** The pages ahead, named on their tabs. Each opens to one line saying what
  * will fill it, so the notebook can be looked through before it's started. */
 const PREVIEWS: Partial<Record<TabId, string>> = {
-  moves: 'The most important moves you can make.',
-  people: 'Who matters, what they want, and who can be won over.',
-  risks: 'What could go wrong, and how to prepare.',
-  bets: 'Not everything is certain, but you can manage risk.',
-  doodles: 'A mindmap of our entire plan.',
+  moves: 'Your best next moves.',
+  people: 'Who matters and what they want.',
+  risks: 'What could go wrong.',
+  bets: 'Your guesses, tested.',
+  doodles: 'The plan as a map.',
 };
 const SETUP_TABS: TabId[] = ['goal', 'moves', 'people', 'risks', 'bets', 'doodles', 'inside-cover'];
 
@@ -280,7 +280,7 @@ function GoalStep({ draft, onDraft, onNext }: { draft: string; onDraft: (v: stri
           value={draft}
           onChange={(e) => onDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && ready) next(); }}
-          placeholder={dictation.listening ? 'listening…' : "Write it the way you'd say it to a friend."}
+          placeholder={dictation.listening ? 'listening…' : 'Say it plainly.'}
           className="mt-12 block w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-sans text-[19px] leading-[32px] text-ink caret-accent placeholder:text-graphite focus:outline-none"
           style={{ background: 'repeating-linear-gradient(transparent 0 31px, var(--card-rule) 31px 32px)' }}
         />
@@ -409,7 +409,6 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
         </div>
       )}
       <h1 className="ink-bleed anim-rise font-serif text-[30px] leading-[38px] font-medium text-ink">Add your API key</h1>
-      <p className="anim-rise mt-3 text-[17px] leading-[27px] text-graphite">Gambit runs on your own key from an AI provider. It stays encrypted on this device.</p>
 
       <div className="anim-rise mt-10">
         <div className="flex items-end gap-3">
@@ -439,7 +438,7 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
       </div>
 
       <div className="anim-rise mt-8">
-        <p className="text-[14px] leading-5 text-graphite">No key yet? Get one from</p>
+        <p className="text-[14px] leading-5 text-graphite">Get one:</p>
         <div className="flex flex-wrap gap-x-5">
           {KEY_LINKS.map((l) => (
             <TextAction key={l.label} className="text-[15px]! underline underline-offset-[3px]" onClick={() => getKey(l.url)}>{l.label}</TextAction>
@@ -454,7 +453,7 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
             <ProviderForm firstRun beforeSave={beforeSave} />
           </div>
         ) : (
-          <TextAction className="self-start text-[14px]! text-graphite! underline underline-offset-[3px]" onClick={() => setOtherProvider(true)}>Use a custom endpoint</TextAction>
+          <TextAction className="self-start text-[14px]! text-graphite! underline underline-offset-[3px]" onClick={() => setOtherProvider(true)}>Custom endpoint</TextAction>
         )}
       </div>
     </div>

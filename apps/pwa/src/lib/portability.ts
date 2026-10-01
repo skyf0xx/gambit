@@ -46,8 +46,8 @@ export interface ImportItem {
 /** Validate (and migrate if older) every goal in an untrusted file. Nothing is written. */
 export async function planImport(text: string): Promise<ImportItem[]> {
   let parsed: Partial<ExportFile>;
-  try { parsed = JSON.parse(text); } catch { throw new Error('That file is not valid JSON.'); }
-  if (parsed?.app !== 'gambit' || !Array.isArray(parsed.goals)) throw new Error('That file is not a Gambit export.');
+  try { parsed = JSON.parse(text); } catch { throw new Error('Not a valid file.'); }
+  if (parsed?.app !== 'gambit' || !Array.isArray(parsed.goals)) throw new Error('Not a Gambit backup.');
   const existing = new Set((await db.goals.toArray()).map((g) => g.id));
   return parsed.goals.map((g, i) => {
     const id = typeof g?.id === 'string' && g.id ? g.id : `imported-${i}`;

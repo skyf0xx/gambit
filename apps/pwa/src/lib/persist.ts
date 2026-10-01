@@ -27,8 +27,8 @@ export const installRoute = (hasEvent: boolean): InstallRoute =>
   hasEvent ? 'prompt' : isIos() ? 'ios' : isMacSafari() ? 'mac-safari' : 'none';
 
 export const installSteps: Record<Exclude<InstallRoute, 'prompt' | 'none'>, string> = {
-  ios: 'Tap Share, then Add to Home Screen.',
-  'mac-safari': 'In Safari, choose File, then Add to Dock.',
+  ios: 'Share → Add to Home Screen.',
+  'mac-safari': 'File → Add to Dock.',
 };
 
 /** Ask once at first run; the result is reported honestly in Settings. */

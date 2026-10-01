@@ -14,12 +14,11 @@ export function KeepNotebook() {
   return (
     <aside className="hand anim-fade-in space-y-1 text-[16px] leading-6 text-graphite">
       <p>
-        <span className="text-ink">Keep this notebook.</span> It lives only in this browser, and browsers clear
-        sites you haven't opened in a while. Saving Gambit to this device stops that.
+        <span className="text-ink">Keep this notebook.</span> Unused sites get cleared.
       </p>
       <p className="flex flex-wrap items-center gap-x-4">
         {route === 'prompt' ? (
-          <TextAction className="underline" onClick={() => void installEvent!.prompt()}>Save to this device</TextAction>
+          <TextAction className="underline" onClick={() => void installEvent!.prompt()}>Install</TextAction>
         ) : (
           <span className="text-ink">{installSteps[route]}</span>
         )}

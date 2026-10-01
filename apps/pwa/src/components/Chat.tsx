@@ -522,12 +522,9 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
           )}
         </p>
       )}
-      {chat?.trimmed && display.length > 0 && (
-        <p className="hand text-center text-[16px]">Earlier talk is kept on your page, not here.</p>
-      )}
       {display.length === 0 && !busy && (
         <p className="mx-auto mt-10 max-w-sm text-center text-[14px] text-graphite">
-          {stub ? 'Tell me what you want to achieve, as much or as little as you have.' : 'Ask for a status, a next step, or a hard question about the plan.'}
+          {stub ? 'What do you want to achieve?' : 'Ask anything.'}
         </p>
       )}
       {display.map((m) =>
@@ -565,11 +562,8 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
             {showsError(m) && (
               <Fleeting>
                 <p className="anim-fade-in text-[15px] text-accent">{m.error}</p>
-                {(m.summary?.length ?? 0) === 0 && m.id === lastUndoable?.id && !m.undone && (
-                  <p className="text-[14px] text-graphite">No goal changes were applied.</p>
-                )}
                 {(m.summary?.length ?? 0) > 0 && (
-                  <p className="text-[14px] text-graphite">Partial progress was kept; Undo rolls the whole turn back.</p>
+                  <p className="text-[14px] text-graphite">Some changes kept.</p>
                 )}
               </Fleeting>
             )}
