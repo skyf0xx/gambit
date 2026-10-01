@@ -6,7 +6,7 @@ import { Section, EmptySection, isEmptySection } from './SectionRenderer';
 const DEFAULT_SECTIONS = ['plan'] as const;
 
 /** Moves: the default landing tab (task spec) — the index card, sticky
- * notes, and the plan ("future moves") with its focus. The goal title,
+ * notes, and the plan ("all moves") with its focus. The goal title,
  * deadline and "what done looks like" live on the Goal tab, and the log
  * on the Logs tab — Moves is about doing, not defining. */
 export function MovesTab({ g, goalId }: { g: Goal; goalId: string }) {

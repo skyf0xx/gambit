@@ -18,7 +18,7 @@ const TITLES: Record<string, SectionTitle> = {
   successCriteria: { title: 'What done looks like' },
   subGoals: { title: 'Parts of this goal' },
   log: { title: 'Logs' },
-  plan: { title: 'Future moves' },
+  plan: { title: 'All moves' },
   people: { title: "Who's involved" },
   stakeholders: { title: 'Who else has a say', method: 'stakeholders', methodNote: 'stakeholders: mapping who has power and what they want' },
   systemsNotes: { title: 'Where the leverage is', method: 'systems', methodNote: 'systems: finding the one point that moves everything else' },

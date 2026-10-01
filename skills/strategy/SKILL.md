@@ -187,7 +187,7 @@ its own correction is the violation, not the presence of a fix.
 }
 ```
 
-`focus` on the log entry is the one place Schwerpunkt is persisted — the visual layer and the next session's context both read the most recent non-null `focus` across `log`, not a separate field.
+`focus` on the log entry is where the Schwerpunkt is recorded — the visual layer and the next session's context both read the most recent non-null `focus` across `log`. The plan marks the line carrying it with `focus: true`, and the "Your top move" card reads that line first. `plan` owns that flag, so when the Schwerpunkt you just set sits on a different line from the one the plan marks, make `plan` the recommended next step, so the flag and the card follow the new focus.
 
 If either write returns `{ ok: false, errors }`, fix the reported fields and retry before ending the turn.
 

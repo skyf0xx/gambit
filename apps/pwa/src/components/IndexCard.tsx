@@ -77,7 +77,7 @@ export function IndexCard({ goal, goalId }: { goal: Goal; goalId: string }) {
         style={{ clipPath: 'polygon(3% 8%, 0 25%, 4% 50%, 1% 78%, 4% 100%, 97% 94%, 100% 70%, 96% 45%, 100% 20%, 97% 0)' }}
       />
 
-      <div className="h-6.5 text-[14px] leading-5 text-graphite">Your next move</div>
+      <div className="h-6.5 text-[14px] leading-5 text-graphite">Your top move</div>
 
       {move ? (
         <div className="flex cursor-pointer items-start" onClick={onRowClick}>

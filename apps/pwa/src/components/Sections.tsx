@@ -320,10 +320,12 @@ export function lineProgress(l: Any): { done: number; total: number } {
 }
 
 /** Which line's sheet sits on top when nothing has picked one: the line
- * holding the focus, else the first with anything still pending, else the
- * first. */
+ * the focus mark lands on, else the plan's focus line, else the first with
+ * anything still pending, else the first. */
 export function defaultOpenLine(lines: Any[], focusLine: number | null): number {
   if (focusLine != null && focusLine < lines.length) return focusLine;
+  const flagged = lines.findIndex((l) => l.focus);
+  if (flagged >= 0) return flagged;
   const pending = lines.findIndex((l) => { const p = lineProgress(l); return p.done < p.total; });
   return pending >= 0 ? pending : 0;
 }

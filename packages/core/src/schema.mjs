@@ -89,8 +89,11 @@ const labeledStep = z.object({
   status: z.enum(['pending', 'done', 'dropped']).default('pending'),
 });
 
+// focus: true marks the one line holding the Schwerpunkt. The index card
+// takes its first pending next action before any other line's.
 const lineOfOperation = z.object({
   label: shortLabel,
+  focus: z.literal(true).optional(),
   criticalPath: z.array(labeledStep).max(6),
   nextActions: z.array(nextAction).max(5),
   status: z.enum(['on_schedule', 'at_risk', 'blocked', 'done']).optional(),
@@ -261,9 +264,13 @@ export const GOAL_MAX_WORDS = 10;
 // existed must still load, and picks the rule up on its owner's next write.
 //
 // A proposed move needs its `detail`: the sticky note asks the user to keep
-// or toss it, and the why is what makes that an informed choice.
+// or toss it, and the why is what makes that an informed choice. At most one
+// line carries `focus` — the Schwerpunkt is one thing, not a ranking.
 export const writeRules = {
   plan: plan.superRefine((p, ctx) => {
+    if (p.linesOfOperation.filter((l) => l.focus).length > 1) {
+      ctx.addIssue({ code: 'custom', path: ['linesOfOperation'], message: 'only one line can carry focus: true' });
+    }
     p.linesOfOperation.forEach((l, li) => l.nextActions.forEach((a, ai) => {
       if (a.status === 'proposed' && !a.detail?.trim()) {
         ctx.addIssue({

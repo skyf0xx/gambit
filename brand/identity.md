@@ -136,7 +136,7 @@ Strokes are drawn with **perfect-freehand**, so they taper with pressure like a 
 
 | Mark | Means | Comes from | Material | Lasts |
 |---|---|---|---|---|
-| Index card | Your next move | The first `pending` next action | Slip, taped | Always, for the next move only |
+| Index card | Your top move | The first `pending` next action on the focus line, else in plan order | Slip, taped | Always, for the next move only |
 | Open loop | The most important change from the last conversation | The last turn's writes | Pencil, in the accent | Until the next session, a tap on the line, or undo. Draws in once, then stays still. |
 | Tick | Done | A next action or step with status `done`, or a criterion `eval` scored `met` | Ink, overshooting a hand-drawn box | While true |
 | Highlighter | The focus: the one thing that matters most right now | The line named by `focusLine` on the latest log entry with a focus, set by `strategy` | Highlighter, behind the text | While it's the focus |

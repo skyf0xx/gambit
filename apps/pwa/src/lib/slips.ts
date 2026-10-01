@@ -46,10 +46,14 @@ function allNextActions(goal: Goal): Found[] {
   return out;
 }
 
-/** The taped index card: the first `pending` next action, if any, in plan order. */
+/** The taped index card: the first `pending` next action on the focus line,
+ * else the first in plan order, if any. */
 export function nextMove(goal: Goal): SlipItem | null {
   const lines = goal.plan?.linesOfOperation ?? [];
-  for (let li = 0; li < lines.length; li++) {
+  const order = lines.map((_, li) => li);
+  const focus = lines.findIndex((l) => l.focus);
+  if (focus > 0) order.unshift(...order.splice(focus, 1));
+  for (const li of order) {
     const line = lines[li];
     for (let ai = 0; ai < line.nextActions.length; ai++) {
       const a = line.nextActions[ai];

@@ -9,7 +9,7 @@ import type { Goal } from '../../lib/types';
 //                 done looks like" (successCriteria), and "Parts of this
 //                 goal" (subGoals). Always shown, first in the stack.
 //   Moves       — the default selected tab on every load: index card,
-//                 sticky notes, future moves (plan), the focus. Always
+//                 sticky notes, all moves (plan), the focus. Always
 //                 shown.
 //   People      — people, stakeholders
 //   Risks       — riskNotes, exposure

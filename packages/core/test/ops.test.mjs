@@ -67,6 +67,13 @@ test('setStatus: a proposed next action is kept or tossed; steps cannot be propo
   assert.equal(bare.errors[0].path, 'plan.linesOfOperation.0.nextActions.0.detail');
 });
 
+test('only one line of the plan can carry focus', () => {
+  const line = (label) => ({ label, criticalPath: [], nextActions: [], focus: true });
+  const r = writeSection(stubGoal('g'), 'plan', { linesOfOperation: [line('A'), line('B')] });
+  assert.equal(r.ok, false);
+  assert.equal(writeSection(stubGoal('g'), 'plan', { linesOfOperation: [line('A'), { label: 'B', criticalPath: [], nextActions: [] }] }).ok, true);
+});
+
 test('a proposed move needs its detail on write, but an older one without it still reads and can be kept', () => {
   const g = stubGoal('g');
   const withProposal = (detail) => ({

@@ -136,7 +136,7 @@ successCriteria: [{text ≤120, kind: control|influence, lineOfOperation?: S, de
 deadline: date | null
 people: [{name: S, status: confirmed|tentative|lead, doing: M, detail?}]
 posture: null | {current: {level: int ≥1, label: S}, levels: [{level, label: S, meaning?: M}], triggers: [M] ≤10, lastReviewed: date}
-plan: {linesOfOperation: [{label: S, criticalPath: [{label: S, detail?, items?: [{label: S, status}] ≤10, status}] ≤6, nextActions: [{action: M, who: S, when: S, status, detail?: D (required when proposed: why this, why now)}] ≤5, status?: on_schedule|at_risk|blocked|done, blocker?: M}]} (at least 1 line); status = pending|done|dropped, and a next action may also be proposed (a move you suggest that the user hasn't agreed to yet; they keep or toss it)
+plan: {linesOfOperation: [{label: S, focus?: true (the one line holding the Schwerpunkt; at most one), criticalPath: [{label: S, detail?, items?: [{label: S, status}] ≤10, status}] ≤6, nextActions: [{action: M, who: S, when: S, status, detail?: D (required when proposed: why this, why now)}] ≤5, status?: on_schedule|at_risk|blocked|done, blocker?: M}]} (at least 1 line); status = pending|done|dropped, and a next action may also be proposed (a move you suggest that the user hasn't agreed to yet; they keep or toss it)
 systemsNotes: null | {schwerpunkt: M, rationale?: M, confidence: high|moderate|low, topFindings: [{label: M, detail?, items?}] ≤5, lastReviewed: date}
 riskNotes: [{item: M, detail?: M, source: threat|premortem, accepted: boolean, dependsOn?: S (a people or stakeholders name, verbatim)}]
 criteriaStatus: [{text ≤120, kind, lineOfOperation?, status: met|on_track|at_risk|stalled|regressing, detail?}]

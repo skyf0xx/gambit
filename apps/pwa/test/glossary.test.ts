@@ -13,7 +13,7 @@ describe('page glossary', () => {
   it('maps each key to its tab and heading, in the page\'s words', () => {
     const g = pageGlossary();
     for (const k of [...WRITABLE_KEYS, 'log']) expect(g).toMatch(new RegExp(`^${k} → `, 'm'));
-    expect(g).toContain('plan → Moves tab, "Future moves"');
+    expect(g).toContain('plan → Moves tab, "All moves"');
     expect(g).toContain('decisions → Bets tab, "Decisions"');
     expect(g).toContain('subGoals → Goal tab, "Parts of this goal"');
     expect(g).toContain('posture → not shown on the page');

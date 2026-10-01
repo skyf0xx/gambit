@@ -165,8 +165,8 @@ describe('plan as a stack of sheets', () => {
 });
 
 describe('sectionTitleFor', () => {
-  it('renames plan to Future moves', () => {
-    expect(sectionTitleFor('plan').title).toBe('Future moves');
+  it('renames plan to All moves', () => {
+    expect(sectionTitleFor('plan').title).toBe('All moves');
   });
 
   it('maps riskNotes to a plain-language title with the method pencilled beside it', () => {

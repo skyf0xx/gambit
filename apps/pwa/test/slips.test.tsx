@@ -54,6 +54,17 @@ describe('nextMove', () => {
     });
   });
 
+  it('reads the focus line first, wherever it sits in the plan', () => {
+    const goal = twoLines(
+      [{ action: 'A1', who: 'me', when: 'fri', status: 'pending' }],
+      [{ action: 'B1', who: 'me', when: 'mon', status: 'pending' }],
+    );
+    goal.plan!.linesOfOperation[1].focus = true;
+    expect(nextMove(goal)?.action).toBe('B1');
+    goal.plan!.linesOfOperation[1].nextActions[0].status = 'done';
+    expect(nextMove(goal)?.action).toBe('A1');
+  });
+
   it('returns null when nothing is pending', () => {
     const goal = withActions(stubGoal('Goal') as Goal, [{ action: 'A1', who: 'me', when: 'fri', status: 'proposed' }]);
     expect(nextMove(goal)).toBeNull();
