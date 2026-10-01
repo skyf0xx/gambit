@@ -324,10 +324,24 @@ export function defaultOpenLine(lines: Any[], focusLine: number | null): number 
   return pending >= 0 ? pending : 0;
 }
 
-/** A line's pencilled one-line summary: its status and how far along it is. */
-function lineSummary(line: Any): string {
+/** A line's pencilled one-line summary: its status and how far along it is.
+ * `brief` is for a tucked edge, where the line's name needs the room: it
+ * leaves out "on schedule", the status that asks nothing of the user. */
+function lineSummary(line: Any, brief = false): string {
   const { done, total } = lineProgress(line);
-  return [line.status?.replace('_', ' '), total > 0 && `${done} of ${total} done`].filter(Boolean).join(' · ');
+  const status = brief && line.status === 'on_schedule' ? undefined : line.status?.replace('_', ' ');
+  return [status, total > 0 && `${done} of ${total} done`].filter(Boolean).join(' · ');
+}
+
+/** The heading of the sheet in front: the line's name on its own, given
+ * room to wrap, with the pencilled summary on the line beneath it. */
+function SheetTitle({ label, summary }: { label: string; summary: string }) {
+  return (
+    <div className="min-w-0">
+      <h3 className="text-[20px] font-semibold leading-[26px] text-ink">{label}</h3>
+      {summary && <PencilWord className="mt-0.5 block text-[18px] leading-[24px]">{summary}</PencilWord>}
+    </div>
+  );
 }
 
 /** The plan as a pile of loose sheets, one per line of operation. The open
@@ -400,11 +414,8 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
 
   if (lines.length < 2) {
     return (
-      <div key={open} className="anim-rise space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <span className="font-medium text-ink">{l.label}</span>
-          {l.status && <PencilWord>{l.status.replace('_', ' ')}</PencilWord>}
-        </div>
+      <div key={open} className="anim-rise space-y-3">
+        <SheetTitle label={l.label} summary={lineSummary(l)} />
         {body}
       </div>
     );
@@ -419,7 +430,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     <div className="-mx-2 mb-2 md:-mx-4">
       <ul aria-label="Other lines of the plan">
         {tucked.map(({ line, li }, i) => {
-          const summary = lineSummary(line);
+          const summary = lineSummary(line, true);
           const changed = changedLine === li;
           // How many sheets back this one sits: 1 is right behind the front
           // sheet. Each step back is a little narrower, so the pile recedes.
@@ -437,9 +448,9 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
                 }`}
                 style={{ boxShadow: 'inset 0 1px 0 var(--edge)', filter: 'brightness(.975) drop-shadow(0 1px 1px var(--lift)) drop-shadow(0 3px 6px var(--lift-far))' }}
               >
-                <span className="min-w-0 truncate font-medium text-ink">{line.label}</span>
+                <span className="min-w-0 flex-1 truncate font-medium text-ink">{line.label}</span>
                 <span className="flex shrink-0 items-center gap-2">
-                  {summary && <PencilWord className="text-[19px]">{summary}</PencilWord>}
+                  {summary && <PencilWord className="text-[17px]">{summary}</PencilWord>}
                   {changed && <span aria-hidden="true" className="pencil h-1.5 w-1.5 rounded-[50%] bg-graphite" />}
                   {changed && <span className="sr-only"> (changed)</span>}
                 </span>
@@ -463,11 +474,10 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
           tabIndex={-1}
           data-plan-sheet={open}
           aria-current="true"
-          className="flex min-h-[44px] items-center justify-between gap-3 rounded-t-[2px] px-2 py-2 outline-none md:px-4"
+          className="min-h-[44px] rounded-t-[2px] px-2 pt-3 pb-3 outline-none md:px-4"
           style={{ background: 'var(--grain), var(--bg)' }}
         >
-          <span className="min-w-0 font-semibold text-ink">{l.label}</span>
-          {openSummary && <PencilWord className="shrink-0 text-[19px]">{openSummary}</PencilWord>}
+          <SheetTitle label={l.label} summary={openSummary} />
         </div>
         <div className="space-y-2 px-2 md:px-4">{body}</div>
       </section>
