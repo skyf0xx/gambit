@@ -9,7 +9,7 @@ import { undoTurn } from '../lib/agent';
 import type { Goal } from '../lib/types';
 import { nextMove, isSelf } from '../lib/slips';
 import { TextAction, PencilWord } from './ui';
-import { PencilLoop } from './paper/PencilLoop';
+import { PencilUnderline } from './paper/PencilUnderline';
 import { pencilDate, byDate, withProseDates, daysUntil } from '../lib/dates';
 import { composeInChat } from '../lib/compose';
 
@@ -395,7 +395,7 @@ function ProgressMarks({ done, total }: { done: number; total: number }) {
 
 /** The plan, one line of operation at a time. The lines sit in a strip of
  * pencilled names across the top, in plan order, scrolling sideways when
- * they don't fit; the selected one is looped in pencil, and one that's at
+ * they don't fit; the selected one is underlined in pencil, and one that's at
  * risk or blocked carries a pencilled "!" so trouble elsewhere still shows.
  * Under the strip: the selected line's status and progress, then its
  * moves — always in the same place, so switching lines never moves the
@@ -555,12 +555,14 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
               onClick={() => { setShowDone(false); setPicked(li); }}
               className="anim-press relative flex min-h-[44px] shrink-0 items-center whitespace-nowrap px-3"
             >
-              <span className={`hand text-[21px] leading-7 ${selected ? 'text-ink' : 'text-graphite'}`}>{line.label}</span>
+              <span className={`hand relative text-[21px] leading-7 ${selected ? 'text-ink' : 'text-graphite'}`}>
+                {line.label}
+                {selected && <PencilUnderline seed={`plan-pill:${li}`} />}
+              </span>
               {trouble && <span className="hand ml-0.5 text-[21px] leading-7 text-ink" aria-hidden="true">!</span>}
               {trouble && <span className="sr-only">{` (${trouble})`}</span>}
               {changed && <span aria-hidden="true" className="pencil ml-1 h-1.5 w-1.5 rounded-[50%] bg-graphite" />}
               {changed && <span className="sr-only"> (changed)</span>}
-              {selected && <PencilLoop seed={`plan-pill:${li}`} />}
             </button>
           );
         })}
