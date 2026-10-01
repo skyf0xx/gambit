@@ -114,12 +114,17 @@ export function DividerTabs({
               >
                 <span className="tab-leaf-fill" aria-hidden="true" />
                 <span className="tab-leaf-label">
+                  {t === 'moves' && (
+                    <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true" className="tab-moves-icon shrink-0">
+                      <path fill="currentColor" d="M5 17h10v-1.5c0-4-1-7-3.5-9l1-2.5-2.5 1-1.5-1.5L8 6c-2 1.5-3.5 3.5-4 5.5l1.5 1L8 11c.5 1.5-1 3-2 4.5z" />
+                    </svg>
+                  )}
                   {isInsideCover && (
                     <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true" className="tab-menu-icon shrink-0">
                       <path d="M2.5 5.5h15M2.5 10h15M2.5 14.5h15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                     </svg>
                   )}
-                  {TAB_LABELS[t]}
+                  {t === 'moves' ? <span className="tab-moves-mark">{TAB_LABELS[t]}</span> : TAB_LABELS[t]}
                 </span>
                 {changed && <span aria-hidden="true" className="tab-leaf-dot pencil bg-graphite" />}
                 {changed && <span className="sr-only"> (changed)</span>}
@@ -213,14 +218,29 @@ export function DividerTabs({
         .tab-leaf.tab-active .tab-leaf-fill {
           background: var(--grain), var(--bg);
         }
-        /* Moves is the tab the notebook is for, so it alone carries a
-           wash of highlighter, active or not. The wash fades out toward
-           the page, so the active tab still meets the page with no seam. */
-        .tab-moves .tab-leaf-fill::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(to right, transparent, color-mix(in srgb, var(--hi) 60%, transparent) 60%);
+        /* Moves is the tab the notebook is for. Its importance is carried
+           by shape, not fill: a bigger tab, a knight mark, and a
+           highlighter stroke on the word itself — so its fill behaves
+           like every other tab's and selection still reads as "same
+           colour as the page". Width stays within mobile's 36px desk
+           sliver (mr-9) and grows on roomier screens. */
+        .tab-leaf.tab-moves {
+          width: 42px;
+          height: 124px;
+          font-weight: 600;
+        }
+        @media (min-width: 768px) {
+          .tab-leaf.tab-moves { width: 48px; }
+        }
+        .tab-moves-mark {
+          background: var(--hi);
+          border-radius: 2px;
+          padding: 3px 1px;
+        }
+        /* The label is rotated 180deg as a whole; counter-rotate the mark
+           so the knight stands upright. */
+        .tab-moves-icon {
+          transform: rotate(180deg);
         }
         .tab-leaf.tab-active {
           filter: drop-shadow(0 2px 2px var(--lift)) drop-shadow(0 6px 14px -6px var(--lift-far));
@@ -257,6 +277,11 @@ export function DividerTabs({
         .tab-leaf.tab-inactive[data-depth="2"] .tab-leaf-fill { filter: brightness(0.91); }
         .tab-leaf.tab-inactive[data-depth="3"] .tab-leaf-fill { filter: brightness(0.88); }
         .tab-leaf.tab-inactive[data-depth="4"] .tab-leaf-fill { filter: brightness(0.85); }
+        /* Selection also reads in the label itself: inactive labels sit
+           back in graphite, the open tab's label is full ink. */
+        .tab-leaf.tab-inactive .tab-leaf-label { color: var(--graphite); }
+        .tab-leaf.tab-inactive:hover .tab-leaf-label,
+        .tab-leaf.tab-inactive:focus-visible .tab-leaf-label { color: var(--ink); }
 
         /* The Settings tab's icon reads oddly caught in a vertical writing
            mode alongside rotated text, so the tab keeps just its rotated
