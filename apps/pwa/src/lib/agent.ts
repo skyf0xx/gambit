@@ -262,10 +262,10 @@ export function errorText(e: unknown, kind?: ProviderKind): string {
     return "You're offline. Your notebook is here, and messages will work when you're back online.";
   const google = kind === 'google';
   if (err?.statusCode === 401 || err?.statusCode === 403 || (google && err?.statusCode === 400 && /api key/i.test(err.message ?? '')))
-    return 'The provider rejected your key. Check it under Model and key in the menu, or paste a new one there.';
+    return 'The provider rejected your key. Check it under Model in settings, or paste a new one there.';
   if (err?.statusCode === 429)
     return google
-      ? "You've used Google's free limit for now. To keep going, add credit to this key in AI Studio (aistudio.google.com) or switch to another provider under Model and key. Your message is saved."
+      ? "You've used Google's free limit for now. To keep going, add credit to this key in AI Studio (aistudio.google.com) or switch to another provider under Model in settings. Your message is saved."
       : 'The provider is limiting requests right now. Your message is saved, so try again in a minute.';
   if (err?.statusCode === 503 || err?.statusCode === 529)
     return google

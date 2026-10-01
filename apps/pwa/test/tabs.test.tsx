@@ -187,7 +187,7 @@ describe('tab content components render the right lines', () => {
     expect(html).not.toContain('data-line="subGoals.');
   });
 
-  it('InsideCoverTab renders its four page sections', () => {
+  it('InsideCoverTab renders its page sections', () => {
     // DataPanel (nested under "Keep it safe") checks `window` for File
     // System Access support at render time; this repo's test environment
     // is 'node' (see vite.config.ts), which has no `window` global at all,
@@ -198,10 +198,10 @@ describe('tab content components render the right lines', () => {
     (globalThis as { window?: unknown }).window = {};
     try {
       const html = render(<InsideCoverTab goalId="g1" goals={[]} />);
-      expect(html).toContain('Your notebooks');
-      expect(html).toContain('Model and key');
-      expect(html).toContain('Saving your work');
-      expect(html).toContain('Conversation and cost');
+      expect(html).toContain('Notebooks');
+      expect(html).toContain('Model');
+      expect(html).toContain('Backup');
+      expect(html).toContain('Chat');
       expect(html).toContain('New goal');
     } finally {
       if (hadWindow) (globalThis as { window?: unknown }).window = prevWindow;

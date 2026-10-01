@@ -8,23 +8,21 @@ import { bindExportFile, commitImport, downloadExport, fileSyncState, fsAccessSu
 import { setTheme, useTheme, type Theme } from '../lib/theme';
 import { methodsLicense } from '../lib/skills';
 import { fmtUsd } from '../lib/cost';
+import { getProvider, PROVIDERS, type ProviderSettings } from '../lib/providers';
+import { hasApiKey } from '../lib/crypto';
 import { TextAction, InkButton, PencilWord } from './ui';
 import { ProviderForm } from './Setup';
 import { CostPanel } from './CostPanel';
 import type { GoalRecord } from '../lib/db';
 
-// The Inside cover page (owner correction: no longer a Leaf/popup — a real
-// tab+panel, so its content is plain page sections per brand/identity.md
-// §05 ("no containers around ordinary text" — a heading and text on the
-// page, separated by whitespace), not the old <details> accordion. Order:
-// Your notebooks, Conversation and cost (clear chat, spend), Appearance, Saving your work (install + backup file), Model and key,
-// the danger zone, and the maker's mark
-// with the version and licenses at the foot.
+// The Inside cover page: plain page sections, no containers around ordinary
+// text (brand/identity.md §05). Ordered by how often each is reached for:
+// notebooks, model, chat, backup, theme, danger zone, then the maker's mark.
 //
-// Three levels, and no rules between them: a section heading, a small
-// graphite label over each group inside a section, then rows and actions.
-// Sections sit further apart than anything inside one, so the whitespace
-// alone shows where a section ends.
+// Each section shows one line of current state and a short action; detail
+// and forms sit one tap behind it. Pencil marks only what needs attention
+// (a backup that's stale, notebooks the browser could clear), so a page
+// with nothing wrong reads quietly.
 
 const PageSection = ({ title, children }: { title: string; children: ReactNode }) => (
   <section className="space-y-4">
@@ -33,25 +31,31 @@ const PageSection = ({ title, children }: { title: string; children: ReactNode }
   </section>
 );
 
-/** A labelled group inside a section. `note` is the group's current state,
- * pencilled at the end of the label's line. */
-const Group = ({ label, note, children }: { label: string; note?: string; children: ReactNode }) => (
+/** A labelled group inside a section. `note` is its current state, at the
+ * end of the label's line; pencilled only when it needs attention. */
+const Group = ({ label, note, warn, children }: { label: string; note?: string; warn?: boolean; children?: ReactNode }) => (
   <div className="space-y-1">
     <div className="flex items-baseline justify-between gap-3">
       <h3 className="text-[14px] leading-5 text-graphite">{label}</h3>
-      {note && <PencilWord className="shrink-0 text-[19px]">{note}</PencilWord>}
+      {note && (warn ? <PencilWord className="shrink-0 text-[19px]">{note}</PencilWord> : <span className="shrink-0 text-[14px] leading-5 text-graphite">{note}</span>)}
     </div>
     {children}
   </div>
 );
 
-/** One fact and its pencilled answer, at opposite ends of a line. */
-const Row = ({ label, children }: { label: string; children: ReactNode }) => (
-  <div className="flex items-baseline justify-between gap-3 text-[17px] leading-[27px]">
-    <span>{label}</span>
-    <PencilWord className="shrink-0">{children}</PencilWord>
-  </div>
-);
+/** A summary line with its detail one tap behind it. */
+function Reveal({ summary, more, less = 'Hide', children }: { summary: ReactNode; more: string; less?: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="space-y-3">
+      <div className="flex items-baseline justify-between gap-3 text-[17px] leading-[27px]">
+        <span className="min-w-0 truncate">{summary}</span>
+        <TextAction className={`${linkCls} shrink-0`} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? less : more}</TextAction>
+      </div>
+      {open && <div className="anim-fade-in">{children}</div>}
+    </div>
+  );
+}
 
 const Actions = ({ children }: { children: ReactNode }) => (
   <div className="flex flex-wrap items-center gap-x-5">{children}</div>
@@ -67,8 +71,8 @@ function shortDay(ts: number): string {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) });
 }
 
-/** "Saving your work": whether the browser will keep the notebooks, with
- * the action that fixes it when it won't, and the backup file. */
+/** Backup: a warning only when the browser could clear the notebooks, then
+ * the backup file's state and its actions on one line. */
 function KeepSafe() {
   const [d, setD] = useState<Durability | null>(null);
   const [sync, setSync] = useState<'off' | 'active' | 'needs_permission'>('off');
@@ -88,61 +92,38 @@ function KeepSafe() {
   // Either one stops the browser clearing the notebooks on its own.
   const kept = installed || !!d?.persisted;
   const stale = Date.now() - (last ?? 0) > 14 * 864e5;
-  const backupNote =
-    sync === 'active' ? 'backing up automatically'
-    : sync === 'needs_permission' ? 'needs permission'
-    : !last ? 'not saved yet'
-    : stale ? `last saved ${shortDay(last)}, a while ago`
-    : `saved ${shortDay(last)}`;
+  const fs = fsAccessSupported();
+  // Only a backup that needs doing is pencilled.
+  const [backupNote, backupWarn] =
+    sync === 'active' ? ['automatic', false]
+    : sync === 'needs_permission' ? ['paused', true]
+    : !last ? ['never saved', true]
+    : stale ? [`last ${shortDay(last)}`, true]
+    : [`last ${shortDay(last)}`, false];
 
   return (
     <div className="space-y-6">
-      <Group label="In this browser" note={d ? (kept ? 'kept' : 'could be cleared') : undefined}>
-        {d && (kept ? (
-          <p className={smallCls}>
-            Your notebooks live only in this browser, and it won't clear them on its own.
-            {installed ? ' Gambit is installed on this device.' : ' The browser has agreed to keep them.'}
-          </p>
-        ) : (
-          <>
-            <p className={smallCls}>
-              Your notebooks live only in this browser, and browsers clear sites you haven't opened in a while (Safari after about a week). Installing Gambit stops that.
-            </p>
-            <Actions>
-              {installEvent && <InkButton className="my-2" onClick={() => void installEvent.prompt()}>Install Gambit</InkButton>}
-              {d.persisted === false && !declined && (
-                <TextAction className={linkCls} onClick={guard(async () => { if (!(await requestPersistence())) setDeclined(true); })}>
-                  {installEvent ? 'Or ask the browser to keep them' : 'Ask the browser to keep them'}
-                </TextAction>
-              )}
-            </Actions>
-            {route === 'ios' || route === 'mac-safari' ? (
-              <p className={smallCls}>To install: {installSteps[route].charAt(0).toLowerCase() + installSteps[route].slice(1)}</p>
-            ) : route === 'none' ? (
-              <p className={smallCls}>This browser can't install apps, so a backup file is your safety net.</p>
-            ) : null}
-            {declined && <p className={smallCls}>The browser said no. Installing usually changes its mind, and a backup file covers you either way.</p>}
-          </>
-        ))}
-      </Group>
+      {d && !kept && (
+        <Group label="This browser" note="could clear your notebooks" warn>
+          <p className={smallCls}>Browsers clear sites you don't open for a while. Installing stops that.</p>
+          <Actions>
+            {installEvent && <InkButton className="my-2" onClick={() => void installEvent.prompt()}>Install</InkButton>}
+            {d.persisted === false && !declined && (
+              <TextAction className={linkCls} onClick={guard(async () => { if (!(await requestPersistence())) setDeclined(true); })}>Ask to keep them</TextAction>
+            )}
+          </Actions>
+          {(route === 'ios' || route === 'mac-safari') && <p className={smallCls}>{installSteps[route]}</p>}
+          {declined && <p className={smallCls}>The browser said no. Install, or keep a backup file.</p>}
+        </Group>
+      )}
 
-      <Group label="Backup file" note={backupNote}>
-        {/* One action per line: the automatic backup first where the
-            browser supports it, the one-off save under it. */}
-        <div className="flex flex-col items-start">
-          {fsAccessSupported() && sync === 'off' && <TextAction className={linkCls} onClick={guard(bindExportFile)}>Back up to a file automatically…</TextAction>}
-          {fsAccessSupported() && sync === 'needs_permission' && <InkButton className="my-2" onClick={guard(reauthorizeFileSync)}>Resume automatic backups</InkButton>}
-          <TextAction className={linkCls} onClick={guard(downloadExport)}>{fsAccessSupported() ? 'Save a backup file now' : 'Save a backup file'}</TextAction>
-          {fsAccessSupported() && sync === 'active' && <TextAction className={linkCls} onClick={guard(unbindExportFile)}>Stop automatic backups</TextAction>}
-        </div>
-        {!fsAccessSupported() && <p className={smallCls}>This browser can't back up automatically, so save a backup file every so often.</p>}
-      </Group>
-
-      <Group label="Restore">
+      <Group label="Backup file" note={backupNote} warn={backupWarn}>
         <Actions>
-          <TextAction className={linkCls} onClick={() => document.getElementById('import-file-input')?.click()}>
-            Import a backup file…
-          </TextAction>
+          {fs && sync === 'needs_permission' && <InkButton className="my-2" onClick={guard(reauthorizeFileSync)}>Resume</InkButton>}
+          <TextAction className={linkCls} onClick={guard(downloadExport)}>Save now</TextAction>
+          {fs && sync === 'off' && <TextAction className={linkCls} onClick={guard(bindExportFile)}>Turn on auto…</TextAction>}
+          {fs && sync === 'active' && <TextAction className={linkCls} onClick={guard(unbindExportFile)}>Turn off auto</TextAction>}
+          <TextAction className={linkCls} onClick={() => document.getElementById('import-file-input')?.click()}>Restore…</TextAction>
           <input id="import-file-input" type="file" accept="application/json,.json" className="hidden" onChange={async (e) => {
             const input = e.target;
             const f = input.files?.[0];
@@ -181,14 +162,14 @@ function KeepSafe() {
   );
 }
 
-const THEMES: { id: Theme; label: string }[] = [{ id: 'system', label: 'Match my device' }, { id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' }];
+const THEMES: { id: Theme; label: string }[] = [{ id: 'system', label: 'Auto' }, { id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' }];
 
-/** Light or dark paper, or whichever the device is using: one option per
- * line, the one in use circled in pencil. */
+/** Light or dark paper, or whichever the device is using, on one line;
+ * the one in use circled in pencil. */
 function Appearance() {
   const theme = useTheme();
   return (
-    <div role="radiogroup" aria-label="Appearance" className="flex flex-col items-start gap-1.5 pl-2">
+    <div role="radiogroup" aria-label="Appearance" className="flex flex-wrap items-center gap-x-6">
       {THEMES.map((t) => {
         const on = theme === t.id;
         return (
@@ -208,20 +189,21 @@ function Licenses() {
 }
 
 /** The goal switcher, as a shelf of notebooks (menu.html's "Notebooks"
- * group) — the current one marked with a pencilled word. */
+ * group), the open one underlined. */
 function NotebookShelf({ goals, activeId, onSwitch, onNew }: { goals: GoalRecord[]; activeId?: string; onSwitch: (id: string) => void; onNew: () => void }) {
   return (
     <div className="space-y-4">
       <ul className="space-y-3">
         {goals.map((g) => (
-          <li key={g.id}>
+          <li key={g.id} className="flex items-baseline justify-between gap-3">
             <TextAction
-              className={`!min-h-0 block w-full py-1 text-left font-serif text-[18px] font-medium not-italic underline-offset-[3px] ${g.id === activeId ? '' : 'no-underline'}`}
+              className={`!min-h-0 block min-w-0 py-1 text-left font-serif text-[18px] font-medium not-italic underline-offset-[3px] ${g.id === activeId ? '' : 'no-underline'}`}
+              aria-current={g.id === activeId || undefined}
               onClick={() => onSwitch(g.id)}
             >
               <span className="block truncate">{g.title}</span>
-              {g.id === activeId && <PencilWord className="mt-0.5 block text-[16px]">current</PencilWord>}
             </TextAction>
+            {g.id === activeId && <span className="shrink-0 text-[14px] text-graphite">open</span>}
           </li>
         ))}
       </ul>
@@ -239,19 +221,30 @@ export interface SettingsPageProps {
   onNewGoal?: () => void;
 }
 
-/** The session's estimated spend on one line, with the token and prompt
- * breakdown one tap behind it. Shows nothing until a turn has been billed. */
+/** Estimated spend on one line, the breakdown one tap behind it. Shows
+ * nothing until a turn has been billed. */
 function Spend({ cost }: { cost: SettingsPageProps['cost'] }) {
-  const [open, setOpen] = useState(false);
   if (!cost || cost.turns === 0) return null;
   return (
-    <Group label="Estimated spend, last six hours">
-      <Row label={cost.dollars === null ? 'No list price for this model' : fmtUsd(cost.dollars)}>{`${cost.turns} turn${cost.turns === 1 ? '' : 's'}`}</Row>
-      <Actions>
-        <TextAction className={linkCls} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Hide the breakdown' : 'Show the breakdown'}</TextAction>
-      </Actions>
-      {open && <div className="anim-fade-in pt-1"><CostPanel /></div>}
-    </Group>
+    <Reveal summary={<>{cost.dollars === null ? 'Spend unknown' : fmtUsd(cost.dollars)} <span className="text-graphite">in the last 6 hours</span></>} more="Details">
+      <CostPanel />
+    </Reveal>
+  );
+}
+
+/** The provider and model in use on one line, the form one tap behind it. */
+function Model() {
+  const [p, setP] = useState<{ s: ProviderSettings; key: boolean } | null>(null);
+  const load = async () => { const s = await getProvider(); setP(s ? { s, key: await hasApiKey(s.kind) } : null); };
+  useEffect(() => { void load(); }, []);
+  const summary = p ? <>{PROVIDERS[p.s.kind]?.label ?? p.s.kind} <span className="text-graphite">· {p.s.model}</span></> : 'Not set';
+  return (
+    <div className="space-y-1">
+      <Reveal summary={summary} more="Change" less="Close">
+        <ProviderForm onDone={() => void load()} />
+      </Reveal>
+      {p && !p.key && <PencilWord className="block text-[19px]">no key saved</PencilWord>}
+    </div>
   );
 }
 
@@ -274,30 +267,24 @@ function Colophon() {
 export function SettingsPage({ goalId, goals, activeId, cost, onSwitchGoal, onNewGoal }: SettingsPageProps) {
   return (
     <div className="space-y-12">
-      <PageSection title="Your notebooks">
+      <PageSection title="Notebooks">
         <NotebookShelf goals={goals ?? []} activeId={activeId} onSwitch={(id) => onSwitchGoal?.(id)} onNew={() => onNewGoal?.()} />
       </PageSection>
-      <PageSection title="Conversation and cost">
-        <div className="space-y-6">
-          {goalId && (
-            <Group label="Conversation">
-              <Actions>
-                <TextAction className={linkCls} onClick={() => confirm('Clear the conversation? The goal itself is kept.') && void clearChat(goalId)}>
-                  Clear the conversation
-                </TextAction>
-              </Actions>
-            </Group>
-          )}
-          <Spend cost={cost} />
-        </div>
+      <PageSection title="Model"><Model /></PageSection>
+      <PageSection title="Chat">
+        <Spend cost={cost} />
+        {goalId && (
+          <Actions>
+            <TextAction className={linkCls} onClick={() => confirm('Clear the chat? Your goal is kept.') && void clearChat(goalId)}>Clear chat</TextAction>
+          </Actions>
+        )}
       </PageSection>
-      <PageSection title="Appearance"><Appearance /></PageSection>
-      <PageSection title="Saving your work"><KeepSafe /></PageSection>
-      <PageSection title="Model and key"><ProviderForm /></PageSection>
+      <PageSection title="Backup"><KeepSafe /></PageSection>
+      <PageSection title="Theme"><Appearance /></PageSection>
       <PageSection title="Danger zone">
         <Actions>
-          {goalId && <TextAction className={linkCls} onClick={() => confirm('Delete the active goal and its chat? This cannot be undone. Export first if unsure.') && void deleteGoal(goalId)}>Delete active goal</TextAction>}
-          <TextAction className={linkCls} onClick={() => confirm('Erase ALL Gambit data on this device, including your saved key?') && void db.delete().then(() => location.reload())}>Erase everything</TextAction>
+          {goalId && <TextAction className={linkCls} onClick={() => confirm('Delete this goal and its chat? This cannot be undone.') && void deleteGoal(goalId)}>Delete this goal</TextAction>}
+          <TextAction className={linkCls} onClick={() => confirm('Erase all Gambit data on this device, including your key?') && void db.delete().then(() => location.reload())}>Erase everything</TextAction>
         </Actions>
       </PageSection>
       <Colophon />

@@ -111,8 +111,8 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
 
   return (
     <div className="space-y-4">
-      <Field label={saved ? 'API key (saved; leave blank to keep)' : 'API key'} hint="Encrypted on this device and sent only to the provider you selected.">
-        <input className={`${inputCls} font-mono`} type="password" autoComplete="off" value={key} onChange={(e) => onKey(e.target.value)} placeholder={saved ? '••••••••••••' : 'Paste your key'} />
+      <Field label="API key" hint="Encrypted here. Sent only to your provider.">
+        <input className={`${inputCls} font-mono`} type="password" autoComplete="off" value={key} onChange={(e) => onKey(e.target.value)} placeholder={saved ? 'Saved' : 'Paste your key'} />
         {detected && <span className="anim-fade-in block text-[14px] text-ink">{KEY_LABEL[detected]} key detected. Provider and model are set below.</span>}
       </Field>
       <Field label="Provider" hint={PROVIDERS[s.kind].help}>
@@ -128,7 +128,7 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
           <input className={inputCls} value={s.baseURL ?? ''} onChange={(e) => setS({ ...s, baseURL: e.target.value })} placeholder={PROVIDERS[s.kind].baseURL ?? 'https://…/v1'} />
         </Field>
       ) : (
-        <TextAction className="text-[14px]! text-graphite! underline underline-offset-[3px]" onClick={() => setShowBase(true)}>Use a proxy or a different base URL</TextAction>
+        <TextAction className="text-[14px]! text-graphite! underline underline-offset-[3px]" onClick={() => setShowBase(true)}>Custom base URL</TextAction>
       )}
       {s.kind === 'anthropic' && !firstRun && (
         <label className="flex items-center gap-2 text-[14px] text-graphite">

@@ -20,7 +20,7 @@ export function CostPanel() {
   const pct = (n: number) => `${Math.round(n * 100)}%`;
   return (
     <div className="space-y-3 text-[17px]">
-      <p className="text-[14px] text-graphite">Estimated from token counts and public list prices for the last six hours. Your provider's invoice is the authority.</p>
+      <p className="text-[14px] text-graphite">Estimated from list prices. Your provider's bill is final.</p>
       <div className="grid grid-cols-2 gap-4">
         <div>
           <div className="text-[14px] text-graphite">Spend</div>
@@ -41,7 +41,7 @@ export function CostPanel() {
             <span className="w-9 text-right text-graphite">{pct(c.shares[k])}</span>
           </div>
         ))}
-        {c.shares.history > 0.5 && <p className="mt-1 text-[14px] text-graphite">The transcript is over half of every request. Clearing the chat is the cheapest fix; the goal itself is kept.</p>}
+        {c.shares.history > 0.5 && <p className="mt-1 text-[14px] text-graphite">The chat is over half of each request. Clearing it cuts cost; your goal is kept.</p>}
       </div>
       <details className="text-[14px]">
         <summary className="cursor-pointer text-graphite">Price override (USD per million tokens){override ? ` — ${override.in}/${override.out}` : ''}</summary>
