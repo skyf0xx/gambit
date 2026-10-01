@@ -7,6 +7,7 @@ import { FreshTag } from './paper/FreshTag';
 import { useGoto } from './gotoContext';
 import { undoTurn } from '../lib/agent';
 import type { Goal } from '../lib/types';
+import { nextMove, isSelf } from '../lib/slips';
 import { TextAction, PencilWord } from './ui';
 import { pencilDate, byDate, withProseDates, daysUntil } from '../lib/dates';
 import { composeInChat } from '../lib/compose';
@@ -121,9 +122,9 @@ function Line({ goalId, path, className = '', children }: { goalId: string; path
  * the marks layer draws — always, ticked or not — plus the row's own text,
  * which ticks on click too. Done items stay in normal ink — nothing here strikes
  * through; the pencil tick is the only "done" signal (brand/identity.md §05). */
-function Toggle({ goalId, path, status, editable, children }: { goalId: string; path: string; status: string; editable: boolean; children: ReactNode }) {
+function Toggle({ goalId, path, status, editable, onTick, title, children }: { goalId: string; path: string; status: string; editable: boolean; onTick?: (path: string) => void; title?: string; children: ReactNode }) {
   const next = status === 'done' ? 'pending' : 'done';
-  const toggle = () => void applyOp(goalId, (g) => setStatus(g, path, next) as never);
+  const toggle = () => { if (next === 'done') onTick?.(path); void applyOp(goalId, (g) => setStatus(g, path, next) as never); };
   // The whole row ticks, not only the box. The box button stays the
   // keyboard and screen-reader control; this is the pointer shortcut, so it
   // stands aside for anything with its own click (the box itself, "undo",
@@ -134,7 +135,7 @@ function Toggle({ goalId, path, status, editable, children }: { goalId: string; 
     toggle();
   };
   return (
-    <li className={`flex items-start text-[17px] leading-[27px] ${editable ? 'cursor-pointer' : ''}`} onClick={editable ? onRowClick : undefined}>
+    <li title={title} className={`flex items-start text-[17px] leading-[27px] ${editable ? 'cursor-pointer' : ''}`} onClick={editable ? onRowClick : undefined}>
       <TextAction
         disabled={!editable}
         title={editable ? `Mark ${next}` : undefined}
@@ -261,13 +262,20 @@ function StatusGroups<T>({ list, isOpen, due, labels, render }: {
   );
 }
 
-function Steps({ goalId, base, steps, editable }: { goalId: string; base: string; steps: Any[]; editable: boolean }) {
+/** A sheet's rows show only what's left, plus one grey "why" at a time.
+ * `shown` filters out the folded done rows; `detailFor` is the one row whose
+ * detail sits under it — every other row keeps its detail as a hover note. */
+type SheetRows = { shown: (path: string, status: string) => boolean; detailFor: string | null; onTick: (path: string) => void };
+
+function Steps({ goalId, base, steps, editable, rows }: { goalId: string; base: string; steps: Any[]; editable: boolean; rows: SheetRows }) {
+  const list = steps.map((s, i) => ({ s, i, path: `${base}.${i}` })).filter(({ s, path }) => rows.shown(path, s.status));
+  if (list.length === 0) return null;
   return (
     <ol className="space-y-1.5">
-      {steps.map((s, i) => (
-        <Toggle key={i} goalId={goalId} path={`${base}.${i}`} status={s.status} editable={editable}>
-          <Line goalId={goalId} path={`${base}.${i}`}><span>{s.label}</span></Line>
-          <Detail>{s.detail}</Detail>
+      {list.map(({ s, i, path }) => (
+        <Toggle key={i} goalId={goalId} path={path} status={s.status} editable={editable} onTick={rows.onTick} title={path === rows.detailFor ? undefined : s.detail}>
+          <Line goalId={goalId} path={path}><span>{s.label}</span></Line>
+          {path === rows.detailFor && <Detail>{s.detail}</Detail>}
           {s.items?.length > 0 && (
             <ul className="mt-1 space-y-1 pl-1">
               {s.items.map((it: Any, j: number) => (
@@ -324,13 +332,39 @@ export function defaultOpenLine(lines: Any[], focusLine: number | null): number 
   return pending >= 0 ? pending : 0;
 }
 
-/** A line's pencilled one-line summary: its status and how far along it is.
- * `brief` is for a tucked edge, where the line's name needs the room: it
- * leaves out "on schedule", the status that asks nothing of the user. */
-function lineSummary(line: Any, brief = false): string {
+/** A status worth pencilling: only one that asks something of the user.
+ * "on schedule", "on track", "done" and "met" go unsaid — silence means
+ * fine, and a tick already says done. */
+const ALARM = new Set(['at_risk', 'blocked', 'stalled', 'regressing']);
+const alarm = (status?: string) => (status && ALARM.has(status) ? status.replace('_', ' ') : undefined);
+
+/** A line's pencilled one-line summary: its status, if it's one worth
+ * saying, and how far along it is. */
+function lineSummary(line: Any): string {
   const { done, total } = lineProgress(line);
-  const status = brief && line.status === 'on_schedule' ? undefined : line.status?.replace('_', ' ');
-  return [status, total > 0 && `${done} of ${total} done`].filter(Boolean).join(' · ');
+  return [alarm(line.status), total > 0 && `${done} of ${total} done`].filter(Boolean).join(' · ');
+}
+
+/** How far along a tucked line is, as marks rather than words: a small ink
+ * tick per thing done and an open ring per thing left — the same marker the
+ * rest of the page uses. Past a dozen the marks stop being glanceable, so
+ * it falls back to the count. */
+function ProgressMarks({ done, total }: { done: number; total: number }) {
+  if (total === 0) return null;
+  const words = `${done} of ${total} done`;
+  if (total > 12) return <PencilWord className="text-[17px]">{words}</PencilWord>;
+  return (
+    <span className="flex items-center gap-[3px]" title={words}>
+      {Array.from({ length: total }, (_, i) => i < done ? (
+        <svg key={i} viewBox="0 0 10 10" className="h-[10px] w-[10px] text-ink" aria-hidden="true">
+          <path d="M1.2 5.6 L3.9 8.4 L8.9 1.4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ) : (
+        <span key={i} className="h-[7px] w-[7px] rounded-[50%] border-[1.25px] border-graphite" aria-hidden="true" />
+      ))}
+      <span className="sr-only">{words}</span>
+    </span>
+  );
 }
 
 /** The heading of the sheet in front: the line's name on its own, given
@@ -385,29 +419,56 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
   }
   const open = picked != null && picked < lines.length ? picked : defaultOpenLine(lines, focusLine);
 
+  // Done rows fold away into one "n done" line at the foot of the sheet,
+  // except one ticked here, which stays put (ticked) until the page is
+  // next opened so the tick isn't snatched away the moment it lands.
+  const [justDone, setJustDone] = useState<Set<string>>(() => new Set());
+  const [showDone, setShowDone] = useState(false);
+  const onTick = (path: string) => setJustDone((s) => new Set(s).add(path));
+
   const changedLine = turn?.goalId === goalId ? planLineIndex(turn.lines[0]?.path) : null;
   const l = lines[open];
   if (!l) return null;
-  const actions = visibleActions(l.nextActions, goalId, `plan.linesOfOperation.${open}.nextActions`, dropped);
+  // The top move is already on the index card above; the list doesn't
+  // repeat it.
+  const top = nextMove({ plan: { linesOfOperation: lines } } as Goal)?.path;
+  const stepBase = `plan.linesOfOperation.${open}.criticalPath`;
+  const actions = visibleActions(l.nextActions, goalId, `plan.linesOfOperation.${open}.nextActions`, dropped).filter(({ path }) => path !== top);
+  const donePaths = [
+    ...l.criticalPath.flatMap((x: Any, i: number) => (x.status === 'done' ? [`${stepBase}.${i}`] : [])),
+    ...actions.filter(({ a }) => a.status === 'done').map(({ path }) => path),
+  ];
+  const hiddenDone = donePaths.filter((p) => !justDone.has(p)).length;
+  const shown = (path: string, status: string) => status !== 'done' || showDone || justDone.has(path);
+  // The one row that keeps its "why" on show: the first thing still to do.
+  const firstStep = l.criticalPath.findIndex((x: Any) => x.status === 'pending');
+  const detailFor = firstStep >= 0 ? `${stepBase}.${firstStep}` : (actions.find(({ a }) => a.status === 'pending')?.path ?? null);
+  const rows: SheetRows = { shown, detailFor, onTick };
+  const liveActions = actions.filter(({ a, path }) => shown(path, a.status));
   const body = (
     <>
-      <Steps goalId={goalId} base={`plan.linesOfOperation.${open}.criticalPath`} steps={l.criticalPath} editable={editable} />
+      <Steps goalId={goalId} base={stepBase} steps={l.criticalPath} editable={editable} rows={rows} />
       {l.blocker && <p className="text-[14px] text-graphite">Blocked: {l.blocker}</p>}
-      {actions.length > 0 && (
+      {liveActions.length > 0 && (
         <ol className="space-y-1.5">
-          {actions.map(({ a, path }) => (
-            <Toggle key={path} goalId={goalId} path={path} status={a.status} editable={editable}>
-              <Line goalId={goalId} path={path}>
-                <span>{a.action}</span>
-                <span className="ml-2 text-[14px] text-graphite">
-                  {a.who}
-                  {a.when ? ` · ${byDate(a.when)}` : ''}
-                </span>
-              </Line>
-              <Detail>{a.detail}</Detail>
-            </Toggle>
-          ))}
+          {liveActions.map(({ a, path }) => {
+            const meta = [!isSelf(a.who) && a.who, a.when && byDate(a.when)].filter(Boolean).join(' · ');
+            return (
+              <Toggle key={path} goalId={goalId} path={path} status={a.status} editable={editable} onTick={onTick} title={path === detailFor ? undefined : a.detail}>
+                <Line goalId={goalId} path={path}>
+                  <span>{a.action}</span>
+                  {meta && <span className="ml-2 text-[14px] text-graphite">{meta}</span>}
+                </Line>
+                {path === detailFor && <Detail>{a.detail}</Detail>}
+              </Toggle>
+            );
+          })}
         </ol>
+      )}
+      {hiddenDone > 0 && (
+        <TextAction className="ml-11 min-h-[36px]" onClick={() => setShowDone((v) => !v)} aria-expanded={showDone}>
+          <PencilWord className="text-[18px] text-graphite">{showDone ? 'hide done' : `${hiddenDone} done`}</PencilWord>
+        </TextAction>
       )}
     </>
   );
@@ -430,7 +491,8 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     <div className="-mx-2 mb-2 md:-mx-4">
       <ul aria-label="Other lines of the plan">
         {tucked.map(({ line, li }, i) => {
-          const summary = lineSummary(line, true);
+          const progress = lineProgress(line);
+          const flag = alarm(line.status);
           const changed = changedLine === li;
           // How many sheets back this one sits: 1 is right behind the front
           // sheet. Each step back is a little narrower, so the pile recedes.
@@ -450,7 +512,8 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
               >
                 <span className="min-w-0 flex-1 truncate font-medium text-ink">{line.label}</span>
                 <span className="flex shrink-0 items-center gap-2">
-                  {summary && <PencilWord className="text-[17px]">{summary}</PencilWord>}
+                  {flag && <PencilWord className="text-[17px]">{flag}</PencilWord>}
+                  <ProgressMarks {...progress} />
                   {changed && <span aria-hidden="true" className="pencil h-1.5 w-1.5 rounded-[50%] bg-graphite" />}
                   {changed && <span className="sr-only"> (changed)</span>}
                 </span>
@@ -627,7 +690,7 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
             <div className="min-w-0 flex-1">
               <Line goalId={goalId} path={`criteriaStatus.${i}`}>
                 <span>{c.text}</span>
-                <PencilWord className="ml-2">{c.status.replace('_', ' ')}</PencilWord>
+                {alarm(c.status) && <PencilWord className="ml-2">{alarm(c.status)}</PencilWord>}
               </Line>
               <Detail>{c.detail}</Detail>
             </div>

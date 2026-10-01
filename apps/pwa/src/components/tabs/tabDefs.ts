@@ -15,7 +15,8 @@ import type { Goal } from '../../lib/types';
 //   Risks       — riskNotes, exposure
 //   Bets        — decisions, experiments, forecasts, systemsNotes
 //   Capacity    — capacity
-//   Doodles     — the whole plan as a pencil mind map. Always shown.
+//   Doodles     — the whole plan as a pencil mind map. Shown once there's
+//                 a plan to draw.
 //   Logs      — the log, newest first. Shown once the log has entries.
 //   Inside cover — always last: notebooks/goal-switcher, model and key,
 //                 keep-it-safe (export/backup), this device (clear chat,
@@ -69,11 +70,13 @@ export const TAB_SECTION_KEYS: Partial<Record<TabId, (keyof Goal)[]>> = {
 
 const isEmpty = (v: unknown) => v == null || (Array.isArray(v) ? v.length === 0 : typeof v === 'object' && Object.keys(v as object).length === 0);
 
-/** Whether a tab has anything to show. Goal, Moves, Doodles and Inside
- * cover always show (task spec); every other tab shows only once one of
- * its keys has content. */
+/** Whether a tab has anything to show. Goal, Moves and Inside cover always
+ * show; Doodles once the plan has a line to draw; every other tab only once
+ * one of its keys has content — so a new goal opens on two tabs, and the
+ * rest appear as the advisor fills them. */
 export function tabHasContent(tab: TabId, g: Goal): boolean {
-  if (tab === 'goal' || tab === 'moves' || tab === 'doodles' || tab === 'inside-cover') return true;
+  if (tab === 'goal' || tab === 'moves' || tab === 'inside-cover') return true;
+  if (tab === 'doodles') return (g.plan?.linesOfOperation?.length ?? 0) > 0;
   const keys = TAB_SECTION_KEYS[tab] ?? [];
   return keys.some((k) => !isEmpty(g[k]));
 }

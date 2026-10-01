@@ -46,6 +46,12 @@ function allNextActions(goal: Goal): Found[] {
   return out;
 }
 
+/** Whether a next action's `who` is the user themselves ("me", "you"), or
+ * unset — the page leaves that unsaid and names only someone else. */
+export function isSelf(who?: string): boolean {
+  return !who?.trim() || /^(me|you|i|myself|yourself|self|user|the user)$/i.test(who.trim());
+}
+
 /** The taped index card: the first `pending` next action on the focus line,
  * else the first in plan order, if any. */
 export function nextMove(goal: Goal): SlipItem | null {

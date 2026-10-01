@@ -100,11 +100,15 @@ describe('tabHasContent', () => {
   const empty = stubGoal('Empty') as Goal;
   const full = seededGoal();
 
-  it('goal, moves, doodles and inside-cover always show, even on a stub goal', () => {
+  it('goal, moves and inside-cover always show, even on a stub goal', () => {
     expect(tabHasContent('goal', empty)).toBe(true);
     expect(tabHasContent('moves', empty)).toBe(true);
-    expect(tabHasContent('doodles', empty)).toBe(true);
     expect(tabHasContent('inside-cover', empty)).toBe(true);
+  });
+
+  it('doodles shows once the plan has a line to draw', () => {
+    expect(tabHasContent('doodles', empty)).toBe(false);
+    expect(tabHasContent('doodles', full)).toBe(true);
   });
 
   it('people/risks/bets/capacity are hidden on a stub goal', () => {

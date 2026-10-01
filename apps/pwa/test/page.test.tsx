@@ -74,7 +74,6 @@ describe('notebook page markup', () => {
   it('gives every markable line a data-line attribute', () => {
     const html = renderSection('plan', g.plan);
     expect(html).toContain('data-line="plan.linesOfOperation.0.criticalPath.0"');
-    expect(html).toContain('data-line="plan.linesOfOperation.0.nextActions.0"');
 
     const peopleHtml = renderSection('people', g.people);
     expect(peopleHtml).toContain('data-line="people.0"');
@@ -96,10 +95,34 @@ describe('notebook page markup', () => {
     expect(html).not.toContain('Dropped action');
   });
 
-  it('still shows pending and done next actions', () => {
+  it('leaves the top move to the index card and folds done moves away', () => {
     const html = renderSection('plan', g.plan);
-    expect(html).toContain('Pending action');
-    expect(html).toContain('Done action');
+    expect(html).not.toContain('Pending action');
+    expect(html).not.toContain('Done action');
+    expect(html).toContain('1 done');
+  });
+
+  it('shows one row\'s detail, names only someone else, and pencils only a status worth saying', () => {
+    const line = {
+      label: 'Solo', status: 'on_schedule',
+      criticalPath: [{ label: 'First', status: 'pending', detail: 'why first' }, { label: 'Second', status: 'pending', detail: 'why second' }],
+      nextActions: [
+        { action: 'Top', who: 'me', status: 'pending' },
+        { action: 'Mine', who: 'me', status: 'pending' },
+        { action: 'Theirs', who: 'Priya', status: 'pending' },
+      ],
+    };
+    const html = renderSection('plan', { linesOfOperation: [line] });
+    expect(html).toContain('>why first<');
+    expect(html).not.toContain('>why second<');
+    expect(html).toContain('title="why second"');
+    expect(html).toContain('Priya');
+    expect(html).not.toMatch(/>me</);
+    expect(html).not.toContain('on schedule');
+    expect(renderSection('plan', { linesOfOperation: [{ ...line, status: 'at_risk' }] })).toContain('at risk');
+    const crit = renderSection('criteriaStatus', [{ text: 'A', kind: 'control', status: 'on_track' }, { text: 'B', kind: 'control', status: 'stalled' }]);
+    expect(crit).not.toContain('on track');
+    expect(crit).toContain('stalled');
   });
 
   it('gives steps a hand-drawn box hook, and progress only a tick once met', () => {
@@ -123,16 +146,12 @@ describe('notebook page markup', () => {
     expect(html).not.toContain('data-box="forecasts.2"');
   });
 
-  it('gives every next action and step one box, not only criteria', () => {
+  it('gives each row still to do one box, none of them checked', () => {
     const planHtml = renderSection('plan', g.plan);
-    // one box per Toggle tap-area, for each of: the critical-path step and
-    // the two visible (pending + done) next actions
-    expect((planHtml.match(/data-box/g) ?? []).length).toBe(3);
-  });
-
-  it('marks only the done next action\'s box as checked', () => {
-    const planHtml = renderSection('plan', g.plan);
-    expect((planHtml.match(/data-checked/g) ?? []).length).toBe(1);
+    // the critical-path step only: the top move is on the index card and
+    // the done action is folded away
+    expect((planHtml.match(/data-box/g) ?? []).length).toBe(1);
+    expect(planHtml).not.toContain('data-checked');
   });
 });
 
@@ -168,7 +187,8 @@ describe('plan as a stack of sheets', () => {
 
   it('lists every line as an edge and opens only one of them', () => {
     const html = renderSection('plan', { linesOfOperation: lines });
-    expect(html).toContain('B action');
+    expect(html).not.toContain('B action');
+    expect(html).not.toContain('B step');
     expect(html).not.toContain('A step');
     expect(html).not.toContain('C step');
     expect((html.match(/data-plan-sheet/g) ?? []).length).toBe(3);

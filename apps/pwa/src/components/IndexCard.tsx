@@ -1,6 +1,6 @@
 import { useState, type MouseEvent } from 'react';
 import type { Goal } from '../lib/types';
-import { nextMove, markDone } from '../lib/slips';
+import { nextMove, markDone, isSelf } from '../lib/slips';
 import { byDate, proseDates } from '../lib/dates';
 import { TextAction, PencilWord } from './ui';
 import { HandBox } from './paper/HandBox';
@@ -92,7 +92,7 @@ export function IndexCard({ goal, goalId }: { goal: Goal; goalId: string }) {
               <FreshTag path={move.path} />
             </p>
             {move.detail && <p className="mt-0.5 text-[14px] leading-5 text-graphite">{proseDates(move.detail)}</p>}
-            {(move.when || move.who) && (
+            {(move.when || !isSelf(move.who)) && (
               <p className="leading-7">
                 <PencilWord>{move.when ? byDate(move.when) : move.who}</PencilWord>
               </p>
