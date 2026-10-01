@@ -17,10 +17,11 @@ import type { Goal } from '../../lib/types';
 //   Capacity    — capacity
 //   Doodles     — the whole plan as a pencil mind map. Shown once there's
 //                 a plan to draw.
-//   Logs      — the log, newest first. Shown once the log has entries.
 //   Inside cover — always last: notebooks/goal-switcher, model and key,
 //                 keep-it-safe (export/backup), this device (clear chat,
-//                 danger zone). A real tab+panel now, not a Leaf.
+//                 danger zone), and the log ("History", folded) at the
+//                 foot — history, not something to check, so no tab of
+//                 its own.
 //
 // Deviations from registry.mjs's own SECTION_GROUPS, called out per the
 // task's "adjust the grouping if registry.mjs clearly suggests better, and
@@ -39,9 +40,9 @@ import type { Goal } from '../../lib/types';
 //     exposure to live in Risks and capacity to have its own tab, so that's
 //     what this file does.
 
-export type TabId = 'goal' | 'moves' | 'people' | 'risks' | 'bets' | 'capacity' | 'doodles' | 'logs' | 'inside-cover';
+export type TabId = 'goal' | 'moves' | 'people' | 'risks' | 'bets' | 'capacity' | 'doodles' | 'inside-cover';
 
-export const TAB_ORDER: TabId[] = ['goal', 'moves', 'people', 'risks', 'bets', 'capacity', 'doodles', 'logs', 'inside-cover'];
+export const TAB_ORDER: TabId[] = ['goal', 'moves', 'people', 'risks', 'bets', 'capacity', 'doodles', 'inside-cover'];
 
 export const TAB_LABELS: Record<TabId, string> = {
   goal: 'Goal',
@@ -51,7 +52,6 @@ export const TAB_LABELS: Record<TabId, string> = {
   bets: 'Bets',
   capacity: 'Capacity',
   doodles: 'Doodles',
-  logs: 'Logs',
   'inside-cover': 'Settings',
 };
 
@@ -65,7 +65,6 @@ export const TAB_SECTION_KEYS: Partial<Record<TabId, (keyof Goal)[]>> = {
   risks: ['riskNotes', 'exposure'],
   bets: ['decisions', 'experiments', 'forecasts', 'systemsNotes'],
   capacity: ['capacity'],
-  logs: ['log'],
 };
 
 const isEmpty = (v: unknown) => v == null || (Array.isArray(v) ? v.length === 0 : typeof v === 'object' && Object.keys(v as object).length === 0);
@@ -86,8 +85,8 @@ export function tabHasContent(tab: TabId, g: Goal): boolean {
  * or one of the Moves-owned keys) resolves to 'moves'. The special path
  * `inside-cover` (App.tsx's gambit:menu handler) resolves directly. */
 export function tabForPath(path: string): TabId {
-  if (path === 'inside-cover') return 'inside-cover';
-  if (path === 'goal' || path === 'deadline' || path.startsWith('successCriteria') || path.startsWith('subGoals')) return 'goal';
+  if (path === 'inside-cover' || path === 'log' || path.startsWith('log.')) return 'inside-cover';
+  if (path === 'goal' || path === 'deadline' || path.startsWith('successCriteria') || path.startsWith('subGoals') || path.startsWith('criteriaStatus')) return 'goal';
   const key = path.split('.')[0];
   for (const tab of TAB_ORDER) {
     const keys = TAB_SECTION_KEYS[tab];

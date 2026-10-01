@@ -1,7 +1,8 @@
 // Dates in voice (brand/voice.md §05 "numbers as numerals", never ISO, never
 // jargon abbreviations like "wk"). Two jobs: a deadline read as time-left
 // ("6 weeks left", "3 days left", "due today", "2 days late"), and any other
-// pencilled date read as "by Friday 3 Oct" (en-GB order: day before month).
+// pencilled date read short: "tomorrow", "in 3 days", "Fri 3 Oct" (en-GB
+// order: day before month).
 
 const DAY_MS = 86_400_000;
 
@@ -35,10 +36,10 @@ export function timeLeft(d: string, now = new Date()): string {
   return `${weeks} week${weeks === 1 ? '' : 's'} left`;
 }
 
-const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-/** "Friday 3 Oct" — en-GB order, day then month, no year unless it isn't
+/** "Fri 3 Oct" — en-GB order, day then month, no year unless it isn't
  * this year. */
 export function pencilDate(d: string | null | undefined, now = new Date()): string {
   if (!d) return '';
@@ -78,14 +79,18 @@ export function withProseDates<T>(value: T, now = new Date()): T {
   return value;
 }
 
-/** "by Friday 3 Oct" — the mockup's pencilled-date phrasing for a due-by
- * field (next actions, steps, experiments, forecasts). Some of this data is
- * free text written by a skill rather than a strict ISO date (e.g. "next
- * week", or already "by Friday") — those pass through unchanged rather than
- * getting a second "by " prefix. */
+/** A due-by field (next actions, steps, experiments, forecasts) said as
+ * briefly as it reads: "today", "tomorrow", "in 3 days" within the week,
+ * else "Fri 3 Oct". A date already past gets the plain date — the caller
+ * says it's late. Some of this data is free text written by a skill rather
+ * than a strict ISO date (e.g. "next week") — that passes through
+ * unchanged. */
 export function byDate(d: string | null | undefined, now = new Date()): string {
   if (!d) return '';
-  const t = parseIsoDateUTC(d);
-  if (!t) return d;
-  return `by ${pencilDate(d, now)}`;
+  const days = daysUntil(d, now);
+  if (days === null) return d;
+  if (days === 0) return 'today';
+  if (days === 1) return 'tomorrow';
+  if (days > 1 && days < 7) return `in ${days} days`;
+  return pencilDate(d, now);
 }

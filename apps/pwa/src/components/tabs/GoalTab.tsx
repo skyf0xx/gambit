@@ -8,6 +8,8 @@ import { Section, isEmptySection } from './SectionRenderer';
 import { FreshTag } from '../paper/FreshTag';
 import { KeepNotebook } from '../paper/KeepNotebook';
 
+const norm = (s: string) => s.trim().toLowerCase();
+
 function GoalHeader({ g, goalId }: { g: Goal; goalId: string }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(g.goal);
@@ -65,17 +67,27 @@ function SubGoals({ subGoals }: { subGoals: string[] }) {
  * top down from the aim to its measure: the parts are the rest of the goal
  * sentence, so they sit straight under the title, ahead of the criteria.
  * Split out of Moves (owner correction) so Moves stays about doing, not
- * defining. Progress (criteriaStatus) closes the page: how each measure
- * is actually going, read straight after the measures themselves. */
+ * defining. How each criterion is going (criteriaStatus, scored by `eval`)
+ * is read onto the criterion itself rather than listed a second time: a
+ * ring, a tick once met, or the alarm word when it's slipping. Only a
+ * scored line that matches no criterion falls through to its own
+ * Progress section. */
 export function GoalTab({ g, goalId }: { g: Goal; goalId: string }) {
   const stub = g.successCriteria.length === 1 && g.successCriteria[0].text === 'define success criteria';
+  const scored = new Map(g.criteriaStatus.map((c) => [norm(c.text), c]));
+  const criteria = g.successCriteria.map((c) => {
+    const s = scored.get(norm(c.text));
+    return s ? { ...c, progress: s.status, progressDetail: s.detail } : c;
+  });
+  const known = new Set(g.successCriteria.map((c) => norm(c.text)));
+  const unmatched = g.criteriaStatus.filter((c) => !known.has(norm(c.text)));
   return (
     <div className="space-y-8">
       <GoalHeader g={g} goalId={goalId} />
       {!stub && <KeepNotebook />}
       <SubGoals subGoals={g.subGoals ?? []} />
-      {isEmptySection(g.successCriteria) ? null : <Section goalId={goalId} k="successCriteria" data={g.successCriteria} />}
-      {isEmptySection(g.criteriaStatus) ? null : <Section goalId={goalId} k="criteriaStatus" data={g.criteriaStatus} />}
+      {isEmptySection(g.successCriteria) ? null : <Section goalId={goalId} k="successCriteria" data={criteria} />}
+      {unmatched.length === 0 ? null : <Section goalId={goalId} k="criteriaStatus" data={unmatched} />}
     </div>
   );
 }

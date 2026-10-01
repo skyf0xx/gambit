@@ -16,7 +16,7 @@ export interface SectionTitle {
 
 const TITLES: Record<string, SectionTitle> = {
   successCriteria: { title: 'What done looks like' },
-  log: { title: 'Logs' },
+  log: { title: 'History' },
   plan: { title: 'All moves' },
   people: { title: "Who's involved" },
   stakeholders: { title: 'Who else has a say', method: 'stakeholders', methodNote: 'stakeholders: mapping who has power and what they want' },

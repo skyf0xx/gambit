@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Goal } from '../lib/types';
-import { proposals, keep, toss } from '../lib/slips';
+import { proposals, keep, toss, isSelf } from '../lib/slips';
 import { byDate, proseDates } from '../lib/dates';
 import { TextAction, PencilWord } from './ui';
 import type { SlipItem } from '../lib/slips';
@@ -77,7 +77,7 @@ function Note({ goalId, item }: { goalId: string; item: SlipItem }) {
       </p>
       {/* The why: what makes "keep or toss" an informed choice. */}
       {item.detail && <p className="mt-1 text-[14px] leading-5 text-graphite">{proseDates(item.detail)}</p>}
-      {(item.when || item.who) && (
+      {(item.when || !isSelf(item.who)) && (
         <p className="leading-6.25">
           <PencilWord>{item.when ? byDate(item.when) : item.who}</PencilWord>
         </p>
@@ -101,15 +101,31 @@ function Note({ goalId, item }: { goalId: string; item: SlipItem }) {
   );
 }
 
+/** How many suggestions sit on the page at once. The rest wait behind a
+ * "+n more" until one of these is kept or tossed, or the user asks. */
+const SHOWN = 2;
+
 export function StickyNotes({ goal, goalId }: { goal: Goal; goalId: string }) {
   const items = proposals(goal);
   if (items.length === 0) return null;
+  return <Pile items={items} goalId={goalId} />;
+}
+
+function Pile({ items, goalId }: { items: SlipItem[]; goalId: string }) {
+  const [all, setAll] = useState(false);
+  const shown = all ? items : items.slice(0, SHOWN);
+  const more = items.length - shown.length;
 
   return (
     <div className="flex flex-col gap-4 sm:flex-col">
-      {items.map((item) => (
+      {shown.map((item) => (
         <Note key={item.path} goalId={goalId} item={item} />
       ))}
+      {more > 0 && (
+        <TextAction className="self-start" onClick={() => setAll(true)}>
+          <PencilWord className="text-[18px] text-graphite">{`+${more} more ${more === 1 ? 'suggestion' : 'suggestions'}`}</PencilWord>
+        </TextAction>
+      )}
     </div>
   );
 }

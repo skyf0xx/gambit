@@ -129,6 +129,14 @@ describe('StickyNotes markup', () => {
     expect(html).toContain('data-line="plan.linesOfOperation.0.nextActions.0"');
   });
 
+  it('shows two suggestions at a time, the rest behind "+n more"', () => {
+    const goal = withActions(stubGoal('Goal') as Goal, ['A', 'B', 'C', 'D'].map((action) => ({ action, who: 'me', when: 'fri', status: 'proposed' })));
+    const html = renderToStaticMarkup(createElement(StickyNotes, { goal, goalId: 'g1' }));
+    expect((html.match(/Gambit suggests/g) ?? []).length).toBe(2);
+    expect(html).toContain('+2 more suggestions');
+    expect(html).not.toMatch(/>me</);
+  });
+
   it('renders nothing when there are no proposals', () => {
     const goal = withActions(stubGoal('Goal') as Goal, [{ action: 'A1', who: 'me', when: 'fri', status: 'pending' }]);
     const el = StickyNotes({ goal, goalId: 'g1' });
@@ -140,16 +148,21 @@ describe('dates in voice', () => {
   const today = new Date(Date.UTC(2026, 8, 30, 12)); // 2026-09-30, per the environment's "today"
 
   it('reads a same-year date as "Weekday D Mon", never ISO', () => {
-    expect(pencilDate('2026-10-03')).toBe('Saturday 3 Oct');
+    expect(pencilDate('2026-10-03', today)).toBe('Sat 3 Oct');
     expect(pencilDate('2026-10-03')).not.toMatch(/\d{4}-\d{2}-\d{2}/);
   });
 
   it('includes the year only when it differs from this year', () => {
-    expect(pencilDate('2027-10-03', today)).toBe('Sunday 3 Oct 2027');
+    expect(pencilDate('2027-10-03', today)).toBe('Sun 3 Oct 2027');
   });
 
-  it('prefixes a due date with "by"', () => {
-    expect(byDate('2026-10-03')).toBe('by Saturday 3 Oct');
+  it('says a due date as briefly as it reads', () => {
+    expect(byDate('2026-09-30', today)).toBe('today');
+    expect(byDate('2026-10-01', today)).toBe('tomorrow');
+    expect(byDate('2026-10-03', today)).toBe('in 3 days');
+    expect(byDate('2026-10-09', today)).toBe('Fri 9 Oct');
+    expect(byDate('2026-09-28', today)).toBe('Mon 28 Sep');
+    expect(byDate('next week', today)).toBe('next week');
     expect(byDate(null)).toBe('');
   });
 

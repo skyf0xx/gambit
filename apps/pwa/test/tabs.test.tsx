@@ -53,9 +53,9 @@ function seededGoal(): Goal {
 }
 
 describe('tabForPath', () => {
-  it('routes plan and criteriaStatus paths to moves', () => {
+  it('routes plan paths to moves and criteriaStatus to goal', () => {
     expect(tabForPath('plan.linesOfOperation.0.nextActions.2')).toBe('moves');
-    expect(tabForPath('criteriaStatus.0')).toBe('moves');
+    expect(tabForPath('criteriaStatus.0')).toBe('goal');
   });
 
   it('routes goal, successCriteria and subGoals paths to the goal tab', () => {
@@ -87,7 +87,7 @@ describe('tabForPath', () => {
 
   it('routes capacity paths to capacity', () => {
     expect(tabForPath('capacity')).toBe('capacity');
-    expect(tabForPath('log.0')).toBe('logs');
+    expect(tabForPath('log.0')).toBe('inside-cover');
   });
 
   it('falls back an unrecognized or empty path to moves', () => {
@@ -116,7 +116,6 @@ describe('tabHasContent', () => {
     expect(tabHasContent('risks', empty)).toBe(false);
     expect(tabHasContent('bets', empty)).toBe(false);
     expect(tabHasContent('capacity', empty)).toBe(false);
-    expect(tabHasContent('logs', empty)).toBe(false);
   });
 
   it('every tab shows once its keys are populated', () => {
@@ -137,17 +136,17 @@ function render(el: React.ReactElement) {
 describe('tab content components render the right lines', () => {
   const g = seededGoal();
 
-  it('MovesTab shows the plan, and leaves progress to Goal and the log to Logs', () => {
+  it('MovesTab shows the plan, and leaves progress to Goal and the log to Settings', () => {
     const html = render(<MovesTab g={g} goalId="g1" />);
     expect(html).toContain('data-line="plan.linesOfOperation.0.nextActions.0"');
     expect(html).not.toContain('data-line="criteriaStatus.0"');
-    expect(html).not.toContain('Logs');
+    expect(html).not.toContain('History');
     expect(html).not.toContain('entry 6');
   });
 
-  it('LogsTab shows the whole log, newest first', () => {
+  it('the log shows whole, newest first', () => {
     const html = render(<LogsTab g={g} />);
-    expect(html).toContain('Logs');
+    expect(html).toContain('History');
     expect(html).toContain('entry 1');
     expect(html.indexOf('entry 6')).toBeLessThan(html.indexOf('entry 1'));
   });
@@ -169,10 +168,18 @@ describe('tab content components render the right lines', () => {
     expect(html).toContain('Without burning out the team');
   });
 
-  it('GoalTab ends with progress, after the success criteria', () => {
+  it('GoalTab reads progress onto its criterion instead of listing it twice', () => {
     const html = render(<GoalTab g={g} goalId="g1" />);
+    expect(html).not.toContain('data-line="criteriaStatus.0"');
+    const stalled = render(<GoalTab g={{ ...g, criteriaStatus: [{ ...g.criteriaStatus[0], status: 'stalled' }] }} goalId="g1" />);
+    expect(stalled).toContain('stalled');
+    const met = render(<GoalTab g={{ ...g, criteriaStatus: [{ ...g.criteriaStatus[0], status: 'met' }] }} goalId="g1" />);
+    expect(met).toContain('data-box="successCriteria.0"');
+  });
+
+  it('GoalTab lists a scored line that matches no criterion under Progress', () => {
+    const html = render(<GoalTab g={{ ...g, criteriaStatus: [{ text: 'Something else', kind: 'control', status: 'on_track' }] }} goalId="g1" />);
     expect(html).toContain('data-line="criteriaStatus.0"');
-    expect(html.indexOf('data-line="successCriteria.0"')).toBeLessThan(html.indexOf('data-line="criteriaStatus.0"'));
   });
 
   it('GoalTab renders nothing for subGoals when the goal has none', () => {
@@ -217,7 +224,9 @@ describe('tab content components render the right lines', () => {
 
   it('BetsTab shows decisions, experiments, forecasts, and systemsNotes', () => {
     const html = render(<BetsTab g={g} goalId="g1" />);
-    expect(html).toContain('data-line="decisions.0"');
+    // A settled decision folds into a "1 decided" line; open bets show.
+    expect(html).not.toContain('data-line="decisions.0"');
+    expect(html).toContain('1 decided');
     expect(html).toContain('data-line="experiments.0"');
     expect(html).toContain('data-line="forecasts.0"');
     expect(html).toContain('Distribution');

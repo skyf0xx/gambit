@@ -4,6 +4,7 @@ import { stubGoal } from '@gambit/core';
 import { SectionBody, defaultOpenLine, lineProgress, planLineIndex } from '../src/components/Sections';
 import { sectionTitleFor } from '../src/components/sectionTitles';
 import type { Goal } from '../src/lib/types';
+import { GotoContext } from '../src/components/gotoContext';
 
 // A seeded v2 goal exercising the sections that carry markable lines:
 // plan (next actions in every status), people, riskNotes, criteriaStatus.
@@ -139,7 +140,14 @@ describe('notebook page markup', () => {
 
   it('crosses a forecast that didn\'t happen and ticks one that did', () => {
     const f = { statement: 'It ships', probability: 70, resolvesBy: '2026-01-01', resolvesVia: 'launch', resolved: true };
-    const html = renderSection('forecasts', [{ ...f, outcome: 'no' }, { ...f, outcome: 'yes' }, { ...f, resolved: false }]);
+    const all = [{ ...f, outcome: 'no' }, { ...f, outcome: 'yes' }, { ...f, resolved: false }];
+    // Settled forecasts fold away until asked for; a goto into one opens them.
+    expect(renderSection('forecasts', all)).toContain('2 found out');
+    const html = renderToStaticMarkup(
+      <GotoContext.Provider value={{ path: 'forecasts.0', seq: 1 }}>
+        <SectionBody k="forecasts" data={all} goalId="g1" editable />
+      </GotoContext.Provider>,
+    );
     expect(html).toContain('data-box="forecasts.0"');
     expect(html.match(/data-crossed/g) ?? []).toHaveLength(1);
     expect(html).toMatch(/data-box="forecasts\.0"[^>]*data-crossed/);

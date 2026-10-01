@@ -168,12 +168,18 @@ const CRITERION_GROUPS = [
  * beside the marker rather than wrapping under it. */
 function Criterion({ goalId, path, c }: { goalId: string; path: string; c: Any }) {
   const mark = useLineMark(path);
+  // `progress` is the criterion's `eval` score, joined on by GoalTab.tsx.
+  const slipping = alarm(c.progress);
   return (
     <li className="flex items-start gap-2.5">
-      <Marker path={path} open={mark.kind !== 'tick'} />
+      <Marker path={path} open={c.progress !== 'met' && mark.kind !== 'tick'} />
       <div className="min-w-0 flex-1">
-        <Line goalId={goalId} path={path}><span>{c.text}</span></Line>
+        <Line goalId={goalId} path={path}>
+          <span>{c.text}</span>
+          {slipping && <PencilWord className="ml-2">{slipping}</PencilWord>}
+        </Line>
         <Detail>{c.detail}</Detail>
+        {slipping && <Detail>{c.progressDetail}</Detail>}
       </div>
     </li>
   );
@@ -237,27 +243,51 @@ const isLate = (d?: string) => { const n = d ? daysUntil(d) : null; return n !==
  * newest first. The label is the item's status, so the items themselves
  * carry no status mark. A group with nothing in it isn't shown. Each item
  * keeps its stored index for its path. */
-function StatusGroups<T>({ list, isOpen, due, labels, render }: {
+function StatusGroups<T>({ k, list, isOpen, due, labels, pinned, render }: {
+  k: string;
   list: T[];
   isOpen: (x: T) => boolean;
   due: (x: T) => string | undefined;
   labels: [open: string, settled: string];
+  /** A settled item that still asks something of the user (a decision due
+   * for review): it stays out of the fold. */
+  pinned?: (x: T) => boolean;
   render: (x: T, i: number) => ReactNode;
 }) {
+  // Settled items fold into one "n decided" line, opened on tap — or by a
+  // goto landing on one of them.
+  const [picked, setShowSettled] = useState(false);
+  const goto = useGoto();
   const rows = list.map((x, i) => ({ x, i }));
   const key = (r: { x: T }) => due(r.x) ?? '9999';
-  const groups: [string, typeof rows][] = [
-    [labels[0], rows.filter((r) => isOpen(r.x)).sort((a, b) => key(a).localeCompare(key(b)))],
-    [labels[1], rows.filter((r) => !isOpen(r.x)).reverse()],
-  ];
+  const open = rows.filter((r) => isOpen(r.x)).sort((a, b) => key(a).localeCompare(key(b)));
+  const settled = rows.filter((r) => !isOpen(r.x)).reverse();
+  const loud = settled.filter((r) => pinned?.(r.x));
+  const quiet = settled.filter((r) => !pinned?.(r.x));
+  const showSettled = picked || quiet.some(({ i }) => goto?.path === `${k}.${i}` || goto?.path.startsWith(`${k}.${i}.`));
+  const list_ = (rs: typeof rows) => <ul className="space-y-5 text-[17px] leading-[27px]">{rs.map(({ x, i }) => render(x, i))}</ul>;
   return (
     <div className="space-y-6">
-      {groups.map(([label, rs]) => rs.length > 0 && (
-        <div key={label} className="space-y-2">
-          <h3><PencilWord className="text-[21px] text-graphite">{label}</PencilWord></h3>
-          <ul className="space-y-5 text-[17px] leading-[27px]">{rs.map(({ x, i }) => render(x, i))}</ul>
+      {open.length > 0 && (
+        <div className="space-y-2">
+          <h3><PencilWord className="text-[21px] text-graphite">{labels[0]}</PencilWord></h3>
+          {list_(open)}
         </div>
-      ))}
+      )}
+      {settled.length > 0 && (
+        <div className="space-y-2">
+          {quiet.length > 0 ? (
+            <h3>
+              <TextAction aria-expanded={showSettled} onClick={() => setShowSettled((v) => !v)}>
+                <PencilWord className="text-[21px] text-graphite">{showSettled ? labels[1] : `${quiet.length} ${labels[1]}`}</PencilWord>
+              </TextAction>
+            </h3>
+          ) : (
+            <h3><PencilWord className="text-[21px] text-graphite">{labels[1]}</PencilWord></h3>
+          )}
+          {(loud.length > 0 || showSettled) && list_(showSettled ? settled : loud)}
+        </div>
+      )}
     </div>
   );
 }
@@ -337,13 +367,6 @@ export function defaultOpenLine(lines: Any[], focusLine: number | null): number 
  * fine, and a tick already says done. */
 const ALARM = new Set(['at_risk', 'blocked', 'stalled', 'regressing']);
 const alarm = (status?: string) => (status && ALARM.has(status) ? status.replace('_', ' ') : undefined);
-
-/** A line's pencilled one-line summary: its status, if it's one worth
- * saying, and how far along it is. */
-function lineSummary(line: Any): string {
-  const { done, total } = lineProgress(line);
-  return [alarm(line.status), total > 0 && `${done} of ${total} done`].filter(Boolean).join(' · ');
-}
 
 /** How far along a tucked line is, as marks rather than words: a small ink
  * tick per thing done and an open ring per thing left — the same marker the
@@ -476,14 +499,16 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
   if (lines.length < 2) {
     return (
       <div key={open} className="anim-rise space-y-3">
-        <SheetTitle label={l.label} summary={lineSummary(l)} />
+        <SheetTitle label={l.label} summary={alarm(l.status) ?? ''} />
         {body}
       </div>
     );
   }
 
   const tucked = lines.map((line, li) => ({ line, li })).filter(({ li }) => li !== open);
-  const openSummary = lineSummary(l);
+  // The rings and the "n done" fold already say how far along the open
+  // line is, so its heading pencils only a status worth saying.
+  const openSummary = alarm(l.status) ?? '';
 
   return (
     // The pile is a little wider than the text column, so the front sheet's
@@ -627,10 +652,12 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
     // it, so it trails in pencil rather than heading it.
     return (
       <StatusGroups
+        k="decisions"
         list={data as Any[]}
         isOpen={(d) => d.status === 'open'}
         due={(d) => d.reviewBy}
         labels={['still to decide', 'decided']}
+        pinned={(d) => isDue(d.reviewBy)}
         render={(d, i) => {
           const open = d.status === 'open';
           const reviewDue = !open && isDue(d.reviewBy);
@@ -735,6 +762,7 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
     // and the footer says when it's due and hands the result to the chat.
     return (
       <StatusGroups
+        k="experiments"
         list={data as Any[]}
         isOpen={(e) => !e.done}
         due={(e) => e.by}
@@ -767,6 +795,7 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
   if (type === 'checklist' && k === 'forecasts') {
     return (
       <StatusGroups
+        k="forecasts"
         list={data as Any[]}
         isOpen={(f) => !f.resolved}
         due={(f) => f.resolvesBy}

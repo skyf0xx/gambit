@@ -4,7 +4,7 @@ import { formatDate } from '../Sections';
 import { SectionHeading } from '../paper/SectionHeading';
 import { sectionTitleFor } from '../sectionTitles';
 
-/** Logs: the goal's log, newest first. The whole log shows here — it's
+/** The goal's log, newest first, shown under Settings' "History". The whole log shows here — it's
  * already capped on the write path (`append_log`, packages/core). */
 export function LogsTab({ g }: { g: Goal }) {
   return (

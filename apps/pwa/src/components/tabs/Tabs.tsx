@@ -13,7 +13,6 @@ import { PeopleTab } from './PeopleTab';
 import { RisksTab } from './RisksTab';
 import { BetsTab } from './BetsTab';
 import { CapacityTab } from './CapacityTab';
-import { LogsTab } from './LogsTab';
 import { InsideCoverTab } from './InsideCoverTab';
 import { TAB_ORDER, tabForPath, tabHasContent, type TabId } from './tabDefs';
 
@@ -160,13 +159,9 @@ export function Tabs({ g, goalId, settings }: { g: Goal; goalId: string; setting
           <TitleBar goalTitle={g.goal} />
           <Doodles goal={g} goalId={goalId} />
         </TabPanel>
-        <TabPanel tab="logs" active={active === 'logs'}>
-          <TitleBar goalTitle={g.goal} />
-          <LogsTab g={g} />
-        </TabPanel>
         <TabPanel tab="inside-cover" active={active === 'inside-cover'}>
           <TitleBar goalTitle={g.goal} />
-          <InsideCoverTab {...settings} />
+          <InsideCoverTab {...settings} g={g} />
         </TabPanel>
       </div>
       </GotoContext.Provider>
