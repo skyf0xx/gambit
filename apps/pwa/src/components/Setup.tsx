@@ -121,7 +121,7 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
         </select>
       </Field>
       <Field label="Model id">
-        <input className={inputCls} value={s.model} onChange={(e) => setS({ ...s, model: e.target.value })} placeholder={s.kind === 'custom' ? 'e.g. deepseek-chat' : 'model id'} />
+        <input className={inputCls} value={s.model} onChange={(e) => setS({ ...s, model: e.target.value })} placeholder={s.kind === 'custom' ? 'e.g. deepseek-flash' : 'model id'} />
       </Field>
       {s.kind === 'custom' || showBase ? (
         <Field label={s.kind === 'custom' ? 'Base URL' : 'Proxy / base URL (optional)'} hint={s.kind === 'custom' ? `For OpenRouter, use ${OPENROUTER_BASE}` : 'Needed for providers without browser CORS support.'}>

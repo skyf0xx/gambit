@@ -17,8 +17,8 @@ import type { GoalRecord } from '../lib/db';
 // tab+panel, so its content is plain page sections per brand/identity.md
 // §05 ("no containers around ordinary text" — a heading and text on the
 // page, separated by whitespace), not the old <details> accordion. Order:
-// Your notebooks, Model and key, Saving your work (install + backup file),
-// Conversation and cost (clear chat, spend), the danger zone, and the maker's mark
+// Your notebooks, Conversation and cost (clear chat, spend), Appearance, Saving your work (install + backup file), Model and key,
+// the danger zone, and the maker's mark
 // with the version and licenses at the foot.
 //
 // Three levels, and no rules between them: a section heading, a small
@@ -277,9 +277,6 @@ export function SettingsPage({ goalId, goals, activeId, cost, onSwitchGoal, onNe
       <PageSection title="Your notebooks">
         <NotebookShelf goals={goals ?? []} activeId={activeId} onSwitch={(id) => onSwitchGoal?.(id)} onNew={() => onNewGoal?.()} />
       </PageSection>
-      <PageSection title="Model and key"><ProviderForm /></PageSection>
-      <PageSection title="Saving your work"><KeepSafe /></PageSection>
-      <PageSection title="Appearance"><Appearance /></PageSection>
       <PageSection title="Conversation and cost">
         <div className="space-y-6">
           {goalId && (
@@ -294,6 +291,9 @@ export function SettingsPage({ goalId, goals, activeId, cost, onSwitchGoal, onNe
           <Spend cost={cost} />
         </div>
       </PageSection>
+      <PageSection title="Appearance"><Appearance /></PageSection>
+      <PageSection title="Saving your work"><KeepSafe /></PageSection>
+      <PageSection title="Model and key"><ProviderForm /></PageSection>
       <PageSection title="Danger zone">
         <Actions>
           {goalId && <TextAction className={linkCls} onClick={() => confirm('Delete the active goal and its chat? This cannot be undone. Export first if unsure.') && void deleteGoal(goalId)}>Delete active goal</TextAction>}

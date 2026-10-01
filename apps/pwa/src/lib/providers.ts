@@ -53,7 +53,7 @@ export const KEY_LABEL = { google: 'Google', anthropic: 'Anthropic', openai: 'Op
 /** Settings for a detected key: the provider's default model, with OpenRouter
  * and DeepSeek as custom endpoints. */
 export function settingsForKey(p: NonNullable<ReturnType<typeof keyProvider>>): ProviderSettings {
-  if (p === 'deepseek') return { kind: 'custom', model: 'deepseek-chat', baseURL: DEEPSEEK_BASE };
+  if (p === 'deepseek') return { kind: 'custom', model: 'deepseek-flash', baseURL: DEEPSEEK_BASE };
   if (p === 'openrouter') return { kind: 'custom', model: 'anthropic/claude-sonnet-4.5', baseURL: OPENROUTER_BASE };
   return { kind: p, model: PROVIDERS[p].defaultModel };
 }
