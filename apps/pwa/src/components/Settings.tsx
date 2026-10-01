@@ -25,7 +25,7 @@ import type { GoalRecord } from '../lib/db';
 // with nothing wrong reads quietly.
 
 const PageSection = ({ title, children }: { title: string; children: ReactNode }) => (
-  <section className="space-y-4">
+  <section className="space-y-4 border-t border-rule pt-8 first:border-t-0 first:pt-0">
     <h2 className="font-sans text-[20px] font-semibold leading-7">{title}</h2>
     {children}
   </section>
@@ -61,7 +61,9 @@ const Actions = ({ children }: { children: ReactNode }) => (
   <div className="flex flex-wrap items-center gap-x-5">{children}</div>
 );
 
-const linkCls = 'underline underline-offset-[3px]';
+// Actions in pencil, not ink: graphite text over a faint underline,
+// darkening to ink on hover.
+const linkCls = 'text-graphite! underline decoration-graphite/40 underline-offset-[3px] hover:text-ink! hover:decoration-ink/60';
 const smallCls = 'text-[14px] leading-[22px] text-graphite';
 
 /** "19 Sep", with the year only when it isn't this one. */
@@ -252,10 +254,10 @@ function Model() {
 function Colophon() {
   const [open, setOpen] = useState(false);
   return (
-    <footer className="space-y-1">
+    <footer className="space-y-1 border-t border-rule pt-8">
       <div className="font-serif text-[17px] font-semibold leading-[25.5px] tracking-[-0.01em] text-ink">gambit</div>
       <p className={smallCls}>Version {__APP_VERSION__}.</p>
-      <TextAction className={`${linkCls} text-[14px]! text-graphite!`} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Hide licenses' : 'Licenses'}</TextAction>
+      <TextAction className={`${linkCls} text-[14px]!`} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Hide licenses' : 'Licenses'}</TextAction>
       {open && <div className="anim-fade-in"><Licenses /></div>}
     </footer>
   );
@@ -265,7 +267,7 @@ function Colophon() {
  * sections (owner correction — "it's a page, not a Leaf"). */
 export function SettingsPage({ goalId, goals, activeId, cost, onSwitchGoal, onNewGoal }: SettingsPageProps) {
   return (
-    <div className="space-y-12">
+    <div className="space-y-8">
       <PageSection title="Notebooks">
         <NotebookShelf goals={goals ?? []} activeId={activeId} onSwitch={(id) => onSwitchGoal?.(id)} onNew={() => onNewGoal?.()} />
       </PageSection>
