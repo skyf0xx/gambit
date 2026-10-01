@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stubGoal, writeSection, appendLog, setStatus, summarizeChange, WRITABLE_KEYS, capLog, LOG_CAP, GOAL_MAX_WORDS, goalSchema } from '../src/index.mjs';
+import { stubGoal, writeSection, appendLog, setStatus, summarizeChange, WRITABLE_KEYS, capLog, LOG_CAP, GOAL_MAX_WORDS, goalSchema, readingGrade, READING_GRADE_MAX } from '../src/index.mjs';
 
 const plan = {
   linesOfOperation: [{
@@ -151,4 +151,28 @@ test('summarizeChange', () => {
   assert.deepEqual(summarizeChange(b, c), ['+1 risk']);
   const d = setStatus(c, 'plan.linesOfOperation.0.nextActions.0', 'done').goal;
   assert.deepEqual(summarizeChange(c, d), ['1 status change']);
+});
+
+test('writes reject prose above the reading-grade cap; short labels and names are not scored', () => {
+  const g = stubGoal('g');
+  const dense = writeSection(g, 'riskNotes', [{
+    item: 'Landlord timing', source: 'threat', accepted: false,
+    detail: 'Negotiate an extended contingency period with the landlord, contingent on financing approval documentation.',
+  }]);
+  assert.equal(dense.ok, false);
+  assert.equal(dense.errors[0].path, 'riskNotes.0.detail');
+  assert.match(dense.errors[0].message, /grade 7 or below/);
+
+  const plain = writeSection(g, 'riskNotes', [{
+    item: 'Landlord timing', source: 'threat', accepted: false,
+    detail: 'Ask the landlord for two more weeks so the bank has time to say yes.',
+  }]);
+  assert.equal(plain.ok, true);
+
+  assert.equal(writeSection(g, 'riskNotes', [{ item: 'Operationalize distribution', source: 'threat', accepted: false }]).ok, true);
+  assert.equal(readingGrade('Call Mediterranean Shipping Company on Monday to ask when the boat gets in.') <= READING_GRADE_MAX, true);
+
+  const log = appendLog(g, { date: '2026-10-01', focus: null, notes: ['We leveraged cross-functional stakeholder alignment to operationalize the strategic distribution initiative.'] });
+  assert.equal(log.ok, false);
+  assert.equal(log.errors[0].path, 'log.notes.0');
 });

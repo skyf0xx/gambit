@@ -189,6 +189,13 @@ the user can cause it directly; `influence` means it depends on someone
 else's decision. `eval` scores them differently, and skills should not
 treat a stalled influence criterion as a failure of execution.
 
+Goal text is held to a grade-7 Flesch-Kincaid reading level, enforced on
+the write path (`plainLanguage` in `packages/core/src/readability.mjs`, run
+by `writeSection` and `append_log`) and, like the goal word cap, never on
+read. Only strings of 12+ words are scored — the formula is noise on short
+labels — and capitalized names and acronyms past a sentence's first word
+are left out of the count.
+
 The goal always reads as current state, not a history of how it got
 there — skills replace a key's value in place rather than layering
 "(updated)" notes into it. History belongs in `log`, not the rest of the

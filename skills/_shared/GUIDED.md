@@ -77,6 +77,11 @@ length cap) is enforced automatically on write — it does not enforce that
 the content is actually terse or actually a real label rather than a lazy
 placeholder; that's still this rule's job, in prose, on every write.
 
+Write at a grade-7 reading level. Any goal field of 12 or more words is
+scored with Flesch-Kincaid on write and rejected above grade 7 (names and
+acronyms aren't counted). Short sentences, short common words: "ask the
+bank for two more weeks," not "negotiate an extended financing window."
+
 Almost every string field is one of exactly two hard caps: `shortLabel`
 (40 chars) or `mediumLabel` (120 chars). "A few words" or "short" in a
 `SKILL.md` means one of these two numbers, not a stylistic suggestion.

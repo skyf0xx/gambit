@@ -3,6 +3,7 @@
 // can hand structured errors straight back to the model.
 
 import { goalSchema, reconcileGoal, writeRules, GOAL_MAX_WORDS, wordCount } from './schema.mjs';
+import { plainLanguage } from './readability.mjs';
 
 /** @typedef {import('zod').infer<typeof goalSchema>} Goal */
 /** @typedef {{ path: string, message: string }} Issue */
@@ -62,6 +63,8 @@ export function writeSection(goal, key, value) {
   }
   const part = (writeRules[key] ?? goalSchema.shape[key]).safeParse(value);
   if (!part.success) return { ok: false, errors: toIssues(part.error, [key]) };
+  const plain = plainLanguage.safeParse(part.data);
+  if (!plain.success) return { ok: false, errors: toIssues(plain.error, [key]) };
   const next = goalSchema.safeParse({ ...goal, [key]: part.data });
   if (!next.success) return { ok: false, errors: toIssues(next.error) };
   return { ok: true, goal: next.data, warnings: reconcileGoal(next.data) };
@@ -71,6 +74,8 @@ export function writeSection(goal, key, value) {
 export function appendLog(goal, entry) {
   const parsed = logEntrySchema.safeParse(entry);
   if (!parsed.success) return { ok: false, errors: toIssues(parsed.error, ['log']) };
+  const plain = plainLanguage.safeParse(parsed.data);
+  if (!plain.success) return { ok: false, errors: toIssues(plain.error, ['log']) };
   const next = goalSchema.safeParse({ ...goal, log: capLog([...goal.log, parsed.data]) });
   if (!next.success) return { ok: false, errors: toIssues(next.error) };
   return { ok: true, goal: next.data, warnings: [] };
