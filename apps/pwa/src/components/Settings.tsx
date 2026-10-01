@@ -105,7 +105,7 @@ function KeepSafe() {
     <div className="space-y-6">
       {d && !kept && (
         <Group label="This browser" note="could clear your notebooks" warn>
-          <p className={smallCls}>Browsers clear sites you don't open for a while. Installing stops that.</p>
+          <p className={smallCls}>Unused sites get cleared. Installing stops that.</p>
           <Actions>
             {installEvent && <InkButton className="my-2" onClick={() => void installEvent.prompt()}>Install</InkButton>}
             {d.persisted === false && !declined && (
@@ -113,7 +113,7 @@ function KeepSafe() {
             )}
           </Actions>
           {(route === 'ios' || route === 'mac-safari') && <p className={smallCls}>{installSteps[route]}</p>}
-          {declined && <p className={smallCls}>The browser said no. Install, or keep a backup file.</p>}
+          {declined && <p className={smallCls}>Browser said no. Install instead.</p>}
         </Group>
       )}
 
@@ -140,7 +140,7 @@ function KeepSafe() {
                 <div className="min-w-0">
                   <div className="truncate">{it.title}</div>
                   {it.error && <div className="text-[14px] text-accent">{it.error}</div>}
-                  {it.conflict && !it.error && <div className="text-[14px] text-graphite">A goal with this id already exists</div>}
+                  {it.conflict && !it.error && <div className="text-[14px] text-graphite">Already here</div>}
                 </div>
                 {!it.error && (
                   <select className="border-0 border-b border-card-rule bg-transparent px-1 py-1 text-[14px] text-ink focus:border-ink focus:outline-none" value={choices[it.id] ?? (it.conflict ? 'copy' : 'replace')} onChange={(e) => setChoices({ ...choices, [it.id]: e.target.value as Choice })}>

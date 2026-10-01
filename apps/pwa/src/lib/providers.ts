@@ -15,11 +15,11 @@ export interface ProviderSettings {
   webSearch?: boolean;
 }
 
-export const PROVIDERS: Record<ProviderKind, { label: string; defaultModel: string; baseURL?: string; help: string }> = {
-  google: { label: 'Google AI Studio', defaultModel: 'gemini-flash-latest', baseURL: 'https://generativelanguage.googleapis.com/v1beta', help: 'Free to start with a Google account.' },
-  anthropic: { label: 'Anthropic', defaultModel: 'claude-sonnet-5', baseURL: 'https://api.anthropic.com/v1', help: 'Direct from the browser.' },
-  openai: { label: 'OpenAI', defaultModel: 'gpt-4.1', baseURL: 'https://api.openai.com/v1', help: 'Direct from the browser.' },
-  custom: { label: 'Custom (OpenAI-compatible)', defaultModel: '', help: 'OpenRouter, your own proxy or a gateway. Its origin must be allowed at build time.' },
+export const PROVIDERS: Record<ProviderKind, { label: string; defaultModel: string; baseURL?: string; help?: string }> = {
+  google: { label: 'Google AI Studio', defaultModel: 'gemini-flash-latest', baseURL: 'https://generativelanguage.googleapis.com/v1beta', help: 'Free to start.' },
+  anthropic: { label: 'Anthropic', defaultModel: 'claude-sonnet-5', baseURL: 'https://api.anthropic.com/v1' },
+  openai: { label: 'OpenAI', defaultModel: 'gpt-4.1', baseURL: 'https://api.openai.com/v1' },
+  custom: { label: 'Custom (OpenAI-compatible)', defaultModel: '', help: 'OpenRouter or any OpenAI-style API.' },
 };
 
 /** Where a Google key comes from, and the model tried when the default is busy (503). */

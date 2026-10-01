@@ -111,7 +111,7 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
 
   return (
     <div className="space-y-4">
-      <Field label="API key" hint="Encrypted here. Sent only to your provider.">
+      <Field label="API key" hint="Only goes to your provider.">
         <input className={`${inputCls} font-mono`} type="password" autoComplete="off" value={key} onChange={(e) => onKey(e.target.value)} placeholder={saved ? 'Saved' : 'Paste your key'} />
         {detected && <span className="anim-fade-in block text-[14px] text-ink">{KEY_LABEL[detected]} key detected. Provider and model are set below.</span>}
       </Field>
@@ -124,7 +124,7 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
         <input className={inputCls} value={s.model} onChange={(e) => setS({ ...s, model: e.target.value })} placeholder={s.kind === 'custom' ? 'e.g. deepseek-flash' : 'model id'} />
       </Field>
       {s.kind === 'custom' || showBase ? (
-        <Field label={s.kind === 'custom' ? 'Base URL' : 'Proxy / base URL (optional)'} hint={s.kind === 'custom' ? `For OpenRouter, use ${OPENROUTER_BASE}` : 'Needed for providers without browser CORS support.'}>
+        <Field label={s.kind === 'custom' ? 'Base URL' : 'Proxy / base URL (optional)'} hint={s.kind === 'custom' ? `OpenRouter: ${OPENROUTER_BASE}` : 'For providers that block browsers.'}>
           <input className={inputCls} value={s.baseURL ?? ''} onChange={(e) => setS({ ...s, baseURL: e.target.value })} placeholder={PROVIDERS[s.kind].baseURL ?? 'https://…/v1'} />
         </Field>
       ) : (
@@ -133,7 +133,7 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
       {s.kind === 'anthropic' && !firstRun && (
         <label className="flex items-center gap-2 text-[14px] text-graphite">
           <input type="checkbox" checked={!!s.webSearch} onChange={(e) => setS({ ...s, webSearch: e.target.checked })} />
-          Allow provider-side web search (billed by Anthropic)
+          Web search (billed by Anthropic)
         </label>
       )}
       {err && (
