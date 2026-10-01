@@ -16,7 +16,6 @@ export function MovesTab({ g, goalId }: { g: Goal; goalId: string }) {
       <IndexCard goal={g} goalId={goalId} />
       <StickyNotes goal={g} goalId={goalId} />
       {showPlan && (isEmptySection(g.plan) ? <EmptySection k="plan" /> : <Section goalId={goalId} k="plan" data={g.plan} />)}
-      {isEmptySection(g.criteriaStatus) ? null : <Section goalId={goalId} k="criteriaStatus" data={g.criteriaStatus} />}
     </>
   );
 }

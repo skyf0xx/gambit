@@ -65,7 +65,8 @@ function SubGoals({ subGoals }: { subGoals: string[] }) {
  * top down from the aim to its measure: the parts are the rest of the goal
  * sentence, so they sit straight under the title, ahead of the criteria.
  * Split out of Moves (owner correction) so Moves stays about doing, not
- * defining. */
+ * defining. Progress (criteriaStatus) closes the page: how each measure
+ * is actually going, read straight after the measures themselves. */
 export function GoalTab({ g, goalId }: { g: Goal; goalId: string }) {
   const stub = g.successCriteria.length === 1 && g.successCriteria[0].text === 'define success criteria';
   return (
@@ -74,6 +75,7 @@ export function GoalTab({ g, goalId }: { g: Goal; goalId: string }) {
       {!stub && <KeepNotebook />}
       <SubGoals subGoals={g.subGoals ?? []} />
       {isEmptySection(g.successCriteria) ? null : <Section goalId={goalId} k="successCriteria" data={g.successCriteria} />}
+      {isEmptySection(g.criteriaStatus) ? null : <Section goalId={goalId} k="criteriaStatus" data={g.criteriaStatus} />}
     </div>
   );
 }

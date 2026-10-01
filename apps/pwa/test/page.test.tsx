@@ -102,11 +102,16 @@ describe('notebook page markup', () => {
     expect(html).toContain('Done action');
   });
 
-  it('gives criteria and steps a hand-drawn box hook', () => {
-    const html = renderSection('criteriaStatus', g.criteriaStatus);
-    expect(html).toContain('data-box');
+  it('gives steps a hand-drawn box hook, and progress only a tick once met', () => {
     const planHtml = renderSection('plan', g.plan);
     expect(planHtml).toContain('data-box');
+    // Progress isn't the user's to tick: an open ring until met, then a
+    // bare tick slot — never an outlined box.
+    const open = renderSection('criteriaStatus', g.criteriaStatus.map((c) => ({ ...c, status: 'on_track' })));
+    expect(open).not.toContain('data-box');
+    const met = renderSection('criteriaStatus', g.criteriaStatus.map((c) => ({ ...c, status: 'met' })));
+    expect(met).toContain('data-box');
+    expect((met.match(/data-box/g) ?? []).length).toBe((met.match(/data-bare/g) ?? []).length);
   });
 
   it('gives every next action and step one box, not only criteria', () => {

@@ -101,15 +101,12 @@ function ChangeNote({ goalId, path }: { goalId: string; path: string }) {
 }
 
 /** A single markable line: text with its data-line hook, sr mark text, an
- * optional "→ Name" pencilled after it, and the change note beneath. `box`
- * gives a line that isn't inside a Toggle its own read-only checkbox,
- * ticked when `checked`. */
-function Line({ goalId, path, className = '', box, checked, children }: { goalId: string; path: string; className?: string; box?: boolean; checked?: boolean; children: ReactNode }) {
+ * optional "→ Name" pencilled after it, and the change note beneath. */
+function Line({ goalId, path, className = '', children }: { goalId: string; path: string; className?: string; children: ReactNode }) {
   const mark = useLineMark(path);
   return (
     <div>
       <span data-line={path} className={`${mark.pencil ? 'pencil' : ''} ${className}`}>
-        {box && <span className="box mr-2 align-[-3px]" data-box={path} data-checked={checked ? '' : undefined} aria-hidden="true" />}
         {children}
         <FreshTag path={path} />
         <MarkSr path={path} />
@@ -165,21 +162,14 @@ const CRITERION_GROUPS = [
   { kind: 'influence', label: 'Up to someone else' },
 ];
 
-/** One success criterion: a plain bullet — it isn't the user's to tick, so
- * it gets no box — which becomes an ink tick once `eval` scores it met.
- * The text and its note hang beside the bullet rather than wrapping under
- * it. */
+/** One success criterion: an open ring — it isn't the user's to tick — which
+ * becomes an ink tick once `eval` scores it met. The text and its note hang
+ * beside the marker rather than wrapping under it. */
 function Criterion({ goalId, path, c }: { goalId: string; path: string; c: Any }) {
   const mark = useLineMark(path);
   return (
     <li className="flex items-start gap-2.5">
-      {mark.kind === 'tick' ? (
-        <span className="box mt-[4.5px] shrink-0" data-box={path} data-bare="" data-checked="" aria-hidden="true" />
-      ) : (
-        <span className="flex h-[27px] w-[18px] shrink-0 items-center justify-center" aria-hidden="true">
-          <span className="h-[5px] w-[5px] rounded-full bg-ink" />
-        </span>
-      )}
+      <Marker path={path} open={mark.kind !== 'tick'} />
       <div className="min-w-0 flex-1">
         <Line goalId={goalId} path={path}><span>{c.text}</span></Line>
         <Detail>{c.detail}</Detail>
@@ -188,15 +178,18 @@ function Criterion({ goalId, path, c }: { goalId: string; path: string; c: Any }
   );
 }
 
-/** The leading marker on a decision, experiment or forecast. None of them
- * are the user's to tick — they settle through the chat — so they get a
- * bullet, never a box: an open pencil ring while still open, filled in
- * with ink once settled. */
-function Marker({ open }: { open: boolean }) {
-  return (
+/** The leading marker on anything that settles on its own rather than by
+ * the user's hand — a success criterion, progress line, decision, experiment
+ * or forecast: an open pencil ring while still open, an ink tick once
+ * settled. Never a box, so nothing looks tickable that isn't. The tick is a
+ * bare box slot the marks layer draws on `path`. */
+function Marker({ path, open }: { path: string; open: boolean }) {
+  return open ? (
     <span className="flex h-[27px] w-[18px] shrink-0 items-center justify-center" aria-hidden="true">
-      {open ? <span className="h-[9px] w-[9px] rounded-full border-[1.5px] border-graphite" /> : <span className="h-[7px] w-[7px] rounded-full bg-ink" />}
+      <span className="h-[9px] w-[9px] rounded-full border-[1.5px] border-graphite" />
     </span>
+  ) : (
+    <span className="box mt-[4.5px] shrink-0" data-box={path} data-bare="" data-checked="" aria-hidden="true" />
   );
 }
 
@@ -569,7 +562,7 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
           const reviewDue = !open && isDue(d.reviewBy);
           return (
             <li key={i} className="flex items-start gap-2.5">
-              <Marker open={open} />
+              <Marker path={`decisions.${i}`} open={open} />
               <div className="min-w-0 flex-1">
                 <Line goalId={goalId} path={`decisions.${i}`}>
                   <span className="font-medium text-ink">{open ? d.question : d.choice}</span>
@@ -618,12 +611,15 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
     return (
       <ul className="space-y-2 text-[17px] leading-[27px]">
         {data.map((c: Any, i: number) => (
-          <li key={i}>
-            <Line goalId={goalId} path={`criteriaStatus.${i}`} box checked={c.status === 'met'}>
-              <span>{c.text}</span>
-              <PencilWord className="ml-2">{c.status.replace('_', ' ')}</PencilWord>
-            </Line>
-            <Detail>{c.detail}</Detail>
+          <li key={i} className="flex items-start gap-2.5">
+            <Marker path={`criteriaStatus.${i}`} open={c.status !== 'met'} />
+            <div className="min-w-0 flex-1">
+              <Line goalId={goalId} path={`criteriaStatus.${i}`}>
+                <span>{c.text}</span>
+                <PencilWord className="ml-2">{c.status.replace('_', ' ')}</PencilWord>
+              </Line>
+              <Detail>{c.detail}</Detail>
+            </div>
           </li>
         ))}
       </ul>
@@ -671,7 +667,7 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
         labels={['not tested yet', 'tested']}
         render={(e, i) => (
           <li key={i} className="flex items-start gap-2.5">
-            <Marker open={!e.done} />
+            <Marker path={`experiments.${i}`} open={!e.done} />
             <div className="min-w-0 flex-1">
               <Line goalId={goalId} path={`experiments.${i}`} className={`font-medium ${e.done ? '' : 'pencil'}`}>
                 <span>{e.assumption}</span>
@@ -705,7 +701,7 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
           const due = !f.resolved && isDue(f.resolvesBy);
           return (
             <li key={i} className="flex items-start gap-2.5">
-              <Marker open={!f.resolved} />
+              <Marker path={`forecasts.${i}`} open={!f.resolved} />
               <div className="min-w-0 flex-1">
                 <Line goalId={goalId} path={`forecasts.${i}`} className={`font-medium ${f.resolved ? '' : 'pencil'}`}>
                   <span>{f.statement}</span>

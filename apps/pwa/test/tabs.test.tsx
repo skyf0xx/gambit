@@ -133,10 +133,10 @@ function render(el: React.ReactElement) {
 describe('tab content components render the right lines', () => {
   const g = seededGoal();
 
-  it('MovesTab shows the plan and criteriaStatus, and leaves the log to Logs', () => {
+  it('MovesTab shows the plan, and leaves progress to Goal and the log to Logs', () => {
     const html = render(<MovesTab g={g} goalId="g1" />);
     expect(html).toContain('data-line="plan.linesOfOperation.0.nextActions.0"');
-    expect(html).toContain('data-line="criteriaStatus.0"');
+    expect(html).not.toContain('data-line="criteriaStatus.0"');
     expect(html).not.toContain('Logs');
     expect(html).not.toContain('entry 6');
   });
@@ -163,6 +163,12 @@ describe('tab content components render the right lines', () => {
     expect(html).toContain('Launched');
     expect(html).toContain('data-line="subGoals.0"');
     expect(html).toContain('Without burning out the team');
+  });
+
+  it('GoalTab ends with progress, after the success criteria', () => {
+    const html = render(<GoalTab g={g} goalId="g1" />);
+    expect(html).toContain('data-line="criteriaStatus.0"');
+    expect(html.indexOf('data-line="successCriteria.0"')).toBeLessThan(html.indexOf('data-line="criteriaStatus.0"'));
   });
 
   it('GoalTab renders nothing for subGoals when the goal has none', () => {
