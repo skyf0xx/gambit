@@ -69,12 +69,16 @@ const siteUrl = (process.env.SITE_URL || 'https://gambit-notes.vercel.app').repl
 function ogPlugin(): Plugin {
   return {
     name: 'gambit-og',
-    transformIndexHtml: () => [
-      { tag: 'meta', attrs: { property: 'og:image', content: `${siteUrl}/og-image.jpg` }, injectTo: 'head' },
-      { tag: 'meta', attrs: { name: 'twitter:image', content: `${siteUrl}/og-image.jpg` }, injectTo: 'head' },
-      { tag: 'meta', attrs: { property: 'og:url', content: `${siteUrl}/` }, injectTo: 'head' },
-      { tag: 'link', attrs: { rel: 'canonical', href: `${siteUrl}/` }, injectTo: 'head' },
-    ],
+    transformIndexHtml: (_html, ctx) => {
+      // landing.html is served at /landing (vercel.json rewrite).
+      const page = `${siteUrl}/${ctx.path.endsWith('landing.html') ? 'landing' : ''}`;
+      return [
+        { tag: 'meta', attrs: { property: 'og:image', content: `${siteUrl}/og-image.jpg` }, injectTo: 'head' },
+        { tag: 'meta', attrs: { name: 'twitter:image', content: `${siteUrl}/og-image.jpg` }, injectTo: 'head' },
+        { tag: 'meta', attrs: { property: 'og:url', content: page }, injectTo: 'head' },
+        { tag: 'link', attrs: { rel: 'canonical', href: page }, injectTo: 'head' },
+      ];
+    },
   };
 }
 
@@ -100,7 +104,8 @@ export default defineConfig({
           { src: 'android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
         ],
       },
-      workbox: { navigateFallback: '/index.html', globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2}'] },
+      // /landing is its own page, so the app shell mustn't answer for it.
+      workbox: { navigateFallback: '/index.html', navigateFallbackDenylist: [/^\/landing/], globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2}'] },
     }),
   ],
   define: {
@@ -110,7 +115,10 @@ export default defineConfig({
   // Font files must never be inlined as data: URIs — the CSP's img-src
   // allows data: but there is no font-src exception for it, so an inlined
   // font would be blocked at runtime. 8KB default -> 0 disables inlining.
-  build: { assetsInlineLimit: 0 },
+  build: {
+    assetsInlineLimit: 0,
+    rollupOptions: { input: { main: resolve(__dirname, 'index.html'), landing: resolve(__dirname, 'landing.html') } },
+  },
   server: { fs: { allow: [root] } },
   test: { environment: 'node', include: ['test/**/*.test.{ts,tsx}'] },
 });

@@ -3,6 +3,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "apps/pwa/dist",
   "framework": null,
+  "rewrites": [{ "source": "/landing", "destination": "/landing.html" }],
   "headers": [
     {
       "source": "/(.*)",

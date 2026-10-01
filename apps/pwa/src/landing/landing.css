@@ -1,0 +1,294 @@
+/* The /landing page: a long desk with pages laid on it. Tokens come from
+   styles.css; nothing here uses the #graphite / #bleed SVG filters, since
+   the app's Filters.tsx isn't mounted on this page. */
+
+html, body { height: auto; }
+.landing {
+  background: var(--grain), var(--desk);
+  overflow-x: hidden;
+}
+
+.wrap { width: min(1120px, 100% - 32px); margin-inline: auto; }
+.narrow { width: min(720px, 100% - 32px); }
+
+/* Masthead */
+.masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 22px;
+}
+.wordmark {
+  font-family: var(--font-serif);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-decoration: none;
+}
+.masthead-cta {
+  font-size: 15px;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--graphite);
+}
+
+/* Buttons and links */
+.ink-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 12px 24px;
+  border-radius: 3px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 17px;
+  font-weight: 500;
+  text-decoration: none;
+  box-shadow: 0 1px 1px var(--lift), 0 8px 22px -10px var(--lift);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.ink-button:hover { transform: translateY(-2px); box-shadow: 0 2px 2px var(--lift), 0 14px 28px -12px var(--lift); }
+.ink-button:active { transform: translateY(0) scale(0.98); }
+.ink-button-lg { min-height: 56px; padding: 14px 32px; font-size: 19px; }
+.text-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--accent);
+}
+
+/* Hero */
+.hero { padding-top: clamp(40px, 9vw, 112px); }
+.hero-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(42px, 7.4vw, 92px);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+.hero-title span {
+  display: block;
+  animation: land-write 900ms cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+}
+.hero-title span:nth-child(2) { animation-delay: 200ms; color: var(--accent); }
+.hero-lede {
+  max-width: 34em;
+  margin: 28px 0 0;
+  font-size: clamp(18px, 1.6vw, 21px);
+  line-height: 1.55;
+  color: var(--graphite);
+  animation: land-rise 700ms ease-out 480ms backwards;
+}
+.hero-lede strong { font-weight: 600; color: var(--ink); }
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 22px;
+  margin-top: 32px;
+  animation: land-rise 700ms ease-out 600ms backwards;
+}
+.cta-aside { font-size: 15px; color: var(--graphite); }
+
+/* Prints: the wide images, laid on the desk like photographs. */
+.print { position: relative; }
+.print img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px var(--lift), 0 24px 60px -24px var(--lift), 0 0 0 1px var(--edge);
+}
+.print-hero {
+  margin-top: clamp(48px, 7vw, 88px);
+  animation: land-settle 1100ms cubic-bezier(0.2, 0.8, 0.2, 1) 700ms backwards;
+}
+.print-wide { margin-block: clamp(56px, 8vw, 104px); }
+.tape {
+  position: absolute;
+  z-index: 1;
+  top: -14px;
+  width: 112px;
+  height: 30px;
+  background: var(--tape);
+  box-shadow: 0 1px 1px var(--lift-far);
+}
+.tape-l { left: 8%; transform: rotate(-4deg); }
+.tape-r { right: 8%; transform: rotate(3deg); }
+
+/* Opening lines */
+.opening { padding-top: clamp(80px, 12vw, 160px); }
+.big-line {
+  margin: 0 0 18px;
+  font-family: var(--font-serif);
+  font-size: clamp(26px, 3.4vw, 40px);
+  line-height: 1.22;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+.big-line.quiet { color: var(--graphite); }
+
+/* A pencilled aside in the margin. */
+.margin-note {
+  font-family: var(--font-hand);
+  font-weight: 500;
+  color: var(--graphite);
+  margin-top: 0;
+  margin-bottom: clamp(24px, 4vw, 48px);
+  font-size: clamp(26px, 2.6vw, 32px);
+  line-height: 1.2;
+  text-align: center;
+}
+
+/* Spreads: words on one side, the page on the other. */
+.spread {
+  display: grid;
+  grid-template-columns: 5fr 6fr;
+  align-items: center;
+  gap: clamp(32px, 6vw, 96px);
+  padding-block: clamp(48px, 7vw, 96px);
+}
+.spread.flip .spread-text { order: 2; }
+.spread-text { max-width: 30em; }
+.spread h2,
+.section-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(30px, 3.6vw, 46px);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.spread p,
+.methods-list {
+  margin: 18px 0 0;
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--graphite);
+}
+
+.sheet {
+  justify-self: center;
+  width: min(440px, 100%);
+  margin: 0;
+}
+.sheet img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 2px 6px 6px 2px;
+  box-shadow: 0 1px 1px var(--lift), 0 30px 60px -28px var(--lift), 0 0 0 1px var(--edge);
+}
+.tilt-r { --tilt: 1.4deg; transform: rotate(var(--tilt)); }
+.tilt-l { --tilt: -1.6deg; transform: rotate(var(--tilt)); }
+
+/* Uses: a ruled list, like lines on a page. */
+.uses { padding-top: clamp(80px, 11vw, 144px); }
+.uses-list { margin: 28px 0 0; }
+.uses-list > div {
+  display: grid;
+  grid-template-columns: minmax(0, 15em) minmax(0, 1fr);
+  gap: 4px 24px;
+  padding-block: 16px;
+  border-bottom: 1px solid var(--rule);
+}
+.uses-list dt { font-family: var(--font-serif); font-size: 21px; color: var(--ink); }
+.uses-list dd { margin: 0; font-size: 18px; color: var(--graphite); }
+
+/* Methods */
+.methods { padding-top: clamp(96px, 12vw, 160px); text-align: center; }
+.methods .section-title { max-width: 18em; margin-inline: auto; }
+.methods-list { max-width: 36em; margin-inline: auto; }
+.frameworks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 0;
+  max-width: 46em;
+  margin: 22px auto 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-serif);
+  font-size: clamp(19px, 2vw, 23px);
+  color: var(--ink);
+}
+.frameworks li:not(:last-child)::after { content: "·"; margin-inline: 14px; color: var(--graphite); }
+.methods .print-wide { margin-bottom: 0; }
+
+/* Closer */
+.closer {
+  padding-block: clamp(112px, 14vw, 200px);
+  text-align: center;
+}
+.closer-title {
+  margin: 0 0 36px;
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(40px, 6.4vw, 80px);
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+
+/* Colophon */
+.colophon {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 28px 40px;
+  border-top: 1px solid var(--rule);
+  font-size: 14px;
+  color: var(--graphite);
+}
+.colophon a { color: var(--graphite); text-underline-offset: 3px; }
+
+/* Arrival motion */
+@keyframes land-write {
+  from { clip-path: inset(0 100% 0 0); transform: translateY(6px); }
+  to { clip-path: inset(0 -5% 0 0); transform: translateY(0); }
+}
+@keyframes land-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes land-settle {
+  from { opacity: 0; transform: translateY(40px) rotate(1.5deg) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Scroll reveals, armed only once the script is running. */
+.reveal [data-reveal] {
+  opacity: 0;
+  transform: translateY(36px);
+  transition: opacity 700ms ease-out, transform 900ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.reveal [data-reveal].in { opacity: 1; transform: none; }
+.reveal .spread .sheet {
+  transform: translateY(48px) rotate(calc(var(--tilt) * 4));
+  transition: transform 1100ms cubic-bezier(0.2, 0.8, 0.2, 1) 120ms;
+}
+.reveal .spread.in .sheet { transform: rotate(var(--tilt)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal [data-reveal],
+  .reveal .spread .sheet { transform: none; opacity: 1; }
+  .tilt-r, .tilt-l { transform: rotate(var(--tilt)); }
+}
+
+/* Phones and narrow tablets: one column, page under its words. */
+@media (max-width: 760px) {
+  .spread { grid-template-columns: 1fr; gap: 36px; }
+  .spread.flip .spread-text { order: 0; }
+  .sheet { width: min(400px, 92%); }
+  .tape { width: 72px; height: 22px; top: -10px; }
+  .colophon { flex-direction: column; }
+  .uses-list > div { grid-template-columns: 1fr; }
+}
