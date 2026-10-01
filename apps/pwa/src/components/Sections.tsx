@@ -392,48 +392,36 @@ function ProgressMarks({ done, total }: { done: number; total: number }) {
   );
 }
 
-/** The heading of the sheet in front: the line's name on its own, given
- * room to wrap, with the pencilled summary on the line beneath it. */
-function SheetTitle({ label, summary }: { label: string; summary: string }) {
-  return (
-    <div className="min-w-0">
-      <h3 className="text-[20px] font-semibold leading-[26px] text-ink">{label}</h3>
-      {summary && <PencilWord className="mt-0.5 block text-[18px] leading-[24px]">{summary}</PencilWord>}
-    </div>
-  );
-}
-
-/** The plan as a pile of loose sheets, one per line of operation. The open
- * line is the sheet in front: its name heads the sheet and its steps sit on
- * the same surface. Every other line is tucked behind it, showing only a
- * one-line edge (name, status, how far along) above the sheet in plan
- * order, so the whole plan can still be read in one place; tapping an edge
- * pulls that line's sheet to the front — so the page stays about one line
- * long however many lines the plan has. */
+/** The plan as a fixed list of its lines of operation, in plan order. One
+ * line is open at a time, its moves right under its row; every other line
+ * is a single row — name, an alarm word if one applies, and progress as
+ * ticks and rings. Tapping a row opens it in place (closing the other), or
+ * closes it if it's the open one. Rows never move, so the plan reads the
+ * same way every time. */
 function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; editable: boolean }) {
   const { dropped, turn } = useSession();
   const marks = useMarksContext();
   const goto = useGoto();
   const gotoLine = planLineIndex(goto?.path);
+  // The line the user opened by hand: an index, -1 for "all closed", or
+  // null when nothing has been picked yet and the default applies.
   const [picked, setPicked] = useState<number | null>(gotoLine);
-  // The edge that was tapped leaves the pile when its sheet comes forward,
-  // so keyboard focus follows it to the sheet's heading.
-  const headRef = useRef<HTMLDivElement>(null);
-  const followFocus = useRef(false);
-  useEffect(() => {
-    if (!followFocus.current) return;
-    followFocus.current = false;
-    headRef.current?.focus({ preventScroll: true });
-  }, [picked]);
 
-  // A goto into a tucked line brings that line's sheet to the front —
-  // adjusted during render, not in an effect, so the sheet is already in
-  // the DOM when Tabs.tsx looks for the target line to scroll to.
+  // A goto into a closed line opens it — adjusted during render, not in an
+  // effect, so its rows are already in the DOM when Tabs.tsx looks for the
+  // target line to scroll to.
   const [seenGoto, setSeenGoto] = useState(goto?.seq ?? 0);
   if (goto && goto.seq !== seenGoto) {
     setSeenGoto(goto.seq);
     if (gotoLine != null) setPicked(gotoLine);
   }
+
+  // Done rows fold away into one "n done" line at the foot of the open
+  // line, except one ticked here, which stays put (ticked) until the page
+  // is next opened so the tick isn't snatched away the moment it lands.
+  const [justDone, setJustDone] = useState<Set<string>>(() => new Set());
+  const [showDone, setShowDone] = useState(false);
+  const onTick = (path: string) => setJustDone((s) => new Set(s).add(path));
 
   let focusLine: number | null = null;
   for (const kind of ['highlight', 'star']) {
@@ -442,136 +430,98 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
       if (focusLine == null && mark.kind === kind) focusLine = planLineIndex(path);
     });
   }
-  const open = picked != null && picked < lines.length ? picked : defaultOpenLine(lines, focusLine);
-
-  // Done rows fold away into one "n done" line at the foot of the sheet,
-  // except one ticked here, which stays put (ticked) until the page is
-  // next opened so the tick isn't snatched away the moment it lands.
-  const [justDone, setJustDone] = useState<Set<string>>(() => new Set());
-  const [showDone, setShowDone] = useState(false);
-  const onTick = (path: string) => setJustDone((s) => new Set(s).add(path));
-
+  const open = picked === -1 ? null : picked != null && picked < lines.length ? picked : defaultOpenLine(lines, focusLine);
   const changedLine = turn?.goalId === goalId ? planLineIndex(turn.lines[0]?.path) : null;
-  const l = lines[open];
-  if (!l) return null;
   // The top move is already on the index card above; the list doesn't
   // repeat it.
   const top = nextMove({ plan: { linesOfOperation: lines } } as Goal)?.path;
-  const stepBase = `plan.linesOfOperation.${open}.criticalPath`;
-  const actions = visibleActions(l.nextActions, goalId, `plan.linesOfOperation.${open}.nextActions`, dropped).filter(({ path }) => path !== top);
-  const donePaths = [
-    ...l.criticalPath.flatMap((x: Any, i: number) => (x.status === 'done' ? [`${stepBase}.${i}`] : [])),
-    ...actions.filter(({ a }) => a.status === 'done').map(({ path }) => path),
-  ];
-  const hiddenDone = donePaths.filter((p) => !justDone.has(p)).length;
-  const shown = (path: string, status: string) => status !== 'done' || showDone || justDone.has(path);
-  // The one row that keeps its "why" on show: the first thing still to do.
-  const firstStep = l.criticalPath.findIndex((x: Any) => x.status === 'pending');
-  const detailFor = firstStep >= 0 ? `${stepBase}.${firstStep}` : (actions.find(({ a }) => a.status === 'pending')?.path ?? null);
-  const rows: SheetRows = { shown, detailFor, onTick };
-  const liveActions = actions.filter(({ a, path }) => shown(path, a.status));
-  const body = (
-    <>
-      <Steps goalId={goalId} base={stepBase} steps={l.criticalPath} editable={editable} rows={rows} />
-      {l.blocker && <p className="text-[14px] text-graphite">Blocked: {l.blocker}</p>}
-      {liveActions.length > 0 && (
-        <ol className="space-y-1.5">
-          {liveActions.map(({ a, path }) => {
-            const meta = [!isSelf(a.who) && a.who, a.when && byDate(a.when)].filter(Boolean).join(' · ');
-            return (
-              <Toggle key={path} goalId={goalId} path={path} status={a.status} editable={editable} onTick={onTick} title={path === detailFor ? undefined : a.detail}>
-                <Line goalId={goalId} path={path}>
-                  <span>{a.action}</span>
-                  {meta && <span className="ml-2 text-[14px] text-graphite">{meta}</span>}
-                </Line>
-                {path === detailFor && <Detail>{a.detail}</Detail>}
-              </Toggle>
-            );
-          })}
-        </ol>
-      )}
-      {hiddenDone > 0 && (
-        <TextAction className="-my-2 ml-11" onClick={() => setShowDone((v) => !v)} aria-expanded={showDone}>
-          <PencilWord className="text-[18px] text-graphite">{showDone ? 'hide done' : `${hiddenDone} done`}</PencilWord>
-        </TextAction>
-      )}
-    </>
-  );
 
-  if (lines.length < 2) {
+  const body = (li: number) => {
+    const l = lines[li];
+    const stepBase = `plan.linesOfOperation.${li}.criticalPath`;
+    const actions = visibleActions(l.nextActions, goalId, `plan.linesOfOperation.${li}.nextActions`, dropped).filter(({ path }) => path !== top);
+    const donePaths = [
+      ...l.criticalPath.flatMap((x: Any, i: number) => (x.status === 'done' ? [`${stepBase}.${i}`] : [])),
+      ...actions.filter(({ a }) => a.status === 'done').map(({ path }) => path),
+    ];
+    const hiddenDone = donePaths.filter((p) => !justDone.has(p)).length;
+    const shown = (path: string, status: string) => status !== 'done' || showDone || justDone.has(path);
+    // The one row that keeps its "why" on show: the first thing still to do.
+    const firstStep = l.criticalPath.findIndex((x: Any) => x.status === 'pending');
+    const detailFor = firstStep >= 0 ? `${stepBase}.${firstStep}` : (actions.find(({ a }) => a.status === 'pending')?.path ?? null);
+    const rows: SheetRows = { shown, detailFor, onTick };
+    const liveActions = actions.filter(({ a, path }) => shown(path, a.status));
     return (
-      <div key={open} className="anim-rise space-y-3">
-        <SheetTitle label={l.label} summary={alarm(l.status) ?? ''} />
-        {body}
+      <>
+        <Steps goalId={goalId} base={stepBase} steps={l.criticalPath} editable={editable} rows={rows} />
+        {l.blocker && <p className="text-[14px] text-graphite">Blocked: {l.blocker}</p>}
+        {liveActions.length > 0 && (
+          <ol className="space-y-1.5">
+            {liveActions.map(({ a, path }) => {
+              const meta = [!isSelf(a.who) && a.who, a.when && byDate(a.when)].filter(Boolean).join(' · ');
+              return (
+                <Toggle key={path} goalId={goalId} path={path} status={a.status} editable={editable} onTick={onTick} title={path === detailFor ? undefined : a.detail}>
+                  <Line goalId={goalId} path={path}>
+                    <span>{a.action}</span>
+                    {meta && <span className="ml-2 text-[14px] text-graphite">{meta}</span>}
+                  </Line>
+                  {path === detailFor && <Detail>{a.detail}</Detail>}
+                </Toggle>
+              );
+            })}
+          </ol>
+        )}
+        {hiddenDone > 0 && (
+          <TextAction className="-my-2 ml-11" onClick={() => setShowDone((v) => !v)} aria-expanded={showDone}>
+            <PencilWord className="text-[18px] text-graphite">{showDone ? 'hide done' : `${hiddenDone} done`}</PencilWord>
+          </TextAction>
+        )}
+      </>
+    );
+  };
+
+  if (lines.length === 0) return null;
+  if (lines.length === 1) {
+    const flag = alarm(lines[0].status);
+    return (
+      <div className="anim-rise space-y-3">
+        <div className="min-w-0">
+          <h3 className="text-[20px] font-semibold leading-[26px] text-ink">{lines[0].label}</h3>
+          {flag && <PencilWord className="mt-0.5 block text-[18px] leading-[24px]">{flag}</PencilWord>}
+        </div>
+        {body(0)}
       </div>
     );
   }
 
-  const tucked = lines.map((line, li) => ({ line, li })).filter(({ li }) => li !== open);
-  // The rings and the "n done" fold already say how far along the open
-  // line is, so its heading pencils only a status worth saying.
-  const openSummary = alarm(l.status) ?? '';
-
   return (
-    // The pile is a little wider than the text column, so the front sheet's
-    // edges clear its own text and the column itself stays where it was.
-    <div className="-mx-2 mb-2 md:-mx-4">
-      <ul aria-label="Other lines of the plan">
-        {tucked.map(({ line, li }, i) => {
-          const progress = lineProgress(line);
-          const flag = alarm(line.status);
-          const changed = changedLine === li;
-          // How many sheets back this one sits: 1 is right behind the front
-          // sheet. Each step back is a little narrower, so the pile recedes.
-          const depth = Math.min(tucked.length - i, 4);
-          return (
-            // Each edge sits a little under the one below it and a hair off
-            // square, so the set reads as loose sheets, not a list.
-            <li key={li} className="anim-rise relative" style={{ marginTop: i ? -6 : 0, marginInline: depth * 6 }}>
-              <button
-                type="button"
-                data-plan-sheet={li}
-                onClick={() => { followFocus.current = true; setPicked(li); }}
-                className={`slip anim-press flex min-h-[44px] w-full items-center justify-between gap-3 rounded-[2px] px-4 pt-1.5 pb-2.5 text-left ${
-                  li % 2 ? 'motion-safe:transform-[rotate(0.35deg)_translateX(3px)]' : 'motion-safe:transform-[rotate(-0.3deg)_translateX(-2px)]'
-                }`}
-                style={{ boxShadow: 'inset 0 1px 0 var(--edge)', filter: 'brightness(.975) drop-shadow(0 1px 1px var(--lift)) drop-shadow(0 3px 6px var(--lift-far))' }}
-              >
-                <span className="min-w-0 flex-1 truncate font-medium text-ink">{line.label}</span>
-                <span className="flex shrink-0 items-center gap-2">
-                  {flag && <PencilWord className="text-[17px]">{flag}</PencilWord>}
-                  <ProgressMarks {...progress} />
-                  {changed && <span aria-hidden="true" className="pencil h-1.5 w-1.5 rounded-[50%] bg-graphite" />}
-                  {changed && <span className="sr-only"> (changed)</span>}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      {/* The front sheet: the page's own colour, squared up, lying over the
-       * edges behind it. Only its heading is opaque — the steps sit on the
-       * page itself inside the sheet's shadow, because the marks layer
-       * draws its checkboxes and pencil marks beneath the page's content
-       * and a solid surface here would cover them. */}
-      <section
-        key={open}
-        className="anim-card-in relative -mt-2 rounded-[2px] pb-3"
-        style={{ boxShadow: '0 0 0 1px var(--edge), 0 -1px 3px var(--lift-far), 0 2px 2px var(--lift), 0 10px 18px var(--lift-far)' }}
-      >
-        <div
-          ref={headRef}
-          tabIndex={-1}
-          data-plan-sheet={open}
-          aria-current="true"
-          className="min-h-[44px] rounded-t-[2px] px-2 pt-3 pb-3 outline-none md:px-4"
-          style={{ background: 'var(--grain), var(--bg)' }}
-        >
-          <SheetTitle label={l.label} summary={openSummary} />
-        </div>
-        <div className="space-y-2 px-2 md:px-4">{body}</div>
-      </section>
-    </div>
+    <ul className="border-t border-graphite/25">
+      {lines.map((line, li) => {
+        const isOpen = li === open;
+        const flag = alarm(line.status);
+        const changed = changedLine === li && !isOpen;
+        return (
+          <li key={li} className="border-b border-graphite/25">
+            <button
+              type="button"
+              data-plan-sheet={li}
+              aria-expanded={isOpen}
+              onClick={() => { setShowDone(false); setPicked(isOpen ? -1 : li); }}
+              className="anim-press flex min-h-[48px] w-full items-center justify-between gap-3 py-2 text-left"
+            >
+              <span className={`min-w-0 flex-1 text-ink ${isOpen ? 'text-[19px] font-semibold leading-[26px]' : 'truncate font-medium'}`}>{line.label}</span>
+              <span className="flex shrink-0 items-center gap-2">
+                {flag && <PencilWord className="text-[17px]">{flag}</PencilWord>}
+                <ProgressMarks {...lineProgress(line)} />
+                {changed && <span aria-hidden="true" className="pencil h-1.5 w-1.5 rounded-[50%] bg-graphite" />}
+                {changed && <span className="sr-only"> (changed)</span>}
+              </span>
+            </button>
+            {isOpen && <div key={li} className="anim-rise space-y-2 pb-4">{body(li)}</div>}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

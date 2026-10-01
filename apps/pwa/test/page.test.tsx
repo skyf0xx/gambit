@@ -176,7 +176,7 @@ describe('notebook page markup', () => {
   });
 });
 
-describe('plan as a stack of sheets', () => {
+describe('plan as a list of lines', () => {
   const lines = [
     { label: 'Line A', criticalPath: [{ label: 'A step', status: 'done' }], nextActions: [] },
     {
@@ -206,14 +206,17 @@ describe('plan as a stack of sheets', () => {
     expect(planLineIndex(undefined)).toBeNull();
   });
 
-  it('lists every line as an edge and opens only one of them', () => {
+  it('lists every line as a row and opens only one of them', () => {
     const html = renderSection('plan', { linesOfOperation: lines });
     expect(html).not.toContain('B action');
     expect(html).not.toContain('B step');
     expect(html).not.toContain('A step');
     expect(html).not.toContain('C step');
     expect((html.match(/data-plan-sheet/g) ?? []).length).toBe(3);
-    expect((html.match(/aria-current/g) ?? []).length).toBe(1);
+    expect((html.match(/aria-expanded="true"/g) ?? []).length).toBe(1);
+    // Rows stay in plan order whichever line is open.
+    expect(html.indexOf('Line A')).toBeLessThan(html.indexOf('Line B'));
+    expect(html.indexOf('Line B')).toBeLessThan(html.indexOf('Line C'));
     expect(html).toContain('1 of 1 done');
     expect(html).toContain('0 of 1 done');
   });
