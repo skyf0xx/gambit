@@ -267,7 +267,7 @@ function StatusGroups<T>({ k, list, isOpen, due, labels, pinned, render }: {
   const showSettled = picked || quiet.some(({ i }) => goto?.path === `${k}.${i}` || goto?.path.startsWith(`${k}.${i}.`));
   const list_ = (rs: typeof rows) => <ul className="space-y-5 text-[17px] leading-[27px]">{rs.map(({ x, i }) => render(x, i))}</ul>;
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {open.length > 0 && (
         <div className="space-y-2">
           <h3><PencilWord className="text-[21px] text-graphite">{labels[0]}</PencilWord></h3>
@@ -278,7 +278,9 @@ function StatusGroups<T>({ k, list, isOpen, due, labels, pinned, render }: {
         <div className="space-y-2">
           {quiet.length > 0 ? (
             <h3>
-              <TextAction aria-expanded={showSettled} onClick={() => setShowSettled((v) => !v)}>
+              {/* The fold's tap area is taller than its line; pull it back so
+               * the gap above it matches the page's rhythm. */}
+              <TextAction className="-my-2.5" aria-expanded={showSettled} onClick={() => setShowSettled((v) => !v)}>
                 <PencilWord className="text-[21px] text-graphite">{showSettled ? labels[1] : `${quiet.length} ${labels[1]}`}</PencilWord>
               </TextAction>
             </h3>
@@ -489,7 +491,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
         </ol>
       )}
       {hiddenDone > 0 && (
-        <TextAction className="ml-11 min-h-[36px]" onClick={() => setShowDone((v) => !v)} aria-expanded={showDone}>
+        <TextAction className="-my-2 ml-11" onClick={() => setShowDone((v) => !v)} aria-expanded={showDone}>
           <PencilWord className="text-[18px] text-graphite">{showDone ? 'hide done' : `${hiddenDone} done`}</PencilWord>
         </TextAction>
       )}
@@ -691,6 +693,9 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
 
   if (k === 'successCriteria') {
     const criteria = data.map((c: Any, i: number) => ({ c, path: `successCriteria.${i}` }));
+    // The "up to you / up to someone else" split only says something when
+    // there's more than one side to it.
+    const split = CRITERION_GROUPS.filter(({ kind }) => criteria.some(({ c }: Any) => c.kind === kind)).length > 1;
     return (
       <div className="space-y-4 text-[17px] leading-[27px]">
         {CRITERION_GROUPS.map(({ kind, label }) => {
@@ -698,7 +703,7 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
           if (group.length === 0) return null;
           return (
             <div key={kind} className="space-y-1.5">
-              <h3 className="text-[14px] leading-5 text-graphite">{label}</h3>
+              {split && <h3 className="text-[14px] leading-5 text-graphite">{label}</h3>}
               <ul className="space-y-3">
                 {group.map(({ c, path }: Any) => <Criterion key={path} goalId={goalId} path={path} c={c} />)}
               </ul>
@@ -809,16 +814,13 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
                 <Line goalId={goalId} path={`forecasts.${i}`} className={`font-medium ${f.resolved ? '' : 'pencil'}`}>
                   <span>{f.statement}</span>
                 </Line>
-                <Facts
-                  rows={
-                    f.resolved
-                      ? [['You said', `${f.probability}% likely`], ['Outcome', f.outcome === 'yes' ? 'It happened' : f.outcome === 'no' ? 'It didn’t happen' : undefined], ['Your call was', f.verdict]]
-                      : [['How likely', `${f.probability}%`], ['We’ll know from', f.resolvesVia]]
-                  }
-                />
+                {f.resolved && (
+                  <Facts rows={[['You said', `${f.probability}% likely`], ['Outcome', f.outcome === 'yes' ? 'It happened' : f.outcome === 'no' ? 'It didn’t happen' : undefined], ['Your call was', f.verdict]]} />
+                )}
                 {!f.resolved && (
+                  // How likely, when and how it'll be known: one pencilled line.
                   <ItemFooter
-                    when={isLate(f.resolvesBy) ? `was due ${pencilDate(f.resolvesBy)}` : `know ${byDate(f.resolvesBy)}`}
+                    when={[`${f.probability}% likely`, isLate(f.resolvesBy) ? `was due ${pencilDate(f.resolvesBy)}` : `know ${byDate(f.resolvesBy)}${f.resolvesVia ? ` via ${f.resolvesVia}` : ''}`].join(' · ')}
                     late={isLate(f.resolvesBy)}
                     action={due ? { label: 'Did it happen?', starter: `Checking this prediction: "${f.statement}". It ` } : undefined}
                   />

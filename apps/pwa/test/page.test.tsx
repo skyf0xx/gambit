@@ -154,6 +154,19 @@ describe('notebook page markup', () => {
     expect(html).not.toContain('data-box="forecasts.2"');
   });
 
+  it('puts an open forecast\'s odds, date and source on one line', () => {
+    const html = renderSection('forecasts', [{ statement: 'S', probability: 60, resolvesBy: 'next month', resolvesVia: 'calendar', resolved: false }]);
+    expect(html).toContain('60% likely · know next month via calendar');
+    expect(html).not.toContain('How likely');
+  });
+
+  it('labels criteria as up to you / someone else only when both kinds exist', () => {
+    expect(renderSection('successCriteria', [{ text: 'A', kind: 'control' }])).not.toContain('Up to you');
+    const both = renderSection('successCriteria', [{ text: 'A', kind: 'control' }, { text: 'B', kind: 'influence' }]);
+    expect(both).toContain('Up to you');
+    expect(both).toContain('Up to someone else');
+  });
+
   it('gives each row still to do one box, none of them checked', () => {
     const planHtml = renderSection('plan', g.plan);
     // the critical-path step only: the top move is on the index card and

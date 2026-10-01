@@ -26,15 +26,9 @@ export function Section({ goalId, k, data }: { goalId: string; k: SectionKey; da
         k={k}
         after={reviewed && <PencilWord className="text-[22px]">{proseDates(`reviewed ${reviewed}`)}</PencilWord>}
       >
-        {title}
-        {method && (
-          <>
-            <span className="sr-only"> — </span>
-            <span data-note={methodNote}>
-              <PencilWord className="ml-2 text-[22px] font-normal">{method}</PencilWord>
-            </span>
-          </>
-        )}
+        {/* The method behind a section is a hover note on its title, not a
+         * second word beside it. */}
+        <span data-note={method ? methodNote : undefined}>{title}</span>
       </SectionHeading>
       <SectionBody k={k} data={data} goalId={goalId} editable />
     </section>
@@ -56,14 +50,14 @@ export function EmptySection({ k, onTap }: { k: string; onTap?: () => void }) {
   );
 }
 
-/** Renders a list of section keys, each as `Section` or `EmptySection`
- * depending on content — the shared body every non-Moves tab uses. */
+/** Renders a list of section keys — the shared body every non-Moves tab
+ * uses. An empty section isn't shown: a tab only appears once one of its
+ * sections has something in it (tabDefs.ts), and an empty one beside it
+ * would only be a prompt for something nobody asked about. */
 export function SectionList({ goalId, g, keys }: { goalId: string; g: Goal; keys: SectionKey[] }) {
   return (
     <>
-      {keys.map((k) =>
-        isEmptySection(g[k]) ? <EmptySection key={k} k={k} /> : <Section key={k} goalId={goalId} k={k} data={g[k]} />
-      )}
+      {keys.map((k) => (isEmptySection(g[k]) ? null : <Section key={k} goalId={goalId} k={k} data={g[k]} />))}
     </>
   );
 }

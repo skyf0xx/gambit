@@ -27,7 +27,7 @@ const FURNITURE = [
   `Status words are only shown when something's wrong (at risk, blocked, stalled, regressing); on schedule and on track go unsaid on the page.`,
   `Doodles tab: the whole plan drawn as a mind map. Read-only; it changes when plan does.`,
   `Settings tab: goal switcher, model and key, backups, and "History" (the log) folded at the foot.`,
-  `A small pencilled word beside a heading (red team, stakeholders, forecast...) names the method behind it; the user may use it to mean that section.`,
+  `A section with nothing in it isn't shown at all; a tab appears once one of its sections has something.`,
 ];
 
 const keys = [...WRITABLE_KEYS, 'log'];

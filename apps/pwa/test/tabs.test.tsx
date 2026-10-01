@@ -232,6 +232,12 @@ describe('tab content components render the right lines', () => {
     expect(html).toContain('Distribution');
   });
 
+  it('BetsTab leaves out an empty section and the old how-to note', () => {
+    const html = render(<BetsTab g={{ ...g, systemsNotes: null } as Goal} goalId="g1" />);
+    expect(html).not.toContain('Where the leverage is');
+    expect(html).not.toContain('tell the chat what happened');
+  });
+
   it('CapacityTab shows capacity', () => {
     const html = render(<CapacityTab g={g} goalId="g1" />);
     expect(html).toContain('Hours a week');
