@@ -227,7 +227,6 @@ export function DividerTabs({
         .tab-leaf.tab-moves {
           width: 42px;
           height: 124px;
-          font-weight: 600;
         }
         @media (min-width: 768px) {
           .tab-leaf.tab-moves { width: 48px; }
