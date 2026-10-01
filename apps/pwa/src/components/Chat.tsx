@@ -7,10 +7,12 @@ import { useTornEdge } from './marks/torn';
 import { COMPOSE_EVENT } from '../lib/compose';
 import { takePendingSend } from '../lib/onboarding';
 import { Md } from './Md';
+import { ReplyView, Reasoning } from './Reply';
+import type { Reply } from '../lib/tools';
 import { HandMic } from './paper/HandMic';
 import { dictationSupported, useDictation } from '../lib/dictation';
 
-interface Draft { text: string; tools: { id: string; label: string; ok?: boolean }[] }
+interface Draft { text: string; reply?: Reply; tools: { id: string; label: string; ok?: boolean }[] }
 
 const REDUCED_MOTION = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 /** Matches styles.css's .anim-sheet-down duration; 0 under reduced motion. */
@@ -226,6 +228,7 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
     staleErrors.current = { goalId, ids: new Set(chat.display.filter((m) => m.error).map((m) => m.id)) };
   }
   const showsError = (m: { id: string; error?: string }) => !!m.error && !staleErrors.current?.ids.has(m.id);
+  const lastAssistantId = [...display].reverse().find((m) => m.role === 'assistant')?.id;
   const lastUndoable = [...display].reverse().find((m) => m.role === 'assistant' && m.snapshotId);
   const workingSkill = busy ? activeSkillFrom(draft.tools) : null;
   const hasContent = useRef(false);
@@ -402,6 +405,7 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
           setDraft((d) => {
             if (!d) return d;
             if (e.type === 'text') return { ...d, text: e.text };
+            if (e.type === 'reply') return { ...d, reply: e.reply };
             const has = d.tools.some((t) => t.id === e.id);
             return { ...d, tools: has ? d.tools.map((t) => (t.id === e.id ? { ...t, ok: e.ok } : t)) : [...d.tools, { id: e.id, label: e.label, ok: e.ok }] };
           }),
@@ -533,9 +537,19 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
           </p>
         ) : (
           <div key={m.id} className="anim-rise mt-8 space-y-2">
-            {m.text && <Md text={m.text} />}
-            {(m.tools?.length ?? 0) > 0 && (
-              <p className="hand text-[16px]">{m.tools!.map((t) => t.label).join(' · ')}</p>
+            {m.reply ? (
+              <>
+                <ReplyView reply={m.reply} onPick={m.id === lastAssistantId && !busy ? (o) => void send(o) : undefined} />
+                <Reasoning text={m.text} tools={(m.tools ?? []).map((t) => t.label)} />
+              </>
+            ) : (
+              // No reply call (a model that skipped it): the text is the answer.
+              <>
+                {m.text && <Md text={m.text} />}
+                {(m.tools?.length ?? 0) > 0 && (
+                  <p className="hand text-[16px]">{m.tools!.map((t) => t.label).join(' · ')}</p>
+                )}
+              </>
             )}
             {(m.summary?.length ?? 0) > 0 && (
               <p className="hand anim-write mt-6 flex flex-wrap items-center gap-2 text-[16px]">
@@ -564,8 +578,8 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
       )}
       {draft && (
         <div className="anim-rise mt-8 space-y-2">
-          {draft.text ? <Md text={draft.text} /> : !workingSkill && <p className="hand anim-pulse text-[16px]">{display.length <= 1 ? 'reading what you wrote…' : 'thinking…'}</p>}
-          {draft.tools.length > 0 && <p className="hand text-[16px]">{draft.tools.map((t) => t.label).join(' · ')}</p>}
+          {draft.reply ? <ReplyView reply={draft.reply} /> : !workingSkill && <p className="hand anim-pulse text-[16px]">{display.length <= 1 ? 'reading what you wrote…' : 'thinking…'}</p>}
+          <Reasoning text={draft.text} tools={draft.tools.map((t) => t.label)} />
         </div>
       )}
       {error && (

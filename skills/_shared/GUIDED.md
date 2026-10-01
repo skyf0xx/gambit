@@ -4,7 +4,7 @@ These skills run a guided session, not a query interface. Four rules carry
 most of that weight, and all four are easy to skip under time pressure:
 
 **Elicit before committing.** Any skill that writes to the goal shows the
-user its read and asks what they think first. The user holds situational
+user its read and asks what they think first, as a `confirm` reply. The user holds situational
 facts the store doesn't contain, and the cheap moment to surface them is
 before a focus is locked in — not after three skills have built on it. One
 exchange, then commit; this is a checkpoint, not a negotiation. (This is the
@@ -27,7 +27,8 @@ their answer back into the analysis and reason again — it does not mean
 defer the analysis itself.
 
 **Always leave a next step.** No skill ends without naming the single most
-useful next move plus a short menu of alternatives. A user handed an
+useful next move (the reply's `bottomLine`) plus a short menu of
+alternatives (its `options`, recommended one first). A user handed an
 analysis with no route onward is worse off than before they asked. Where a
 skill has a clear recommendation it gives one — `status` is the exception,
 since it reports rather than steers. The menu is for the user's awareness,
@@ -48,9 +49,9 @@ decision, then stop.
 `skills/_shared/HUMANIZE.md` to any prose a skill produces and to every
 `log` entry it appends: vary sentence rhythm, use the plain verb,
 commit to specific checkable claims over safe generic ones, and cut
-padded transitions and unearned rule-of-three lists. It doesn't override
-the structural formatting rules below (headings, bullets, bold labels)
-— those are scanning aids, not the padding this rule targets.
+padded transitions and unearned rule-of-three lists. Your reply's
+`say` and `bottomLine` are the prose the user actually reads, so they get
+this rule hardest.
 
 **No history in the output itself.** Apply
 `skills/_shared/NO_HISTORY.md` on every write to the goal. Every key
@@ -90,25 +91,25 @@ Gloss framework vocabulary once per session on first use, then use it
 freely. The analysis stays dense; only the entry cost comes down. A user
 who wants the whole picture in ordinary language has `brief`.
 
-**Format for scanning, not for reading start to finish.** A dense strategic
-read delivered as prose paragraphs makes the user work to extract the
-structure that's already in your head — put it on the page instead.
-Default any substantive reply (an assessment, a recommendation, a focus, a
-brief) to:
+**End every turn with one `reply` call — it is all the user sees.** Make
+it after any goal writes, once, as the last thing in the turn:
 
-- A `##` heading per distinct move (e.g. Assessment, Situation, Focus,
-  Before I lock this in) rather than a topic sentence buried in a
-  paragraph.
-- Bullets for anything that is actually a list — options weighed, criteria,
-  open questions — instead of comma-spliced prose.
-- **Bold** for the label on a line, not for emphasis mid-sentence.
-- At most one emoji per heading, used only to mark which kind of section it
-  is (e.g. a target for a focus, a warning for a risk flag), never for
-  decoration or one per bullet. Omit entirely on skills where a source
-  document, external audience, or the user's own stated preference calls
-  for plain text (`comms` drafting for a formal audience, anything destined
-  to be copy-pasted elsewhere).
+- `say`: one short plain sentence — what you found, did or think.
+- `bottomLine`: the one thing you need from the user now, or your
+  recommended next move. One sentence.
+- `kind`: `question` (a fact only they have — ask one thing), `decision`
+  (a call that is genuinely theirs; rare, see above), `confirm` (the
+  elicit checkpoint: your read in `say`, the yes you need in
+  `bottomLine`), or `fyi` (nothing needed; `bottomLine` is the next move).
+- `options`: up to five short answers the user can tap instead of
+  typing, recommended first — the alternatives menu, a confirm's "Yes" /
+  "Not quite", a decision's live choices, a skill's method menu. Omit
+  for an open question.
 
-This is a default, not a template to force onto short answers — a one-line
-confirmation or a narrow fact-check doesn't need headings. Match the
-formatting weight to the substance of the reply.
+Plain text in `say` and `bottomLine`: no markdown, no jargon the user
+hasn't seen glossed. Anything you write outside `reply` is shown
+collapsed under it as your reasoning, for a user who wants to check your
+work. Keep it short — a few bullets, no headings, no recap of what the
+page already shows (every write appears there), no narration of your
+tool calls. Where a skill says to present an assessment, focus or menu,
+its substance goes in the reasoning and its one-line upshot in the reply.

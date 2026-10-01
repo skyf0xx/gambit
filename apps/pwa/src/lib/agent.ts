@@ -1,18 +1,19 @@
-import { streamText, stepCountIs, type ModelMessage, type ToolSet } from 'ai';
+import { streamText, stepCountIs, type ModelMessage, type StopCondition, type ToolSet } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { summarizeChange } from '@gambit/core';
 import { db, type ChatRecord, type DisplayMsg } from './db';
 import { loadApiKey } from './crypto';
 import { getProvider, makeModel, GOOGLE_FALLBACK_MODEL, type ProviderKind } from './providers';
 import { PREAMBLE, getSkillStore, skillIndexText, skillText } from './skills';
-import { makeTools, goalStateJson, toolLabel } from './tools';
+import { makeTools, goalStateJson, toolLabel, type Reply } from './tools';
 import { readRecord, restoreSnapshot, snapshot } from './goals';
 import { changedKeys, changedLines } from './changes';
 import { session } from './session';
 
 export type AgentEvent =
   | { type: 'text'; text: string }
-  | { type: 'tool'; id: string; label: string; ok?: boolean };
+  | { type: 'tool'; id: string; label: string; ok?: boolean }
+  | { type: 'reply'; reply: Reply };
 
 /** Context sent to the model per turn: about 60k characters of message
  * content, oldest whole turns dropped first. */
@@ -25,6 +26,12 @@ export const CHAT_TURNS = 12;
 const STUBBED = new Set(['load_skill', 'read_skill_file', 'get_goal']);
 const CACHE = { anthropic: { cacheControl: { type: 'ephemeral' as const } } };
 const uid = () => Math.random().toString(36).slice(2, 10);
+
+/** Stop once a reply call has gone through. Not the SDK's hasToolCall,
+ * which also stops on a reply that failed validation, leaving the model no
+ * step to fix it in. Typed like hasToolCall, so it fits any tool set. */
+export const replied: StopCondition<any> = ({ steps }) =>
+  steps.at(-1)?.toolResults.some((r) => r.toolName === 'reply') ?? false;
 
 /**
  * Newest messages within a character budget, dropping the oldest whole
@@ -140,6 +147,7 @@ export async function runTurn(opts: {
   };
 
   let out = '';
+  let reply: Reply | undefined;
   const entries: NonNullable<DisplayMsg['tools']> = [];
   const labels = new Map<string, string>();
   let error: string | undefined;
@@ -160,14 +168,20 @@ export async function runTurn(opts: {
         model: m,
         messages: [...system, ...history, userMsg],
         tools: tools as ToolSet,
-        stopWhen: stepCountIs(12),
+        // The reply call is the turn's last word: stop as soon as one lands.
+        stopWhen: [stepCountIs(12), replied],
         abortSignal: signal,
         maxRetries: 1,
       });
       for await (const part of result.fullStream) {
         if (part.type === 'start-step' && out) out += '\n\n';
         else if (part.type === 'text-delta') { out += part.text; onEvent({ type: 'text', text: out }); }
-        else if (part.type === 'tool-call') {
+        else if (part.type === 'tool-call' && part.toolName === 'reply') {
+          // An invalid reply goes back to the model as an error, and it retries.
+          if (!part.invalid) { reply = part.input as Reply; onEvent({ type: 'reply', reply }); }
+        } else if (part.type === 'tool-result' && part.toolName === 'reply') {
+          continue;
+        } else if (part.type === 'tool-call') {
           const label = toolLabel(part.toolName, part.input);
           labels.set(part.toolCallId, label);
           onEvent({ type: 'tool', id: part.toolCallId, label });
@@ -190,7 +204,7 @@ export async function runTurn(opts: {
     if (!raw) { error = undefined; break; }
     error = signal.aborted ? 'Cancelled.' : errorText(raw, prov.kind);
     const busy = (raw as { statusCode?: number })?.statusCode === 503;
-    if (!busy || signal.aborted || out || entries.length || i === models.length - 1) break;
+    if (!busy || signal.aborted || out || reply || entries.length || i === models.length - 1) break;
   }
 
   if (error) {
@@ -207,7 +221,7 @@ export async function runTurn(opts: {
   fresh.activeSkill = activeSkill;
   const display: DisplayMsg[] = [
     ...fresh.display,
-    { id: displayId, role: 'assistant', text: out, tools: entries, summary, snapshotId: summary.length || error ? snapshotId : undefined, error },
+    { id: displayId, role: 'assistant', text: out, reply, tools: entries, summary, snapshotId: summary.length || error ? snapshotId : undefined, error },
   ];
   fresh.display = keepLastTurns(display);
   if (fresh.display.length < display.length) fresh.trimmed = true;

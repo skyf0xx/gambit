@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie';
 import type { ModelMessage } from 'ai';
+import type { Reply } from './tools';
 
 export interface GoalRecord {
   id: string;
@@ -19,7 +20,10 @@ export interface SnapshotRecord {
 export interface DisplayMsg {
   id: string;
   role: 'user' | 'assistant';
+  /** The model's own text outside the reply tool: its reasoning, shown
+   * collapsed — or the whole answer when it never called reply. */
   text: string;
+  reply?: Reply;
   tools?: { name: string; label: string; ok: boolean }[];
   summary?: string[];
   snapshotId?: number;

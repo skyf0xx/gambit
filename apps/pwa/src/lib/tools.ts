@@ -28,8 +28,26 @@ export async function goalStateJson(goalId: string): Promise<string> {
   return JSON.stringify({ ...rest, log: log.slice(-5), logCount: log.length });
 }
 
+/** The one shape every turn ends in: what the user sees. Anything the
+ * model writes outside this call is its reasoning, kept collapsed under
+ * the reply (Chat.tsx). Caps are tight on purpose — a reply that runs long
+ * fails validation and the model rewrites it. */
+export const REPLY_KINDS = ['question', 'decision', 'confirm', 'fyi'] as const;
+export const replySchema = z.object({
+  say: z.string().min(1).max(160).describe('One short plain sentence: what you found or did. No headings, no lists.'),
+  bottomLine: z.string().min(1).max(120).describe('What you need from the user now, or your one recommended next move. One sentence, with no label in front (the page adds one).'),
+  kind: z.enum(REPLY_KINDS).describe('question: you need a fact only they have. decision: they must make a call. confirm: you want a yes before writing. fyi: nothing needed, here is the next move.'),
+  options: z.array(z.string().min(1).max(40)).max(5).optional().describe('Up to 5 short answers the user can tap instead of typing, recommended one first. Omit for an open question.'),
+});
+export type Reply = z.infer<typeof replySchema>;
+
 export function makeTools(ctx: ToolContext) {
   return {
+    reply: tool({
+      description: 'End every turn with exactly one call to this, after any goal writes. It is the only part of your turn the user sees by default; text you write outside it is shown collapsed as your reasoning.',
+      inputSchema: replySchema,
+      execute: async () => ({ ok: true }),
+    }),
     load_skill: tool({
       description: 'Load the full text of a Gambit skill by name (see the skill index). The skill stays active for the rest of its session.',
       inputSchema: z.object({ name: z.string() }),
