@@ -26,13 +26,6 @@ html, body { height: auto; }
   color: var(--ink);
   text-decoration: none;
 }
-.masthead-cta {
-  font-size: 15px;
-  color: var(--ink);
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  text-decoration-color: var(--graphite);
-}
 
 /* Buttons and links */
 .ink-button {
@@ -238,18 +231,6 @@ html, body { height: auto; }
   color: var(--ink);
 }
 
-/* Colophon */
-.colophon {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding-block: 28px 40px;
-  border-top: 1px solid var(--rule);
-  font-size: 14px;
-  color: var(--graphite);
-}
-.colophon a { color: var(--graphite); text-underline-offset: 3px; }
-
 /* Arrival motion */
 @keyframes land-write {
   from { clip-path: inset(0 100% 0 0); transform: translateY(6px); }
@@ -289,6 +270,5 @@ html, body { height: auto; }
   .spread.flip .spread-text { order: 0; }
   .sheet { width: min(400px, 92%); }
   .tape { width: 72px; height: 22px; top: -10px; }
-  .colophon { flex-direction: column; }
   .uses-list > div { grid-template-columns: 1fr; }
 }

@@ -70,8 +70,8 @@ function ogPlugin(): Plugin {
   return {
     name: 'gambit-og',
     transformIndexHtml: (_html, ctx) => {
-      // landing.html is served at /landing (vercel.json rewrite).
-      const page = `${siteUrl}/${ctx.path.endsWith('landing.html') ? 'landing' : ''}`;
+      // app.html is served at /app (vercel.json rewrite); index.html is the landing page.
+      const page = `${siteUrl}/${ctx.path.endsWith('app.html') ? 'app' : ''}`;
       return [
         { tag: 'meta', attrs: { property: 'og:image', content: `${siteUrl}/og-image.jpg` }, injectTo: 'head' },
         { tag: 'meta', attrs: { name: 'twitter:image', content: `${siteUrl}/og-image.jpg` }, injectTo: 'head' },
@@ -98,14 +98,14 @@ export default defineConfig({
         theme_color: '#F8F5EE',
         background_color: '#F8F5EE',
         display: 'standalone',
-        start_url: '/',
+        start_url: '/app',
         icons: [
           { src: 'android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
         ],
       },
-      // /landing is its own page, so the app shell mustn't answer for it.
-      workbox: { navigateFallback: '/index.html', navigateFallbackDenylist: [/^\/landing/], globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2}'] },
+      // The app shell answers only for /app; / is the landing page.
+      workbox: { navigateFallback: '/app.html', navigateFallbackAllowlist: [/^\/app/], globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2}'] },
     }),
   ],
   define: {
@@ -117,7 +117,7 @@ export default defineConfig({
   // font would be blocked at runtime. 8KB default -> 0 disables inlining.
   build: {
     assetsInlineLimit: 0,
-    rollupOptions: { input: { main: resolve(__dirname, 'index.html'), landing: resolve(__dirname, 'landing.html') } },
+    rollupOptions: { input: { landing: resolve(__dirname, 'index.html'), app: resolve(__dirname, 'app.html') } },
   },
   server: { fs: { allow: [root] } },
   test: { environment: 'node', include: ['test/**/*.test.{ts,tsx}'] },

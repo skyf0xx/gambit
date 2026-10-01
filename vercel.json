@@ -3,7 +3,8 @@
   "buildCommand": "npm run build",
   "outputDirectory": "apps/pwa/dist",
   "framework": null,
-  "rewrites": [{ "source": "/landing", "destination": "/landing.html" }],
+  "rewrites": [{ "source": "/app", "destination": "/app.html" }],
+  "redirects": [{ "source": "/landing", "destination": "/", "permanent": false }],
   "headers": [
     {
       "source": "/(.*)",
@@ -30,6 +31,14 @@
     },
     {
       "source": "/(index.html)?",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+    },
+    {
+      "source": "/app(.html)?",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+    },
+    {
+      "source": "/returning.js",
       "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
     },
     {

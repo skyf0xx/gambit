@@ -117,6 +117,11 @@ export default function App() {
     const needed = !p || !(p.kind in PROVIDERS) || !(await hasApiKey(p.kind));
     return { needed, hasGoals: (await db.goals.count()) > 0 };
   }, []);
+  // Marks this browser as a returning user, so the landing page at / sends
+  // it straight here (public/returning.js).
+  useEffect(() => {
+    if (setup && !setup.needed) try { localStorage.setItem('gambit:returning', '1'); } catch { /* the landing page shows instead */ }
+  }, [setup]);
   if (!ready || setup === undefined) return null;
   return (
     <>
