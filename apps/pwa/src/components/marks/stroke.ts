@@ -214,6 +214,24 @@ export function tickPoints(box: Box): Point[] {
   return pts;
 }
 
+/** The ink cross drawn in a bare box slot for something that settled the
+ * other way (a forecast that didn't happen): two strokes, each its own
+ * point run. */
+export function crossPoints(box: Box): Point[][] {
+  const arms: [[number, number], [number, number]][] = [
+    [[box.l + 2, box.t + 2], [box.r - 1, box.b - 1]],
+    [[box.r - 2, box.t + 1], [box.l + 1, box.b - 2]],
+  ];
+  return arms.map(([a, z]) => {
+    const pts: Point[] = [];
+    for (let k = 0; k <= 10; k++) {
+      const t = k / 10;
+      pts.push([a[0] + (z[0] - a[0]) * t, a[1] + (z[1] - a[1]) * t, 0.75 - t * 0.35]);
+    }
+    return pts;
+  });
+}
+
 /** Out through the margin and back — the two curve segments plus arrowhead. */
 export function arrowPoints(marginX: number, from: Box, to: Box, seed: number) {
   const s: [number, number] = [from.l - 12, from.t + from.h / 2];

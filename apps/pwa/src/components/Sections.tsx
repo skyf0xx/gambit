@@ -181,15 +181,16 @@ function Criterion({ goalId, path, c }: { goalId: string; path: string; c: Any }
 /** The leading marker on anything that settles on its own rather than by
  * the user's hand — a success criterion, progress line, decision, experiment
  * or forecast: an open pencil ring while still open, an ink tick once
- * settled. Never a box, so nothing looks tickable that isn't. The tick is a
+ * settled — or an ink cross when `crossed` (a forecast that didn't happen).
+ * Never a box, so nothing looks tickable that isn't. The tick or cross is a
  * bare box slot the marks layer draws on `path`. */
-function Marker({ path, open }: { path: string; open: boolean }) {
+function Marker({ path, open, crossed }: { path: string; open: boolean; crossed?: boolean }) {
   return open ? (
     <span className="flex h-[27px] w-[18px] shrink-0 items-center justify-center" aria-hidden="true">
       <span className="h-[9px] w-[9px] rounded-full border-[1.5px] border-graphite" />
     </span>
   ) : (
-    <span className="box mt-[4.5px] shrink-0" data-box={path} data-bare="" data-checked="" aria-hidden="true" />
+    <span className="box mt-[4.5px] shrink-0" data-box={path} data-bare="" data-checked="" data-crossed={crossed ? '' : undefined} aria-hidden="true" />
   );
 }
 
@@ -701,7 +702,7 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
           const due = !f.resolved && isDue(f.resolvesBy);
           return (
             <li key={i} className="flex items-start gap-2.5">
-              <Marker path={`forecasts.${i}`} open={!f.resolved} />
+              <Marker path={`forecasts.${i}`} open={!f.resolved} crossed={f.outcome === 'no'} />
               <div className="min-w-0 flex-1">
                 <Line goalId={goalId} path={`forecasts.${i}`} className={`font-medium ${f.resolved ? '' : 'pencil'}`}>
                   <span>{f.statement}</span>

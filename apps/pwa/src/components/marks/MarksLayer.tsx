@@ -11,6 +11,7 @@ import {
   starPoints,
   strokePath,
   tickPoints,
+  crossPoints,
   unionBox,
   type Box,
   type Point,
@@ -242,6 +243,17 @@ export function MarksLayer() {
       if (isNew && !reduced) drawIn(p, pts, 180, 0, 12);
     }
 
+    // A cross is a tick's counterpart for a slot that settled the other way;
+    // it shares the tick set so it draws in only when it first appears.
+    function drawCross(path: LinePath, target: Box) {
+      const isNew = prevTicksRef.current ? !prevTicksRef.current.has(path) : false;
+      nextTicks.add(path);
+      crossPoints(target).forEach((pts, j) => {
+        const p = drawStroke(pts, over!, { color: ink, size: 2.4, thinning: 0.6, grain: false });
+        if (isNew && !reduced) drawIn(p, pts, 140, j * 140, 10);
+      });
+    }
+
     // Checkboxes: every [data-box] on the page gets its hand-drawn outline
     // whether or not it's ticked, so an unticked box is visible at rest and
     // not only a blank tap area. The tick comes from the box's own
@@ -249,7 +261,8 @@ export function MarksLayer() {
     // its tick even while an event mark (the loop) holds that line's one
     // mark slot. A `data-bare` box is a tick-only slot: it takes the tick
     // without the outline, for a line that can be done but isn't the
-    // user's to tick (a success criterion).
+    // user's to tick (a success criterion). `data-crossed` takes a cross
+    // in place of the tick, for one that settled the other way.
     const boxed = new Set<LinePath>();
     host.querySelectorAll<HTMLElement>('[data-box]').forEach((boxEl) => {
       const r = boxEl.getBoundingClientRect();
@@ -262,7 +275,8 @@ export function MarksLayer() {
           drawStroke(side, over, { size: 1.5, thinning: 0.45, taper: false, grain: false, opacity: 0.85 });
         }
       }
-      if (boxEl.dataset.checked !== undefined) drawTick(path, target);
+      if (boxEl.dataset.crossed !== undefined) drawCross(path, target);
+      else if (boxEl.dataset.checked !== undefined) drawTick(path, target);
     });
 
     for (const { path, mark, lines, el } of placed) {

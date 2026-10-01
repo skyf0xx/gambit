@@ -114,6 +114,15 @@ describe('notebook page markup', () => {
     expect((met.match(/data-box/g) ?? []).length).toBe((met.match(/data-bare/g) ?? []).length);
   });
 
+  it('crosses a forecast that didn\'t happen and ticks one that did', () => {
+    const f = { statement: 'It ships', probability: 70, resolvesBy: '2026-01-01', resolvesVia: 'launch', resolved: true };
+    const html = renderSection('forecasts', [{ ...f, outcome: 'no' }, { ...f, outcome: 'yes' }, { ...f, resolved: false }]);
+    expect(html).toContain('data-box="forecasts.0"');
+    expect(html.match(/data-crossed/g) ?? []).toHaveLength(1);
+    expect(html).toMatch(/data-box="forecasts\.0"[^>]*data-crossed/);
+    expect(html).not.toContain('data-box="forecasts.2"');
+  });
+
   it('gives every next action and step one box, not only criteria', () => {
     const planHtml = renderSection('plan', g.plan);
     // one box per Toggle tap-area, for each of: the critical-path step and
