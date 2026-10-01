@@ -22,7 +22,7 @@ const UNTITLED: Record<string, string | null> = {
 const FURNITURE = [
   `Moves tab, "Your top move" (the index card): the first nextActions entry with status pending on the line with focus: true, else the first pending one in plan order. Ticking its box sets it done.`,
   `Moves tab, "Gambit suggests" (a sticky note): a nextActions entry with status proposed. "Keep it" sets pending, "Toss" sets dropped.`,
-  `"All moves" is the whole plan: each line of operation shows its criticalPath steps, then its nextActions. The top move isn't repeated there, and done items fold into an "n done" line. The user may call either one "moves", "steps" or "to-dos".`,
+  `"All moves" is the whole plan: a row of handwritten line-of-operation names (a "!" marks one at risk or blocked); the selected one, circled, shows its criticalPath steps, then its nextActions. The top move isn't repeated there, and done items fold into an "n done" line. The user may call either one "moves", "steps" or "to-dos".`,
   `Goal tab, "What done looks like": each successCriteria line carries its criteriaStatus score — an open ring, a tick once met, or the word at risk / stalled / regressing. The separate "Progress" list only holds a score whose text matches no criterion.`,
   `Status words are only shown when something's wrong (at risk, blocked, stalled, regressing); on schedule and on track go unsaid on the page.`,
   `Doodles tab: the whole plan drawn as a mind map. Read-only; it changes when plan does.`,

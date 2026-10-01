@@ -9,6 +9,7 @@ import { undoTurn } from '../lib/agent';
 import type { Goal } from '../lib/types';
 import { nextMove, isSelf } from '../lib/slips';
 import { TextAction, PencilWord } from './ui';
+import { PencilLoop } from './paper/PencilLoop';
 import { pencilDate, byDate, withProseDates, daysUntil } from '../lib/dates';
 import { composeInChat } from '../lib/compose';
 
@@ -392,19 +393,20 @@ function ProgressMarks({ done, total }: { done: number; total: number }) {
   );
 }
 
-/** The plan as a fixed list of its lines of operation, in plan order. One
- * line is open at a time, its moves right under its row; every other line
- * is a single row — name, an alarm word if one applies, and progress as
- * ticks and rings. Tapping a row opens it in place (closing the other), or
- * closes it if it's the open one. Rows never move, so the plan reads the
- * same way every time. */
+/** The plan, one line of operation at a time. The lines sit in a strip of
+ * pencilled names across the top, in plan order, scrolling sideways when
+ * they don't fit; the selected one is looped in pencil, and one that's at
+ * risk or blocked carries a pencilled "!" so trouble elsewhere still shows.
+ * Under the strip: the selected line's status and progress, then its
+ * moves — always in the same place, so switching lines never moves the
+ * page. */
 function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; editable: boolean }) {
   const { dropped, turn } = useSession();
   const marks = useMarksContext();
   const goto = useGoto();
   const gotoLine = planLineIndex(goto?.path);
-  // The line the user opened by hand: an index, -1 for "all closed", or
-  // null when nothing has been picked yet and the default applies.
+  // The line the user picked, or null when nothing has been picked yet and
+  // the default applies.
   const [picked, setPicked] = useState<number | null>(gotoLine);
 
   // A goto into a closed line opens it — adjusted during render, not in an
@@ -423,6 +425,21 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
   const [showDone, setShowDone] = useState(false);
   const onTick = (path: string) => setJustDone((s) => new Set(s).add(path));
 
+  // The strip fades out at the right edge while there's more to scroll to.
+  const stripRef = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState(false);
+  const measure = () => {
+    const el = stripRef.current;
+    if (el) setMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+  };
+  useEffect(() => {
+    measure();
+    if (typeof ResizeObserver === 'undefined' || !stripRef.current) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(stripRef.current);
+    return () => ro.disconnect();
+  }, [lines.length]);
+
   let focusLine: number | null = null;
   for (const kind of ['highlight', 'star']) {
     if (focusLine != null) break;
@@ -430,7 +447,22 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
       if (focusLine == null && mark.kind === kind) focusLine = planLineIndex(path);
     });
   }
-  const open = picked === -1 ? null : picked != null && picked < lines.length ? picked : defaultOpenLine(lines, focusLine);
+  const open = picked != null && picked < lines.length ? picked : defaultOpenLine(lines, focusLine);
+  // Keep the selected pill in view — on a tap, a goto, or the default.
+  useEffect(() => {
+    const strip = stripRef.current;
+    const pill = strip?.querySelector<HTMLElement>(`[data-plan-sheet="${open}"]`);
+    if (!strip || !pill) return;
+    const p = pill.getBoundingClientRect();
+    const st = strip.getBoundingClientRect();
+    let to: number | null = null;
+    if (p.right > st.right) to = strip.scrollLeft + p.right - st.right + 24;
+    else if (p.left < st.left) to = strip.scrollLeft + p.left - st.left - 16;
+    if (to == null) return;
+    // Near either end, go all the way, so no sliver is left to scroll.
+    const max = strip.scrollWidth - strip.clientWidth;
+    strip.scrollTo({ left: to > max - 40 ? max : to < 40 ? 0 : to, behavior: 'smooth' });
+  }, [open]);
   const changedLine = turn?.goalId === goalId ? planLineIndex(turn.lines[0]?.path) : null;
   // The top move is already on the index card above; the list doesn't
   // repeat it.
@@ -494,34 +526,56 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     );
   }
 
+  const flag = alarm(lines[open].status);
   return (
-    <ul className="border-t border-graphite/25">
-      {lines.map((line, li) => {
-        const isOpen = li === open;
-        const flag = alarm(line.status);
-        const changed = changedLine === li && !isOpen;
-        return (
-          <li key={li} className="border-b border-graphite/25">
+    <div className="space-y-2">
+      <div
+        ref={stripRef}
+        role="tablist"
+        aria-label="Lines of the plan"
+        onScroll={measure}
+        className="-mx-2 flex gap-1 overflow-x-auto px-2 py-1.5"
+        style={{
+          scrollbarWidth: 'none',
+          maskImage: more ? 'linear-gradient(to right, black calc(100% - 40px), transparent)' : undefined,
+          WebkitMaskImage: more ? 'linear-gradient(to right, black calc(100% - 40px), transparent)' : undefined,
+        }}
+      >
+        {lines.map((line, li) => {
+          const selected = li === open;
+          const trouble = alarm(line.status);
+          const changed = changedLine === li && !selected;
+          return (
             <button
+              key={li}
               type="button"
+              role="tab"
+              aria-selected={selected}
               data-plan-sheet={li}
-              aria-expanded={isOpen}
-              onClick={() => { setShowDone(false); setPicked(isOpen ? -1 : li); }}
-              className="anim-press flex min-h-[48px] w-full items-center justify-between gap-3 py-2 text-left"
+              onClick={() => { setShowDone(false); setPicked(li); }}
+              className="anim-press relative flex min-h-[44px] shrink-0 items-center whitespace-nowrap px-3"
             >
-              <span className={`min-w-0 flex-1 text-ink ${isOpen ? 'text-[19px] font-semibold leading-[26px]' : 'truncate font-medium'}`}>{line.label}</span>
-              <span className="flex shrink-0 items-center gap-2">
-                {flag && <PencilWord className="text-[17px]">{flag}</PencilWord>}
-                <ProgressMarks {...lineProgress(line)} />
-                {changed && <span aria-hidden="true" className="pencil h-1.5 w-1.5 rounded-[50%] bg-graphite" />}
-                {changed && <span className="sr-only"> (changed)</span>}
-              </span>
+              <span className={`hand text-[21px] leading-7 ${selected ? 'text-ink' : 'text-graphite'}`}>{line.label}</span>
+              {trouble && <span className="hand ml-0.5 text-[21px] leading-7 text-ink" aria-hidden="true">!</span>}
+              {trouble && <span className="sr-only">{` (${trouble})`}</span>}
+              {changed && <span aria-hidden="true" className="pencil ml-1 h-1.5 w-1.5 rounded-[50%] bg-graphite" />}
+              {changed && <span className="sr-only"> (changed)</span>}
+              {selected && <PencilLoop seed={`plan-pill:${li}`} />}
             </button>
-            {isOpen && <div key={li} className="anim-rise space-y-2 pb-4">{body(li)}</div>}
-          </li>
-        );
-      })}
-    </ul>
+          );
+        })}
+        {/* Room past the last pill for its loop, since a scroller's own end
+         * padding isn't reliably scrollable. */}
+        <span aria-hidden="true" className="w-4 shrink-0" />
+      </div>
+      <div key={open} role="tabpanel" aria-label={lines[open].label} className="anim-rise space-y-2">
+        <div className="flex min-h-[24px] items-center gap-2.5">
+          {flag && <PencilWord className="text-[18px]">{flag}</PencilWord>}
+          <ProgressMarks {...lineProgress(lines[open])} />
+        </div>
+        {body(open)}
+      </div>
+    </div>
   );
 }
 
