@@ -274,9 +274,6 @@ function GoalStep({ draft, onDraft, onNext }: { draft: string; onDraft: (v: stri
         <h1 className="ink-bleed font-serif text-[30px] leading-[38px] font-medium text-balance text-ink">
           <label htmlFor="first-goal">What are you trying to make happen?</label>
         </h1>
-        <p className="mt-5 text-[17px] leading-[27px] text-graphite">
-          <strong className="font-semibold text-ink">Gambit is a strategist</strong> that helps you think it through, make better decisions, and get things done.
-        </p>
         <textarea
           id="first-goal"
           ref={ref}
