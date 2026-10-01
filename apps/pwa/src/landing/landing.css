@@ -373,7 +373,17 @@ html, body { height: auto; }
   .sheet { width: min(400px, 92%); }
   .tape { width: 72px; height: 22px; top: -10px; }
   .uses-list > div { grid-template-columns: 1fr; }
-  .beat-pair { grid-template-columns: 1fr; gap: 40px; }
+  /* Each baker's move sits above his own photo: the line and the pair
+     dissolve into one column, reordered Gaston first. */
+  .beat { display: flex; flex-direction: column; align-items: center; }
+  .beat-line, .beat-pair { display: contents; }
+  .move-g, .move-m { display: block; max-width: 20em; margin-bottom: 20px; }
+  .beat-title { order: 0; }
+  .move-g { order: 1; }
+  .beat-quote { order: 2; margin-top: 0; margin-bottom: 24px; }
+  .beat-pair .sheet:first-child { order: 3; }
+  .move-m { order: 4; margin-top: 48px; }
+  .beat-pair .sheet:last-child { order: 5; }
   .beat-pair .sheet { width: min(400px, 92%); }
   .levers-table, .levers-table tbody, .levers-table caption { display: block; }
   .levers-table thead { display: none; }
