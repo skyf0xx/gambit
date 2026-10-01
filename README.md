@@ -10,7 +10,7 @@ Starting a business, organizing a campaign, **changing your life**.
 
 Trying to **make something happen**.
 
-**Gambit is a strategist** that helps you think it through, **make better decisions, and get it done.**
+**Gambit is a strategist** that helps you think it through, **make better decisions, and get things done.**
 
 Figure out:
 
