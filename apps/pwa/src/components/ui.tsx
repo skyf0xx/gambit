@@ -19,11 +19,11 @@ export function motionMs(name: 'peel' | 'card-out' | 'sheet-down'): number {
   return { peel: 220, 'card-out': 180, 'sheet-down': 200 }[name];
 }
 
-/** A plain typed-word action. Pencil-circled on hover/focus by the marks layer via `data-circle`. */
-export function TextAction({ className = '', ...p }: ButtonHTMLAttributes<HTMLButtonElement>) {
+/** A plain typed-word action. Pencil-circled on hover/focus by the marks layer via `data-circle`, unless `circle` is false. */
+export function TextAction({ className = '', circle = true, ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { circle?: boolean }) {
   return (
     <button
-      data-circle
+      data-circle={circle ? '' : undefined}
       {...p}
       className={`anim-press ${tapTarget} bg-transparent p-0 font-sans text-[17px] text-ink underline-offset-[3px] disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
     />

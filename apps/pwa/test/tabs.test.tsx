@@ -198,8 +198,8 @@ describe('tab content components render the right lines', () => {
     (globalThis as { window?: unknown }).window = {};
     try {
       const html = render(<InsideCoverTab goalId="g1" goals={[]} />);
-      expect(html).toContain('Notebooks');
-      expect(html).toContain('Model');
+      expect(html).toContain('Goals');
+      expect(html).toContain('AI model');
       expect(html).toContain('Backup');
       expect(html).toContain('Chat');
       expect(html).toContain('New goal');

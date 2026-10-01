@@ -15,56 +15,46 @@ import { ProviderForm } from './Setup';
 import { CostPanel } from './CostPanel';
 import type { GoalRecord } from '../lib/db';
 
-// The Inside cover page: plain page sections, no containers around ordinary
-// text (brand/identity.md §05). Ordered by how often each is reached for:
-// notebooks, model, chat, backup, theme, danger zone, then the maker's mark.
+// The Inside cover page: plain page sections split by a light rule, no
+// containers around ordinary text (brand/identity.md §05).
 //
-// Each section shows one line of current state and a short action; detail
-// and forms sit one tap behind it. Pencil marks only what needs attention
-// (a backup that's stale, notebooks the browser could clear), so a page
-// with nothing wrong reads quietly.
+// Every setting is one Row: what it is, its current value under that, and
+// one action at the right. Forms and detail open below the row that owns
+// them. Pencil marks only a value that needs attention (no key, never
+// backed up), and actions here skip the hover circle, so a page with
+// nothing wrong reads quietly.
 
-const PageSection = ({ title, children }: { title: string; children: ReactNode }) => (
-  <section className="space-y-4 border-t border-rule pt-8 first:border-t-0 first:pt-0">
-    <h2 className="font-sans text-[20px] font-semibold leading-7">{title}</h2>
+const Section = ({ title, children }: { title: string; children: ReactNode }) => (
+  <section className="space-y-2 border-t border-rule pt-6 first:border-t-0 first:pt-0">
+    <h2 className="pb-1 font-sans text-[20px] font-semibold leading-7">{title}</h2>
     {children}
   </section>
 );
 
-/** A labelled group inside a section. `note` is its current state, at the
- * end of the label's line; pencilled only when it needs attention. */
-const Group = ({ label, note, warn, children }: { label: string; note?: string; warn?: boolean; children?: ReactNode }) => (
-  <div className="space-y-1">
-    <div className="flex items-baseline justify-between gap-3">
-      <h3 className="text-[14px] leading-5 text-graphite">{label}</h3>
-      {note && (warn ? <PencilWord className="shrink-0 text-[19px]">{note}</PencilWord> : <span className="shrink-0 text-[14px] leading-5 text-graphite">{note}</span>)}
-    </div>
-    {children}
-  </div>
-);
-
-/** A summary line with its detail one tap behind it. */
-function Reveal({ summary, more, less = 'Hide', children }: { summary: ReactNode; more: string; less?: string; children: ReactNode }) {
-  const [open, setOpen] = useState(false);
+/** One setting: its name, its current value under it, one action. */
+function Row({ label, value, warn, action, children }: { label: string; value?: ReactNode; warn?: boolean; action?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="space-y-3">
-      <div className="flex items-baseline justify-between gap-3 text-[17px] leading-[27px]">
-        <span className="min-w-0 truncate">{summary}</span>
-        <TextAction className={`${linkCls} shrink-0`} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? less : more}</TextAction>
+    <div>
+      <div className="flex min-h-[52px] items-center justify-between gap-4">
+        <div className="min-w-0">
+          <div className="text-[17px] leading-6 text-ink">{label}</div>
+          {value && (warn
+            ? <PencilWord className="block text-[18px] leading-6">{value}</PencilWord>
+            : <div className="break-words text-[14px] leading-5 text-graphite">{value}</div>)}
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
       </div>
-      {open && <div className="anim-fade-in">{children}</div>}
+      {children && <div className="anim-fade-in pt-2 pb-4">{children}</div>}
     </div>
   );
 }
 
-const Actions = ({ children }: { children: ReactNode }) => (
-  <div className="flex flex-wrap items-center gap-x-5">{children}</div>
-);
-
-// Actions in pencil, not ink: graphite text over a faint underline,
-// darkening to ink on hover.
+// Actions in pencil, not ink: graphite over a faint underline, ink on hover.
 const linkCls = 'text-graphite! underline decoration-graphite/40 underline-offset-[3px] hover:text-ink! hover:decoration-ink/60';
-const smallCls = 'text-[14px] leading-[22px] text-graphite';
+const dangerCls = 'text-accent! underline decoration-accent/40 underline-offset-[3px] hover:decoration-accent';
+const Act = ({ className = '', danger = false, ...p }: React.ButtonHTMLAttributes<HTMLButtonElement> & { danger?: boolean }) => (
+  <TextAction circle={false} className={`${danger ? dangerCls : linkCls} ${className}`} {...p} />
+);
 
 /** "19 Sep", with the year only when it isn't this one. */
 function shortDay(ts: number): string {
@@ -73,9 +63,54 @@ function shortDay(ts: number): string {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) });
 }
 
-/** Backup: a warning only when the browser could clear the notebooks, then
- * the backup file's state and its actions on one line. */
-function KeepSafe() {
+/** The goal switcher. The open goal is in ink, the rest in graphite. */
+function Goals({ goals, activeId, onSwitch, onNew }: { goals: GoalRecord[]; activeId?: string; onSwitch: (id: string) => void; onNew: () => void }) {
+  return (
+    <>
+      <ul>
+        {goals.map((g) => {
+          const on = g.id === activeId;
+          return (
+            <li key={g.id}>
+              <TextAction
+                circle={false}
+                aria-current={on || undefined}
+                className={`block w-full truncate text-left font-serif text-[18px] ${on ? 'font-semibold text-ink' : 'text-graphite! hover:text-ink!'}`}
+                onClick={() => onSwitch(g.id)}
+              >
+                {g.title}
+              </TextAction>
+            </li>
+          );
+        })}
+      </ul>
+      <Act onClick={onNew}>New goal</Act>
+    </>
+  );
+}
+
+/** Provider and model, with the form opening under the row. */
+function Model() {
+  const [p, setP] = useState<{ s: ProviderSettings; key: boolean } | null>(null);
+  const [open, setOpen] = useState(false);
+  const load = async () => { const s = await getProvider(); setP(s ? { s, key: await hasApiKey(s.kind) } : null); };
+  useEffect(() => { void load(); }, []);
+  const noKey = !!p && !p.key;
+  return (
+    <Row
+      label={p ? PROVIDERS[p.s.kind]?.label ?? p.s.kind : 'Provider'}
+      value={!p ? 'Not set' : noKey ? 'no key saved' : p.s.model}
+      warn={!p || noKey}
+      action={<Act aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Close' : 'Change'}</Act>}
+    >
+      {open && <ProviderForm onDone={() => { setOpen(false); void load(); }} />}
+    </Row>
+  );
+}
+
+/** Backup: install (only when the browser could clear the data), the
+ * automatic backup, a one-off download, and restore. */
+function Backup() {
   const [d, setD] = useState<Durability | null>(null);
   const [sync, setSync] = useState<'off' | 'active' | 'needs_permission'>('off');
   const [items, setItems] = useState<ImportItem[] | null>(null);
@@ -83,59 +118,55 @@ function KeepSafe() {
   const [msg, setMsg] = useState('');
   const last = useLiveQuery(() => getSetting<number>('lastExportAt'), []);
   const installEvent = useUi((s) => s.installEvent);
+  const justInstalled = useUi((s) => s.justInstalled);
+  const [declined, setDeclined] = useState(false);
   const refresh = async () => { setD(await readDurability()); setSync(await fileSyncState()); };
   useEffect(() => { void refresh(); }, []);
   const guard = (f: () => Promise<void>) => async () => { setMsg(''); try { await f(); } catch (e) { if ((e as Error).name !== 'AbortError') setMsg((e as Error).message); } await refresh(); };
 
-  const justInstalled = useUi((s) => s.justInstalled);
-  const [declined, setDeclined] = useState(false);
-  const installed = !!d?.installed || justInstalled;
+  // Either one stops the browser clearing the data on its own.
+  const kept = !!d?.installed || justInstalled || !!d?.persisted;
   const route = installRoute(!!installEvent);
-  // Either one stops the browser clearing the notebooks on its own.
-  const kept = installed || !!d?.persisted;
-  const stale = Date.now() - (last ?? 0) > 14 * 864e5;
   const fs = fsAccessSupported();
-  // Only a backup that needs doing is pencilled.
-  const [backupNote, backupWarn] =
-    sync === 'active' ? ['automatic', false]
-    : sync === 'needs_permission' ? ['paused', true]
-    : !last ? ['never saved', true]
-    : stale ? [`last ${shortDay(last)}`, true]
-    : [`last ${shortDay(last)}`, false];
+  const stale = !last || Date.now() - last > 14 * 864e5;
+
+  const installAction = installEvent
+    ? <InkButton onClick={() => void installEvent.prompt()}>Install</InkButton>
+    : d?.persisted === false && !declined
+      ? <Act onClick={guard(async () => { if (!(await requestPersistence())) setDeclined(true); })}>Allow</Act>
+      : null;
 
   return (
-    <div className="space-y-6">
+    <>
       {d && !kept && (
-        <Group label="Browser storage" note="not guaranteed" warn>
-          <p className={smallCls}>{declined ? 'Permission was denied, so install to ensure your conversations are saved.' : 'Install to ensure your conversations are saved.'}</p>
-          <Actions>
-            {installEvent && <InkButton className="my-2" onClick={() => void installEvent.prompt()}>Install</InkButton>}
-            {d.persisted === false && !declined && (
-              <TextAction className={linkCls} onClick={guard(async () => { if (!(await requestPersistence())) setDeclined(true); })}>Ask to keep them</TextAction>
-            )}
-          </Actions>
-          {(route === 'ios' || route === 'mac-safari') && <p className={smallCls}>{installSteps[route]}</p>}
-        </Group>
+        <Row label="Storage" value="Install to ensure your conversations are saved." action={installAction}>
+          {!installEvent && (route === 'ios' || route === 'mac-safari') ? <p className="text-[14px] text-graphite">{installSteps[route]}</p> : null}
+        </Row>
       )}
 
-      <Group label="Backup file" note={backupNote} warn={backupWarn}>
-        <Actions>
-          {fs && sync === 'needs_permission' && <InkButton className="my-2" onClick={guard(reauthorizeFileSync)}>Resume</InkButton>}
-          <TextAction className={linkCls} onClick={guard(downloadExport)}>Save now</TextAction>
-          {fs && sync === 'off' && <TextAction className={linkCls} onClick={guard(bindExportFile)}>Turn on auto…</TextAction>}
-          {fs && sync === 'active' && <TextAction className={linkCls} onClick={guard(unbindExportFile)}>Turn off auto</TextAction>}
-          <TextAction className={linkCls} onClick={() => document.getElementById('import-file-input')?.click()}>Restore…</TextAction>
-          <input id="import-file-input" type="file" accept="application/json,.json" className="hidden" onChange={async (e) => {
-            const input = e.target;
-            const f = input.files?.[0];
-            input.value = '';
-            if (!f) return;
-            setMsg('');
-            try { setItems(await planImport(await f.text())); setChoices({}); } catch (err) { setMsg((err as Error).message); }
-          }} />
-        </Actions>
+      {fs && (
+        <Row
+          label="Automatic backup"
+          value={sync === 'active' ? 'On' : sync === 'needs_permission' ? 'paused' : 'Off'}
+          warn={sync === 'needs_permission'}
+          action={
+            sync === 'active' ? <Act onClick={guard(unbindExportFile)}>Turn off</Act>
+            : sync === 'needs_permission' ? <Act onClick={guard(reauthorizeFileSync)}>Resume</Act>
+            : <Act onClick={guard(bindExportFile)}>Turn on</Act>
+          }
+        />
+      )}
+
+      <Row
+        label="Backup file"
+        value={last ? `Last saved ${shortDay(last)}` : 'never saved'}
+        warn={sync !== 'active' && stale}
+        action={<Act onClick={guard(downloadExport)}>Download</Act>}
+      />
+
+      <Row label="Restore" value="From a backup file" action={<Act onClick={() => document.getElementById('import-file-input')?.click()}>Choose file</Act>}>
         {items && (
-          <div className="space-y-2 pt-2 text-[17px]">
+          <div className="space-y-2 text-[17px]">
             {items.map((it) => (
               <div key={it.id} className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
@@ -145,36 +176,59 @@ function KeepSafe() {
                 </div>
                 {!it.error && (
                   <select className="border-0 border-b border-card-rule bg-transparent px-1 py-1 text-[14px] text-ink focus:border-ink focus:outline-none" value={choices[it.id] ?? (it.conflict ? 'copy' : 'replace')} onChange={(e) => setChoices({ ...choices, [it.id]: e.target.value as Choice })}>
-                    {it.conflict ? <><option value="copy">Add as copy</option><option value="replace">Replace (backup kept)</option></> : <option value="replace">Add</option>}
+                    {it.conflict ? <><option value="copy">Add as copy</option><option value="replace">Replace</option></> : <option value="replace">Add</option>}
                     <option value="skip">Skip</option>
                   </select>
                 )}
               </div>
             ))}
             <div className="flex items-center gap-5 pt-1">
-              <InkButton onClick={guard(async () => { const r = await commitImport(items, choices); setItems(null); setMsg(`Added ${r.added}, replaced ${r.replaced}.`); })}>Import</InkButton>
-              <TextAction className={linkCls} onClick={() => setItems(null)}>Cancel</TextAction>
+              <InkButton onClick={guard(async () => { const r = await commitImport(items, choices); setItems(null); setMsg(`Added ${r.added}, replaced ${r.replaced}.`); })}>Restore</InkButton>
+              <Act onClick={() => setItems(null)}>Cancel</Act>
             </div>
           </div>
         )}
-      </Group>
+      </Row>
+      <input id="import-file-input" type="file" accept="application/json,.json" className="hidden" onChange={async (e) => {
+        const input = e.target;
+        const f = input.files?.[0];
+        input.value = '';
+        if (!f) return;
+        setMsg('');
+        try { setItems(await planImport(await f.text())); setChoices({}); } catch (err) { setMsg((err as Error).message); }
+      }} />
       {msg && <p className="text-[14px] text-ink">{msg}</p>}
-    </div>
+    </>
+  );
+}
+
+/** Spend over the last six hours, the breakdown opening under it. Hidden
+ * until a turn has been billed. */
+function Spend({ cost }: { cost: SettingsPageProps['cost'] }) {
+  const [open, setOpen] = useState(false);
+  if (!cost || cost.turns === 0) return null;
+  return (
+    <Row
+      label="Cost, last 6 hours"
+      value={cost.dollars === null ? 'Unknown for this model' : fmtUsd(cost.dollars)}
+      action={<Act aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Hide' : 'Details'}</Act>}
+    >
+      {open && <CostPanel />}
+    </Row>
   );
 }
 
 const THEMES: { id: Theme; label: string }[] = [{ id: 'system', label: 'Auto' }, { id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' }];
 
-/** Light or dark paper, or whichever the device is using, on one line;
- * the one in use circled in pencil. */
-function Appearance() {
+/** The theme in use is in ink and circled; the others in graphite. */
+function ThemePicker() {
   const theme = useTheme();
   return (
-    <div role="radiogroup" aria-label="Appearance" className="flex flex-wrap items-center gap-x-6">
+    <div role="radiogroup" aria-label="Theme" className="flex items-center gap-x-8 pl-1">
       {THEMES.map((t) => {
         const on = theme === t.id;
         return (
-          <TextAction key={t.id} role="radio" aria-checked={on} data-selected={on} className={on ? '' : 'text-graphite!'} onClick={() => setTheme(t.id)}>
+          <TextAction key={t.id} circle={false} role="radio" aria-checked={on} data-selected={on} className={on ? '' : 'text-graphite! hover:text-ink!'} onClick={() => setTheme(t.id)}>
             {t.label}
           </TextAction>
         );
@@ -189,27 +243,17 @@ function Licenses() {
   return <pre className="max-h-64 overflow-auto whitespace-pre-wrap font-mono text-[13px] text-graphite">{t}</pre>;
 }
 
-/** The goal switcher, as a shelf of notebooks (menu.html's "Notebooks"
- * group), the open one underlined. */
-function NotebookShelf({ goals, activeId, onSwitch, onNew }: { goals: GoalRecord[]; activeId?: string; onSwitch: (id: string) => void; onNew: () => void }) {
+/** The maker's mark, where a notebook carries it: inside the cover, at the
+ * foot. The only place the wordmark appears once a notebook is open. */
+function Colophon() {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="space-y-4">
-      <ul className="space-y-3">
-        {goals.map((g) => (
-          <li key={g.id} className="flex items-baseline justify-between gap-3">
-            <TextAction
-              className={`!min-h-0 block min-w-0 py-1 text-left font-serif text-[18px] font-medium not-italic underline-offset-[3px] ${g.id === activeId ? '' : 'no-underline'}`}
-              aria-current={g.id === activeId || undefined}
-              onClick={() => onSwitch(g.id)}
-            >
-              <span className="block truncate">{g.title}</span>
-            </TextAction>
-            {g.id === activeId && <span className="shrink-0 text-[14px] text-graphite">open</span>}
-          </li>
-        ))}
-      </ul>
-      <TextAction className={linkCls} onClick={onNew}>New goal</TextAction>
-    </div>
+    <footer className="space-y-1 border-t border-rule pt-6">
+      <div className="font-serif text-[17px] font-semibold leading-[25.5px] tracking-[-0.01em] text-ink">gambit</div>
+      <p className="text-[14px] leading-[22px] text-graphite">Version {__APP_VERSION__}</p>
+      <Act className="text-[14px]!" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Hide licenses' : 'Licenses'}</Act>
+      {open && <div className="anim-fade-in"><Licenses /></div>}
+    </footer>
   );
 }
 
@@ -222,72 +266,28 @@ export interface SettingsPageProps {
   onNewGoal?: () => void;
 }
 
-/** Estimated spend on one line, the breakdown one tap behind it. Shows
- * nothing until a turn has been billed. */
-function Spend({ cost }: { cost: SettingsPageProps['cost'] }) {
-  if (!cost || cost.turns === 0) return null;
-  return (
-    <Reveal summary={<>{cost.dollars === null ? 'Spend unknown' : fmtUsd(cost.dollars)} <span className="text-graphite">in the last 6 hours</span></>} more="Details">
-      <CostPanel />
-    </Reveal>
-  );
-}
-
-/** The provider and model in use on one line, the form one tap behind it. */
-function Model() {
-  const [p, setP] = useState<{ s: ProviderSettings; key: boolean } | null>(null);
-  const load = async () => { const s = await getProvider(); setP(s ? { s, key: await hasApiKey(s.kind) } : null); };
-  useEffect(() => { void load(); }, []);
-  const summary = p ? <>{PROVIDERS[p.s.kind]?.label ?? p.s.kind} <span className="text-graphite">· {p.s.model}</span></> : 'Not set';
-  return (
-    <div className="space-y-1">
-      <Reveal summary={summary} more="Change" less="Close">
-        <ProviderForm onDone={() => void load()} />
-      </Reveal>
-      {p && !p.key && <PencilWord className="block text-[19px]">no key saved</PencilWord>}
-    </div>
-  );
-}
-
-/** The maker's mark, where a notebook carries it: inside the cover, at the
- * foot. The only place the wordmark appears once a notebook is open. */
-function Colophon() {
-  const [open, setOpen] = useState(false);
-  return (
-    <footer className="space-y-1 border-t border-rule pt-8">
-      <div className="font-serif text-[17px] font-semibold leading-[25.5px] tracking-[-0.01em] text-ink">gambit</div>
-      <p className={smallCls}>Version {__APP_VERSION__}.</p>
-      <TextAction className={`${linkCls} text-[14px]!`} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Hide licenses' : 'Licenses'}</TextAction>
-      {open && <div className="anim-fade-in"><Licenses /></div>}
-    </footer>
-  );
-}
-
-/** Inside cover: everything the old menu Leaf had, laid out as plain page
- * sections (owner correction — "it's a page, not a Leaf"). */
+/** Inside cover: goals, AI model, backup, chat, theme, delete. */
 export function SettingsPage({ goalId, goals, activeId, cost, onSwitchGoal, onNewGoal }: SettingsPageProps) {
   return (
-    <div className="space-y-8">
-      <PageSection title="Notebooks">
-        <NotebookShelf goals={goals ?? []} activeId={activeId} onSwitch={(id) => onSwitchGoal?.(id)} onNew={() => onNewGoal?.()} />
-      </PageSection>
-      <PageSection title="Model"><Model /></PageSection>
-      <PageSection title="Chat">
+    <div className="space-y-6">
+      <Section title="Goals">
+        <Goals goals={goals ?? []} activeId={activeId} onSwitch={(id) => onSwitchGoal?.(id)} onNew={() => onNewGoal?.()} />
+      </Section>
+      <Section title="AI model"><Model /></Section>
+      <Section title="Backup"><Backup /></Section>
+      <Section title="Chat">
         <Spend cost={cost} />
         {goalId && (
-          <Actions>
-            <TextAction className={linkCls} onClick={() => confirm('Clear the chat? Your goal is kept.') && void clearChat(goalId)}>Clear chat</TextAction>
-          </Actions>
+          <Row label="Chat history" value="Your goal is kept" action={<Act onClick={() => confirm('Clear the chat history? Your goal is kept.') && void clearChat(goalId)}>Clear</Act>} />
         )}
-      </PageSection>
-      <PageSection title="Backup"><KeepSafe /></PageSection>
-      <PageSection title="Theme"><Appearance /></PageSection>
-      <PageSection title="Danger zone">
-        <Actions>
-          {goalId && <TextAction className={linkCls} onClick={() => confirm('Delete this goal and its chat? This cannot be undone.') && void deleteGoal(goalId)}>Delete this goal</TextAction>}
-          <TextAction className={linkCls} onClick={() => confirm('Erase all Gambit data on this device, including your key?') && void db.delete().then(() => location.reload())}>Erase everything</TextAction>
-        </Actions>
-      </PageSection>
+      </Section>
+      <Section title="Theme"><ThemePicker /></Section>
+      <Section title="Delete">
+        {goalId && (
+          <Row label="This goal" value="And its chat" action={<Act danger onClick={() => confirm('Delete this goal and its chat? This cannot be undone.') && void deleteGoal(goalId)}>Delete</Act>} />
+        )}
+        <Row label="All data" value="Every goal and your key" action={<Act danger onClick={() => confirm('Erase all Gambit data on this device, including your key?') && void db.delete().then(() => location.reload())}>Erase</Act>} />
+      </Section>
       <Colophon />
     </div>
   );
