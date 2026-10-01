@@ -439,7 +439,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
                 className={`slip anim-press flex min-h-[44px] w-full items-center justify-between gap-3 rounded-[2px] px-4 pt-1.5 pb-2.5 text-left ${
                   li % 2 ? 'motion-safe:transform-[rotate(0.35deg)_translateX(3px)]' : 'motion-safe:transform-[rotate(-0.3deg)_translateX(-2px)]'
                 }`}
-                style={{ filter: 'brightness(.975) drop-shadow(0 1px 1px var(--lift)) drop-shadow(0 3px 6px var(--lift-far))' }}
+                style={{ boxShadow: 'inset 0 1px 0 var(--edge)', filter: 'brightness(.975) drop-shadow(0 1px 1px var(--lift)) drop-shadow(0 3px 6px var(--lift-far))' }}
               >
                 <span className="min-w-0 truncate font-medium text-ink">{line.label}</span>
                 <span className="flex shrink-0 items-center gap-2">
@@ -460,7 +460,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
       <section
         key={open}
         className="anim-card-in relative -mt-2 rounded-[2px] pb-3"
-        style={{ boxShadow: '0 -1px 3px var(--lift-far), 0 2px 2px var(--lift), 0 10px 18px var(--lift-far)' }}
+        style={{ boxShadow: '0 0 0 1px var(--edge), 0 -1px 3px var(--lift-far), 0 2px 2px var(--lift), 0 10px 18px var(--lift-far)' }}
       >
         <div
           ref={headRef}

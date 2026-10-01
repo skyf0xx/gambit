@@ -2,7 +2,7 @@
 
 **The notebook that thinks back.**
 
-![Gambit](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/banner.jpg)
+![A strategist in a study, studying a chessboard](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/banner.png)
 
 ## Planning your next move?
 
@@ -23,6 +23,8 @@ Figure out:
 
 **[Open Gambit →](https://gambit-notes.vercel.app)**
 
+![Gambit open on a desk: a strategic map, your next move, decisions, and what could go wrong](https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/hero.png)
+
 ## Get 10X better outcomes for your goals
 
 Use Gambit for almost anything:
@@ -35,7 +37,7 @@ Use Gambit for almost anything:
 
 ## Why Gambit works
 
-<img src="https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/plan.jpg" alt="A strategic execution plan annotated with leverage points, dependencies, and constraints">
+<img src="https://raw.githubusercontent.com/skyf0xx/gambit/master/assets/showcase.png" alt="Gambit notebook pages: strategic map, actionable moves, decision framework, risk analysis, stakeholder alignment, and goal vision">
 
 ### Gambit combines powerful frameworks for:
 
@@ -51,8 +53,7 @@ Use Gambit for almost anything:
 
 ## For developers
 
-Local-first PWA (Vite, React, Dexie). The agent runs in the browser and
-talks only to the provider you configure, enforced by a strict CSP.
+Local-first PWA
 
 ```bash
 npm install
@@ -61,9 +62,7 @@ npm run dev
 
 ## License and attribution
 
-MIT licensed — see `LICENSE`.
+MIT licensed: see `LICENSE`.
 
-Gambit's elicitation method catalog is vendored from
+Gambit's elicitation method is vendored from
 [BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD)
-(`apps/pwa/vendor/BMAD/`) — see `ATTRIBUTION.md` there for the pinned
-source, license, and any local changes.
