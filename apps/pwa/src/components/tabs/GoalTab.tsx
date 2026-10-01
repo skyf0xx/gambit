@@ -5,9 +5,7 @@ import type { Goal } from '../../lib/types';
 import { RuledInput, PencilWord } from '../ui';
 import { timeLeft, proseDates } from '../../lib/dates';
 import { Section, isEmptySection } from './SectionRenderer';
-import { SectionHeading } from '../paper/SectionHeading';
 import { FreshTag } from '../paper/FreshTag';
-import { sectionTitleFor } from '../sectionTitles';
 import { KeepNotebook } from '../paper/KeepNotebook';
 
 function GoalHeader({ g, goalId }: { g: Goal; goalId: string }) {
@@ -44,15 +42,15 @@ function GoalHeader({ g, goalId }: { g: Goal; goalId: string }) {
   );
 }
 
-/** "Parts of this goal" — sub-goals, a condition on the aim itself (not a
- * success criterion). Reads from `goal.subGoals` (packages/core/src/schema.mjs,
+/** Sub-goals — a condition on the aim itself (not a success criterion),
+ * listed straight under the title with no heading of their own, since they
+ * read as the rest of the goal sentence. Reads from `goal.subGoals` (packages/core/src/schema.mjs,
  * merged from master: `z.array(subGoal).max(5).optional()`). Renders nothing
  * when absent/empty, same as any other empty-hideable section. */
 function SubGoals({ subGoals }: { subGoals: string[] }) {
   if (subGoals.length === 0) return null;
   return (
     <section className="anim-fade-in space-y-3">
-      <SectionHeading k="subGoals">{sectionTitleFor('subGoals').title}</SectionHeading>
       <ul className="list-disc space-y-1 pl-5 text-[17px] leading-[27px]">
         {subGoals.map((s, i) => (
           <li key={i} data-line={`subGoals.${i}`}>{proseDates(s)}</li>

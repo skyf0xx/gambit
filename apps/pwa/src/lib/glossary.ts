@@ -14,6 +14,7 @@ import { TAB_LABELS, tabForPath } from '../components/tabs/tabDefs';
 const UNTITLED: Record<string, string | null> = {
   goal: 'the big title at the top',
   deadline: 'the time left, under the title',
+  subGoals: 'the short bullet list under the title (the parts of the goal)',
   posture: null,
 };
 
@@ -24,7 +25,7 @@ const FURNITURE = [
   `"All moves" is the whole plan: each line of operation shows its criticalPath steps, then its nextActions. The user may call either one "moves", "steps" or "to-dos".`,
   `Doodles tab: the whole plan drawn as a mind map. Read-only; it changes when plan does.`,
   `Settings tab: goal switcher, model and key, backups. Nothing there is a goal key.`,
-  `A small pencilled word beside a heading (red team, stakeholders, eval...) names the method behind it; the user may use it to mean that section.`,
+  `A small pencilled word beside a heading (red team, stakeholders, forecast...) names the method behind it; the user may use it to mean that section.`,
 ];
 
 const keys = [...WRITABLE_KEYS, 'log'];

@@ -221,7 +221,7 @@ const logEntry = z.object({
 // A sub-goal is a part or condition of the aim itself (e.g. the clause after
 // a dash in "open a third salon — without burning out"), not a measurable
 // success criterion. Short list, short entries — this is a title-adjacent
-// fragment shown under "Parts of this goal," not a place to restate
+// fragment listed under the goal title, not a place to restate
 // criteria. Word/char caps mirror the goal sentence's own 10-word rule,
 // loosened slightly (12 words) since these are read on their own line
 // rather than as a page title.

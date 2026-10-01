@@ -134,7 +134,7 @@ skill proposes a shorter sentence, confirms it with the user, and writes it
 on the next touch. Parts or conditions of the aim that don't fit in that
 one short sentence — the clause that used to follow a dash — go in the
 optional `subGoals` key instead: up to 5 short entries (about 12 words /
-100 characters each), listed on the Goal page under "Parts of this goal."
+100 characters each), listed on the Goal page as a short list under the title.
 `subGoals` is distinct from `successCriteria`: a sub-goal is a condition on
 the aim itself, a success criterion is a measurable definition of done.
 

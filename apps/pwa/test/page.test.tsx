@@ -177,7 +177,7 @@ describe('sectionTitleFor', () => {
 
   it('gives every method a one-line plain-language note', () => {
     expect(sectionTitleFor('riskNotes').methodNote).toMatch(/red team/);
-    expect(sectionTitleFor('criteriaStatus').methodNote).toMatch(/eval/);
+    expect(sectionTitleFor('forecasts').methodNote).toMatch(/forecast/);
   });
 
   it('falls back to the raw key for an unknown section', () => {

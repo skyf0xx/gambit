@@ -16,7 +16,6 @@ export interface SectionTitle {
 
 const TITLES: Record<string, SectionTitle> = {
   successCriteria: { title: 'What done looks like' },
-  subGoals: { title: 'Parts of this goal' },
   log: { title: 'Logs' },
   plan: { title: 'All moves' },
   people: { title: "Who's involved" },
@@ -28,7 +27,7 @@ const TITLES: Record<string, SectionTitle> = {
   capacity: { title: 'What you actually have' },
   forecasts: { title: 'Predictions', method: 'forecast', methodNote: 'forecast: a dated prediction, checked later to see how well you called it' },
   experiments: { title: 'Things to test', method: 'experiment', methodNote: 'experiment: the smallest test that could prove you wrong' },
-  criteriaStatus: { title: 'How it’s going', method: 'eval', methodNote: 'eval: checking progress against done' },
+  criteriaStatus: { title: 'Progress' },
 };
 
 export const hasSectionTitle = (key: string) => key in TITLES;

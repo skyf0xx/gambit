@@ -15,7 +15,7 @@ describe('page glossary', () => {
     for (const k of [...WRITABLE_KEYS, 'log']) expect(g).toMatch(new RegExp(`^${k} → `, 'm'));
     expect(g).toContain('plan → Moves tab, "All moves"');
     expect(g).toContain('decisions → Bets tab, "Decisions"');
-    expect(g).toContain('subGoals → Goal tab, "Parts of this goal"');
+    expect(g).toContain('subGoals → Goal tab, the short bullet list under the title');
     expect(g).toContain('posture → not shown on the page');
     expect(g).toMatch(/sticky note.*status proposed/);
   });

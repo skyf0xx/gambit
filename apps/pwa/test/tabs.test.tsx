@@ -161,14 +161,13 @@ describe('tab content components render the right lines', () => {
     expect(html).toContain('Ship the thing');
     expect(html).toContain('data-line="successCriteria.0"');
     expect(html).toContain('Launched');
-    expect(html).toContain('Parts of this goal');
     expect(html).toContain('data-line="subGoals.0"');
     expect(html).toContain('Without burning out the team');
   });
 
   it('GoalTab renders nothing for subGoals when the goal has none', () => {
     const html = render(<GoalTab g={{ ...g, subGoals: undefined }} goalId="g1" />);
-    expect(html).not.toContain('Parts of this goal');
+    expect(html).not.toContain('data-line="subGoals.');
   });
 
   it('InsideCoverTab renders its four page sections', () => {
