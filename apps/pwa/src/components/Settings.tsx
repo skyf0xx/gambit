@@ -75,7 +75,7 @@ function Goals({ goals, activeId, onSwitch, onNew }: { goals: GoalRecord[]; acti
               <TextAction
                 circle={false}
                 aria-current={on || undefined}
-                className={`block w-full truncate text-left font-serif text-[18px] ${on ? 'font-semibold text-ink' : 'text-graphite! hover:text-ink!'}`}
+                className={`flex w-full py-1.5 text-left font-serif text-[18px] leading-[26px] ${on ? 'font-semibold text-ink' : 'text-graphite! hover:text-ink!'}`}
                 onClick={() => onSwitch(g.id)}
               >
                 {g.title}
