@@ -10,6 +10,7 @@ import { Md } from './Md';
 import { ReplyView, Reasoning } from './Reply';
 import type { Reply } from '../lib/tools';
 import { HandMic } from './paper/HandMic';
+import { GambitAvatar } from './paper/GambitAvatar';
 import { dictationSupported, useDictation } from '../lib/dictation';
 
 interface Draft { text: string; reply?: Reply; tools: { id: string; label: string; ok?: boolean }[] }
@@ -514,7 +515,7 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
   const conversation = (
     <div ref={scrollRef} className="relative min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-6">
       {(busy || workingSkill) && (
-        <p className="text-[14px] leading-5">
+        <p className="text-center text-[14px] leading-5">
           {workingSkill ? (
             <span className="text-accent">{skillVerb(workingSkill)}</span>
           ) : (
@@ -529,27 +530,35 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
       )}
       {display.map((m) =>
         m.role === 'user' ? (
-          <p key={m.id} className="anim-rise mt-6 border-l-[1.5px] border-graphite/55 pl-[18px] text-[17px] leading-[27px] font-medium whitespace-pre-wrap text-ink">
+          // Yours: on the right, no mark beside it, behind a pencilled rule.
+          <p key={m.id} className="anim-rise mt-6 ml-auto w-fit max-w-[85%] border-r-[1.5px] border-graphite/55 pr-[18px] text-[17px] leading-[27px] font-medium whitespace-pre-wrap text-ink">
             {m.text}
           </p>
         ) : (
           <div key={m.id} className="anim-rise mt-8 space-y-2">
-            {m.reply ? (
-              <>
-                <ReplyView reply={m.reply} onPick={m.id === lastAssistantId && !busy ? (o) => void send(o) : undefined} />
-                <Reasoning text={m.text} tools={(m.tools ?? []).map((t) => t.label)} />
-              </>
-            ) : (
-              // No reply call (a model that skipped it): the text is the answer.
-              <>
-                {m.text && <Md text={m.text} />}
-                {(m.tools?.length ?? 0) > 0 && (
-                  <p className="hand text-[16px]">{m.tools!.map((t) => t.label).join(' · ')}</p>
+            {/* Gambit's: on the left, beside its mark. */}
+            <div className="flex items-start gap-3">
+              <GambitAvatar />
+              <div className="min-w-0 flex-1 space-y-2 pt-0.5">
+                {m.reply ? (
+                  <ReplyView reply={m.reply} onPick={m.id === lastAssistantId && !busy ? (o) => void send(o) : undefined} />
+                ) : (
+                  // No reply call (a model that skipped it): the text is the answer.
+                  m.text && <Md text={m.text} />
                 )}
-              </>
+              </div>
+            </div>
+            {/* The working and what the turn wrote sit in the middle, like a
+             * messenger's system lines. */}
+            {m.reply ? (
+              <Reasoning text={m.text} tools={(m.tools ?? []).map((t) => t.label)} />
+            ) : (
+              (m.tools?.length ?? 0) > 0 && (
+                <p className="hand text-center text-[16px]">{m.tools!.map((t) => t.label).join(' · ')}</p>
+              )
             )}
             {(m.summary?.length ?? 0) > 0 && (
-              <p className="hand anim-write mt-6 flex flex-wrap items-center gap-2 text-[16px]">
+              <p className="hand anim-write mt-6 flex flex-wrap items-center justify-center gap-2 text-center text-[16px]">
                 <span>wrote to your page: {plainSummary(m.summary!).join(' · ')}</span>
                 {m.id === lastUndoable?.id && !m.undone && !busy && (
                   <TextAction className="!min-h-0 font-sans text-[14px] not-italic underline underline-offset-[3px]" onClick={() => void undoTurn(goalId, m.id)}>
@@ -572,7 +581,14 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
       )}
       {draft && (
         <div className="anim-rise mt-8 space-y-2">
-          {draft.reply ? <ReplyView reply={draft.reply} /> : !workingSkill && <p className="hand anim-pulse text-[16px]">{display.length <= 1 ? 'reading what you wrote…' : 'thinking…'}</p>}
+          {draft.reply ? (
+            <div className="flex items-start gap-3">
+              <GambitAvatar />
+              <div className="min-w-0 flex-1 pt-0.5"><ReplyView reply={draft.reply} /></div>
+            </div>
+          ) : (
+            !workingSkill && <p className="hand anim-pulse text-center text-[16px]">{display.length <= 1 ? 'reading what you wrote…' : 'thinking…'}</p>
+          )}
           <Reasoning text={draft.text} tools={draft.tools.map((t) => t.label)} />
         </div>
       )}

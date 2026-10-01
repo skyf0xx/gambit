@@ -34,12 +34,14 @@ export function ReplyView({ reply, onPick }: { reply: Reply; onPick?: (option: s
   );
 }
 
-/** The model's working: its text outside the reply and the tools it ran. Closed by default. */
+/** The model's working: its text outside the reply and the tools it ran.
+ * Closed by default, its toggle centred between the two sides of the
+ * conversation; opened, it reads left-aligned at full width. */
 export function Reasoning({ text, tools }: { text: string; tools: string[] }) {
   if (!text.trim() && tools.length === 0) return null;
   return (
     <details className="group">
-      <summary className="hand flex min-h-[44px] cursor-pointer list-none items-center text-[16px] text-graphite hover:text-ink [&::-webkit-details-marker]:hidden">
+      <summary className="hand flex min-h-[44px] cursor-pointer list-none items-center justify-center text-[16px] text-graphite hover:text-ink [&::-webkit-details-marker]:hidden">
         <span className="group-open:hidden">Show reasoning</span>
         <span className="hidden group-open:inline">Hide reasoning</span>
       </summary>
