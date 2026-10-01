@@ -17,9 +17,10 @@ function waitingOn(g: Goal): string[] {
   ].filter((s): s is string => !!s);
 }
 
-/** Bets: calls made, and the guesses still being checked. Nothing here
- * is ticked by hand — each item settles when the user reports back in the
- * chat — so the tab opens by saying so, and by naming what's waiting. */
+/** Bets: calls made, and the guesses still being checked. Each item settles
+ * when the user reports back in the chat — the ring-to-tick marker shows
+ * that without a note saying so — so the tab opens by naming what's
+ * waiting and how to report it. */
 export function BetsTab({ g, goalId }: { g: Goal; goalId: string }) {
   const waiting = waitingOn(g);
   return (
@@ -27,7 +28,7 @@ export function BetsTab({ g, goalId }: { g: Goal; goalId: string }) {
       <div className="space-y-1">
         {waiting.length > 0 && <p className="text-[17px] font-medium leading-[27px] text-ink">Waiting on you: {waiting.join(', ')}.</p>}
         <p className="text-[15px] leading-[23px] text-graphite">
-          Nothing here gets ticked. When one of your moves runs a test or settles a question, tell the chat what happened and this page catches up.
+          When one of your moves runs a test or settles a question, tell the chat what happened and this page catches up.
         </p>
       </div>
       <SectionList goalId={goalId} g={g} keys={['decisions', 'experiments', 'forecasts', 'systemsNotes']} />
