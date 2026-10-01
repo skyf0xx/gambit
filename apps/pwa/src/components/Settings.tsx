@@ -113,7 +113,7 @@ function KeepSafe() {
             )}
           </Actions>
           {(route === 'ios' || route === 'mac-safari') && <p className={smallCls}>{installSteps[route]}</p>}
-          {declined && <p className={smallCls}>Browser said no. Install instead.</p>}
+          {declined && <p className={smallCls}>Permission denied. Install instead.</p>}
         </Group>
       )}
 
