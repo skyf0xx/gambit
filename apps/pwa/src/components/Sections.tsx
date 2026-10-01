@@ -534,7 +534,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
         role="tablist"
         aria-label="Lines of the plan"
         onScroll={measure}
-        className="-mx-2 flex gap-1 overflow-x-auto px-2 py-1.5"
+        className="-mx-3 flex overflow-x-auto py-1"
         style={{
           scrollbarWidth: 'none',
           maskImage: more ? 'linear-gradient(to right, black calc(100% - 40px), transparent)' : undefined,

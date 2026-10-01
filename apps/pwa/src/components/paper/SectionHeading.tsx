@@ -89,9 +89,22 @@ export function PencilRule({ seed }: { seed: string }) {
   );
 }
 
+/** Sections whose own content heads them, so their title is only a small
+ * label, like the index card's "Your top move": the plan, whose line names
+ * already sit at the top of it in pencil. */
+const QUIET = new Set(['plan']);
+
 /** Heading for one section on the page. `empty` sections stay graphite and
  * regular weight, with no rule: a section with nothing in it shouldn't lead. */
 export function SectionHeading({ k, children, after, empty }: { k: string; children: ReactNode; after?: ReactNode; empty?: boolean }) {
+  if (QUIET.has(k)) {
+    return (
+      <div className="flex items-baseline gap-x-2">
+        <h2 className="text-[14px] leading-5 text-graphite">{children}</h2>
+        <FreshSectionTag k={k} />
+      </div>
+    );
+  }
   return (
     <div className="space-y-1.5">
       <div className="flex flex-wrap items-baseline gap-x-2">
