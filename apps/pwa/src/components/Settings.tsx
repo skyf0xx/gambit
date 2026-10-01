@@ -104,8 +104,8 @@ function KeepSafe() {
   return (
     <div className="space-y-6">
       {d && !kept && (
-        <Group label="This browser" note="could clear your notebooks" warn>
-          <p className={smallCls}>Unused sites get cleared. Installing stops that.</p>
+        <Group label="Browser storage" note="not guaranteed" warn>
+          <p className={smallCls}>{declined ? 'Permission was denied, so install to ensure your conversations are saved.' : 'Install to ensure your conversations are saved.'}</p>
           <Actions>
             {installEvent && <InkButton className="my-2" onClick={() => void installEvent.prompt()}>Install</InkButton>}
             {d.persisted === false && !declined && (
@@ -113,7 +113,6 @@ function KeepSafe() {
             )}
           </Actions>
           {(route === 'ios' || route === 'mac-safari') && <p className={smallCls}>{installSteps[route]}</p>}
-          {declined && <p className={smallCls}>Permission denied. Install instead.</p>}
         </Group>
       )}
 

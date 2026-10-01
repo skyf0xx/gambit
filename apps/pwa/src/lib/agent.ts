@@ -102,9 +102,9 @@ export async function runTurn(opts: {
 }): Promise<void> {
   const { goalId, text, signal, onEvent, quick } = opts;
   const prov = await getProvider();
-  if (!prov) throw new Error('No provider set. Open Settings.');
+  if (!prov) throw new Error('Choose a provider in Settings.');
   const apiKey = await loadApiKey(prov.kind);
-  if (!apiKey) throw new Error('No key saved. Open Settings.');
+  if (!apiKey) throw new Error('Add your key in Settings.');
   const model = makeModel(prov, apiKey);
 
   const rec = await db.goals.get(goalId);
@@ -262,15 +262,15 @@ export function errorText(e: unknown, kind?: ProviderKind): string {
     return "You're offline.";
   const google = kind === 'google';
   if (err?.statusCode === 401 || err?.statusCode === 403 || (google && err?.statusCode === 400 && /api key/i.test(err.message ?? '')))
-    return 'Key rejected. Check it in Settings.';
+    return 'Check your key in Settings.';
   if (err?.statusCode === 429)
     return google
-      ? "Google's free limit reached. Add credit in AI Studio or switch provider."
-      : 'Rate limited. Try again in a minute.';
+      ? "Google's free limit is used up, so add credit or switch provider."
+      : 'Too many requests, so try again in a minute.';
   if (err?.statusCode === 503 || err?.statusCode === 529)
     return google
-      ? "Google is busy. Try again in a minute."
-      : 'Provider busy. Try again in a minute.';
+      ? 'Google is busy, so try again in a minute.'
+      : 'The provider is busy, so try again in a minute.';
   return err?.message ?? String(e);
 }
 

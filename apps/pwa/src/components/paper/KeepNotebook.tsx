@@ -14,7 +14,7 @@ export function KeepNotebook() {
   return (
     <aside className="hand anim-fade-in space-y-1 text-[16px] leading-6 text-graphite">
       <p>
-        <span className="text-ink">Keep this notebook.</span> Unused sites get cleared.
+        Install to ensure your conversations are saved.
       </p>
       <p className="flex flex-wrap items-center gap-x-4">
         {route === 'prompt' ? (
