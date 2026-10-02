@@ -68,7 +68,7 @@ Ask for a deadline as a real calendar date; if there truly is none, record none.
 
 Before writing anything, show the goal statement, any sub-goals, criteria with their marks, deadline and people, and ask what is off. One exchange, then commit — a checkpoint, not a negotiation. Stay opinionated through pushback: fold new facts in and re-commit to a revised read rather than handing the decision back.
 
-Call `write_section` for `goal`, `subGoals` (only if there are any — omit the call rather than writing an empty array), `successCriteria`, `deadline`, and `people`. If `write_section` on `goal` comes back `{ ok: false }` for being over 10 words, shorten it, move what it dropped into `subGoals`, and retry — don't just resend the same sentence. Call `append_log` with one entry stating where the goal stands now, with no replay of the conversation. If any write returns `{ ok: false, errors }`, fix the reported fields and retry before ending the turn.
+Call `write_section` for `goal`, `subGoals` (only if there are any — omit the call rather than writing an empty array), `successCriteria`, `deadline`, and `people`. If `write_section` on `goal` comes back `{ ok: false }` for being over 10 words, shorten it, move what it dropped into `subGoals`, and retry — don't just resend the same sentence. Call `append_log` with one entry recording that the goal was set up, with no replay of the conversation; the goal keys already hold where it stands. If any write returns `{ ok: false, errors }`, fix the reported fields and retry before ending the turn.
 
 ### 7. Name the next step
 

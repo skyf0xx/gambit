@@ -152,10 +152,8 @@ If yes, hand to `strategy` — don't renegotiate the goal from inside a review.
 
 ### 8. Update the Goal
 
-Call `append_log`: what was reviewed, the outcome against expectation, and the lessons —
-`notes` isn't rendered in the visual layer, so list findings freely rather than trimming to
-fit a short list; each entry still has its own 120-char cap, so split a long finding across
-multiple `notes` entries instead of cramming it into one. Fold "improve" items into the
+Call `append_log`: what was reviewed and the outcome against expectation, in at most 3
+notes of 120 chars each. The lessons don't go in the log; fold "improve" items into the
 `nextActions` array of whichever line of operation the reviewed event belongs to, under
 `plan.linesOfOperation` — each as `{ action: "Review: <finding>", who, when, status: "pending" }`.
 `action` is `mediumLabel` (120-char hard cap) and **the `"Review: "` prefix counts against

@@ -174,7 +174,7 @@ behind you. Deciding it beforehand is the only reliable way it happens.
 
 ### 10. Update the Goal and Name the Next Step
 
-Call `append_log` with the negotiation outcome, what was agreed, and any commitment the user made — a commitment
+Call `append_log` with the negotiation outcome, what was agreed, and any commitment the user made, in at most 3 notes — a commitment
 given in a conversation and not recorded is one nobody can hold either side to.
 
 ```json

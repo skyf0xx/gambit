@@ -140,7 +140,7 @@ before in their own history, and it deserves weight the analysis can't supply.
 
 ### 8. Update the Goal
 
-Call `write_section` on `riskNotes` with the fatal causes and their mitigations added to the existing array (keep the entries already there, including threat's, and label each new one with `source: "premortem"` so the source is clear). Add any early-warning indicators as watch items. Call `append_log` with a one-line summary.
+Call `write_section` on `riskNotes` with the fatal causes and their mitigations added to the existing array (keep the entries already there, including threat's, and label each new one with `source: "premortem"` so the source is clear). Add any early-warning indicators as watch items. Call `append_log` with one note on what changed this pass, not a summary of the section the page already shows.
 
 Each appended entry must have:
 - `item` (required, max 120 chars): the fatal cause or mitigation

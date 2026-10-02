@@ -39,7 +39,7 @@ describe('skills and preamble', () => {
   });
   it('states the active skill and what is due in the turn state', () => {
     const goal = stubGoal('g');
-    expect(flowText(store, {}, goal, '2026-10-02')).toBe('No skill is active; every write needs one.\nDue now: intake (the goal is not defined yet).');
+    expect(flowText(store, {}, goal, '2026-10-02')).toBe('No skill is active; every write but remember and forget needs one.\nDue now: intake (the goal is not defined yet).');
     const t = flowText(store, { active: 'elicit', caller: 'intake' }, goal, '2026-10-02');
     expect(t).toContain('Active skill: elicit, inside intake (writes goal, subGoals');
     expect(t).not.toContain('hands off to');

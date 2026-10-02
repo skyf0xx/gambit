@@ -186,7 +186,7 @@ Call `write_section` on `capacity` with the honest hours per week, the runway, a
 }
 ```
 
-Call `append_log` with a one-line summary. If capacity forces a scope change, load `plan` or `strategy`
+Call `append_log` with one note on what changed this pass, not a summary of the section the page already shows. If capacity forces a scope change, load `plan` or `strategy`
 rather than trimming the plan here.
 
 If the write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.

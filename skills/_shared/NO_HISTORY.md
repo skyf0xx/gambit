@@ -1,7 +1,7 @@
 # No history in output
 
 Applies whenever a skill writes to the goal via `write_section`,
-`append_log`, or `set_status` — not a skill in its own right, referenced
+`append_log`, `remember`, or `set_status` — not a skill in its own right, referenced
 from AGENTS.md's voice rules. Adapted from the `no-history-in-output`
 skill.
 
@@ -17,12 +17,16 @@ process that produced it.
   AGENTS.md's "The goal contract." These read as current state, full
   stop — no trace of what they said before.
 - **`log`** is the one deliberately append-only array, written through
-  `append_log` — the sequence of
-  entries over time *is* the goal's history, and that's correct. What
-  this rule adds is narrower: **a single entry doesn't re-narrate the
-  discussion that produced it.** Each entry states what's true or what
-  happened as of that entry, plainly — not a diff against the entry
-  before it.
+  `append_log` — the sequence of entries over time *is* the goal's
+  history, and that's correct. An entry records what happened or was
+  decided in this exchange, in at most 3 notes. It never restates the
+  situation: where things stand lives in the owning keys, and a note that
+  repeats a recent entry is refused. Nor does it re-narrate the
+  discussion that produced it.
+- **`memory`** holds what the user said that no other key holds. It
+  changes one entry at a time through `remember` and `forget`, and a
+  correction replaces the entry it corrects (`replaces`), so it reads as
+  current state like every other key.
 
 ## Rules
 

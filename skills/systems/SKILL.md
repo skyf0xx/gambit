@@ -188,7 +188,7 @@ the conclusion.
 
 ### 10. Update the Goal
 
-Call `write_section` on `systemsNotes` with the Schwerpunkt recommendation and any critical findings (top CV, top second/third order risk, culminating point if visible). Call `append_log` with a one-line summary. Keep the full assessment in the conversation — the goal holds the current read, not the whole analysis.
+Call `write_section` on `systemsNotes` with the Schwerpunkt recommendation and any critical findings (top CV, top second/third order risk, culminating point if visible). Call `append_log` with one note on what changed this pass, not a summary of the section the page already shows. Keep the full assessment in the conversation — the goal holds the current read, not the whole analysis.
 
 - `schwerpunkt` (required, max 120 chars): the single point of leverage and why
 - `rationale` (optional, max 120 chars): one sentence on what CV this attacks or what CC this builds

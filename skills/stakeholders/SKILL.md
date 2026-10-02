@@ -168,7 +168,7 @@ Each stakeholder entry must have:
 }
 ```
 
-Call `append_log` with a one-line summary.
+Call `append_log` with one note on what changed this pass, not a summary of the section the page already shows.
 
 If a write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 

@@ -66,6 +66,7 @@ describe('tabForPath', () => {
 
   it('routes the special inside-cover path to the inside-cover tab', () => {
     expect(tabForPath('inside-cover')).toBe('inside-cover');
+    expect(tabForPath('memory.0')).toBe('inside-cover');
   });
 
   it('routes people and stakeholders paths to people', () => {
@@ -216,6 +217,12 @@ describe('tab content components render the right lines', () => {
       expect(html).toContain('Backup');
       expect(html).toContain('Chat');
       expect(html).toContain('New goal');
+      expect(html).not.toContain('What Gambit remembers');
+      const g = { ...seededGoal(), memory: [{ kind: 'rejected' as const, text: 'No cold outreach to rail.', date: '2026-10-02' }] };
+      const withMemory = render(<InsideCoverTab goalId="g1" goals={[]} g={g} />);
+      expect(withMemory).toContain('What Gambit remembers');
+      expect(withMemory).toContain('ruled out');
+      expect(withMemory).toContain('aria-label="Forget: No cold outreach to rail."');
     } finally {
       if (hadWindow) (globalThis as { window?: unknown }).window = prevWindow;
       else delete (globalThis as { window?: unknown }).window;

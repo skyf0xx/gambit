@@ -23,7 +23,7 @@ apps/pwa/            the app — Vite + React + Dexie
 packages/core/        shared logic, framework-agnostic
   src/schema.mjs      the Zod schema (goalSchema) — authoritative contract
   src/read.mjs        version-aware read path + in-code migrations
-  src/ops.mjs         goal operations (write_section / append_log / set_status semantics)
+  src/ops.mjs         goal operations (write_section / append_log / set_status / remember / forget)
   src/registry.mjs    display registry — maps each owned key to a dashboard renderer
   src/flow.mjs        skill flow — load and write gates, due-skill suggestions
   src/rules.mjs, index.mjs
@@ -138,7 +138,9 @@ The gates:
 - `load_skill` refuses a `requires: goal` skill while the goal is a stub
   and points to `intake`.
 - `write_section`, `set_status` and `append_log` need an active skill whose
-  `writes` holds the key; with no active skill, nothing writes.
+  `writes` holds the key; with no active skill, none of them writes.
+  `remember` and `forget` (the `memory` key) are the exception: they
+  record what the user just said, whatever skill is active.
 - `write_section` is refused in the turn its skill was loaded: the skill
   shows its read as a `confirm` reply and writes after the user answers
   (GUIDED.md's elicit-before-committing). Status flips and log entries
@@ -207,6 +209,26 @@ keeps `people[].status` current.
 `updated` holds when each key last changed. Only `writeSection` writes
 it; no skill does, and it is left out of the goal state the model reads.
 
+`memory` holds what the user told the advisor that no owned key holds:
+`{ kind: fact | preference | constraint | rejected, text, date }`, at most
+20 entries (`MEMORY_CAP`). No skill owns it. The `remember` and `forget`
+tools edit it one entry at a time, from any skill or none, because the
+user says these things at any point. `remember` (`packages/core/src/ops.mjs`)
+refuses an entry that says the same as an existing one and points at it,
+and refuses a 21st. Either way the model has to pass `replaces` with the
+entry's index, so a correction overwrites what it corrects and nothing
+drops off silently. The whole list is in every turn's goal state, so
+nothing needs retrieving. `rejected` entries are the moves the user turned
+down, which the advisor doesn't propose again. The user can strike any
+entry from the Settings page.
+
+`log` records what happened in each exchange, not where things stand: the
+owning keys hold that. An entry has at most 3 notes (`LOG_NOTES_MAX`), and
+`append_log` refuses a note that says the same as one in the newest 5
+entries (`LOG_RECENT`, the same entries the model reads each turn) or in
+its own entry. `sameLine` makes that call: at least 4 content words in
+common, covering 60% of the shorter line's.
+
 `log` is the only append-only key, capped at the newest 30 entries —
 `append_log` (`packages/core/src/ops.mjs`) drops the oldest entries past
 that cap, except it always keeps the entry holding the current focus
@@ -220,9 +242,9 @@ transcript: only the newest turns are kept in storage per goal (see
 `CHAT_TURNS` in `apps/pwa/src/lib/agent.ts`), counted the same way for the
 model's history and the chat the user sees, and the model request applies
 a further character budget on top of that (`HISTORY_CHAR_BUDGET`), dropping
-the oldest whole turns first. The goal record is the durable memory across
-both caps — old chat and old log entries are safe to lose because the
-current goal state captures what matters.
+the oldest whole turns first. The goal record, `memory` included, is the
+durable memory across both caps. Old chat and old log entries are safe to
+lose because the current goal state captures what matters.
 
 A name lives in `people` or `stakeholders`, never both — two owners writing
 about one person drift apart, and the stale copy reads as current.

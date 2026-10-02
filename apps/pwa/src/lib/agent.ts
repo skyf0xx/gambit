@@ -99,7 +99,7 @@ export function flowText(store: SkillStore, session: Pick<FlowSession, 'active' 
   const lines = [
     active
       ? `Active skill: ${active.name}${active.checkpoint && session.caller ? `, inside ${session.caller} (writes ${writes(session.caller)})` : ` (writes ${writes(active.name)})`}.`
-      : 'No skill is active; every write needs one.',
+      : 'No skill is active; every write but remember and forget needs one.',
   ];
   const due = suggestSkills(goal, day, skillFlows(store)).slice(0, 3);
   if (due.length) lines.push(`Due now: ${due.map((s) => `${s.skill} (${s.why})`).join('; ')}.`);

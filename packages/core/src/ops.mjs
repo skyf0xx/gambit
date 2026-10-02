@@ -2,23 +2,50 @@
 // document and returns a result object instead of throwing, so an agent tool
 // can hand structured errors straight back to the model.
 
-import { goalSchema, reconcileGoal, writeRules, GOAL_MAX_WORDS, wordCount } from './schema.mjs';
+import { goalSchema, reconcileGoal, writeRules, GOAL_MAX_WORDS, MEMORY_CAP, wordCount } from './schema.mjs';
 import { plainLanguage } from './readability.mjs';
 
 /** @typedef {import('zod').infer<typeof goalSchema>} Goal */
 /** @typedef {{ path: string, message: string }} Issue */
 
-// Every top-level key except the version stamp, the change stamps and the
-// append-only log can be replaced wholesale by whichever skill owns it.
-const UNWRITABLE = ['schemaVersion', 'updated', 'log'];
+// Every top-level key except the version stamp, the change stamps, the
+// append-only log and memory (edited entry by entry through remember and
+// forget) can be replaced wholesale by whichever skill owns it.
+const UNWRITABLE = ['schemaVersion', 'updated', 'memory', 'log'];
 export const WRITABLE_KEYS = Object.keys(goalSchema.shape).filter((k) => !UNWRITABLE.includes(k));
 
 const logEntrySchema = goalSchema.shape.log.element;
+const memoryEntrySchema = goalSchema.shape.memory.element;
 const STATUSES = ['proposed', 'pending', 'done', 'dropped'];
 
 // `log` is append-only but bounded: the page only needs recent history plus
 // whichever entry currently drives the focus highlight.
 export const LOG_CAP = 30;
+
+/** Newest log entries the model reads each turn, and the window a new note
+ * is checked against for repeats. */
+export const LOG_RECENT = 5;
+
+const STOPWORDS = new Set('the a an and or but of to in on at by for with from as is are was were be been it its this that these those not no nor so if then than into onto over under up out off has have had do does did will would can could should may might must just only also still yet now their there they them our your you his her him she he we who what when where which while'.split(' '));
+
+const contentWords = (s) => new Set(
+  s.toLowerCase().replace(/[^a-z0-9\s'-]/g, ' ').split(/\s+/).filter((w) => w.length > 2 && !STOPWORDS.has(w)),
+);
+
+/**
+ * Whether two short lines say mostly the same thing: at least 4 content
+ * words in common, covering 60% or more of the shorter line's. Catches a
+ * restatement in fresh words ("Complaint sent to council, Blackmore copied"
+ * against "Complaint lodged with council, Blackmore copied") without
+ * flagging two lines that merely share a name.
+ */
+export function sameLine(a, b) {
+  const x = contentWords(a);
+  const y = contentWords(b);
+  let shared = 0;
+  for (const w of x) if (y.has(w)) shared++;
+  return shared >= 4 && shared / Math.min(x.size, y.size) >= 0.6;
+}
 
 /** The skill that sets the focus, and so the only one whose log entry may
  * name a line for the page to highlight. */
@@ -141,9 +168,82 @@ export function appendLog(goal, entry, writer) {
   if (!parsed.success) return { ok: false, errors: toIssues(parsed.error, ['log']) };
   const plain = plainLanguage.safeParse(parsed.data);
   if (!plain.success) return { ok: false, errors: toIssues(plain.error, ['log']) };
+  const repeats = repeatedNotes(parsed.data.notes, goal.log.slice(-LOG_RECENT));
+  if (repeats.length) return { ok: false, errors: repeats };
   const next = goalSchema.safeParse({ ...goal, log: capLog([...goal.log, parsed.data]) });
   if (!next.success) return { ok: false, errors: toIssues(next.error) };
   return { ok: true, goal: next.data, warnings };
+}
+
+/**
+ * A log entry records what changed in this exchange. A note that restates
+ * one already in the recent log, or another note in the same entry, adds
+ * nothing for the user or the model, so it is refused.
+ */
+function repeatedNotes(notes, recent) {
+  const errors = [];
+  notes.forEach((n, i) => {
+    const twin = notes.slice(0, i).find((m) => sameLine(n, m));
+    if (twin) {
+      errors.push({ path: `log.notes.${i}`, message: `says the same as another note in this entry ("${twin}"); keep one` });
+      return;
+    }
+    for (const e of [...recent].reverse()) {
+      const old = e.notes.find((m) => sameLine(n, m));
+      if (old) {
+        errors.push({
+          path: `log.notes.${i}`,
+          message: `repeats the ${e.date}${e.source ? ` ${e.source}` : ''} entry ("${old}"); log only what changed this turn, and leave current state to its owning key`,
+        });
+        return;
+      }
+    }
+  });
+  return errors;
+}
+
+/**
+ * Keep one thing the user told the advisor. `replaces`, an index into
+ * `memory`, updates that entry in place: a correction or a change of mind
+ * overwrites what it supersedes rather than sitting beside it. A new entry
+ * that says the same as an existing one is refused and pointed at it, and
+ * so is one past MEMORY_CAP, so nothing drops off silently.
+ * @param {Goal} goal
+ * @param {{ kind: string, text: string, replaces?: number }} item
+ * @param {string} date YYYY-MM-DD
+ */
+export function remember(goal, { replaces, ...item }, date) {
+  const parsed = memoryEntrySchema.safeParse({ ...item, date });
+  if (!parsed.success) return { ok: false, errors: toIssues(parsed.error, ['memory']) };
+  const plain = plainLanguage.safeParse(parsed.data);
+  if (!plain.success) return { ok: false, errors: toIssues(plain.error, ['memory']) };
+  const memory = [...goal.memory];
+  if (replaces !== undefined) {
+    if (!Number.isInteger(replaces) || !memory[replaces]) {
+      return { ok: false, errors: [{ path: 'replaces', message: `no memory entry ${replaces}; there are ${memory.length}` }] };
+    }
+    memory[replaces] = parsed.data;
+  } else {
+    const twin = memory.findIndex((m) => sameLine(m.text, parsed.data.text));
+    if (twin >= 0) {
+      return { ok: false, errors: [{ path: 'memory', message: `entry ${twin} already says this ("${memory[twin].text}"); pass replaces: ${twin} to update it` }] };
+    }
+    if (memory.length >= MEMORY_CAP) {
+      return { ok: false, errors: [{ path: 'memory', message: `memory is full (${MEMORY_CAP}); pass replaces with the entry this one matters more than, or forget one first` }] };
+    }
+    memory.push(parsed.data);
+  }
+  const next = goalSchema.safeParse({ ...goal, memory });
+  if (!next.success) return { ok: false, errors: toIssues(next.error) };
+  return { ok: true, goal: next.data, warnings: [] };
+}
+
+/** Drop one memory entry by index: it no longer holds, or the user said so. */
+export function forget(goal, index) {
+  if (!Number.isInteger(index) || !goal.memory[index]) {
+    return { ok: false, errors: [{ path: 'index', message: `no memory entry ${index}; there are ${goal.memory.length}` }] };
+  }
+  return { ok: true, goal: { ...goal, memory: goal.memory.filter((_, i) => i !== index) }, warnings: [] };
 }
 
 /**

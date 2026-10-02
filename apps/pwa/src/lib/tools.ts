@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { writeSection, appendLog, setStatus, canLoad, canWrite, WRITABLE_KEYS, type FlowSession } from '@gambit/core';
+import { writeSection, appendLog, setStatus, remember, forget, canLoad, canWrite, WRITABLE_KEYS, MEMORY_KINDS, LOG_NOTES_MAX, LOG_RECENT, type FlowSession } from '@gambit/core';
 import { applyOp, readRecord } from './goals';
 import { db } from './db';
 import { getSkillStore, skillText, skillFile, skillFlows, flowOf, elicitationMethods } from './skills';
@@ -35,14 +35,14 @@ export async function currentGoal(goalId: string) {
   return read.status === 'ok' ? read.data : null;
 }
 
-/** Compact current state for the system prompt and get_goal: log trimmed to the last 5 entries. */
+/** Compact current state for the system prompt and get_goal: log trimmed to the newest LOG_RECENT entries. */
 export async function goalStateJson(goalId: string): Promise<string> {
   const rec = await db.goals.get(goalId);
   if (!rec) return 'null';
   const read = await readRecord(rec);
   if (read.status !== 'ok') return JSON.stringify({ unreadable: read.status });
   const { log, updated: _stamps, ...rest } = read.data;
-  return JSON.stringify({ ...rest, log: log.slice(-5), logCount: log.length });
+  return JSON.stringify({ ...rest, log: log.slice(-LOG_RECENT), logCount: log.length });
 }
 
 /** The one shape every turn ends in: what the user sees. Anything the
@@ -136,7 +136,7 @@ export function makeTools(ctx: ToolContext) {
       execute: async ({ key, value }) => (await gate(ctx.session, key, 'write_section')) ?? result(await applyOp(ctx.goalId, (g) => writeSection(g, key, value) as never)),
     }),
     append_log: tool({
-      description: 'Append one entry to the log, the only append-only key. date defaults to today.',
+      description: `Append one entry to the log, the only append-only key: what happened or what the user decided in this exchange, in ${LOG_NOTES_MAX} notes at most. Never restate the situation; a note that repeats a recent entry is refused. date defaults to today.`,
       inputSchema: z.object({
         date: z.string().optional(),
         assessment: z.enum(['on_track', 'at_risk', 'stalled', 'regressing']).optional(),
@@ -153,6 +153,20 @@ export function makeTools(ctx: ToolContext) {
         const writer = active?.checkpoint ? ctx.session.caller : ctx.session.active;
         return result(await applyOp(ctx.goalId, (g) => appendLog(g, { ...entry, date: entry.date ?? today() }, writer) as never));
       },
+    }),
+    remember: tool({
+      description: 'Keep one thing the user told you that no goal key holds: a fact, a preference, a constraint, or a move they turned down (rejected). Use it the moment they say it, whatever skill is active. To correct or update an entry, pass replaces with its index in memory; it is overwritten, not added to.',
+      inputSchema: z.object({
+        kind: z.enum(MEMORY_KINDS as [string, ...string[]]),
+        text: z.string().describe('One plain sentence, ≤120 chars, in the user\'s terms.'),
+        replaces: z.number().int().optional().describe('Index of the memory entry this one corrects or supersedes.'),
+      }),
+      execute: async (item) => result(await applyOp(ctx.goalId, (g) => remember(g, item, today()) as never)),
+    }),
+    forget: tool({
+      description: 'Drop one memory entry by its index, when it no longer holds or the user asks.',
+      inputSchema: z.object({ index: z.number().int() }),
+      execute: async ({ index }) => result(await applyOp(ctx.goalId, (g) => forget(g, index) as never)),
     }),
     set_status: tool({
       description: 'Flip one step, sub-item or next action to pending, done or dropped without rewriting the section (a next action can also be set to proposed). path is dotted, e.g. "plan.linesOfOperation.0.nextActions.2".',
@@ -182,6 +196,8 @@ export function toolLabel(name: string, input: unknown): string {
     case 'write_section': return `wrote ${i.key}`;
     case 'set_status': return `${i.status}: ${String(i.path).split('.').slice(-2).join('.')}`;
     case 'append_log': return 'log entry';
+    case 'remember': return `remembered (${i.kind})`;
+    case 'forget': return 'forgot one thing';
     case 'read_skill_file': return `read ${i.skill}/${i.path}`;
     case 'get_goal': return 'read goal';
     case 'elicitation_methods': return 'method catalog';

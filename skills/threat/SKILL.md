@@ -169,7 +169,7 @@ accepted risk rather than re-raising it every session.
 
 ### 9. Update the Goal
 
-Call `write_section` on `riskNotes` with the top findings (adversarial CoG if identified, top workstream risks, network exposure if applicable, any single point of failure). Note anything the user explicitly chose to accept, so later sessions don't re-litigate it. Call `append_log` with a one-line summary.
+Call `write_section` on `riskNotes` with the top findings (adversarial CoG if identified, top workstream risks, network exposure if applicable, any single point of failure). Note anything the user explicitly chose to accept, so later sessions don't re-litigate it. Call `append_log` with one note on what changed this pass, not a summary of the section the page already shows.
 
 Each entry must have:
 - `item` (required, max 120 chars): the risk or finding

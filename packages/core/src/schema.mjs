@@ -2,8 +2,8 @@
 // reader (goal store, dashboard, write tools, import) validates through.
 // Mirrors AGENTS.md's "each key has exactly one owning skill" rule: each
 // top-level key here is owned by exactly one skill and is replaced
-// wholesale on write, never appended to. `log` is
-// the one append-only array.
+// wholesale on write, never appended to. `log` is the one append-only
+// array; `memory` is edited entry by entry through remember/forget (ops.mjs).
 //
 // Date fields are strict `YYYY-MM-DD` plus a real-calendar-date refine —
 // no free text.
@@ -206,6 +206,10 @@ const decision = z
     }
   });
 
+// A log entry records what happened in one exchange, not the state of the
+// goal: the owning keys already hold that. Hence few notes per entry.
+export const LOG_NOTES_MAX = 3;
+
 // focusLine: the verbatim text of the one line on the page the focus lands
 // on (a success criterion, next action or critical-path step), so the page
 // can highlight it. The latest entry with a focus is the current focus.
@@ -214,8 +218,20 @@ const logEntry = z.object({
   assessment: assessment.optional(),
   focus: z.string().max(160).nullable(),
   focusLine: z.string().min(1).max(120).optional(),
-  notes: z.array(mediumLabel).max(200),
+  notes: z.array(mediumLabel).max(LOG_NOTES_MAX),
   source: shortLabel.optional(),
+});
+
+// What the user has told the advisor that no owned key holds: a fact, a
+// preference, a constraint, or a move they turned down. Small enough to
+// sit in full in every turn's context, so nothing needs retrieving.
+export const MEMORY_CAP = 20;
+export const MEMORY_KINDS = ['fact', 'preference', 'constraint', 'rejected'];
+
+const memoryEntry = z.object({
+  kind: z.enum(MEMORY_KINDS),
+  text: mediumLabel,
+  date: dateString,
 });
 
 // A sub-goal is a part or condition of the aim itself (e.g. the clause after
@@ -232,7 +248,7 @@ const subGoal = z
   .refine((s) => s.trim().split(/\s+/).filter(Boolean).length <= 12, 'must be 12 words or fewer');
 
 export const goalSchema = z.object({
-  schemaVersion: z.literal(3),
+  schemaVersion: z.literal(4),
   goal: z.string().min(1).max(200),
   subGoals: z.array(subGoal).max(5).optional(),
   successCriteria: z.array(successCriterion).min(1),
@@ -253,6 +269,7 @@ export const goalSchema = z.object({
   // (ops.mjs), never written by a skill; suggestSkills (flow.mjs) compares
   // it against what each section is built from.
   updated: z.record(z.string(), z.string()).optional(),
+  memory: z.array(memoryEntry).max(MEMORY_CAP),
   log: z.array(logEntry),
 });
 
@@ -299,7 +316,7 @@ export const STUB_CRITERION = 'define success criteria';
 // is valid the instant it's written.
 export function stubGoal(title) {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     goal: title,
     successCriteria: [{ text: STUB_CRITERION, kind: 'control' }],
     deadline: null,
@@ -315,6 +332,7 @@ export function stubGoal(title) {
     forecasts: [],
     experiments: [],
     decisions: [],
+    memory: [],
     log: [],
   };
 }

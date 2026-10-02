@@ -4,10 +4,10 @@
 // for writing — it is reported as `needs_app_update` so a newer install's
 // data cannot be silently downgraded.
 
-import { goalSchema, GOAL_MAX_WORDS, wordCount } from './schema.mjs';
+import { goalSchema, GOAL_MAX_WORDS, LOG_NOTES_MAX, wordCount } from './schema.mjs';
 import { capLog } from './ops.mjs';
 
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;
 
 // Split an over-long goal sentence into a short goal plus sub-goals, purely
 // and deterministically — no model call. Only fires when the sentence is
@@ -75,6 +75,16 @@ export const MIGRATIONS = [
       const split = splitGoalSentence(doc.goal);
       return split ? { ...doc, ...split } : doc;
     },
+  },
+  // v4 adds `memory` and caps each log entry at LOG_NOTES_MAX notes.
+  {
+    from: 3,
+    to: 4,
+    transform: (doc) => ({
+      ...doc,
+      memory: [],
+      log: (doc.log ?? []).map((e) => ({ ...e, notes: (e.notes ?? []).slice(0, LOG_NOTES_MAX) })),
+    }),
   },
 ];
 

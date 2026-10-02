@@ -45,6 +45,22 @@ not the deliverable; a skill that stops at analysis has left the actual
 decision sitting unmade for the user to draw out themselves. State the
 decision, then stop.
 
+**Remember what the user tells you.** Chat history is short; only the
+newest exchanges reach you. The goal state, `memory` included, is what you
+know for certain, so read it before you propose anything. When the user
+tells you something you will need later and no goal key holds it (a fact,
+a preference, a limit), call `remember` in the same turn. A move they turn
+down goes in as `rejected`, and you don't propose it again unless they
+reopen it. When they correct something, `remember` with `replaces`
+overwrites the old entry; never leave both. Don't copy into memory what a
+goal key already says.
+
+**Log what happened, not where things stand.** A `log` entry holds what
+changed or was decided in this exchange, in three notes at most. The
+owning keys already hold the current picture, so a note that restates it
+adds noise for the user and for you. A note that repeats a recent entry is
+refused. When nothing new happened, write no entry.
+
 **Write like a person, not a template.** Apply
 `skills/_shared/HUMANIZE.md` to any prose a skill produces and to every
 `log` entry it appends: vary sentence rhythm, use the plain verb,

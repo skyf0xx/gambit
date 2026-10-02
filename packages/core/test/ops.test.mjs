@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stubGoal, writeSection, appendLog, setStatus, summarizeChange, WRITABLE_KEYS, capLog, currentFocusEntry, LOG_CAP, GOAL_MAX_WORDS, goalSchema, readingGrade, READING_GRADE_MAX } from '../src/index.mjs';
+import { stubGoal, writeSection, appendLog, setStatus, remember, forget, sameLine, MEMORY_CAP, LOG_NOTES_MAX, LOG_RECENT, summarizeChange, WRITABLE_KEYS, capLog, currentFocusEntry, LOG_CAP, GOAL_MAX_WORDS, goalSchema, readingGrade, READING_GRADE_MAX } from '../src/index.mjs';
 
 const plan = {
   linesOfOperation: [{
@@ -97,6 +97,53 @@ test('appendLog is append-only and validated', () => {
   const r = appendLog(g, { date: '2026-09-19', focus: null, notes: ['started'] });
   assert.equal(r.goal.log.length, 1);
   assert.equal(appendLog(g, { date: 'today', focus: null, notes: [] }).ok, false);
+});
+
+test('appendLog caps notes per entry', () => {
+  const notes = Array.from({ length: LOG_NOTES_MAX + 1 }, (_, i) => `note ${i}`);
+  assert.equal(appendLog(stubGoal('g'), { date: '2026-10-02', focus: null, notes }).ok, false);
+});
+
+test('sameLine catches a restatement, not two lines that share a name', () => {
+  assert.equal(sameLine('Complaint sent to council, Blackmore copied. It asks for nothing.', 'Complaint lodged with council, Blackmore copied. It asks for nothing.'), true);
+  assert.equal(sameLine('Blackmore first: on council before 2019.', 'Blackmore drops to a fallback. A council referral may arrive free.'), false);
+});
+
+test('appendLog refuses a note that repeats a recent entry or its own entry', () => {
+  const said = 'Complaint sent to council, Blackmore copied. It asks for nothing and sets no date.';
+  const again = 'Complaint lodged with council, Blackmore copied. It asks for nothing and sets no date.';
+  const g = appendLog(stubGoal('g'), { date: '2026-10-02', focus: null, notes: [said] }, 'negotiate').goal;
+  const r = appendLog(g, { date: '2026-10-02', focus: null, notes: ['Posture held at quiet.', again] }, 'strategy');
+  assert.equal(r.ok, false);
+  assert.equal(r.errors[0].path, 'log.notes.1');
+  assert.match(r.errors[0].message, /repeats the 2026-10-02 negotiate entry/);
+  assert.equal(appendLog(stubGoal('g'), { date: '2026-10-02', focus: null, notes: [said, again] }).errors[0].path, 'log.notes.1');
+  // Past the recent window, a line may come up again.
+  let h = g;
+  for (let i = 0; i < LOG_RECENT; i++) h = appendLog(h, { date: '2026-10-02', focus: null, notes: [`step ${i}`] }).goal;
+  assert.equal(appendLog(h, { date: '2026-10-02', focus: null, notes: [again] }).ok, true);
+});
+
+test('remember keeps, corrects in place, refuses repeats and overflow; forget drops', () => {
+  const day = '2026-10-02';
+  let g = remember(stubGoal('g'), { kind: 'rejected', text: 'No cold outreach to the rail company.' }, day).goal;
+  assert.deepEqual(g.memory, [{ kind: 'rejected', text: 'No cold outreach to the rail company.', date: day }]);
+  const twin = remember(g, { kind: 'rejected', text: 'No cold outreach at all to the rail company, ever.' }, day);
+  assert.equal(twin.ok, false);
+  assert.match(twin.errors[0].message, /replaces: 0/);
+  g = remember(g, { kind: 'fact', text: 'Complaint went to Cr Blackmore directly.' }, day).goal;
+  g = remember(g, { kind: 'fact', text: 'Complaint went to Cr Blackmore, not as a copy.', replaces: 1 }, day).goal;
+  assert.equal(g.memory.length, 2);
+  assert.equal(g.memory[1].text, 'Complaint went to Cr Blackmore, not as a copy.');
+  assert.equal(remember(g, { kind: 'fact', text: 'x', replaces: 9 }, day).ok, false);
+  assert.equal(remember(g, { kind: 'guess', text: 'x' }, day).ok, false);
+  assert.equal(writeSection(g, 'memory', []).ok, false);
+  let full = stubGoal('g');
+  for (let i = 0; i < MEMORY_CAP; i++) full = { ...full, memory: [...full.memory, { kind: 'fact', text: `fact ${i}`, date: day }] };
+  assert.match(remember(full, { kind: 'fact', text: 'one more' }, day).errors[0].message, /full/);
+  g = forget(g, 0).goal;
+  assert.equal(g.memory.length, 1);
+  assert.equal(forget(g, 5).ok, false);
 });
 
 test('capLog keeps only the newest LOG_CAP entries once over the cap', () => {

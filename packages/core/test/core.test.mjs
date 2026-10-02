@@ -10,7 +10,7 @@ test('stubGoal is valid and seeded from title', () => {
   const g = stubGoal('Ship it');
   assert.equal(goalSchema.safeParse(g).success, true);
   assert.equal(g.goal, 'Ship it');
-  assert.equal(g.schemaVersion, 3);
+  assert.equal(g.schemaVersion, 4);
 });
 
 test('schema rejects bad dates, enums, and over-long labels', () => {
@@ -67,24 +67,33 @@ test('readGoal: ok, invalid, and newer-version paths', () => {
   assert.equal(readGoal(stubGoal('g')).status, 'ok');
   assert.equal(readGoal('{nope').status, 'invalid');
   assert.equal(readGoal({ goal: 'x' }).status, 'invalid');
-  assert.deepEqual(readGoal({ ...stubGoal('g'), schemaVersion: 4 }), { status: 'needs_app_update', version: 4 });
+  assert.deepEqual(readGoal({ ...stubGoal('g'), schemaVersion: 5 }), { status: 'needs_app_update', version: 5 });
 });
 
 test('readGoal: migration chain runs then validates', () => {
-  const migrations = [{ from: 3, to: 4, transform: (d) => ({ ...d, goal: d.goal.toUpperCase() }) }];
-  const r = readGoal(stubGoal('abc'), { migrations, current: 4 });
-  // current schema is still literal(3), so the migrated v4 doc must fail validation loudly rather than pass
+  const migrations = [{ from: 4, to: 5, transform: (d) => ({ ...d, goal: d.goal.toUpperCase() }) }];
+  const r = readGoal(stubGoal('abc'), { migrations, current: 5 });
+  // current schema is still literal(4), so the migrated v5 doc must fail validation loudly rather than pass
   assert.equal(r.status, 'invalid');
-  const noPath = readGoal(stubGoal('abc'), { migrations: [], current: 4 });
-  assert.match(noPath.error, /no migration from schemaVersion 3/);
+  const noPath = readGoal(stubGoal('abc'), { migrations: [], current: 5 });
+  assert.match(noPath.error, /no migration from schemaVersion 4/);
 });
 
-test('readGoal: a v1 document migrates all the way to v3 unchanged (short goal)', () => {
-  const v1 = { ...stubGoal('abc'), schemaVersion: 1 };
+test('readGoal: a v1 document migrates all the way to v4 unchanged (short goal)', () => {
+  const { memory: _, ...v1 } = { ...stubGoal('abc'), schemaVersion: 1 };
   const r = readGoal(v1);
   assert.equal(r.status, 'ok');
   assert.equal(r.migratedFrom, 1);
-  assert.deepEqual(r.data, { ...v1, schemaVersion: 3 });
+  assert.deepEqual(r.data, { ...v1, memory: [], schemaVersion: 4 });
+});
+
+test('readGoal: v3 -> v4 migration adds memory and keeps the first notes of each log entry', () => {
+  const { memory: _, ...rest } = stubGoal('abc');
+  const notes = ['one', 'two', 'three', 'four', 'five'];
+  const r = readGoal({ ...rest, schemaVersion: 3, log: [{ date: '2026-10-02', focus: null, notes }] });
+  assert.equal(r.status, 'ok');
+  assert.deepEqual(r.data.memory, []);
+  assert.deepEqual(r.data.log[0].notes, ['one', 'two', 'three']);
 });
 
 test('readGoal: v2 -> v3 migration splits an over-long goal on a dash', () => {

@@ -19,7 +19,7 @@ import type { Goal } from '../../lib/types';
 //                 a plan to draw.
 //   Inside cover — always last: notebooks/goal-switcher, model and key,
 //                 keep-it-safe (export/backup), this device (clear chat,
-//                 danger zone), and the log ("History", folded) at the
+//                 danger zone), what Gambit remembers, and the log ("History", folded) at the
 //                 foot — history, not something to check, so no tab of
 //                 its own.
 //
@@ -85,7 +85,7 @@ export function tabHasContent(tab: TabId, g: Goal): boolean {
  * or one of the Moves-owned keys) resolves to 'moves'. The special path
  * `inside-cover` (App.tsx's gambit:menu handler) resolves directly. */
 export function tabForPath(path: string): TabId {
-  if (path === 'inside-cover' || path === 'log' || path.startsWith('log.')) return 'inside-cover';
+  if (path === 'inside-cover' || ['log', 'memory'].includes(path.split('.')[0])) return 'inside-cover';
   if (path === 'goal' || path === 'deadline' || path.startsWith('successCriteria') || path.startsWith('subGoals') || path.startsWith('criteriaStatus')) return 'goal';
   const key = path.split('.')[0];
   for (const tab of TAB_ORDER) {
