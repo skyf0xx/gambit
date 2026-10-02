@@ -170,37 +170,30 @@ html, body { height: auto; }
 }
 .story-payoff { padding-top: clamp(48px, 7vw, 96px); }
 
-/* Max's levers: a ruled page table. On phones each row becomes its own
-   card, labelled from data-label. */
-.levers { max-width: 960px; margin: clamp(40px, 6vw, 72px) auto 0; }
-.levers-table { width: 100%; border-collapse: collapse; text-align: left; }
+/* Max's levers: one card per move, his action over the strategy behind it. */
+.levers { max-width: 640px; margin: clamp(40px, 6vw, 72px) auto 0; }
+.levers-table, .levers-table tbody, .levers-table caption { display: block; }
+.levers-table thead { display: none; }
 .levers-table caption {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   font-family: var(--font-hand);
   font-weight: 500;
-  font-size: clamp(26px, 2.6vw, 32px);
+  font-size: clamp(24px, 2.6vw, 32px);
   line-height: 1.2;
   color: var(--graphite);
   text-align: center;
 }
-.levers-table th {
-  padding: 0 16px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--graphite);
-  border-bottom: 1px solid var(--ink);
+.levers-table tr {
+  display: block;
+  margin-bottom: 20px;
+  padding: 24px 28px 26px;
+  border-radius: 4px;
+  background: var(--bg);
+  box-shadow: 0 1px 1px var(--lift), 0 14px 30px -18px var(--lift), 0 0 0 1px var(--edge);
 }
-.levers-table td {
-  padding: 20px 16px;
-  vertical-align: top;
-  font-size: 18px;
-  line-height: 1.45;
-  color: var(--graphite);
-  border-bottom: 1px solid var(--rule);
-}
-.levers-table td:nth-child(2) { color: var(--ink); }
+.levers-table td { display: block; padding: 0; border: 0; font-size: 18px; line-height: 1.4; color: var(--ink); }
+.levers-table td:first-child { font-weight: 500; }
+.levers-table td:last-child { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rule); }
 /* The story hands the reader the next move. */
 .your-move { padding-top: clamp(96px, 12vw, 160px); text-align: center; }
 .your-move .closer-title { margin-bottom: 20px; }
@@ -223,7 +216,6 @@ html, body { height: auto; }
   color: var(--accent);
 }
 .levers-table td span { display: block; margin-top: 4px; color: var(--ink); }
-.levers-table td small { display: block; margin-top: 6px; font-size: 14px; color: var(--graphite); }
 
 /* A pencilled aside in the margin. */
 .margin-note {
@@ -388,26 +380,8 @@ html, body { height: auto; }
   .move-m { order: 4; margin-top: 48px; }
   .beat-pair .sheet:last-child { order: 5; }
   .beat-pair .sheet { width: min(400px, 92%); }
-  .levers-table, .levers-table tbody, .levers-table caption { display: block; }
-  .levers-table thead { display: none; }
-  /* Each row becomes a card: Max's move over the strategy, under a rule.
-     Gaston and the strategy's sub-label are dropped to keep it short. */
-  .levers-table tr {
-    display: block;
-    margin-bottom: 16px;
-    padding: 18px 18px 20px;
-    border-radius: 4px;
-    background: var(--bg);
-    box-shadow: 0 1px 1px var(--lift), 0 14px 30px -18px var(--lift), 0 0 0 1px var(--edge);
-  }
-  .levers-table td { display: block; padding: 0; border: 0; font-size: 16px; line-height: 1.4; }
-  .levers-table td:nth-child(1), .levers-table td small, .levers-table td::before { display: none; }
-  .levers-table td:nth-child(2) { font-weight: 500; }
-  .levers-table td:nth-child(3) {
-    margin-top: 14px;
-    padding-top: 14px;
-    border-top: 1px solid var(--rule);
-  }
+  .levers-table tr { padding: 18px 18px 20px; }
+  .levers-table td { font-size: 16px; }
   .levers-table td strong { font-size: 19px; }
   .levers-table td span { font-size: 16px; }
   .levers-table caption { font-size: 24px; }
