@@ -454,7 +454,10 @@ export function MarksLayer() {
   return (
     <div ref={containerRef} className="pointer-events-none absolute inset-0" aria-hidden="true">
       <svg ref={underRef} className="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true" />
-      <svg ref={overRef} className="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true" />
+      {/* Above the page content (which would otherwise catch the pointer
+       * over a margin star or "?") but under the sticky title bar (z-10).
+       * It ignores the pointer except on those marks' hit areas. */}
+      <svg ref={overRef} className="pointer-events-none absolute inset-0 z-[5] h-full w-full overflow-visible" aria-hidden="true" />
     </div>
   );
 }
