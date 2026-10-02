@@ -6,7 +6,6 @@ import { clearChat } from '../lib/agent';
 import { readDurability, requestPersistence, installRoute, installSteps, useUi, type Durability } from '../lib/persist';
 import { bindExportFile, commitImport, downloadExport, fileSyncState, fsAccessSupported, planImport, reauthorizeFileSync, unbindExportFile, type Choice, type ImportItem } from '../lib/portability';
 import { setTheme, useTheme, type Theme } from '../lib/theme';
-import { methodsLicense } from '../lib/skills';
 import { fmtUsd } from '../lib/cost';
 import { getProvider, PROVIDERS, type ProviderSettings } from '../lib/providers';
 import { hasApiKey } from '../lib/crypto';
@@ -237,22 +236,21 @@ function ThemePicker() {
   );
 }
 
-function Licenses() {
-  const [t, setT] = useState('');
-  useEffect(() => { void methodsLicense().then(setT); }, []);
-  return <pre className="max-h-64 overflow-auto whitespace-pre-wrap font-mono text-[13px] text-graphite">{t}</pre>;
-}
+const link = 'underline underline-offset-[3px] hover:text-ink';
 
 /** The maker's mark, where a notebook carries it: inside the cover, at the
  * foot. The only place the wordmark appears once a notebook is open. */
 function Colophon() {
-  const [open, setOpen] = useState(false);
   return (
     <footer className="space-y-1 border-t border-rule pt-6">
       <div className="font-serif text-[17px] font-semibold leading-[25.5px] tracking-[-0.01em] text-ink">gambit</div>
       <p className="text-[14px] leading-[22px] text-graphite">Version {__APP_VERSION__}</p>
-      <Act className="text-[14px]!" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Hide licenses' : 'Licenses'}</Act>
-      {open && <div className="anim-fade-in"><Licenses /></div>}
+      <p className="text-[14px] leading-[22px] text-graphite">
+        Uses skills adapted from the <a className={link} href="https://github.com/bmad-code-org/BMAD-METHOD" target="_blank" rel="noreferrer">BMAD Method</a> (<a className={link} href="/licenses/BMAD/LICENSE" target="_blank" rel="noreferrer">MIT</a>).
+      </p>
+      <p className="pt-4 text-[14px] leading-[22px] text-graphite">
+        Find Gambit useful? <a className={link} href="https://github.com/skyf0xx/gambit" target="_blank" rel="noreferrer">Star us on GitHub</a> ★
+      </p>
     </footer>
   );
 }

@@ -93,7 +93,6 @@ export function parseMethods(csv: string): Method[] {
 }
 
 export const methods = parseMethods(methodsCsv);
-export const methodsLicense = () => import('../../vendor/BMAD/ATTRIBUTION.md?raw').then((m) => m.default);
 
 export function elicitationMethods(args: { command: string; categories?: string[]; names?: string[]; n?: number; exclude?: string[]; all?: boolean }) {
   const short = (m: Method) => `${m.num}. ${m.name} — ${m.description}`;
