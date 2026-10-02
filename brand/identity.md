@@ -15,7 +15,7 @@ The page is still mostly empty. Paper earns its place by carrying meaning, and w
 
 **Wordmark:** "gambit" in lowercase Noto Serif Semibold, drawn as an SVG so it never waits on a font. Inside the app it appears small, and only on the first screen and inside the cover: the foot of the Settings page.
 
-**Symbol:** **"!?"**, the chess annotation for a *speculative, interesting move*, which is exactly what a gambit is. It's drawn with a single pencil stroke in the accent colour. It's the app icon and favicon. Inside the app, it's never used as decoration; its one place is beside the advisor's turns in the conversation.
+**Symbol:** **"!?"**, the chess annotation for a *speculative, interesting move*, which is exactly what a gambit is. It's drawn with a single pencil stroke in the accent colour. It's the app icon and favicon. Inside the app, it's never used as decoration.
 
 **Character:** a considered risk, with curiosity and nerve.
 
@@ -121,7 +121,7 @@ All fonts are **self-hosted** (`@fontsource-variable/*` and `@fontsource/caveat`
 - **Actions are text by default.** "Keep it" and "Toss" are plain typed words. Marking something done is the exception: it is always a hand-drawn tick box, on the index card as on every other line. On hover or keyboard focus, a pencil circles the action. Quiet secondary links ("undo", "Details") stay underlined instead of circled. A screen has at most one filled button, a block of ink with a slight bleed, and only when a single action is clearly the way forward ("Open Google AI Studio").
 - **The next move is the index card at the top of the page** (§03). When nothing is due, the card asks "What's your next move?", and its pencilled line says there's nothing due yet.
 - **Where you write is ruled.** The first-screen writing area and text fields sit on `--card-rule` lines.
-- **The conversation is a loose leaf over the page.** It reads like a messenger without the bubbles: your words and the advisor's are typed text. Yours sit on the right behind a pencilled rule, with no mark. The advisor's sit on the left beside its mark, the accent "!?" in a pencilled ring. Everything between turns sits centred in pencil: "thinking…", the "Show reasoning" toggle, and the one line summing up what the turn wrote to the page ("wrote to your page: Priya confirmed · 1 new risk").
+- **The conversation is a loose leaf over the page.** It reads like a messenger without the bubbles: your words and the advisor's are typed text. Yours sit on the right behind a pencilled rule, with no mark. The advisor's sit on the left beside its portrait (`apps/pwa/public/avatar.webp`: a hand-drawn strategist in ink and muted wash, with one accent pocket square) in a pencilled ring. Everything between turns sits centred in pencil: "thinking…", the "Show reasoning" toggle, and the one line summing up what the turn wrote to the page ("wrote to your page: Priya confirmed · 1 new risk").
 - **A change made by the conversation** gets the accent loop, and a pencilled accent note under the line ("new, from your chat · undo").
 - **An empty section is one pencilled question you can tap**, phrased as the question that fills it ("Nobody named yet. Who has a say in this?"). It isn't an illustration or a button.
 - **Every text action has a tap area at least 44px tall**, and every control shows an ink focus ring for keyboard use.
@@ -169,7 +169,7 @@ Strokes are drawn with **perfect-freehand**, so they taper with pressure like a 
 
 ## 06 — Imagery
 
-For the README, website and social posts only. The app itself has no imagery.
+For the README, website and social posts only. The app itself has no imagery, except the advisor's portrait beside its turns in the conversation.
 
 - **Aesthetic:** documentary and quiet. Hands, pads, index cards and plans in progress.
 - **Treatment:** warm natural light, slightly desaturated, with lots of negative space.

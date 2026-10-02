@@ -90,7 +90,7 @@ export default defineConfig({
     ogPlugin(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'apple-touch-icon.png', 'avatar.webp'],
       manifest: {
         name: 'Gambit',
         short_name: 'Gambit',
