@@ -26,9 +26,14 @@ export function isStub(goal) {
 
 const list = (s) => (s ?? '').split(',').map((x) => x.trim()).filter(Boolean);
 
+/** @typedef {{ name: string, writes: string[], requires: string, next: string[], checkpoint: boolean, errors: string[] }} SkillFlow */
+/** @typedef {{ active?: string, caller?: string, fresh: string[] }} FlowSession */
+
 /**
  * A skill's flow fields from its parsed frontmatter.
- * @returns {{ name: string, writes: string[], requires: 'goal'|'any', next: string[], checkpoint: boolean, errors: string[] }}
+ * @param {string} name
+ * @param {Record<string, string>} meta
+ * @returns {SkillFlow}
  */
 export function skillFlow(name, meta) {
   const writes = list(meta.writes);
@@ -41,12 +46,20 @@ export function skillFlow(name, meta) {
   return { name, writes, requires, next, checkpoint: meta.checkpoint === 'true', errors };
 }
 
-/** Skills whose `writes` include this key. */
+/**
+ * Skills whose `writes` include this key.
+ * @param {string} key
+ * @param {SkillFlow[]} skills
+ */
 export function writersOf(key, skills) {
   return skills.filter((s) => s.writes.includes(key)).map((s) => s.name);
 }
 
-/** May this skill be loaded against this goal? */
+/**
+ * May this skill be loaded against this goal?
+ * @param {SkillFlow} skill
+ * @returns {{ ok: true } | { ok: false, error: string }}
+ */
 export function canLoad(skill, goal) {
   if (skill.requires === 'goal' && isStub(goal)) {
     return { ok: false, error: `the goal is not defined yet, so ${skill.name} has nothing to work on; load intake first` };
@@ -56,15 +69,16 @@ export function canLoad(skill, goal) {
 
 /**
  * May the session write this key now?
- * @param {{ active?: string, caller?: string, fresh: string[] }} session
+ * @param {FlowSession} session
  *   active: the loaded skill; caller: the skill a checkpoint runs inside;
  *   fresh: skills loaded during the current turn.
  * @param {string} key  goal key, or "log" for append_log
  * @param {'write_section'|'set_status'|'append_log'} op
- * @param {ReturnType<typeof skillFlow>[]} skills
+ * @param {SkillFlow[]} skills
+ * @returns {{ ok: true } | { ok: false, error: string }}
  */
 export function canWrite(session, key, op, skills) {
-  const byName = (n) => skills.find((s) => s.name === n);
+  const byName = (/** @type {string} */ n) => skills.find((s) => s.name === n);
   const owners = writersOf(key, skills);
   const who = owners.length ? owners.join(' or ') : 'no skill';
   const active = session.active ? byName(session.active) : undefined;

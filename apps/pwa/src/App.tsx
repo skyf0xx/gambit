@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { isStub } from '@gambit/core';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { db } from './lib/db';
 import { getActiveGoalId, migrateAll, setActiveGoal } from './lib/goals';
@@ -57,7 +58,7 @@ function Main() {
   const cost = useSessionCost();
   const current = goals?.find((g) => g.id === activeId) ?? goals?.[0];
   const view = useGoalView(current?.id ?? '');
-  const stub = view?.status === 'ok' && view.data.successCriteria.length === 1 && view.data.successCriteria[0].text === 'define success criteria';
+  const stub = view?.status === 'ok' && isStub(view.data);
 
   useEffect(() => { if (current && current.id !== activeId) void setActiveGoal(current.id); }, [current, activeId]);
   useEffect(() => startFileSync(), []);

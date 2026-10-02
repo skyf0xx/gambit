@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { writeSection } from '@gambit/core';
+import { isStub, writeSection } from '@gambit/core';
 import { applyOp } from '../../lib/goals';
 import type { Goal } from '../../lib/types';
 import { RuledInput, PencilWord } from '../ui';
@@ -13,7 +13,7 @@ const norm = (s: string) => s.trim().toLowerCase();
 function GoalHeader({ g, goalId }: { g: Goal; goalId: string }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(g.goal);
-  const stub = g.successCriteria.length === 1 && g.successCriteria[0].text === 'define success criteria';
+  const stub = isStub(g);
   return (
     <header className="space-y-1">
       {editing ? (
@@ -73,7 +73,7 @@ function SubGoals({ subGoals }: { subGoals: string[] }) {
  * scored line that matches no criterion falls through to its own
  * Progress section. */
 export function GoalTab({ g, goalId }: { g: Goal; goalId: string }) {
-  const stub = g.successCriteria.length === 1 && g.successCriteria[0].text === 'define success criteria';
+  const stub = isStub(g);
   const scored = new Map(g.criteriaStatus.map((c) => [norm(c.text), c]));
   const criteria = g.successCriteria.map((c) => {
     const s = scored.get(norm(c.text));
