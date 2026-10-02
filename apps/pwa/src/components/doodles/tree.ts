@@ -1,3 +1,4 @@
+import { currentFocusEntry } from '@gambit/core';
 import type { Goal } from '../../lib/types';
 
 // The goal record as a plain tree for the Doodles mind map — no DOM, no
@@ -23,7 +24,7 @@ export function buildDoodleTree(goal: Goal): DoodleItem | null {
   const lines = goal.plan?.linesOfOperation ?? [];
   if (lines.length === 0) return null;
 
-  const focusText = [...goal.log].reverse().find((e) => e.focusLine)?.focusLine;
+  const focusText = currentFocusEntry(goal.log)?.focusLine;
   const isFocus = (text: string) => focusText != null && norm(text) === norm(focusText);
   const children: DoodleItem[] = [];
 

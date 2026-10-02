@@ -1,3 +1,5 @@
+import { currentFocusEntry } from '@gambit/core';
+import { nextMove } from '../slips';
 import type { LinePath } from '../changes';
 import type { Goal } from '../types';
 import type { Mark } from './types';
@@ -85,43 +87,23 @@ export function deriveMarks(goal: Goal, goalId: string, sessionState: SessionSna
     if (status === 'met') set(c.path, { kind: 'tick', sr: 'done' });
   });
 
-  // --- highlight: focusLine on the latest log entry that has one ---
-  let focusPath: LinePath | undefined;
-  const log = goal.log ?? [];
-  for (let i = log.length - 1; i >= 0; i--) {
-    const fl = log[i].focusLine;
-    if (fl) {
-      const target = norm(fl);
-      const hit = [...planLines, ...criteria].find((n) => norm(n.text) === target);
-      if (hit) {
-        focusPath = hit.path;
-        set(hit.path, { kind: 'highlight', sr: 'focus' });
-      }
-      break;
-    }
+  // --- highlight: the focusLine of the entry holding the current focus
+  // (core's currentFocusEntry); a newer focus with no single line clears it ---
+  const fl = currentFocusEntry(goal.log ?? [])?.focusLine;
+  if (fl) {
+    const target = norm(fl);
+    const hit = [...planLines, ...criteria].find((n) => norm(n.text) === target);
+    if (hit) set(hit.path, { kind: 'highlight', sr: 'focus' });
   }
 
-  // --- star: first pending step/next action in the LoO containing the focus
-  // line; fallback to a line whose label equals systemsNotes' schwerpunkt.
-  // When the highlighted focus is itself an open step or action, it already
-  // says what to do next, and a star beside a second line only competes
-  // with it. ---
-  let starLoIndex: number | undefined;
-  const focusOpen = planLines.some((pl) => pl.path === focusPath && (pl.status ?? 'pending') === 'pending');
-  if (focusOpen) {
-    // no star
-  } else if (focusPath) {
-    const containing = planLines.find((pl) => pl.path === focusPath);
-    if (containing) starLoIndex = containing.loIndex;
-  }
-  if (!focusOpen && starLoIndex === undefined && goal.systemsNotes?.schwerpunkt) {
-    const target = norm(goal.systemsNotes.schwerpunkt);
-    const idx = (goal.plan?.linesOfOperation ?? []).findIndex((l) => norm(l.label) === target);
-    if (idx >= 0) starLoIndex = idx;
-  }
-  if (starLoIndex !== undefined) {
-    const candidate = planLines.find((pl) => pl.loIndex === starLoIndex && (pl.status ?? 'pending') === 'pending');
-    if (candidate) set(candidate.path, { kind: 'star', sr: 'next up' });
+  // --- star: the step the top move is working toward — the first pending
+  // critical-path step on the top move's own line (slips.ts nextMove, the
+  // index card). No top move, or no open step on its line, means no star. ---
+  const top = nextMove(goal);
+  if (top) {
+    const li = Number(top.path.split('.')[2]);
+    const step = (goal.plan?.linesOfOperation[li]?.criticalPath ?? []).findIndex((st) => st.status === 'pending');
+    if (step >= 0) set(`plan.linesOfOperation.${li}.criticalPath.${step}`, { kind: 'star', sr: 'your top move is working toward this' });
   }
 
   // --- arrow: riskNotes[].dependsOn matched to a person/stakeholder name.

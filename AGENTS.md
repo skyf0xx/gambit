@@ -195,9 +195,13 @@ keeps `people[].status` current.
 
 `log` is the only append-only key, capped at the newest 30 entries —
 `append_log` (`packages/core/src/ops.mjs`) drops the oldest entries past
-that cap, except it always keeps the most recent entry that carries a
-`focusLine`, even when older than the cap, since the dashboard's
-highlighter reads it. Chat history is a rolling window, not a persisted
+that cap, except it always keeps the entry holding the current focus
+(`currentFocusEntry`: the newest entry that sets a `focus`, from `strategy`),
+even when older than the cap, since the dashboard's highlighter reads its
+`focusLine`. Only `strategy` names that line: `append_log` stamps each
+entry's `source` with the writing skill and drops a `focusLine` from any
+other skill. A newer focus with no single line clears the highlight rather
+than leaving an old one on the page. Chat history is a rolling window, not a persisted
 transcript: only the newest turns are kept in storage per goal (see
 `CHAT_TURNS` in `apps/pwa/src/lib/agent.ts`), counted the same way for the
 model's history and the chat the user sees, and the model request applies

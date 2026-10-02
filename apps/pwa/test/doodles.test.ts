@@ -26,7 +26,7 @@ function richGoal(): Goal {
         },
       ],
     },
-    log: [{ date: '2026-01-01', focus: null, notes: ['n'], focusLine: 'Ship it' }],
+    log: [{ date: '2026-01-01', focus: 'ship', notes: ['n'], focusLine: 'Ship it' }],
   } as Goal;
 }
 

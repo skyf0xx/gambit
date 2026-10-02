@@ -466,7 +466,7 @@ export function MarksLayer() {
 export function noteForMark(mark: Mark): string | null {
   switch (mark.kind) {
     case 'star':
-      return 'do this next, to move your focus along';
+      return 'your top move is working toward this';
     case 'arrow':
       return mark.sr;
     case 'question':
@@ -474,7 +474,7 @@ export function noteForMark(mark: Mark): string | null {
     case 'loop':
       return 'new from your chat';
     case 'highlight':
-      return 'your focus: the one thing to push on now';
+      return 'anything that doesn\'t help this can wait';
     default:
       return null;
   }

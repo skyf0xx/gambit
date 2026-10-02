@@ -21,6 +21,8 @@ const UNTITLED: Record<string, string | null> = {
 /** Page furniture that isn't one key's section, with what it reads. */
 const FURNITURE = [
   `Moves tab, "Your top move" (the index card): the first nextActions entry with status pending on the line with focus: true, else the first pending one in plan order. Ticking its box sets it done.`,
+  `Highlighter (a yellow swipe behind a line): the focusLine of strategy's newest focus — its hover note reads "anything that doesn't help this can wait". Only strategy moves it; a focus with no single line clears it.`,
+  `Star (in the margin): the first pending criticalPath step on the top move's line — "your top move is working toward this".`,
   `Moves tab, "Gambit suggests" (a sticky note): a nextActions entry with status proposed. "Keep it" sets pending, "Toss" sets dropped.`,
   `"All moves" is the whole plan: a row of handwritten line-of-operation names (a "!" marks one at risk or blocked); the selected one, underlined, shows its criticalPath steps, then its nextActions. The top move isn't repeated there, and done items fold into an "n done" line. The user may call either one "moves", "steps" or "to-dos".`,
   `Goal tab, "What done looks like": each successCriteria line carries its criteriaStatus score — an open ring, a tick once met, or the word at risk / stalled / regressing. The separate "Progress" list only holds a score whose text matches no criterion.`,

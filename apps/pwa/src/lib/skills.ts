@@ -151,7 +151,7 @@ capacity: null | {availableHrsPerWeek: number ≥0 | null, runway: S, watch?: M,
 forecasts: [{statement: M, probability: int 0-100, resolvesBy: date, resolvesVia: S, resolved: boolean, outcome?: yes|no, verdict?: M, detail?}]
 experiments: [{assumption: M, test: M, passIf: M, by: date, done: boolean, result?: M, changedAsResult?: M, detail?}]
 decisions: [{date, status?: open|decided (default decided), question?: M, choice?: M, because?: M, reverseIf?: M, reviewBy?: date}]; open needs question, decided needs choice and reverseIf
-log entry (append_log): {date?, assessment?: on_track|at_risk|stalled|regressing, focus: ≤160 | null, focusLine?: ≤120 (verbatim text of the one criterion, next action or step the focus lands on), notes: [M] ≤200, source?: S}`;
+log entry (append_log): {date?, assessment?: on_track|at_risk|stalled|regressing, focus: ≤160 | null, focusLine?: ≤120 (strategy only: verbatim text of the one criterion, next action or step the focus lands on; the page highlights it), notes: [M] ≤200, source?: S}`;
 
 export const PREAMBLE = `You are Gambit, a strategic advisor running inside a local-first web app. The user's goal lives in an on-device store and is shown live on a dashboard beside this chat.
 

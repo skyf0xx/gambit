@@ -145,7 +145,14 @@ export function makeTools(ctx: ToolContext) {
         notes: z.array(z.string()),
         source: z.string().optional(),
       }),
-      execute: async (entry) => (await gate(ctx.session, 'log', 'append_log')) ?? result(await applyOp(ctx.goalId, (g) => appendLog(g, { ...entry, date: entry.date ?? today() }) as never)),
+      execute: async (entry) => {
+        const refused = await gate(ctx.session, 'log', 'append_log');
+        if (refused) return refused;
+        // A checkpoint (elicit) writes on behalf of the skill it runs inside.
+        const active = skillFlows(await getSkillStore()).find((s) => s.name === ctx.session.active);
+        const writer = active?.checkpoint ? ctx.session.caller : ctx.session.active;
+        return result(await applyOp(ctx.goalId, (g) => appendLog(g, { ...entry, date: entry.date ?? today() }, writer) as never));
+      },
     }),
     set_status: tool({
       description: 'Flip one step, sub-item or next action to pending, done or dropped without rewriting the section (a next action can also be set to proposed). path is dotted, e.g. "plan.linesOfOperation.0.nextActions.2".',
