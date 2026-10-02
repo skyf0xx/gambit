@@ -172,11 +172,11 @@ html, body { height: auto; }
 
 /* Max's levers: one card per move, his action over the strategy behind it. */
 .levers { max-width: 640px; margin: clamp(96px, 12vw, 160px) auto 0; }
-.sheet.levers-cover { display: block; margin: clamp(48px, 7vw, 80px) auto 0; width: min(400px, 92%); }
-.levers-table, .levers-table tbody, .levers-table caption { display: block; }
+.sheet.levers-cover { display: block; margin: 0 auto clamp(40px, 6vw, 64px); width: min(400px, 92%); }
+.levers-table, .levers-table tbody { display: block; }
 .levers-table thead { display: none; }
-.levers-table caption {
-  margin-bottom: 28px;
+.levers-title {
+  margin: 0 0 28px;
   font-family: var(--font-serif);
   font-weight: 600;
   font-size: clamp(26px, 3vw, 38px);
