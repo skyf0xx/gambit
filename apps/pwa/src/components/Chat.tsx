@@ -262,6 +262,23 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
     else if (display.length > 0 || draft) setShowJump(true);
   }, [display.length, draft?.text, draft?.tools.length]);
 
+  // When a reply lands taller than the conversation's view, land on its
+  // first line rather than its last, so it reads from the top without
+  // scrolling back up. Only for a new reply while the reader was following
+  // along at the bottom; a reply that fits leaves the view at the bottom.
+  const seenReply = useRef<{ goalId: string; id?: string } | null>(null);
+  useEffect(() => {
+    if (!chat) return;
+    const prev = seenReply.current;
+    seenReply.current = { goalId, id: lastAssistantId };
+    if (!prev || prev.goalId !== goalId || prev.id === lastAssistantId || !lastAssistantId) return;
+    const view = scrollRef.current;
+    const msg = view?.querySelector<HTMLElement>(`[data-msg="${lastAssistantId}"]`);
+    if (!view || !msg || msg.offsetHeight <= view.clientHeight - 48) return;
+    msg.scrollIntoView({ block: 'start' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chat, goalId, lastAssistantId]);
+
   useEffect(() => { dictation.cancel(); setInputState(loadDraft(goalId)); setError(''); setVoiceNote(''); }, [goalId]);
 
   // Grow the composer with its text, up to MAX_LINES, then let it scroll.
@@ -512,6 +529,16 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
     </div>
   );
 
+  // Who you're talking to, at the top of the conversation as in a messenger.
+  // Named once here rather than over every message: there's only one other
+  // side.
+  const header = (
+    <div className="flex items-center gap-3">
+      <GambitAvatar size={36} />
+      <span className="text-[17px] leading-6 font-semibold text-ink">Gambit</span>
+    </div>
+  );
+
   const conversation = (
     <div ref={scrollRef} className="relative min-h-0 flex-1 space-y-6 overflow-y-auto px-5 py-6">
       {(busy || workingSkill) && (
@@ -535,7 +562,7 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
             {m.text}
           </p>
         ) : (
-          <div key={m.id} className="anim-rise mt-8 space-y-2">
+          <div key={m.id} data-msg={m.id} className="anim-rise mt-8 scroll-mt-4 space-y-2">
             {/* Gambit's: on the left, beside its mark. */}
             <div className="flex items-start gap-3">
               <GambitAvatar />
@@ -622,6 +649,7 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
         style={{ filter: 'drop-shadow(-1px 0 1px var(--lift)) drop-shadow(-12px 0 30px -12px var(--lift-far))' }}
       >
         <div className="slip flex h-full min-h-0 flex-col">
+          <div className="border-b border-rule px-5 py-3">{header}</div>
           {conversation}
           {composer}
         </div>
@@ -656,7 +684,7 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
         style={{ filter: 'drop-shadow(0 -1px 1px var(--lift)) drop-shadow(0 -10px 18px var(--lift-far))', clipPath: 'var(--torn, none)' }}
       >
         <div className="flex items-center justify-between px-5 pt-2">
-          <span className="text-[14px] text-graphite">Conversation</span>
+          {header}
           <button
             onClick={requestClose}
             aria-label="Back to your page"

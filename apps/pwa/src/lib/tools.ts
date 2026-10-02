@@ -33,12 +33,17 @@ export async function goalStateJson(goalId: string): Promise<string> {
  * the reply (Chat.tsx). Caps are tight on purpose — a reply that runs long
  * fails validation and the model rewrites it. */
 export const REPLY_KINDS = ['question', 'decision', 'confirm', 'fyi'] as const;
+/** Everything the user sees of a turn, in words. Nothing actionable needs more. */
+export const REPLY_MAX_WORDS = 80;
+const words = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
+export const replyWords = (r: { say: string; bottomLine: string; options?: string[] }) =>
+  words(r.say) + words(r.bottomLine) + (r.options ?? []).reduce((n, o) => n + words(o), 0);
 export const replySchema = z.object({
   say: z.string().min(1).max(160).describe('One short plain sentence: what you found or did. No headings, no lists.'),
   bottomLine: z.string().min(1).max(120).describe('What you need from the user now, or your one recommended next move. One sentence, with no label in front (the page adds one).'),
   kind: z.enum(REPLY_KINDS).describe('question: you need a fact only they have. decision: they must make a call. confirm: you want a yes before writing. fyi: nothing needed, here is the next move.'),
   options: z.array(z.string().min(1).max(40)).max(5).optional().describe('Up to 5 short answers the user can tap instead of typing, recommended one first. Omit for an open question.'),
-});
+}).refine((r) => replyWords(r) <= REPLY_MAX_WORDS, { message: `The reply runs past ${REPLY_MAX_WORDS} words in all. Cut it: one point, one ask.` });
 export type Reply = z.infer<typeof replySchema>;
 
 export function makeTools(ctx: ToolContext) {

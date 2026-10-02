@@ -1,11 +1,11 @@
-import { streamText, stepCountIs, type ModelMessage, type StopCondition, type ToolSet } from 'ai';
+import { generateText, streamText, stepCountIs, type ModelMessage, type StopCondition, type ToolSet } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { summarizeChange } from '@gambit/core';
 import { db, type ChatRecord, type DisplayMsg } from './db';
 import { loadApiKey } from './crypto';
 import { getProvider, makeModel, GOOGLE_FALLBACK_MODEL, type ProviderKind } from './providers';
 import { PREAMBLE, getSkillStore, skillIndexText, skillText } from './skills';
-import { makeTools, goalStateJson, toolLabel, type Reply } from './tools';
+import { makeTools, goalStateJson, toolLabel, replySchema, type Reply } from './tools';
 import { readRecord, restoreSnapshot, snapshot } from './goals';
 import { changedKeys, changedLines } from './changes';
 import { session } from './session';
@@ -26,6 +26,19 @@ export const CHAT_TURNS = 12;
 const STUBBED = new Set(['load_skill', 'read_skill_file', 'get_goal']);
 const CACHE = { anthropic: { cacheControl: { type: 'ephemeral' as const } } };
 const uid = () => Math.random().toString(36).slice(2, 10);
+
+/** One more call, forced to the reply tool, for a turn that ended without
+ * a valid reply. Two tries, so a reply that runs long gets one rewrite. */
+async function condenseToReply(model: Parameters<typeof streamText>[0]['model'], messages: ModelMessage[], reply: ToolSet[string], signal: AbortSignal, onUsage: (u: { inputTokens?: number; cachedInputTokens?: number; outputTokens?: number }) => void): Promise<Reply | undefined> {
+  const ask: ModelMessage = { role: 'user', content: 'Condense what you just wrote into your reply call: one short point, one ask or next move, under 80 words in all.' };
+  for (let i = 0; i < 2; i++) {
+    const r = await generateText({ model, messages: [...messages, ask], tools: { reply: { ...reply, execute: undefined } }, toolChoice: { type: 'tool', toolName: 'reply' }, abortSignal: signal, maxRetries: 1 });
+    onUsage(r.usage);
+    const parsed = replySchema.safeParse(r.toolCalls[0]?.input);
+    if (parsed.success) return parsed.data;
+  }
+  return undefined;
+}
 
 /** Stop once a reply call has gone through. Not the SDK's hasToolCall,
  * which also stops on a reply that failed validation, leaving the model no
@@ -205,6 +218,17 @@ export async function runTurn(opts: {
     error = signal.aborted ? 'Cancelled.' : errorText(raw, prov.kind);
     const busy = (raw as { statusCode?: number })?.statusCode === 503;
     if (!busy || signal.aborted || out || reply || entries.length || i === models.length - 1) break;
+  }
+
+  // A turn that ended without a valid reply (a model that skipped the call,
+  // kept failing validation, or ran out of steps) never shows its raw text
+  // as the answer: one forced reply call condenses it, and the text stays
+  // under the reply as reasoning.
+  if (!error && !reply && out.trim() && !signal.aborted) {
+    reply = await condenseToReply(model, [...system, ...history, userMsg, ...newMessages], tools.reply, signal, (u) => {
+      usage = { input: usage.input + (u.inputTokens ?? 0), cached: usage.cached + (u.cachedInputTokens ?? 0), output: usage.output + (u.outputTokens ?? 0) };
+    }).catch(() => undefined);
+    if (reply) onEvent({ type: 'reply', reply });
   }
 
   if (error) {

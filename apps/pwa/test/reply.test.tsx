@@ -17,6 +17,12 @@ describe('reply', () => {
     expect(replySchema.safeParse({ ...reply, kind: 'essay' }).success).toBe(false);
   });
 
+  it('caps the whole visible reply at 80 words', () => {
+    const say = Array(70).fill('a').join(' ');
+    expect(replySchema.safeParse({ ...reply, say, bottomLine: 'b c d e f', options: ['g h', 'i'] }).success).toBe(true);
+    expect(replySchema.safeParse({ ...reply, say, bottomLine: 'b c d e f g h', options: ['i j', 'k l'] }).success).toBe(false);
+  });
+
   it('shows the sentence, the labelled bottom line, and options only when pickable', () => {
     const live = renderToStaticMarkup(<ReplyView reply={reply} onPick={() => {}} />);
     expect(live).toContain('Your plan leans on one vendor.');

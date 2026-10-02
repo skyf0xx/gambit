@@ -111,6 +111,11 @@ it after any goal writes, once, as the last thing in the turn:
   "Not quite", a decision's live choices, a skill's method menu. Omit
   for an open question.
 
+The whole reply — `say`, `bottomLine` and `options` together — stays
+under 80 words, and is rejected past that. People don't write walls of
+text to each other, and nothing actionable needs one: the detail lives on
+the page.
+
 Plain text in `say` and `bottomLine`: no markdown, no jargon the user
 hasn't seen glossed. Anything you write outside `reply` is shown
 collapsed under it as your reasoning, for a user who wants to check your
