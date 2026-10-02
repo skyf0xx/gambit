@@ -171,7 +171,8 @@ html, body { height: auto; }
 .story-payoff { padding-top: clamp(48px, 7vw, 96px); }
 
 /* Max's levers: one card per move, his action over the strategy behind it. */
-.levers { max-width: 640px; margin: clamp(40px, 6vw, 72px) auto 0; }
+.levers { max-width: 640px; margin: clamp(96px, 12vw, 160px) auto 0; }
+.sheet.levers-cover { display: block; margin: clamp(48px, 7vw, 80px) auto 0; width: min(400px, 92%); }
 .levers-table, .levers-table tbody, .levers-table caption { display: block; }
 .levers-table thead { display: none; }
 .levers-table caption {
