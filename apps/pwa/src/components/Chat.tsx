@@ -628,7 +628,7 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
       {showJump && (
         <div className="sticky bottom-0 flex justify-center pb-1">
           <TextAction
-            className="hand !min-h-[32px] rounded-full border border-rule bg-surface px-3 py-1 text-[16px] shadow-[0_1px_1px_var(--lift)]"
+            className="hand !min-h-[32px] rounded-full border border-rule !bg-surface px-3 py-1 text-[16px] shadow-[0_1px_1px_var(--lift)]"
             onClick={() => scrollToBottom('smooth')}
           >
             ↓ latest
