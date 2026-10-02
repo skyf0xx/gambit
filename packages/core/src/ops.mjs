@@ -8,9 +8,10 @@ import { plainLanguage } from './readability.mjs';
 /** @typedef {import('zod').infer<typeof goalSchema>} Goal */
 /** @typedef {{ path: string, message: string }} Issue */
 
-// Every top-level key except the version stamp and the append-only log can be
-// replaced wholesale by whichever skill owns it.
-export const WRITABLE_KEYS = Object.keys(goalSchema.shape).filter((k) => k !== 'schemaVersion' && k !== 'log');
+// Every top-level key except the version stamp, the change stamps and the
+// append-only log can be replaced wholesale by whichever skill owns it.
+const UNWRITABLE = ['schemaVersion', 'updated', 'log'];
+export const WRITABLE_KEYS = Object.keys(goalSchema.shape).filter((k) => !UNWRITABLE.includes(k));
 
 const logEntrySchema = goalSchema.shape.log.element;
 const STATUSES = ['proposed', 'pending', 'done', 'dropped'];
@@ -55,10 +56,12 @@ const toIssues = (error, prefix = []) =>
 
 /**
  * Replace one owned key. Validates against that key's sub-schema, then the
- * whole document.
+ * whole document. Each key whose value changes is stamped with `now` in
+ * `updated`, so a section built on it can tell it has moved since.
+ * @param {string} [now] ISO timestamp, defaults to the current time
  * @returns {{ ok: true, goal: Goal, warnings: string[] } | { ok: false, errors: Issue[] }}
  */
-export function writeSection(goal, key, value) {
+export function writeSection(goal, key, value, now = new Date().toISOString()) {
   if (!WRITABLE_KEYS.includes(key)) {
     return { ok: false, errors: [{ path: key, message: `not a writable key; expected one of: ${WRITABLE_KEYS.join(', ')}` }] };
   }
@@ -106,7 +109,11 @@ export function writeSection(goal, key, value) {
       return false;
     });
   }
-  const next = goalSchema.safeParse({ ...goal, ...changes });
+  const updated = { ...goal.updated };
+  for (const [k, v] of Object.entries(changes)) {
+    if (JSON.stringify(v) !== JSON.stringify(goal[k])) updated[k] = now;
+  }
+  const next = goalSchema.safeParse({ ...goal, ...changes, updated });
   if (!next.success) return { ok: false, errors: toIssues(next.error) };
   const warnings = moved.map((n) => `"${n}" taken off stakeholders: they are in people now, so people is their only entry`);
   return { ok: true, goal: next.data, warnings: [...warnings, ...reconcileGoal(next.data)] };
@@ -186,7 +193,7 @@ function taskStats(plan) {
 export function summarizeChange(before, after) {
   const out = [];
   for (const key of Object.keys(goalSchema.shape)) {
-    if (key === 'schemaVersion') continue;
+    if (key === 'schemaVersion' || key === 'updated') continue;
     const a = before[key];
     const b = after[key];
     if (JSON.stringify(a) === JSON.stringify(b)) continue;

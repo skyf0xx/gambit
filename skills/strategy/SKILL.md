@@ -3,6 +3,7 @@ name: strategy
 description: Use when the user wants direction on a goal that already exists — starting a work session, asking "what should I focus on", or after a setback, new fact, deadline change, or escalation. Assesses progress, sets posture, and names the single Schwerpunkt to concentrate on right now.
 display: ordered-list
 writes: posture, log
+reads: systemsNotes, capacity
 requires: goal
 next: plan, systems, threat, premortem, stakeholders, decide, capacity
 ---
@@ -29,6 +30,9 @@ Present the situation, the options, and your recommendation — in that order, b
 
 The goal's current state is already supplied in "Current goal state." Call `get_goal`
 instead if the user may have edited the dashboard since.
+
+If the state block lists `strategy` as due because `systemsNotes` or `capacity` changed,
+check the current focus and posture against the new read first.
 
 ### 2. Assess Progress
 

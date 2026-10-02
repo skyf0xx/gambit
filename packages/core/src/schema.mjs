@@ -249,6 +249,10 @@ export const goalSchema = z.object({
   forecasts: z.array(forecast),
   experiments: z.array(experiment),
   decisions: z.array(decision),
+  // When each key last changed, as an ISO timestamp. Stamped by writeSection
+  // (ops.mjs), never written by a skill; suggestSkills (flow.mjs) compares
+  // it against what each section is built from.
+  updated: z.record(z.string(), z.string()).optional(),
   log: z.array(logEntry),
 });
 

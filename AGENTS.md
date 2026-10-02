@@ -128,6 +128,8 @@ Each skill declares its place in the flow in its `SKILL.md` frontmatter:
 - `writes` — the keys it may write (`log` for `append_log`)
 - `requires` — `goal` (needs a defined goal) or `any`
 - `next` — the skills it naturally hands off to
+- `reads` — the keys its section is built from (the section is the first
+  key in `writes`)
 - `checkpoint: true` — runs inside the active skill instead of replacing it
   (`elicit`)
 
@@ -148,7 +150,16 @@ A refusal comes back as a tool error naming the rule, so the model fixes it
 in the same turn. Each turn's state block also names the active skill and
 what the goal says is due now (`suggestSkills`: forecasts to score,
 experiments past their date, decisions to review, no posture or plan, a
-stale focus, an overdue `eval`, unchecked capacity).
+stale focus, an overdue `eval`, unchecked capacity, and any section built
+before one of its `reads` changed).
+
+`writeSection` stamps each key it changes in the goal's `updated` map.
+`staleSections` (`flow.mjs`) compares those stamps: when `stakeholders`
+changes after `systemsNotes` was last written, `systems` is due with
+"stakeholders changed since systems last ran". A section with no stamp of
+its own falls back to its `lastReviewed`. A skill whose section draws on
+other keys declares them in `reads`, so the dependency is checked in code
+rather than remembered.
 
 ## The goal contract
 
@@ -192,6 +203,9 @@ A few skills also write a key they don't own, for one narrow purpose:
 `plan` sets each success criterion's `lineOfOperation`, and `stakeholders`
 moves someone into `people` once the user deals with them directly and
 keeps `people[].status` current.
+
+`updated` holds when each key last changed. Only `writeSection` writes
+it; no skill does, and it is left out of the goal state the model reads.
 
 `log` is the only append-only key, capped at the newest 30 entries —
 `append_log` (`packages/core/src/ops.mjs`) drops the oldest entries past

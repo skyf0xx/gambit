@@ -3,6 +3,7 @@ name: threat
 description: Use before committing to a plan or significant action, when something external changes, or to stress-test reasoning. Red-teams the plan for adversarial and non-adversarial failure modes, runs adversarial CoG analysis, assesses network exposure if people are involved, and flags interference indicators. Feeds findings to strategy and systems.
 display: risk-list
 writes: riskNotes, log
+reads: plan, people, stakeholders
 requires: goal
 next: plan, strategy, decide
 ---
@@ -36,7 +37,9 @@ terms freely. Define, don't teach.
 
 ### 1. Load Context
 
-Read the goal — the goal statement, success criteria, current plan (from `plan` key), current focus and posture (from `strategy`), any CoG assessment from `systemsNotes`, and `people` key if non-empty.
+Read the goal — the goal statement, success criteria, current plan (from `plan` key), current focus and posture (from `strategy`), any CoG assessment from `systemsNotes`, and `people` and `stakeholders` if non-empty.
+
+If the state block lists `threat` as due because the plan, `people` or `stakeholders` changed, red-team what changed first.
 
 ---
 

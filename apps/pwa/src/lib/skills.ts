@@ -170,6 +170,7 @@ The skill index below lists every skill. When one applies, call load_skill(name)
 - \`elicit\` runs inside the active skill: it pressure-tests that skill's work, then finish_skill hands back to it.
 - When a skill's work is done and nothing follows, call finish_skill. To move on, load the next skill.
 - The state block lists what is due now. Lead with the most pressing item when the user has no ask of their own.
+- An item due because its inputs changed ("stakeholders changed since systems last ran") means that section rests on an older picture. Say so before building on it, and offer to rerun its skill.
 A refused load or write comes back as an error naming the rule; follow it in the same turn.
 
 # ${'The goal contract, in short'}

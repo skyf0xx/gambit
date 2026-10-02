@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stubGoal, isStub, skillFlow, canLoad, canWrite, writersOf, suggestSkills } from '../src/index.mjs';
+import { stubGoal, isStub, skillFlow, canLoad, canWrite, writersOf, suggestSkills, staleSections } from '../src/index.mjs';
 
 const skills = [
   skillFlow('intake', { writes: 'goal, successCriteria, log', requires: 'any' }),
@@ -19,6 +19,8 @@ test('skillFlow parses lists and flags bad keys and requires', () => {
   assert.equal(skills[4].checkpoint, true);
   assert.deepEqual(skills[1].errors, []);
   assert.equal(skillFlow('x', { writes: 'plan, nope', requires: 'maybe' }).errors.length, 2);
+  assert.deepEqual(skillFlow('x', { writes: 'plan', reads: 'posture, log' }).errors, ['reads: "log" is not a writable goal key']);
+  assert.equal(skillFlow('x', { writes: 'log', reads: 'posture' }).errors.length, 1);
   assert.deepEqual(writersOf('plan', skills), ['plan', 'review']);
 });
 
@@ -78,4 +80,25 @@ test('suggestSkills reads what is due from the goal', () => {
   const checked = { ...g, log: [...g.log, { date: '2026-09-28', focus: null, notes: [], source: 'eval' }] };
   assert.equal(suggestSkills(checked, '2026-10-02').some((s) => s.skill === 'eval'), false);
   assert.equal(suggestSkills({ ...g, capacity: null }, '2026-10-02').at(-1).skill, 'capacity');
+});
+
+test('staleSections flags a section built before one of its inputs changed', () => {
+  const flows = [
+    skillFlow('systems', { writes: 'systemsNotes, log', reads: 'people, stakeholders' }),
+    skillFlow('threat', { writes: 'riskNotes, log', reads: 'plan' }),
+  ];
+  const notes = { schwerpunkt: 's', confidence: 'high', topFindings: [], lastReviewed: '2026-09-01' };
+  const g = {
+    ...defined,
+    plan,
+    systemsNotes: notes,
+    updated: { systemsNotes: '2026-09-01T10:00:00Z', people: '2026-09-02T10:00:00Z', stakeholders: '2026-09-03T10:00:00Z', plan: '2026-09-04T10:00:00Z' },
+  };
+  assert.deepEqual(staleSections(g, flows), [{ skill: 'systems', why: 'people and stakeholders changed since systems last ran' }]);
+  assert.deepEqual(staleSections({ ...g, updated: { ...g.updated, systemsNotes: '2026-09-05T10:00:00Z' } }, flows), []);
+  // No stamp of its own: the section's lastReviewed stands in.
+  const { systemsNotes: _, ...unstamped } = g.updated;
+  assert.equal(staleSections({ ...g, updated: unstamped }, flows).length, 1);
+  assert.deepEqual(staleSections({ ...g, systemsNotes: null }, flows), []);
+  assert.equal(suggestSkills(g, '2026-10-02', flows).at(-1).skill, 'systems');
 });

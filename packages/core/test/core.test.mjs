@@ -54,7 +54,7 @@ test('reconcileGoal warns when children are all done but parent lags', () => {
 
 test('registry: every schema key maps to a group in GROUP_ORDER', () => {
   for (const key of Object.keys(goalSchema.shape)) {
-    if (['schemaVersion', 'goal', 'subGoals', 'successCriteria', 'deadline', 'log', 'posture'].includes(key)) continue;
+    if (['schemaVersion', 'goal', 'subGoals', 'successCriteria', 'deadline', 'updated', 'log', 'posture'].includes(key)) continue;
     assert.ok(GROUP_ORDER.includes(groupForSection(key)), key);
   }
   assert.ok(Object.values(SECTION_GROUPS).every((g) => GROUP_ORDER.includes(g)));

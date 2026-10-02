@@ -3,6 +3,7 @@ name: plan
 description: Use to break a goal or current focus into one or more sequenced, dependency-aware lines of operation — starting a new push, replanning after a failure, or when the existing plan feels stale. Builds a dependency graph per line, identifies each line's critical path, scales pace to posture, and lists the next 3-5 concrete actions per line. Also the skill to reach for when the user simply reports a next action done, blocked, or dropped in ordinary conversation — that's the lightweight "Quick Status Update" mode below, not a full replan.
 display: ordered-list
 writes: plan, successCriteria, log
+reads: posture, systemsNotes, decisions
 requires: goal
 next: strategy, systems, threat, decide, comms
 ---
@@ -56,7 +57,9 @@ Use this sequence for an actual planning request — a new push, a replan after 
 
 Read the goal. Note the current focus (Schwerpunkt) if `strategy` has set one, the success criteria, the deadline, the current posture level if set, and who's involved from the `people` key if it's non-empty.
 
-**Check the `systemsNotes` key.** If it's `null`, its Schwerpunkt confidence was recorded as `low`, or it clearly predates the current focus (goal or focus changed since), the critical path you're about to build may rest on an unverified premise about how a third party or system responds. Flag this before building the graph rather than after:
+If the state block lists `plan` as due because `posture`, `systemsNotes` or `decisions` changed, rebuild the affected lines from that change.
+
+**Check the `systemsNotes` key.** If it's `null`, its Schwerpunkt confidence was recorded as `low`, or the state block lists `systems` as due because its inputs changed, the critical path you're about to build may rest on an unverified premise about how a third party or system responds. Flag this before building the graph rather than after:
 
 ```
 No systems read backs this focus (or confidence was low / stale). The plan

@@ -5,6 +5,9 @@
 //   writes:     keys it may write, comma-separated ("log" = append_log)
 //   requires:   "goal" (needs a defined goal) or "any"
 //   next:       skills it naturally hands off to
+//   reads:      keys its section is built from; when one changes after the
+//               section was last written, suggestSkills flags the section
+//               as out of date. The section is the first key in `writes`.
 //   checkpoint: "true" for a skill that runs inside another one (elicit):
 //               it keeps the calling skill's write rights and hands back
 //               to it when finished
@@ -26,7 +29,7 @@ export function isStub(goal) {
 
 const list = (s) => (s ?? '').split(',').map((x) => x.trim()).filter(Boolean);
 
-/** @typedef {{ name: string, writes: string[], requires: string, next: string[], checkpoint: boolean, errors: string[] }} SkillFlow */
+/** @typedef {{ name: string, writes: string[], reads: string[], requires: string, next: string[], checkpoint: boolean, errors: string[] }} SkillFlow */
 /** @typedef {{ active?: string, caller?: string, fresh: string[] }} FlowSession */
 
 /**
@@ -37,13 +40,16 @@ const list = (s) => (s ?? '').split(',').map((x) => x.trim()).filter(Boolean);
  */
 export function skillFlow(name, meta) {
   const writes = list(meta.writes);
+  const reads = list(meta.reads);
   const next = list(meta.next);
   const requires = meta.requires ?? 'goal';
   const errors = [
     ...writes.filter((k) => !FLOW_KEYS.includes(k)).map((k) => `writes: "${k}" is not a goal key`),
+    ...reads.filter((k) => !WRITABLE_KEYS.includes(k)).map((k) => `reads: "${k}" is not a writable goal key`),
+    ...(reads.length && !WRITABLE_KEYS.includes(writes[0]) ? ['reads: needs a section of its own as the first key in writes'] : []),
     ...(REQUIRES.includes(requires) ? [] : [`requires: must be one of ${REQUIRES.join(', ')}`]),
   ];
-  return { name, writes, requires, next, checkpoint: meta.checkpoint === 'true', errors };
+  return { name, writes, reads, requires, next, checkpoint: meta.checkpoint === 'true', errors };
 }
 
 /**
@@ -102,13 +108,41 @@ const n = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one : many
 /** Days between reviews before a section reads as stale. */
 export const REVIEW_DAYS = { eval: 14, strategy: 30, capacity: 30 };
 
+const words = (k) => k.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
+const empty = (v) => v == null || (Array.isArray(v) && v.length === 0);
+const and = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`);
+
 /**
- * What the goal says is due, most pressing first.
+ * Sections built before one of their inputs changed: for each skill with
+ * `reads`, the inputs stamped in `goal.updated` after its section was.
+ * A section with no stamp falls back to its own `lastReviewed`.
  * @param {object} goal
- * @param {string} today YYYY-MM-DD
+ * @param {SkillFlow[]} skills
  * @returns {{ skill: string, why: string }[]}
  */
-export function suggestSkills(goal, today) {
+export function staleSections(goal, skills) {
+  const stamps = goal.updated ?? {};
+  const out = [];
+  for (const s of skills) {
+    const key = s.writes[0];
+    if (!s.reads.length || empty(goal[key])) continue;
+    const built = stamps[key] ?? goal[key].lastReviewed;
+    if (!built) continue;
+    const moved = s.reads.filter((k) => stamps[k] && stamps[k] > built);
+    if (moved.length) out.push({ skill: s.name, why: `${and(moved.map(words))} changed since ${s.name} last ran` });
+  }
+  return out;
+}
+
+/**
+ * What the goal says is due, most pressing first. Given the skill flows,
+ * sections built before one of their inputs changed come last.
+ * @param {object} goal
+ * @param {string} today YYYY-MM-DD
+ * @param {SkillFlow[]} [skills]
+ * @returns {{ skill: string, why: string }[]}
+ */
+export function suggestSkills(goal, today, skills = []) {
   if (isStub(goal)) return [{ skill: 'intake', why: 'the goal is not defined yet' }];
   const out = [];
   const due = (d) => d && d <= today;
@@ -139,5 +173,6 @@ export function suggestSkills(goal, today) {
       out.push({ skill: 'capacity', why: `capacity last checked ${days(goal.capacity.lastReviewed, today)} days ago` });
     }
   }
+  for (const s of staleSections(goal, skills)) if (!out.some((o) => o.skill === s.skill)) out.push(s);
   return out;
 }

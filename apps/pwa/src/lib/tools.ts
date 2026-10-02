@@ -41,7 +41,7 @@ export async function goalStateJson(goalId: string): Promise<string> {
   if (!rec) return 'null';
   const read = await readRecord(rec);
   if (read.status !== 'ok') return JSON.stringify({ unreadable: read.status });
-  const { log, ...rest } = read.data;
+  const { log, updated: _stamps, ...rest } = read.data;
   return JSON.stringify({ ...rest, log: log.slice(-5), logCount: log.length });
 }
 

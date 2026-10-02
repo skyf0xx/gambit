@@ -3,6 +3,7 @@ name: systems
 description: Use for a systems-level read before committing to a plan, when the goal or environment has shifted, or when progress feels diffuse. Runs Center of Gravity, PMESII/ASCOPE, Schwerpunkt identification, lines of effort, second/third order effects, and culminating point analysis, feeding results into strategy and plan.
 display: ordered-list
 writes: systemsNotes, log
+reads: goal, subGoals, people, stakeholders
 requires: goal
 next: plan, strategy, threat
 ---
@@ -41,7 +42,9 @@ user wants the whole picture in plain language, that's `brief`.
 
 ### 1. Load Context
 
-Read the goal — the goal statement, success criteria, deadline, current plan, current focus, posture if set, `people` key if non-empty, and log.
+Read the goal — the goal statement, success criteria, deadline, current plan, current focus, posture if set, `people` and `stakeholders` if non-empty, and log.
+
+If the state block lists `systems` as due because its inputs changed, those changes are the reason for this run. Work each new or moved person or party into the CoG and PMESII reads below, and say plainly whether the Schwerpunkt still holds.
 
 Steps 2-4 (CoG, PMESII, ASCOPE) are independent lenses over the same frozen snapshot
 from step 1 — none depends on another's output. Where the executing agent can run

@@ -4,7 +4,7 @@ import { summarizeChange, suggestSkills, type FlowSession } from '@gambit/core';
 import { db, type ChatRecord, type DisplayMsg } from './db';
 import { loadApiKey } from './crypto';
 import { getProvider, makeModel, GOOGLE_FALLBACK_MODEL, type ProviderKind } from './providers';
-import { PREAMBLE, getSkillStore, skillIndexText, skillText, flowOf, type SkillStore } from './skills';
+import { PREAMBLE, getSkillStore, skillIndexText, skillText, flowOf, skillFlows, type SkillStore } from './skills';
 import { makeTools, goalStateJson, toolLabel, replySchema, today, type Reply } from './tools';
 import { readRecord, restoreSnapshot, snapshot } from './goals';
 import { changedKeys, changedLines } from './changes';
@@ -101,7 +101,7 @@ export function flowText(store: SkillStore, session: Pick<FlowSession, 'active' 
       ? `Active skill: ${active.name}${active.checkpoint && session.caller ? `, inside ${session.caller} (writes ${writes(session.caller)})` : ` (writes ${writes(active.name)})`}.`
       : 'No skill is active; every write needs one.',
   ];
-  const due = suggestSkills(goal, day).slice(0, 3);
+  const due = suggestSkills(goal, day, skillFlows(store)).slice(0, 3);
   if (due.length) lines.push(`Due now: ${due.map((s) => `${s.skill} (${s.why})`).join('; ')}.`);
   const next = active?.checkpoint ? undefined : active?.next;
   if (next?.length) lines.push(`${active!.name} hands off to: ${next.join(', ')}.`);

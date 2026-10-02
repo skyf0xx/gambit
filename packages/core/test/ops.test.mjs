@@ -220,3 +220,16 @@ test('currentFocusEntry is the newest strategy (or unsourced) entry that sets a 
   assert.equal(currentFocusEntry(log).focusLine, 'old line');
   assert.equal(currentFocusEntry([...log, { date: '2026-09-04', focus: 'new', source: 'strategy', notes: [] }]).focusLine, undefined);
 });
+
+test('writeSection stamps each key whose value changes', () => {
+  const g = stubGoal('g');
+  const a = writeSection(g, 'plan', plan, '2026-10-01T09:00:00Z').goal;
+  assert.deepEqual(a.updated, { plan: '2026-10-01T09:00:00Z' });
+  assert.deepEqual(writeSection(a, 'plan', a.plan, '2026-10-02T09:00:00Z').goal.updated, a.updated);
+  const withSide = { ...a, stakeholders: [{ name: 'Ann', power: 'high', stanceCurrent: 'neutral', stanceTarget: 'for', via: 'a call' }] };
+  const moved = writeSection(withSide, 'people', [{ name: 'Ann', status: 'confirmed', doing: 'edits the paper' }], '2026-10-03T09:00:00Z');
+  assert.equal(moved.ok, true, JSON.stringify(moved.errors));
+  assert.equal(moved.goal.updated.people, '2026-10-03T09:00:00Z');
+  assert.equal(moved.goal.updated.stakeholders, '2026-10-03T09:00:00Z');
+  assert.equal(WRITABLE_KEYS.includes('updated'), false);
+});
