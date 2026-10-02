@@ -77,15 +77,21 @@ describe('changedLines', () => {
 });
 
 describe('changedKeys', () => {
-  it('reports sections changedLines does not index, and skips log and posture', () => {
+  it('reports sections changedLines does not index, and skips log', () => {
     const before = stubGoal('Goal') as Goal;
     const after: Goal = {
       ...before,
       capacity: { lastReviewed: '2026-10-01', availableHrsPerWeek: 10, runway: '3 months' },
-      posture: { stance: 'push' } as unknown as Goal['posture'],
       log: [...before.log, { date: '2026-10-01', focus: null, notes: ['set hours'] }],
     };
     expect(changedKeys(before, after)).toEqual(['capacity']);
+  });
+
+  it('reports a posture level change, not a bare review date', () => {
+    const quiet = { current: { level: 1, label: 'Quiet' }, levels: [{ level: 1, label: 'Quiet' }, { level: 2, label: 'Loud' }], triggers: [], lastReviewed: '2026-09-01' };
+    const before = { ...(stubGoal('Goal') as Goal), posture: quiet };
+    expect(changedKeys(before, { ...before, posture: { ...quiet, lastReviewed: '2026-10-01' } })).toEqual([]);
+    expect(changedKeys(before, { ...before, posture: { ...quiet, current: { level: 2, label: 'Loud' } } })).toEqual(['posture']);
   });
 
   it('is empty when nothing changed', () => {

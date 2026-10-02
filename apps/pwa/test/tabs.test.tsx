@@ -151,6 +151,20 @@ describe('tab content components render the right lines', () => {
     expect(html.indexOf('entry 6')).toBeLessThan(html.indexOf('entry 1'));
   });
 
+  it('MovesTab shows posture with what its level means, only once set', () => {
+    expect(render(<MovesTab g={g} goalId="g1" />)).not.toContain('Posture:');
+    const posture = {
+      current: { level: 1, label: 'Quiet' },
+      levels: [{ level: 1, label: 'Quiet', meaning: 'Low pace, ask little of people' }],
+      triggers: ['council sets a hearing date'],
+      lastReviewed: '2020-01-01',
+    };
+    const html = render(<MovesTab g={{ ...g, posture }} goalId="g1" />);
+    expect(html).toContain('Posture:');
+    expect(html).toContain('Quiet');
+    expect(html).toMatch(/data-note="Low pace, ask little of people · Changes if: council sets a hearing date · last checked \d+ days ago"/);
+  });
+
   it('MovesTab does not render the goal title, people, risk, or capacity content', () => {
     const html = render(<MovesTab g={g} goalId="g1" />);
     expect(html).not.toContain('data-line="goal"');
