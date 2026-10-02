@@ -220,9 +220,8 @@ describe('tab content components render the right lines', () => {
       expect(html).not.toContain('What Gambit remembers');
       const g = { ...seededGoal(), memory: [{ kind: 'rejected' as const, text: 'No cold outreach to rail.', date: '2026-10-02' }] };
       const withMemory = render(<InsideCoverTab goalId="g1" goals={[]} g={g} />);
-      expect(withMemory).toContain('What Gambit remembers');
-      expect(withMemory).toContain('ruled out');
-      expect(withMemory).toContain('aria-label="Forget: No cold outreach to rail."');
+      expect(withMemory).toContain('What Gambit remembers · 1');
+      expect(withMemory).not.toContain('No cold outreach to rail.');
     } finally {
       if (hadWindow) (globalThis as { window?: unknown }).window = prevWindow;
       else delete (globalThis as { window?: unknown }).window;

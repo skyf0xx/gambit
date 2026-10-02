@@ -415,7 +415,10 @@ export function MarksLayer() {
     const onEnter = (e: Event) => {
       const target = (e.target as Element)?.closest('[data-circle]');
       if (!target || !host.contains(target)) return;
-      const lines = lineRects(target, origin);
+      // Measured now, not at the last redraw: a scroll since then (an
+      // accordion opening moves the page) shifts the host without
+      // triggering a redraw, and a stale origin puts the circle off target.
+      const lines = lineRects(target, host.getBoundingClientRect());
       if (!lines.length) return;
       const existing = circles.get(target);
       existing?.g.remove();

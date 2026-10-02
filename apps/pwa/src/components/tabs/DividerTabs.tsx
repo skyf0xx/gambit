@@ -24,7 +24,8 @@ import { TAB_LABELS, type TabId } from './tabDefs';
 //   - Hover/focus nudges an inactive tab out by 2-3px; switching brings a
 //     tab to the front with a small lift-and-settle (instant under
 //     reduced motion).
-//   - The ink focus ring still draws on the tab's own clipped shape.
+//   - No focus ring: keyboard focus shows as the same nudge, and the
+//     active tab is already marked by coming to the front.
 //
 // One shape at every width (owner's override): a slim vertical tab with
 // its label rotated 90° — no wide horizontal-label variant on roomy
@@ -240,8 +241,7 @@ export function DividerTabs({
           transform: translateX(-3px);
         }
         .tab-leaf:focus-visible {
-          outline: 2px solid var(--ink);
-          outline-offset: 2px;
+          outline: none;
         }
         .tab-leaf-dot {
           position: absolute;
