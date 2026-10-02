@@ -3,8 +3,8 @@ import type { Goal } from '../lib/types';
 import { daysUntil } from '../lib/dates';
 import { PencilWord } from './ui';
 
-/** How hard the effort is pushing right now (strategy's `posture`), read in
- * one line at the top of Moves: it frames how to take the moves below it.
+/** How hard the effort is pushing right now (strategy's `posture`), read
+ * beside the "All moves" label: it frames how to take the moves under it.
  * The pencil note says what the current level means, what would change it,
  * and how long since it was last checked once that's past strategy's
  * review window. Nothing shows while no posture is set. */
@@ -21,11 +21,11 @@ export function PostureLine({ goal }: { goal: Goal }) {
     .filter(Boolean)
     .join(' · ');
   return (
-    <p data-line="posture" className="mb-8 text-[14px] leading-5 text-graphite">
+    <span data-line="posture" className="text-[14px] leading-5 text-graphite">
       Posture:{' '}
-      <span tabIndex={0} data-note={note} className="cursor-help">
+      <span tabIndex={0} data-note={note}>
         <PencilWord className="text-[18px] text-ink">{p.current.label}</PencilWord>
       </span>
-    </p>
+    </span>
   );
 }

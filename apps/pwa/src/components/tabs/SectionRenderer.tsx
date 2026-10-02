@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { Goal } from '../../lib/types';
 import { TextAction, PencilWord } from '../ui';
 import { SectionBody, EMPTY_PROMPTS, EMPTY_STARTERS } from '../Sections';
@@ -15,7 +16,7 @@ const SECTION_KEYS = ['plan', 'criteriaStatus', 'successCriteria', 'people', 'st
 export type SectionKey = (typeof SECTION_KEYS)[number];
 export const isEmptySection = (v: unknown) => v == null || (Array.isArray(v) ? v.length === 0 : typeof v === 'object' && Object.keys(v as object).length === 0);
 
-export function Section({ goalId, k, data }: { goalId: string; k: SectionKey; data: unknown }) {
+export function Section({ goalId, k, data, aside }: { goalId: string; k: SectionKey; data: unknown; aside?: ReactNode }) {
   const { title, method, methodNote } = sectionTitleFor(k);
   // Capacity's tab already names its method, so the pencilled word beside
   // its heading is the date the numbers were last checked instead.
@@ -24,7 +25,7 @@ export function Section({ goalId, k, data }: { goalId: string; k: SectionKey; da
     <section className="anim-fade-in space-y-3">
       <SectionHeading
         k={k}
-        after={reviewed && <PencilWord className="text-[22px]">{proseDates(`reviewed ${reviewed}`)}</PencilWord>}
+        after={aside ?? (reviewed && <PencilWord className="text-[22px]">{proseDates(`reviewed ${reviewed}`)}</PencilWord>)}
       >
         {/* The method behind a section is a hover note on its title, not a
          * second word beside it. */}

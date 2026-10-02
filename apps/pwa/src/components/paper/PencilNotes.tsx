@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { hand, hashSeed, strokePath } from '../marks/stroke';
 
 // Pencil-note tooltips (brand/identity.md §05 "Pencil marks" + §03's margin
@@ -48,6 +48,7 @@ interface NoteState {
   x: number; // viewport px, clamped
   y: number; // viewport px, top of the note
   caretX: number; // relative to note's left edge
+  cx: number; // viewport px, the target's centre the caret points at
   backed: boolean; // needs a --surface backing to avoid overlapping the next line
 }
 
@@ -95,7 +96,7 @@ export function PencilNotes() {
     const backed = !!target.closest('ol, ul');
 
     setPhase('in');
-    setNote({ text, target, x, y, caretX, backed });
+    setNote({ text, target, x, y, caretX, cx, backed });
   };
 
   useEffect(() => {
@@ -159,6 +160,16 @@ export function PencilNotes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note]);
 
+  // A long note wraps, so its real width is only known once drawn: centre
+  // it on the target again and keep it inside the viewport.
+  useLayoutEffect(() => {
+    const el = noteRef.current;
+    if (!note || !el) return;
+    const w = el.offsetWidth;
+    const x = Math.min(Math.max(8, note.cx - w / 2), window.innerWidth - w - 8);
+    if (Math.abs(x - note.x) > 0.5) setNote({ ...note, x, caretX: note.cx - x });
+  }, [note]);
+
   if (!note) return null;
 
   return (
@@ -174,9 +185,9 @@ export function PencilNotes() {
       </svg>
       {/* The pencil filter goes on the words only: on the slip too, it eats
        * the paper and lets the line underneath show through. */}
-      <div className="paper rounded-[2px] px-1.5 py-0.5">
+      <div className="paper w-max max-w-[min(22rem,calc(100vw-16px))] rounded-[2px] px-1.5 py-0.5">
         <div
-          className={`hand whitespace-nowrap text-[20px] leading-tight text-graphite ${reduced ? '' : phase === 'in' ? 'anim-write' : 'anim-fade-in'}`}
+          className={`hand text-[20px] leading-tight text-graphite ${reduced ? '' : phase === 'in' ? 'anim-write' : 'anim-fade-in'}`}
           style={{ filter: 'url(#graphite)', animationDirection: phase === 'out' ? 'reverse' : 'normal' }}
         >
           {note.text}

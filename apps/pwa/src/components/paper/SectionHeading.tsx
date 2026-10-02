@@ -102,6 +102,7 @@ export function SectionHeading({ k, children, after, empty }: { k: string; child
       <div className="flex items-baseline gap-x-2">
         <h2 className="text-[14px] leading-5 text-graphite">{children}</h2>
         <FreshSectionTag k={k} />
+        {after && <div className="ml-auto">{after}</div>}
       </div>
     );
   }
