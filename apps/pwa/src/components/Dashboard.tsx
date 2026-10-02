@@ -35,7 +35,7 @@ export function Dashboard({ goalId, settings }: { goalId: string; settings: Sett
        * and the tabs live in the wider desk gap before the chat leaf
        * instead. */}
       <div
-        className="paper relative mx-auto mr-9 min-h-full max-w-xl rounded-t-[3px] md:mr-auto md:mt-8 md:min-h-[calc(100%-2rem)] md:shadow-[0_1px_1px_var(--lift),0_8px_30px_-8px_var(--lift-far)]"
+        className="paper relative mx-auto mr-9 flex min-h-full flex-col max-w-xl rounded-t-[3px] md:mr-auto md:mt-8 md:min-h-[calc(100%-2rem)] md:shadow-[0_1px_1px_var(--lift),0_8px_30px_-8px_var(--lift-far)]"
         style={{ borderLeft: '2px solid var(--margin-rule)' }}
       >
         <MarksLayer />

@@ -111,7 +111,7 @@ export function DividerTabs({
                 style={{ zIndex: tabs.length - depth, marginTop: isInsideCover ? '12px' : undefined }}
                 className={`tab-leaf anim-press relative flex shrink-0 items-center justify-center font-sans text-[14px] font-medium text-ink ${
                   isActive ? 'tab-active' : 'tab-inactive'
-                } ${isInsideCover ? 'tab-inside-cover' : ''} ${t === 'moves' ? 'tab-moves' : ''}`}
+                } ${isInsideCover ? 'tab-inside-cover' : ''} ${t === 'cover' ? 'tab-cover' : ''} ${t === 'moves' ? 'tab-moves' : ''}`}
               >
                 <span className="tab-leaf-fill" aria-hidden="true" />
                 <span className="tab-leaf-label">
@@ -271,6 +271,16 @@ export function DividerTabs({
         .tab-leaf.tab-inactive .tab-leaf-label { color: var(--graphite); }
         .tab-leaf.tab-inactive:hover .tab-leaf-label,
         .tab-leaf.tab-inactive:focus-visible .tab-leaf-label { color: var(--ink); }
+
+        /* The Cover tab is the cover's own brown, so it reads as the
+           notebook's outside rather than a divider. */
+        .tab-leaf.tab-cover .tab-leaf-fill,
+        .tab-leaf.tab-cover.tab-active .tab-leaf-fill { background: var(--cover); }
+        .tab-leaf.tab-cover .tab-leaf-label,
+        .tab-leaf.tab-cover.tab-inactive .tab-leaf-label { color: var(--cover-graphite); }
+        .tab-leaf.tab-cover.tab-active .tab-leaf-label,
+        .tab-leaf.tab-cover.tab-inactive:hover .tab-leaf-label,
+        .tab-leaf.tab-cover.tab-inactive:focus-visible .tab-leaf-label { color: var(--cover-ink); }
 
         /* The Settings tab's icon reads oddly caught in a vertical writing
            mode alongside rotated text, so the tab keeps just its rotated

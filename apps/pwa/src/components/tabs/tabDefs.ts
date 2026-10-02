@@ -5,6 +5,9 @@ import type { Goal } from '../../lib/types';
 // packages/core/src/registry.mjs) but is its own smaller partition, per the
 // task spec and the owner's subsequent corrections:
 //
+//   Cover       — the notebook's front cover, first in the stack: dark
+//                 brown, Gambit's portrait, and every goal on this device.
+//                 Picking one opens it; "New goal" starts another.
 //   Goal        — the goal title (big serif, ink-bleed), time left, "What
 //                 done looks like" (successCriteria), and "Parts of this
 //                 goal" (subGoals). Always shown, first in the stack.
@@ -17,7 +20,7 @@ import type { Goal } from '../../lib/types';
 //   Capacity    — capacity
 //   Doodles     — the whole plan as a pencil mind map. Shown once there's
 //                 a plan to draw.
-//   Inside cover — always last: notebooks/goal-switcher, model and key,
+//   Inside cover — always last: model and key,
 //                 keep-it-safe (export/backup), this device (clear chat,
 //                 danger zone), what Gambit remembers, and the log ("History", folded) at the
 //                 foot — history, not something to check, so no tab of
@@ -40,11 +43,12 @@ import type { Goal } from '../../lib/types';
 //     exposure to live in Risks and capacity to have its own tab, so that's
 //     what this file does.
 
-export type TabId = 'goal' | 'moves' | 'people' | 'risks' | 'bets' | 'capacity' | 'doodles' | 'inside-cover';
+export type TabId = 'cover' | 'goal' | 'moves' | 'people' | 'risks' | 'bets' | 'capacity' | 'doodles' | 'inside-cover';
 
-export const TAB_ORDER: TabId[] = ['goal', 'moves', 'people', 'risks', 'bets', 'capacity', 'doodles', 'inside-cover'];
+export const TAB_ORDER: TabId[] = ['cover', 'goal', 'moves', 'people', 'risks', 'bets', 'capacity', 'doodles', 'inside-cover'];
 
 export const TAB_LABELS: Record<TabId, string> = {
+  cover: 'Cover',
   goal: 'Goal',
   moves: 'Moves',
   people: 'People',
@@ -69,12 +73,12 @@ export const TAB_SECTION_KEYS: Partial<Record<TabId, (keyof Goal)[]>> = {
 
 const isEmpty = (v: unknown) => v == null || (Array.isArray(v) ? v.length === 0 : typeof v === 'object' && Object.keys(v as object).length === 0);
 
-/** Whether a tab has anything to show. Goal, Moves and Inside cover always
+/** Whether a tab has anything to show. Cover, Goal, Moves and Inside cover always
  * show; Doodles once the plan has a line to draw; every other tab only once
  * one of its keys has content — so a new goal opens on two tabs, and the
  * rest appear as the advisor fills them. */
 export function tabHasContent(tab: TabId, g: Goal): boolean {
-  if (tab === 'goal' || tab === 'moves' || tab === 'inside-cover') return true;
+  if (tab === 'cover' || tab === 'goal' || tab === 'moves' || tab === 'inside-cover') return true;
   if (tab === 'doodles') return (g.plan?.linesOfOperation?.length ?? 0) > 0;
   const keys = TAB_SECTION_KEYS[tab] ?? [];
   return keys.some((k) => !isEmpty(g[k]));

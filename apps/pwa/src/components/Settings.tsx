@@ -62,32 +62,6 @@ function shortDay(ts: number): string {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) });
 }
 
-/** The goal switcher. The open goal is in ink, the rest in graphite. */
-function Goals({ goals, activeId, onSwitch, onNew }: { goals: GoalRecord[]; activeId?: string; onSwitch: (id: string) => void; onNew: () => void }) {
-  return (
-    <>
-      <ul>
-        {goals.map((g) => {
-          const on = g.id === activeId;
-          return (
-            <li key={g.id}>
-              <TextAction
-                circle={false}
-                aria-current={on || undefined}
-                className={`flex w-full py-1.5 text-left font-serif text-[18px] leading-[26px] ${on ? 'font-semibold text-ink' : 'text-graphite! hover:text-ink!'}`}
-                onClick={() => onSwitch(g.id)}
-              >
-                {g.title}
-              </TextAction>
-            </li>
-          );
-        })}
-      </ul>
-      <Act onClick={onNew}>New goal</Act>
-    </>
-  );
-}
-
 /** Provider and model, with the form opening under the row. */
 function Model() {
   const [p, setP] = useState<{ s: ProviderSettings; key: boolean } | null>(null);
@@ -264,13 +238,10 @@ export interface SettingsPageProps {
   onNewGoal?: () => void;
 }
 
-/** Inside cover: goals, AI model, backup, chat, theme, delete. */
-export function SettingsPage({ goalId, goals, activeId, cost, onSwitchGoal, onNewGoal }: SettingsPageProps) {
+/** Inside cover: AI model, backup, chat, theme, delete. */
+export function SettingsPage({ goalId, cost }: SettingsPageProps) {
   return (
     <div className="space-y-6">
-      <Section title="Goals">
-        <Goals goals={goals ?? []} activeId={activeId} onSwitch={(id) => onSwitchGoal?.(id)} onNew={() => onNewGoal?.()} />
-      </Section>
       <Section title="AI model"><Model /></Section>
       <Section title="Backup"><Backup /></Section>
       <Section title="Chat">

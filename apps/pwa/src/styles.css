@@ -28,6 +28,9 @@
   --edge: transparent;
   --lift: rgba(70, 50, 25, .16);
   --lift-far: rgba(70, 50, 25, .10);
+  /* The front cover (CoverTab.tsx): the one dark-brown surface, the
+     notebook's binding seen from outside. */
+  --cover: #3A2A1F; --cover-ink: #F1E8D8; --cover-graphite: #BFAE95;
 
   /* Tiled SVG grain (feTurbulence), rendered once as a background image —
      never as a live full-screen filter. Fibres in light, plain speckle in
@@ -48,6 +51,7 @@
     --tape: rgba(150, 135, 105, .35); --hi: rgba(214, 170, 60, .30);
     --note: #3B3522; --note-edge: #4A4229;
     --edge: rgba(236, 232, 225, .16); --lift: rgba(0, 0, 0, .5); --lift-far: rgba(0, 0, 0, .35);
+    --cover: #2B1F17; --cover-ink: #ECE2D0; --cover-graphite: #AD9C83;
     --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .9 0 0 0 0 .85 0 0 0 0 .75 0 0 0 .35 -.14'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
   }
 }
@@ -58,6 +62,7 @@
   --tape: rgba(150, 135, 105, .35); --hi: rgba(214, 170, 60, .30);
   --note: #3B3522; --note-edge: #4A4229;
   --edge: rgba(236, 232, 225, .16); --lift: rgba(0, 0, 0, .5); --lift-far: rgba(0, 0, 0, .35);
+  --cover: #2B1F17; --cover-ink: #ECE2D0; --cover-graphite: #AD9C83;
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .9 0 0 0 0 .85 0 0 0 0 .75 0 0 0 .35 -.14'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
 }
 

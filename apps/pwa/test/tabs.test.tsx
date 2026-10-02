@@ -10,6 +10,7 @@ import { BetsTab } from '../src/components/tabs/BetsTab';
 import { CapacityTab } from '../src/components/tabs/CapacityTab';
 import { LogsTab } from '../src/components/tabs/LogsTab';
 import { InsideCoverTab } from '../src/components/tabs/InsideCoverTab';
+import { CoverTab } from '../src/components/tabs/CoverTab';
 import type { Goal } from '../src/lib/types';
 
 // Same seeded-goal approach as page.test.tsx: a v2 goal exercising every
@@ -101,7 +102,8 @@ describe('tabHasContent', () => {
   const empty = stubGoal('Empty') as Goal;
   const full = seededGoal();
 
-  it('goal, moves and inside-cover always show, even on a stub goal', () => {
+  it('cover, goal, moves and inside-cover always show, even on a stub goal', () => {
+    expect(tabHasContent('cover', empty)).toBe(true);
     expect(tabHasContent('goal', empty)).toBe(true);
     expect(tabHasContent('moves', empty)).toBe(true);
     expect(tabHasContent('inside-cover', empty)).toBe(true);
@@ -212,11 +214,10 @@ describe('tab content components render the right lines', () => {
     (globalThis as { window?: unknown }).window = {};
     try {
       const html = render(<InsideCoverTab goalId="g1" goals={[]} />);
-      expect(html).toContain('Goals');
+      expect(html).not.toContain('New goal');
       expect(html).toContain('AI model');
       expect(html).toContain('Backup');
       expect(html).toContain('Chat');
-      expect(html).toContain('New goal');
       expect(html).not.toContain('What Gambit remembers');
       const g = { ...seededGoal(), memory: [{ kind: 'rejected' as const, text: 'No cold outreach to rail.', date: '2026-10-02' }] };
       const withMemory = render(<InsideCoverTab goalId="g1" goals={[]} g={g} />);
@@ -226,6 +227,18 @@ describe('tab content components render the right lines', () => {
       if (hadWindow) (globalThis as { window?: unknown }).window = prevWindow;
       else delete (globalThis as { window?: unknown }).window;
     }
+  });
+
+  it('CoverTab lists every goal, marks the open one, and offers a new goal', () => {
+    const goals = [
+      { id: 'a', title: 'Ship the thing', doc: {}, schemaVersion: 1, updatedAt: 2 },
+      { id: 'b', title: 'Raise the round', doc: {}, schemaVersion: 1, updatedAt: 1 },
+    ] as never;
+    const html = render(<CoverTab goals={goals} activeId="b" onOpenGoal={() => {}} onNewGoal={() => {}} />);
+    expect(html).toContain('id="tabpanel-cover"');
+    expect(html).toContain('Ship the thing');
+    expect(html).toMatch(/aria-current="true"[^>]*>Raise the round/);
+    expect(html).toContain('New goal');
   });
 
   it('PeopleTab shows people and stakeholders only', () => {

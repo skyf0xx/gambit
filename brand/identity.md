@@ -80,7 +80,7 @@ Tokens are defined once as CSS custom properties. Light is the default and dark 
 - **Status is a pencilled word, not a colour.** "on track", "waiting" and "not asked" are handwritten in graphite, because statuses change. There are no status colours, badges, dots or progress bars.
 - **Only slips cast shadows.** The page's own shadow on the desk is the one exception, since it sits on the desk and not on the page. A shadow anywhere else would claim something is touchable when it isn't.
 - **Grain goes on paper only**: the page and slips. Text, marks and icons never get it, apart from pencil.
-- **No brown backgrounds, wood, leather, spiral bindings, coffee rings or other props.** The materials above are the whole kit.
+- **No brown backgrounds, wood, leather, spiral bindings, coffee rings or other props.** The materials above are the whole kit. The one exception is the front cover (the first tab): a flat dark brown (`--cover`) with Gambit's portrait and the list of goals, no grain or texture.
 - Never put accent text on an accent-tinted background.
 - Check contrast in both themes before shipping, against the grained paper and not the flat colour. Target 4.5:1 for typed body text. Handwriting is only ever secondary, and still needs 3:1.
 

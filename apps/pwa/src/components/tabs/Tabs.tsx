@@ -14,6 +14,7 @@ import { RisksTab } from './RisksTab';
 import { BetsTab } from './BetsTab';
 import { CapacityTab } from './CapacityTab';
 import { InsideCoverTab } from './InsideCoverTab';
+import { CoverTab } from './CoverTab';
 import { TAB_ORDER, tabForPath, tabHasContent, type TabId } from './tabDefs';
 
 const reducedMotion = () =>
@@ -120,7 +121,7 @@ export function Tabs({ g, goalId, settings }: { g: Goal; goalId: string; setting
   }
 
   return (
-    <div ref={pageRef} className="relative">
+    <div ref={pageRef} className="relative flex flex-1 flex-col">
       {/* The tab strip is a sibling of the page's own padded content, not a
        * child of it, and positions itself off *this* element — the page
        * sheet passed up from Dashboard.tsx (position/shadow/border only,
@@ -130,6 +131,16 @@ export function Tabs({ g, goalId, settings }: { g: Goal; goalId: string; setting
        * the page's width (task: tabs sit outside the notebook). */}
       <DividerTabs tabs={tabs} active={active} onChange={pickTab} changedTabs={changedTabs} />
       <GotoContext.Provider value={goto}>
+      {active === 'cover' ? (
+        <CoverTab
+          goals={settings.goals}
+          activeId={goalId}
+          // The open goal just turns to its page; another one switches, and
+          // the goalId effect above opens it on Moves.
+          onOpenGoal={(id) => (id === goalId ? pickTab('moves') : settings.onSwitchGoal?.(id))}
+          onNewGoal={settings.onNewGoal}
+        />
+      ) : (
       <div className="px-8.5 pb-6 md:px-16 md:pb-11">
         <TabPanel tab="goal" active={active === 'goal'}>
           <TitleBar goalTitle={g.goal} hideTitle />
@@ -164,6 +175,7 @@ export function Tabs({ g, goalId, settings }: { g: Goal; goalId: string; setting
           <InsideCoverTab {...settings} g={g} />
         </TabPanel>
       </div>
+      )}
       </GotoContext.Provider>
     </div>
   );
