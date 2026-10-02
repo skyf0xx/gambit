@@ -150,8 +150,9 @@ html, body { height: auto; }
   font-weight: 500;
   font-size: clamp(26px, 2.8vw, 34px);
   line-height: 1.2;
-  color: var(--quote);
+  color: var(--graphite);
 }
+.beat-quote strong { font-weight: 700; font-size: 1.25em; color: var(--quote); }
 .beat-pair {
   display: grid;
   grid-template-columns: 1fr 1fr;
