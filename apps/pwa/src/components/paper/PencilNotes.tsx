@@ -185,7 +185,8 @@ export function PencilNotes() {
       </svg>
       {/* The pencil filter goes on the words only: on the slip too, it eats
        * the paper and lets the line underneath show through. */}
-      <div className="paper w-max max-w-[min(22rem,calc(100vw-16px))] rounded-[2px] px-1.5 py-0.5">
+      {/* The faintest lift, just enough to part the slip from the page. */}
+      <div style={{ boxShadow: '0 1px 3px var(--lift-far)' }} className="paper w-max max-w-[min(22rem,calc(100vw-16px))] rounded-[2px] px-1.5 py-0.5">
         <div
           className={`hand whitespace-pre-line text-[20px] leading-tight text-graphite ${reduced ? '' : phase === 'in' ? 'anim-write' : 'anim-fade-in'}`}
           style={{ filter: 'url(#graphite)', animationDirection: phase === 'out' ? 'reverse' : 'normal' }}
