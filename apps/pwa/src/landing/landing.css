@@ -175,13 +175,15 @@ html, body { height: auto; }
 .levers-table, .levers-table tbody, .levers-table caption { display: block; }
 .levers-table thead { display: none; }
 .levers-table caption {
-  margin-bottom: 24px;
-  font-family: var(--font-hand);
-  font-weight: 500;
-  font-size: clamp(24px, 2.6vw, 32px);
-  line-height: 1.2;
-  color: var(--graphite);
+  margin-bottom: 28px;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: clamp(26px, 3vw, 38px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--ink);
   text-align: center;
+  text-wrap: balance;
 }
 .levers-table tr {
   display: block;
@@ -384,5 +386,4 @@ html, body { height: auto; }
   .levers-table td { font-size: 16px; }
   .levers-table td strong { font-size: 19px; }
   .levers-table td span { font-size: 16px; }
-  .levers-table caption { font-size: 24px; }
 }
