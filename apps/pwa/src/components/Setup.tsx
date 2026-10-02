@@ -280,7 +280,7 @@ function GoalStep({ draft, onDraft, onNext }: { draft: string; onDraft: (v: stri
           value={draft}
           onChange={(e) => onDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && ready) next(); }}
-          placeholder={dictation.listening ? 'listening…' : 'Say it plainly.'}
+          placeholder={dictation.listening ? 'listening…' : 'Say it plainly, like you would to a friend.'}
           className="mt-12 block w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-sans text-[19px] leading-[32px] text-ink caret-accent placeholder:text-graphite focus:outline-none"
           style={{ background: 'repeating-linear-gradient(transparent 0 31px, var(--card-rule) 31px 32px)' }}
         />
@@ -298,7 +298,7 @@ function GoalStep({ draft, onDraft, onNext }: { draft: string; onDraft: (v: stri
             className={`anim-press group mt-4 flex min-h-11 items-center gap-2 text-[15px] ${dictation.listening ? 'text-accent' : 'text-graphite hover:text-ink'}`}
           >
             <HandMic size={20} className={dictation.listening ? 'anim-pulse' : 'pencil group-hover:text-ink'} />
-            {dictation.listening ? 'Stop listening' : 'Say it instead'}
+            {dictation.listening ? 'Stop listening' : 'Talk it out'}
           </button>
         )}
         <InkButton className={canDictate ? 'mt-8' : 'mt-12'} disabled={!ready} onClick={next}>Continue</InkButton>
