@@ -35,15 +35,34 @@ function Banner({ children, onClose }: { children: React.ReactNode; onClose?: ()
   );
 }
 
-/** The app-update and backup-permission banners only. Install lives on the
+const DESKTOP_HINT_KEY = 'gambit:desktop-hint-dismissed';
+const PHONE = '(pointer: coarse) and (max-width: 767px)';
+
+/** On a phone, once: Gambit is laid out for the page and the chat side by
+ * side. Closing it is for good, in this browser. */
+function useDesktopHint(): [boolean, () => void] {
+  const [show, setShow] = useState(() => {
+    try { if (localStorage.getItem(DESKTOP_HINT_KEY)) return false; } catch { /* show it; closing still hides it for now */ }
+    return typeof matchMedia === 'function' && matchMedia(PHONE).matches;
+  });
+  const dismiss = () => {
+    setShow(false);
+    try { localStorage.setItem(DESKTOP_HINT_KEY, '1'); } catch { /* gone until reload */ }
+  };
+  return [show, dismiss];
+}
+
+/** The app-update, backup-permission and desktop-hint banners only. Install lives on the
  * Goal page (KeepNotebook, shown once there's something to lose) and on the
  * Inside cover; the export-status banner lives in the menu/settings leaf. */
 function Banners() {
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW();
   const [sync, setSync] = useState<'off' | 'active' | 'needs_permission'>('off');
   useEffect(() => { void fileSyncState().then(setSync); }, []);
+  const [desktopHint, dismissDesktopHint] = useDesktopHint();
   return (
     <>
+      {desktopHint && <Banner onClose={dismissDesktopHint}>Gambit works best on desktop.</Banner>}
       {needRefresh && <Banner>Update ready. <TextAction className="underline underline-offset-[3px]" onClick={() => void updateServiceWorker(true)}>Reload</TextAction></Banner>}
       {sync === 'needs_permission' && <Banner>Backup paused. <TextAction className="underline underline-offset-[3px]" onClick={() => void reauthorizeFileSync()}>Resume</TextAction></Banner>}
     </>
