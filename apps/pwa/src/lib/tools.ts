@@ -1,22 +1,39 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { writeSection, appendLog, setStatus, WRITABLE_KEYS } from '@gambit/core';
+import { writeSection, appendLog, setStatus, canLoad, canWrite, WRITABLE_KEYS, type FlowSession } from '@gambit/core';
 import { applyOp, readRecord } from './goals';
 import { db } from './db';
-import { getSkillStore, skillText, skillFile, elicitationMethods } from './skills';
+import { getSkillStore, skillText, skillFile, skillFlows, flowOf, elicitationMethods } from './skills';
 
 export interface ToolContext {
   goalId: string;
+  /** Which skill is active, and which were loaded this turn. The tools
+   * update it in place; the agent persists it when the turn ends. */
+  session: FlowSession;
   onSkillLoaded: (name: string) => void;
 }
 
-const today = () => {
+export const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
 const result = (r: Awaited<ReturnType<typeof applyOp>>) =>
   r.ok ? { ok: true as const, ...(r.warnings.length ? { warnings: r.warnings } : {}) } : { ok: false as const, errors: r.errors };
+
+/** The flow's verdict on a write, as the same error shape a failed write returns. */
+async function gate(session: FlowSession, key: string, op: 'write_section' | 'set_status' | 'append_log') {
+  const r = canWrite(session, key, op, skillFlows(await getSkillStore()));
+  return r.ok ? null : { ok: false as const, errors: [{ path: key, message: r.error }] };
+}
+
+/** The goal as it reads now, or null if it can't be read. */
+export async function currentGoal(goalId: string) {
+  const rec = await db.goals.get(goalId);
+  if (!rec) return null;
+  const read = await readRecord(rec);
+  return read.status === 'ok' ? read.data : null;
+}
 
 /** Compact current state for the system prompt and get_goal: log trimmed to the last 5 entries. */
 export async function goalStateJson(goalId: string): Promise<string> {
@@ -54,14 +71,46 @@ export function makeTools(ctx: ToolContext) {
       execute: async () => ({ ok: true }),
     }),
     load_skill: tool({
-      description: 'Load the full text of a Gambit skill by name (see the skill index). The skill stays active for the rest of its session.',
+      description: 'Load a Gambit skill by name (see the skill index) and make it the active skill, replacing the one before. A checkpoint skill (elicit) runs inside the active skill instead and hands back to it on finish_skill.',
       inputSchema: z.object({ name: z.string() }),
       execute: async ({ name }) => {
         const store = await getSkillStore();
         const s = skillText(store, name);
-        if (!s) return { ok: false, error: `unknown skill "${name}"`, available: store.index.map((i) => i.name) };
-        ctx.onSkillLoaded(name);
+        const flow = flowOf(store, name);
+        if (!s || !flow) return { ok: false, error: `unknown skill "${name}"`, available: store.index.map((i) => i.name) };
+        const goal = await currentGoal(ctx.goalId);
+        if (goal) {
+          const r = canLoad(flow, goal);
+          if (!r.ok) return { ok: false, error: r.error };
+        }
+        const { session } = ctx;
+        if (session.active !== name) {
+          const current = session.active ? flowOf(store, session.active) : undefined;
+          session.caller = flow.checkpoint ? (current?.checkpoint ? session.caller : session.active) : undefined;
+          session.active = name;
+          session.fresh.push(name);
+          ctx.onSkillLoaded(name);
+        }
         return { ok: true, skill: name, text: s.text, supportingFiles: s.extras };
+      },
+    }),
+    finish_skill: tool({
+      description: 'End the active skill when its work is done. From a checkpoint skill (elicit), this hands back to the skill that called it and returns that skill\'s text. To move on to another skill, call load_skill instead.',
+      inputSchema: z.object({}),
+      execute: async () => {
+        const { session } = ctx;
+        if (!session.active) return { ok: false, error: 'no skill is active' };
+        const done = session.active;
+        const store = await getSkillStore();
+        if (flowOf(store, done)?.checkpoint && session.caller) {
+          const resumed = session.caller;
+          session.active = resumed;
+          session.caller = undefined;
+          return { ok: true, finished: done, resumed, text: skillText(store, resumed)?.text };
+        }
+        session.active = undefined;
+        session.caller = undefined;
+        return { ok: true, finished: done };
       },
     }),
     read_skill_file: tool({
@@ -84,7 +133,7 @@ export function makeTools(ctx: ToolContext) {
         // Array items need a concrete type: Gemini rejects an array schema without `items`.
         value: z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(z.union([z.string(), z.record(z.any())])), z.record(z.any())]).describe('The complete new value for the key, matching the section shapes in the system prompt.'),
       }),
-      execute: async ({ key, value }) => result(await applyOp(ctx.goalId, (g) => writeSection(g, key, value) as never)),
+      execute: async ({ key, value }) => (await gate(ctx.session, key, 'write_section')) ?? result(await applyOp(ctx.goalId, (g) => writeSection(g, key, value) as never)),
     }),
     append_log: tool({
       description: 'Append one entry to the log, the only append-only key. date defaults to today.',
@@ -96,12 +145,12 @@ export function makeTools(ctx: ToolContext) {
         notes: z.array(z.string()),
         source: z.string().optional(),
       }),
-      execute: async (entry) => result(await applyOp(ctx.goalId, (g) => appendLog(g, { ...entry, date: entry.date ?? today() }) as never)),
+      execute: async (entry) => (await gate(ctx.session, 'log', 'append_log')) ?? result(await applyOp(ctx.goalId, (g) => appendLog(g, { ...entry, date: entry.date ?? today() }) as never)),
     }),
     set_status: tool({
       description: 'Flip one step, sub-item or next action to pending, done or dropped without rewriting the section (a next action can also be set to proposed). path is dotted, e.g. "plan.linesOfOperation.0.nextActions.2".',
       inputSchema: z.object({ path: z.string(), status: z.enum(['proposed', 'pending', 'done', 'dropped']) }),
-      execute: async ({ path, status }) => result(await applyOp(ctx.goalId, (g) => setStatus(g, path, status) as never)),
+      execute: async ({ path, status }) => (await gate(ctx.session, path.split('.')[0], 'set_status')) ?? result(await applyOp(ctx.goalId, (g) => setStatus(g, path, status) as never)),
     }),
     elicitation_methods: tool({
       description: 'Serve the elicitation method catalog used by the elicit skill.',
@@ -122,6 +171,7 @@ export function toolLabel(name: string, input: unknown): string {
   const i = (input ?? {}) as Record<string, string>;
   switch (name) {
     case 'load_skill': return `skill: ${i.name}`;
+    case 'finish_skill': return 'skill done';
     case 'write_section': return `wrote ${i.key}`;
     case 'set_status': return `${i.status}: ${String(i.path).split('.').slice(-2).join('.')}`;
     case 'append_log': return 'log entry';

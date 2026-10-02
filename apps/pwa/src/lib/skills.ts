@@ -1,5 +1,6 @@
 import guidedMd from '../../../../skills/_shared/GUIDED.md?raw';
 import methodsCsv from '../../vendor/BMAD/methods.csv?raw';
+import { skillFlow, type SkillFlow } from '@gambit/core';
 import { pageGlossary } from './glossary';
 
 const packGlob = import.meta.glob('../../../../skills/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
@@ -24,7 +25,7 @@ export function parseFrontmatter(md: string): { meta: Record<string, string>; bo
 
 export interface SkillStore {
   files: Record<string, string>;
-  index: { name: string; description: string }[];
+  index: { name: string; description: string; flow: SkillFlow }[];
   version: string;
 }
 
@@ -36,7 +37,8 @@ export function buildStore(packFiles: Record<string, string>, version: string): 
     .filter((p) => /^skills\/[^/_][^/]*\/SKILL\.md$/.test(p))
     .map((p) => {
       const { meta } = parseFrontmatter(files[p]);
-      return { name: p.split('/')[1], description: meta.description ?? '' };
+      const name = p.split('/')[1];
+      return { name, description: meta.description ?? '', flow: skillFlow(name, meta) };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
   return { files, index, version };
@@ -47,6 +49,9 @@ export async function getSkillStore(): Promise<SkillStore> {
   cache = buildStore(bundledFiles, __APP_VERSION__);
   return cache;
 }
+
+export const skillFlows = (store: SkillStore): SkillFlow[] => store.index.map((i) => i.flow);
+export const flowOf = (store: SkillStore, name: string): SkillFlow | undefined => store.index.find((i) => i.name === name)?.flow;
 
 export function skillText(store: SkillStore, name: string): { text: string; extras: string[] } | null {
   const main = store.files[`skills/${name}/SKILL.md`];
@@ -155,15 +160,21 @@ export const PREAMBLE = `You are Gambit, a strategic advisor running inside a lo
 - You change the goal only through tools: write_section(key, value) replaces a key wholesale with the skill's owned value; set_status flips a single step, sub-item, or next-action; append_log adds one log entry. There is no other write path.
 - Every write validates automatically and returns structured errors with field paths. If a call returns ok: false, fix exactly those fields and call again before ending the turn.
 - Every turn ends with exactly one reply(say, bottomLine, kind, options) call, after any writes. It is the only part of the turn the user sees by default, and stays under 80 words in all; see the guided-session rules below.
-- New-goal intake: when the goal is still a stub (its only success criterion is the placeholder "define success criteria"), load the \`intake\` skill. For an elicitation checkpoint, load the \`elicit\` skill.
 - Shared docs referenced by skills (for example skills/_shared/HUMANIZE.md) are read with read_skill_file("_shared", "HUMANIZE.md").
 - Research: you have no live web access unless a web_search tool is present. Without it, say plainly that a claim is unverified instead of proceeding as if it had been checked.
 
 # Skills
-The skill index below lists every skill. When one applies, call load_skill(name) and follow it as a multi-turn guided session; the loaded skill stays active until you load another. Do not load a skill for a passing remark that needs no skill. When you hand off between skills, do it silently.
+The skill index below lists every skill. When one applies, call load_skill(name) and follow it as a multi-turn guided session. It stays the active skill until you load another or call finish_skill. Do not load a skill for a passing remark that needs no skill. Hand off between skills silently.
+- Only the active skill writes, and only the keys it declares; the state block below names them. To write another key, load the skill that writes it. A user reporting a next action done, blocked or dropped goes to \`plan\`.
+- A skill that writes shows the user its read as a confirm reply and writes after they answer, so never in the turn it was loaded. Status flips and log entries are the exception.
+- A skill that needs a defined goal won't load on a stub; \`intake\` defines it.
+- \`elicit\` runs inside the active skill: it pressure-tests that skill's work, then finish_skill hands back to it.
+- When a skill's work is done and nothing follows, call finish_skill. To move on, load the next skill.
+- The state block lists what is due now. Lead with the most pressing item when the user has no ask of their own.
+A refused load or write comes back as an error naming the rule; follow it in the same turn.
 
 # ${'The goal contract, in short'}
-Each top-level key has exactly one owning skill, which replaces its value wholesale; \`log\` is the only append-only array. Every key reads as current state, with no history in the file. The goal sentence itself is capped at 10 words on every new write — if an existing goal is longer, propose a shorter one, confirm it with the user, then write it (and move whatever it drops into subGoals).
+Each top-level key replaces its value wholesale; \`log\` is the only append-only array. Every key reads as current state, with no history in the file. The goal sentence itself is capped at 10 words on every new write — if an existing goal is longer, propose a shorter one, confirm it with the user, then write it (and move whatever it drops into subGoals).
 
 ${SECTION_SHAPES}
 

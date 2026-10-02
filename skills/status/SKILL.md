@@ -2,6 +2,8 @@
 name: status
 description: Use for a quick, read-only snapshot of the goal — goal, posture, focus, people, plan status, last eval, and recent log — without running a full strategy or eval cycle. Never writes to the goal.
 display: plain-card
+requires: goal
+next: strategy, plan, brief, eval
 ---
 
 # Skill: status
@@ -59,6 +61,3 @@ Next: [strategy to reset focus | plan to sequence | brief for the plain-language
 
 Recommend nothing. This skill reports; it doesn't steer — that's the distinction from
 `strategy`. Just make the routes visible.
-
-If the goal is still a stub: say so and point to `onboard`, which hands off to `intake`
-for first-contact definition.

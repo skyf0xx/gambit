@@ -1,7 +1,9 @@
 ---
 name: onboard
-description: Use at the start of any session touching a goal — a vague first message ("I want to...", "help me with...", "help me plan...", "what's going on with this"), or any time it's unclear whether the goal has been defined yet. Not a coding task even if the phrasing sounds like one ("help me plan" here means a life/business/campaign goal, not a software plan). Checks whether the goal is still a stub and branches to intake for a new goal, or a welcome-back snapshot for a returning one, then hands off to strategy.
+description: Use at the start of any session touching a goal — a vague first message ("I want to...", "help me with...", "help me plan...", "what's going on with this"), or any time it's unclear whether the goal has been defined yet. Not a coding task even if the phrasing sounds like one ("help me plan" here means a life/business/campaign goal, not a software plan). Branches to intake for a new goal, or a welcome-back snapshot for a returning one, then hands off to strategy.
 display: plain-card
+requires: any
+next: intake, strategy, decide, brief, elicit
 ---
 
 # Skill: onboard
@@ -45,8 +47,7 @@ words ("let me work out where the leverage is"), not by naming the file.
 The active goal's current state is already supplied in "Current goal state." Call
 `get_goal` instead if the user may have edited the dashboard since.
 
-- **The goal is still a stub** — its only success criterion is the placeholder "define
-  success criteria" — → **2. New Goal**
+- **The goal is a stub** (a placeholder, nothing defined yet) → **2. New Goal**
 - **The goal has real content** → **3. Returning User**
 
 There's no multi-goal listing to handle here: the user picks or creates a goal with the
@@ -57,7 +58,7 @@ is active.
 
 ### 2. New Goal
 
-Hand off to `intake` — it runs the probing conversation that turns a working title into
+Load `intake` — it runs the probing conversation that turns a working title into
 a goal with real success criteria, a deadline, and named people. Don't reimplement any
 of that here.
 
@@ -124,13 +125,13 @@ Want to just move on this, or should we dig in properly first — pressure-test 
 few angles before locking anything in?
 ```
 
-- **Move on it** → hand off to the routed skill (`strategy`/`decide`/`brief`) as normal;
+- **Move on it** → load the routed skill (`strategy`/`decide`/`brief`) as normal;
   it reasons and commits in its own single pass, per AGENTS.md's "Stay opinionated
   through pushback."
-- **Dig in** → before that skill commits to a recommendation, load `elicit` against the
-  read it's about to act on (the situation assessment, the fork `decide` is weighing, the
-  read `systems` produced) — then let the routed skill resume with the pressure-tested
-  version.
+- **Dig in** → load the routed skill, and before it commits to a recommendation, load
+  `elicit` against the read it's about to act on (the situation assessment, the fork
+  `decide` is weighing, the read `systems` produced). When `elicit` finishes it hands back
+  on its own, and the routed skill resumes with the pressure-tested version.
 
 Skip re-asking this if the user's own return message already asked for one directly
 ("give me the quick version", "really dig into whether this is still right") — take

@@ -2,13 +2,15 @@
 name: elicit
 description: Use at a natural pause, or when the user asks for a deeper critique or names a method (socratic, first principles, pre-mortem, red team), to pressure-test the most recent piece of work — a draft, plan, decision or set of criteria — by running a chosen elicitation method against it. Offers a short menu of methods drawn from a catalog, runs the chosen ones, and hands back an improved version.
 display: plain-card
+requires: any
+checkpoint: true
 ---
 
 # Skill: elicit
 
 Adapted from BMAD-METHOD's advanced elicitation skill (MIT; see the bundled attribution).
 
-**Purpose**: A shared refinement checkpoint. Other skills call it at a pause to pressure the work they just produced; the user can call it directly on anything recent. The target is the most recent output in the conversation unless the user points elsewhere. Offer a short menu, run the chosen methods against the target, and hand back the improved version so the calling flow resumes where it paused.
+**Purpose**: A shared refinement checkpoint. Other skills call it at a pause to pressure the work they just produced; the user can call it directly on anything recent. The target is the most recent output in the conversation unless the user points elsewhere. Offer a short menu, run the chosen methods against the target, and hand back the improved version so the calling flow resumes where it paused. It writes nothing itself; the calling skill writes whatever the user accepted.
 
 ## Serving the catalog
 
@@ -40,7 +42,7 @@ x. Proceed / No Further Actions
 - **1 to 5**: run that method (several numbers: in sequence), then show the menu again.
 - **r**: `random` with `n: 5`, excluding everything already offered, and show the menu.
 - **a**: show the full catalog as a compact table; a pick by name or number runs like a numbered choice.
-- **x**: done. The current enhanced version is final; hand it back and continue the calling flow. If anything shown was never accepted, confirm what should carry over first.
+- **x**: done. The current enhanced version is final. If anything shown was never accepted, confirm what should carry over first, then call `finish_skill` to hand back to the calling skill, which writes the accepted changes.
 - **Anything else**: treat it as direction, apply it to the target, and show the menu again.
 
 ## Running a method

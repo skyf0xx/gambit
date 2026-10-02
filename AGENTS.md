@@ -25,6 +25,7 @@ packages/core/        shared logic, framework-agnostic
   src/read.mjs        version-aware read path + in-code migrations
   src/ops.mjs         goal operations (write_section / append_log / set_status semantics)
   src/registry.mjs    display registry — maps each owned key to a dashboard renderer
+  src/flow.mjs        skill flow — load and write gates, due-skill suggestions
   src/rules.mjs, index.mjs
 
 skills/               skill catalogue, bundled into the app at build time
@@ -111,11 +112,43 @@ different questions, and collapsing them loses the distinct one:
 - `comms` prepares outward broadcast; `negotiate` prepares a two-way
   exchange where the other side has leverage.
 
-`onboard` is the front door: it checks whether the goal is still a stub and
-branches to `intake` (first-contact setup) or a welcome-back snapshot for a
-returning session, then hands off to `strategy`. Other skills should assume
-a real goal already exists — `strategy` defers to `onboard` if it doesn't,
-rather than re-implementing intake.
+`onboard` is the front door: it branches to `intake` (first-contact setup)
+for a stub goal or a welcome-back snapshot for a returning session, then
+hands off to `strategy`. Other skills assume a real goal already exists and
+never re-implement intake; the flow gate below refuses to load them on a
+stub.
+
+## The skill flow
+
+The session rules the product depends on are checked in code
+(`packages/core/src/flow.mjs`, called from the agent tools in
+`apps/pwa/src/lib/tools.ts`), not left to the model's memory of the prompt.
+Each skill declares its place in the flow in its `SKILL.md` frontmatter:
+
+- `writes` — the keys it may write (`log` for `append_log`)
+- `requires` — `goal` (needs a defined goal) or `any`
+- `next` — the skills it naturally hands off to
+- `checkpoint: true` — runs inside the active skill instead of replacing it
+  (`elicit`)
+
+The gates:
+
+- `load_skill` refuses a `requires: goal` skill while the goal is a stub
+  and points to `intake`.
+- `write_section`, `set_status` and `append_log` need an active skill whose
+  `writes` holds the key; with no active skill, nothing writes.
+- `write_section` is refused in the turn its skill was loaded: the skill
+  shows its read as a `confirm` reply and writes after the user answers
+  (GUIDED.md's elicit-before-committing). Status flips and log entries
+  record what the user just said, so they pass.
+- A checkpoint skill keeps its caller's write rights; `finish_skill` from it
+  hands back to the caller. From any other skill, `finish_skill` ends it.
+
+A refusal comes back as a tool error naming the rule, so the model fixes it
+in the same turn. Each turn's state block also names the active skill and
+what the goal says is due now (`suggestSkills`: forecasts to score,
+experiments past their date, decisions to review, no posture or plan, a
+stale focus, an overdue `eval`, unchecked capacity).
 
 ## The goal contract
 
@@ -138,10 +171,12 @@ optional `subGoals` key instead: up to 5 short entries (about 12 words /
 `subGoals` is distinct from `successCriteria`: a sub-goal is a condition on
 the aim itself, a success criterion is a measurable definition of done.
 
-Each key has exactly one owning skill, which replaces its own key's value
-in place rather than accumulating:
+Each key has one owning skill, which replaces its own key's value in place
+rather than accumulating. Which skills may write a key is the `writes`
+frontmatter above; the owners are:
 
-- `subGoals` ← `intake` (same owner as `goal`)
+- `goal`, `subGoals`, `successCriteria`, `deadline`, `people` ← `intake`
+- `posture` ← `strategy`
 - `plan` ← `plan`
 - `systemsNotes` ← `systems`
 - `riskNotes` ← `threat`
@@ -152,6 +187,11 @@ in place rather than accumulating:
 - `forecasts` ← `forecast`
 - `experiments` ← `experiment`
 - `criteriaStatus` ← `eval`
+
+A few skills also write a key they don't own, for one narrow purpose:
+`plan` sets each success criterion's `lineOfOperation`, and `stakeholders`
+moves someone into `people` once the user deals with them directly and
+keeps `people[].status` current.
 
 `log` is the only append-only key, capped at the newest 30 entries —
 `append_log` (`packages/core/src/ops.mjs`) drops the oldest entries past
@@ -234,7 +274,9 @@ every goal write — same treatment, read them rather than duplicating them.
 - Adding a skill: give it its own `skills/<name>/` directory with a
   `SKILL.md` carrying YAML frontmatter (`name`, `description`, `display` —
   one of the renderer types in `packages/core/src/registry.mjs`) so the
-  dashboard knows how to draw its output. It needs a next-step section, an
+  dashboard knows how to draw its output, plus the flow fields (`writes`,
+  `requires`, `next`) described under "The skill flow" — a test checks
+  them against the goal keys and the other skills. It needs a next-step section, an
   elicitation checkpoint if it writes to the goal, and — if it writes a new
   key — a declared entry in `goalSchema` plus a matching entry in
   `packages/core/src/registry.mjs`.

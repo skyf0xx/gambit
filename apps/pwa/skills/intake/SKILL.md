@@ -2,11 +2,14 @@
 name: intake
 description: Use for new-goal intake — the active goal is still a stub (its only success criterion is the placeholder "define success criteria") or the user wants to re-open the definition of what they are after. Runs a guided conversation that pins down the goal statement, pressure-tests what "done" means by working backwards, drafts success criteria marked control or influence, sets a deadline, and names the first people involved. Offers a quick take or a deep dive.
 display: plain-card
+writes: goal, subGoals, successCriteria, deadline, people, log
+requires: any
+next: strategy, capacity, stakeholders, premortem, elicit
 ---
 
 # Skill: intake
 
-**Trigger**: The goal has been named but not defined — the stub's placeholder success criterion is still in place, or the user is re-scoping what they are after. `onboard` hands off here the moment it detects a stub goal.
+**Trigger**: The goal has been named but not defined — the stub's placeholder success criterion is still in place, or the user is re-scoping what they are after. `onboard` loads this skill when it finds a stub goal.
 
 **Purpose**: Get from a working title to a goal that is probed, not just stated. A goal is a serious thing — before anything is built on it, the definition of "done" has to survive a few hard questions.
 
@@ -36,7 +39,7 @@ Want the quick take — I'll ask a few questions and fill gaps as assumptions �
 These two names are the standing vocabulary for elicitation depth anywhere in Gambit.
 
 - **Quick take**: one batched round of questions (what, why now, what done looks like, deadline, who else is involved). Fill anything left unanswered with an explicit assumption and say so.
-- **Deep dive**: steps 3 to 5 as a real back-and-forth, one or two questions at a time, using the `elicit` skill's method menu once at the pause after step 4.
+- **Deep dive**: steps 3 to 5 as a real back-and-forth, one or two questions at a time, loading `elicit` once at the pause after step 4; it hands back when the user is done.
 
 ### 3. Goal statement
 
@@ -69,7 +72,7 @@ Call `write_section` for `goal`, `subGoals` (only if there are any — omit the 
 
 ### 7. Name the next step
 
-End with one recommended next move, defaulting to `strategy` to find the focus, plus a short menu of alternatives (`capacity`, `stakeholders`, `premortem`). State the recommendation as the default and let the user redirect.
+End with one recommended next move, defaulting to `strategy` to find the focus, plus a short menu of alternatives (`capacity`, `stakeholders`, `premortem`). State the recommendation as the default and let the user redirect, then load the skill they pick.
 
 ## Fields written
 

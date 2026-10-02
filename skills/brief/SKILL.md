@@ -2,6 +2,8 @@
 name: brief
 description: Use when the user wants to understand where things stand in plain language rather than in framework terms — returning after a gap, feeling lost, showing the situation to someone else, or asking "so what does all this actually mean". Translates the goal into ordinary prose, explains any jargon it contains, and names the one thing to do next. Read-only.
 display: plain-card
+requires: goal
+next: strategy, plan, decide, eval
 ---
 
 # Skill: brief
@@ -42,9 +44,6 @@ damage.
 
 The goal's current state is already supplied in "Current goal state." Call `get_goal`
 instead if the user may have edited the dashboard since.
-
-If the goal is still a stub: say there's nothing set up yet, and point to `onboard` to
-start. Stop there.
 
 ### 2. Write the Brief
 

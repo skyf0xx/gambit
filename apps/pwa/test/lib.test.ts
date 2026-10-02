@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { WRITABLE_KEYS } from '@gambit/core';
-import { PREAMBLE, SECTION_SHAPES, buildStore, bundledFiles, guidedRules, methods, skillFile, elicitationMethods } from '../src/lib/skills';
-import { compactToolResults, trimHistory, keepLastTurns, CHAT_TURNS, HISTORY_CHAR_BUDGET } from '../src/lib/agent';
+import { WRITABLE_KEYS, stubGoal, writersOf } from '@gambit/core';
+import { PREAMBLE, SECTION_SHAPES, buildStore, bundledFiles, guidedRules, methods, skillFile, skillFlows, elicitationMethods } from '../src/lib/skills';
+import { compactToolResults, trimHistory, keepLastTurns, flowText, CHAT_TURNS, HISTORY_CHAR_BUDGET } from '../src/lib/agent';
 import type { ModelMessage } from 'ai';
 import type { DisplayMsg } from '../src/lib/db';
 
@@ -25,6 +25,25 @@ describe('skills and preamble', () => {
   it('serves shared files and rejects traversal', () => {
     expect(skillFile(store, '_shared', 'HUMANIZE.md')).toBeTruthy();
     expect(skillFile(store, 'plan', '../onboard/SKILL.md')).toBeNull();
+  });
+  it('declares a valid flow in every skill', () => {
+    const flows = skillFlows(store);
+    const names = flows.map((f) => f.name);
+    for (const f of flows) {
+      expect(f.errors, f.name).toEqual([]);
+      for (const n of f.next) expect(names, `${f.name} next`).toContain(n);
+    }
+    for (const k of [...WRITABLE_KEYS, 'log']) expect(writersOf(k, flows), k).not.toEqual([]);
+    expect(flows.filter((f) => f.checkpoint).map((f) => f.name)).toEqual(['elicit']);
+    expect(flows.filter((f) => f.requires === 'any').map((f) => f.name).sort()).toEqual(['elicit', 'intake', 'onboard']);
+  });
+  it('states the active skill and what is due in the turn state', () => {
+    const goal = stubGoal('g');
+    expect(flowText(store, {}, goal, '2026-10-02')).toBe('No skill is active; every write needs one.\nDue now: intake (the goal is not defined yet).');
+    const t = flowText(store, { active: 'elicit', caller: 'intake' }, goal, '2026-10-02');
+    expect(t).toContain('Active skill: elicit, inside intake (writes goal, subGoals');
+    expect(t).not.toContain('hands off to');
+    expect(flowText(store, { active: 'plan' }, goal, '2026-10-02')).toMatch(/plan hands off to: \w/);
   });
   it('parses the elicitation catalog', () => {
     expect(methods.length).toBeGreaterThan(60);

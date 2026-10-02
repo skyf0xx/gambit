@@ -2,6 +2,9 @@
 name: eval
 description: Use for a periodic check-in or an honest audit of progress against the goal's success criteria, including whether people involved are actually delivering. Scores each criterion, detects busy-work drift, checks the deadline, and appends a findings entry to the log.
 display: checklist
+writes: criteriaStatus, log
+requires: goal
+next: strategy, plan, decide
 ---
 
 # Skill: eval
