@@ -104,11 +104,11 @@ function ChangeNote({ goalId, path }: { goalId: string; path: string }) {
 
 /** A single markable line: text with its data-line hook, sr mark text, an
  * optional "→ Name" pencilled after it, and the change note beneath. */
-function Line({ goalId, path, className = '', children }: { goalId: string; path: string; className?: string; children: ReactNode }) {
+function Line({ goalId, path, alias, className = '', children }: { goalId: string; path: string; alias?: string; className?: string; children: ReactNode }) {
   const mark = useLineMark(path);
   return (
     <div>
-      <span data-line={path} className={`${mark.pencil ? 'pencil' : ''} ${className}`}>
+      <span data-line={path} data-alias={alias} className={`${mark.pencil ? 'pencil' : ''} ${className}`}>
         {children}
         <FreshTag path={path} />
         <MarkSr path={path} />
@@ -577,6 +577,108 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
         </div>
         {body(open)}
       </div>
+    </div>
+  );
+}
+
+const POWER_RANK: Record<string, number> = { high: 0, med: 1, low: 2 };
+const powerWord = (p: string) => `${p === 'med' ? 'medium' : p} power`;
+
+/** Where someone stands now and where they need to be, as one line. */
+function Stance({ s }: { s: Any }) {
+  return <>{s.stanceCurrent} <span aria-hidden="true">→</span><span className="sr-only">to</span> {s.stanceTarget}</>;
+}
+
+/** One row on the People page: the name with one pencilled tag, then a
+ * single line of what matters now. The reasoning behind it (how to reach
+ * them, why, their power when it isn't the tag) stays folded until the row
+ * is tapped, so the page scans as a list of names, not a wall of notes. */
+function PersonRow({ goalId, path, alias, name, tag, main, more }: { goalId: string; path: string; alias?: string; name: string; tag: string; main: ReactNode; more: ReactNode[] }) {
+  const [open, setOpen] = useState(false);
+  const extra = more.filter(Boolean);
+  // The whole row opens, not only the word; it stands aside for anything
+  // with its own click and for a drag that selected text.
+  const onRowClick = (e: MouseEvent<HTMLLIElement>) => {
+    if ((e.target as Element).closest('button, a')) return;
+    if (window.getSelection()?.toString()) return;
+    setOpen((v) => !v);
+  };
+  return (
+    <li className={extra.length > 0 ? 'cursor-pointer' : ''} onClick={extra.length > 0 ? onRowClick : undefined}>
+      <div className="flex items-baseline justify-between gap-3">
+        <Line goalId={goalId} path={path} alias={alias}>
+          <span className="font-medium text-ink">{name}</span>
+        </Line>
+        <PencilWord className="shrink-0 text-graphite">{tag}</PencilWord>
+      </div>
+      <div className="text-[15px] leading-6 text-ink">
+        {main}
+        {extra.length > 0 && (
+          <TextAction circle={false} className="-my-2.5 ml-1.5 align-baseline" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+            <PencilWord className="text-[18px] text-graphite">{open ? 'less' : 'more'}</PencilWord>
+          </TextAction>
+        )}
+      </div>
+      {open && <div className="anim-rise">{extra.map((m, i) => <Detail key={i}>{m}</Detail>)}</div>}
+    </li>
+  );
+}
+
+/** The People page as one list: everyone in `people`, with a matching
+ * `stakeholders` entry (same name) folded into their row rather than shown
+ * a second time, then whoever else has a say, strongest first. */
+export function PeopleBody({ goalId, people: storedPeople, stakeholders: storedStakeholders }: { goalId: string; people: Any[]; stakeholders: Any[] }) {
+  const people = useMemo(() => withProseDates(storedPeople) as Any[], [storedPeople]);
+  const stakeholders = useMemo(() => withProseDates(storedStakeholders) as Any[], [storedStakeholders]);
+  const norm = (n: string) => n.trim().toLowerCase();
+  const byName = new Map(stakeholders.map((s, j) => [norm(s.name), j]));
+  const claimed = new Set<number>();
+  const rows = people.map((p, i) => {
+    const j = byName.get(norm(p.name));
+    if (j !== undefined) claimed.add(j);
+    const s = j !== undefined ? stakeholders[j] : undefined;
+    return (
+      <PersonRow
+        key={`p${i}`}
+        goalId={goalId}
+        path={`people.${i}`}
+        alias={j !== undefined ? `stakeholders.${j}` : undefined}
+        name={p.name}
+        tag={p.status}
+        main={p.doing}
+        more={[
+          s && <><Stance s={s} /> · {powerWord(s.power)}</>,
+          s && `via ${s.via}`,
+          p.detail,
+          s?.detail,
+        ]}
+      />
+    );
+  });
+  const others = stakeholders
+    .map((s, j) => ({ s, j }))
+    .filter(({ j }) => !claimed.has(j))
+    .sort((a, b) => (POWER_RANK[a.s.power] ?? 3) - (POWER_RANK[b.s.power] ?? 3));
+  const otherRows = others.map(({ s, j }) => (
+    <PersonRow
+      key={`s${j}`}
+      goalId={goalId}
+      path={`stakeholders.${j}`}
+      name={s.name}
+      tag={powerWord(s.power)}
+      main={<Stance s={s} />}
+      more={[`via ${s.via}`, s.detail]}
+    />
+  ));
+  return (
+    <div className="space-y-5 text-[17px] leading-[27px]">
+      {rows.length > 0 && <ul className="space-y-3">{rows}</ul>}
+      {otherRows.length > 0 && (
+        <div className="space-y-1.5">
+          {rows.length > 0 && <h3 className="text-[14px] leading-5 text-graphite">Also has a say</h3>}
+          <ul className="space-y-3">{otherRows}</ul>
+        </div>
+      )}
     </div>
   );
 }

@@ -91,7 +91,7 @@ export function Tabs({ g, goalId, settings }: { g: Goal; goalId: string; setting
       // Wait a tick for the tab switch to render before querying the DOM;
       // two rAFs cover the TabPanel remount plus MarksLayer's own redraw.
       requestAnimationFrame(() => requestAnimationFrame(() => {
-        const el = pageRef.current?.querySelector<HTMLElement>(`[data-line="${cssEscape(path)}"]`);
+        const el = pageRef.current?.querySelector<HTMLElement>(`[data-line="${cssEscape(path)}"], [data-alias="${cssEscape(path)}"]`);
         if (!el) return;
         el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' });
         flashLine(el);

@@ -216,6 +216,18 @@ describe('tab content components render the right lines', () => {
     expect(html).not.toContain('data-line="riskNotes.0"');
   });
 
+  it('PeopleTab shows someone in both people and stakeholders once', () => {
+    const both = { ...g, stakeholders: [...g.stakeholders, { name: 'priya ', power: 'low', stanceCurrent: 'busy', stanceTarget: 'leads it', via: 'a call', detail: 'folded note' }] } as Goal;
+    const html = render(<PeopleTab g={both} goalId="g1" />);
+    expect(html.match(/Priya/g)).toHaveLength(1);
+    expect(html).toContain('data-alias="stakeholders.1"');
+    expect(html).not.toContain('data-line="stakeholders.1"');
+    expect(html).toContain('data-line="stakeholders.0"');
+    expect(html).toContain('Also has a say');
+    // The reasoning stays folded until the row is opened.
+    expect(html).not.toContain('folded note');
+  });
+
   it('RisksTab shows riskNotes and exposure', () => {
     const html = render(<RisksTab g={g} goalId="g1" />);
     expect(html).toContain('data-line="riskNotes.0"');
