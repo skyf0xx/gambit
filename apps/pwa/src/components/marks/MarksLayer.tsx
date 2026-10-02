@@ -279,6 +279,17 @@ export function MarksLayer() {
       else if (boxEl.dataset.checked !== undefined) drawTick(path, target);
     });
 
+    // A margin mark sits apart from its line's text, so hovering it would
+    // otherwise show nothing: a transparent hit area over it carries the
+    // same pencil-note as the line (the layer itself ignores the pointer).
+    const marginNote = (L: { t: number; b: number }, note: string | null) => {
+      if (!note) return;
+      over.appendChild(svgNS('rect', {
+        x: marginX - 16, y: L.t - 6, width: 32, height: L.b - L.t + 12,
+        fill: 'transparent', style: 'pointer-events: all', 'data-note': note,
+      }));
+    };
+
     for (const { path, mark, lines, el } of placed) {
       const seed = hashSeed(path);
 
@@ -325,6 +336,7 @@ export function MarksLayer() {
       if (mark.kind === 'star') {
         const L = lines[0];
         drawStroke(starPoints(marginX, L, seed), over, { size: 1.6, thinning: 0.4 });
+        marginNote(L, note);
       }
 
       if (mark.kind === 'question') {
@@ -342,6 +354,7 @@ export function MarksLayer() {
         });
         t.textContent = '?';
         over.appendChild(t);
+        marginNote(L, note);
       }
 
       if (mark.kind === 'loop') {
@@ -453,15 +466,15 @@ export function MarksLayer() {
 export function noteForMark(mark: Mark): string | null {
   switch (mark.kind) {
     case 'star':
-      return 'everything else waits on this';
+      return 'do this next, to move your focus along';
     case 'arrow':
       return mark.sr;
     case 'question':
-      return 'open question';
+      return 'still to decide';
     case 'loop':
       return 'new from your chat';
     case 'highlight':
-      return 'the focus right now';
+      return 'your focus: the one thing to push on now';
     default:
       return null;
   }

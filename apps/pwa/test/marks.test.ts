@@ -93,6 +93,21 @@ describe('deriveMarks — star', () => {
     expect(byPath.get('plan.linesOfOperation.0.criticalPath.1')).toMatchObject({ kind: 'star' });
   });
 
+  it('has no star when the focus is itself an open item', () => {
+    const goal: Goal = {
+      ...withPlan(stubGoal('Goal') as Goal, {
+        criticalPath: [
+          { label: 'Step one', status: 'pending' as const },
+          { label: 'Step two', status: 'pending' as const },
+        ],
+      }),
+      log: [{ date: '2026-01-01', focus: null, focusLine: 'Step two', notes: [] }],
+    };
+    const { byPath } = deriveMarks(goal, 'g1', emptySession);
+    expect(byPath.get('plan.linesOfOperation.0.criticalPath.1')).toMatchObject({ kind: 'highlight' });
+    expect([...byPath.values()].filter((m) => m.kind === 'star')).toHaveLength(0);
+  });
+
   it('falls back to the line matching the schwerpunkt label', () => {
     const goal: Goal = {
       ...withPlan(stubGoal('Goal') as Goal),
@@ -265,7 +280,7 @@ describe('deriveMarks — event marks win: cancel and loop', () => {
 
 describe('noteForMark — pencil-note tooltip text per mark', () => {
   it('gives the star its "waits on this" meaning', () => {
-    expect(noteForMark({ kind: 'star', sr: 'next up' })).toBe('everything else waits on this');
+    expect(noteForMark({ kind: 'star', sr: 'next up' })).toBe('do this next, to move your focus along');
   });
 
   it('gives an arrow its "depends on <name>" text verbatim from sr', () => {
@@ -273,7 +288,7 @@ describe('noteForMark — pencil-note tooltip text per mark', () => {
   });
 
   it('gives an open question its meaning', () => {
-    expect(noteForMark({ kind: 'question', sr: 'open question' })).toBe('open question');
+    expect(noteForMark({ kind: 'question', sr: 'open question' })).toBe('still to decide');
   });
 
   it('gives the loop its "new from your chat" meaning', () => {
@@ -281,7 +296,7 @@ describe('noteForMark — pencil-note tooltip text per mark', () => {
   });
 
   it('gives the highlighter its "focus right now" meaning', () => {
-    expect(noteForMark({ kind: 'highlight', sr: 'focus' })).toBe('the focus right now');
+    expect(noteForMark({ kind: 'highlight', sr: 'focus' })).toBe('your focus: the one thing to push on now');
   });
 
   it('has no note for a tick or a cancel mark', () => {
