@@ -287,6 +287,9 @@ export function wordCount(s) {
   return s.trim().split(/\s+/).filter(Boolean).length;
 }
 
+// The placeholder success criterion a stub goal carries until intake runs.
+export const STUB_CRITERION = 'define success criteria';
+
 // Schema-default stub for a new goal — every array empty, every optional
 // section null, goal/successCriteria seeded from the title so the document
 // is valid the instant it's written.
@@ -294,7 +297,7 @@ export function stubGoal(title) {
   return {
     schemaVersion: 3,
     goal: title,
-    successCriteria: [{ text: 'define success criteria', kind: 'control' }],
+    successCriteria: [{ text: STUB_CRITERION, kind: 'control' }],
     deadline: null,
     people: [],
     posture: null,
