@@ -142,13 +142,15 @@ html, body { height: auto; }
   color: var(--ink);
   text-wrap: balance;
 }
+.landing { --quote: #2F5F8F; }
+@media (prefers-color-scheme: dark) { .landing { --quote: #7FAEDB; } }
 .beat-quote {
   margin: calc(-1 * clamp(16px, 2vw, 24px)) auto clamp(32px, 4vw, 48px);
   font-family: var(--font-hand);
   font-weight: 500;
   font-size: clamp(26px, 2.8vw, 34px);
   line-height: 1.2;
-  color: var(--graphite);
+  color: var(--quote);
 }
 .beat-pair {
   display: grid;
@@ -387,12 +389,10 @@ html, body { height: auto; }
   .beat-pair .sheet { width: min(400px, 92%); }
   .levers-table, .levers-table tbody, .levers-table caption { display: block; }
   .levers-table thead { display: none; }
-  /* Each row becomes a card: Gaston and Max side by side, the strategy
-     under a rule. */
+  /* Each row becomes a card: Max's move over the strategy, under a rule.
+     Gaston and the strategy's sub-label are dropped to keep it short. */
   .levers-table tr {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0 16px;
+    display: block;
     margin-bottom: 16px;
     padding: 18px 18px 20px;
     border-radius: 4px;
@@ -400,26 +400,14 @@ html, body { height: auto; }
     box-shadow: 0 1px 1px var(--lift), 0 14px 30px -18px var(--lift), 0 0 0 1px var(--edge);
   }
   .levers-table td { display: block; padding: 0; border: 0; font-size: 16px; line-height: 1.4; }
+  .levers-table td:nth-child(1), .levers-table td small, .levers-table td::before { display: none; }
   .levers-table td:nth-child(2) { font-weight: 500; }
   .levers-table td:nth-child(3) {
-    grid-column: 1 / -1;
-    margin-top: 16px;
+    margin-top: 14px;
     padding-top: 14px;
     border-top: 1px solid var(--rule);
   }
-  .levers-table td::before {
-    content: attr(data-label);
-    display: block;
-    margin-bottom: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--graphite);
-  }
-  .levers-table td:nth-child(3)::before { content: none; }
   .levers-table td strong { font-size: 19px; }
   .levers-table td span { font-size: 16px; }
-  .levers-table td small { font-size: 13px; }
   .levers-table caption { font-size: 24px; }
 }
