@@ -187,7 +187,7 @@ export function PencilNotes() {
        * the paper and lets the line underneath show through. */}
       <div className="paper w-max max-w-[min(22rem,calc(100vw-16px))] rounded-[2px] px-1.5 py-0.5">
         <div
-          className={`hand text-[20px] leading-tight text-graphite ${reduced ? '' : phase === 'in' ? 'anim-write' : 'anim-fade-in'}`}
+          className={`hand whitespace-pre-line text-[20px] leading-tight text-graphite ${reduced ? '' : phase === 'in' ? 'anim-write' : 'anim-fade-in'}`}
           style={{ filter: 'url(#graphite)', animationDirection: phase === 'out' ? 'reverse' : 'normal' }}
         >
           {note.text}

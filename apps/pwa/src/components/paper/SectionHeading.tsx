@@ -99,10 +99,13 @@ const QUIET = new Set(['plan']);
 export function SectionHeading({ k, children, after, empty }: { k: string; children: ReactNode; after?: ReactNode; empty?: boolean }) {
   if (QUIET.has(k)) {
     return (
-      <div className="flex items-baseline gap-x-2">
+      <div className="flex items-baseline">
         <h2 className="text-[14px] leading-5 text-graphite">{children}</h2>
-        <FreshSectionTag k={k} />
-        {after && <div className="ml-auto">{after}</div>}
+        {/* `after` runs on from the label as one phrase, so no gap before it. */}
+        {after}
+        <span className="ml-2">
+          <FreshSectionTag k={k} />
+        </span>
       </div>
     );
   }

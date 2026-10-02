@@ -16,7 +16,7 @@ describe('page glossary', () => {
     expect(g).toContain('plan → Moves tab, "All moves"');
     expect(g).toContain('decisions → Bets tab, "Decisions"');
     expect(g).toContain('subGoals → Goal tab, the short bullet list under the title');
-    expect(g).toContain('posture → Moves tab, the "Posture:" line');
+    expect(g).toContain('posture → Moves tab, the words after the "All moves" label');
     expect(g).toMatch(/sticky note.*status proposed/);
   });
 
