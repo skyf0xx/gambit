@@ -2,6 +2,9 @@
 name: negotiate
 description: Use before a conversation where you need someone's agreement — a council, a landlord, a sponsor, a platform, a collaborator, a rival organiser. Preps interests on both sides, your walk-away alternative (BATNA), the zone where a deal exists, concessions ranked by cost, and the traps. Two-way, unlike comms, which prepares outward broadcast. Appends to the goal's log with the agreement and any commitments made.
 display: decision-callout
+writes: log
+requires: goal
+next: plan, comms, review
 ---
 
 # Skill: negotiate
@@ -188,7 +191,7 @@ given in a conversation and not recorded is one nobody can hold either side to.
 }
 ```
 
-If it produced an agreement with obligations, hand to `plan` to sequence them.
+If it produced an agreement with obligations, load `plan` to sequence them.
 
 If the write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 

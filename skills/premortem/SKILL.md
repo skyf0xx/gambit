@@ -2,6 +2,9 @@
 name: premortem
 description: Use before committing to a significant plan or an irreversible action. Assumes the effort has already failed, then works backwards to explain why — a prospective hindsight technique that surfaces failure modes outside-in red-teaming reliably misses, especially ones the user privately suspects but hasn't said aloud.
 display: plain-card
+writes: riskNotes, log
+requires: goal
+next: plan, decide, strategy
 ---
 
 # Skill: premortem
@@ -137,7 +140,7 @@ before in their own history, and it deserves weight the analysis can't supply.
 
 ### 8. Update the Goal
 
-Call `write_section` on `riskNotes` with the fatal causes and their mitigations added to the existing array (the array `threat` owns — add to it rather than dropping its entries, and label each new one with `source: "premortem"` so the source is clear). Add any early-warning indicators as watch items. Call `append_log` with a one-line summary.
+Call `write_section` on `riskNotes` with the fatal causes and their mitigations added to the existing array (keep the entries already there, including threat's, and label each new one with `source: "premortem"` so the source is clear). Add any early-warning indicators as watch items. Call `append_log` with a one-line summary.
 
 Each appended entry must have:
 - `item` (required, max 120 chars): the fatal cause or mitigation

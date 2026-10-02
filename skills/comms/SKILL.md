@@ -2,6 +2,9 @@
 name: comms
 description: Use when the user needs to draft or sharpen outward communication in service of a goal — a post, pitch, update, or ask to the public or to people on the goal's people list. Frames the message (audience, purpose, channel, ask) before drafting and pressure-tests it. Appends to the goal's log if the communication is a critical-path step.
 display: plain-card
+writes: log
+requires: goal
+next: threat, plan
 ---
 
 # Skill: comms

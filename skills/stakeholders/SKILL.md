@@ -2,6 +2,9 @@
 name: stakeholders
 description: Use when the goal depends on people who are neither on your team nor your opponents — councils, regulators, media, landowners, sponsors, rival organisers, the undecided public. Maps who holds power over the outcome, what each actually wants underneath their stated position, and where the movable middle is. Distinct from threat, which models opposition to degrade.
 display: stakeholder-table
+writes: stakeholders, people, log
+requires: goal
+next: negotiate, comms, strategy, systems
 ---
 
 # Skill: stakeholders
@@ -147,7 +150,7 @@ Call `write_section` on `stakeholders` with the high-power entries, their curren
 
 Write `stanceCurrent` as where they stand today, from everything the goal and the conversation now show. Re-read it on every write rather than carrying the old value forward. A stance that has gone stale ("no contact yet" once the user has written to them) is wrong, not history.
 
-No one in `people` goes in this list; the write is refused if they do. When the user approaches someone on this map directly, they move to `people`, and a `people` write takes them off this list. Put any interest worth keeping in their `people` entry's `detail`.
+No one in `people` goes in this list. When the user approaches someone on this map directly, move them to `people` with a `people` write, which takes them off this list. Put any interest worth keeping in their `people` entry's `detail`. In the same write, keep each `people` entry's `status` (`confirmed`, `tentative`, or `lead`) current with what the conversation shows.
 
 Each stakeholder entry must have:
 - `name` (required, max 40 chars): name or role
