@@ -65,10 +65,39 @@ export function writeSection(goal, key, value) {
   if (!part.success) return { ok: false, errors: toIssues(part.error, [key]) };
   const plain = plainLanguage.safeParse(part.data);
   if (!plain.success) return { ok: false, errors: toIssues(plain.error, [key]) };
-  const next = goalSchema.safeParse({ ...goal, [key]: part.data });
+  // A name lives in `people` or `stakeholders`, never both: two owners
+  // writing about one person drift apart, and the stale copy reads as
+  // current. `people` wins — someone you now deal with directly has left
+  // the stakeholder map — so a stakeholders write naming them is refused,
+  // and a people write takes them off the stakeholder list.
+  const changes = { [key]: part.data };
+  const moved = [];
+  if (key === 'stakeholders') {
+    const onSide = new Set(goal.people.map((p) => personKey(p.name)));
+    const errors = part.data
+      .map((s, i) => ({ s, i }))
+      .filter(({ s }) => onSide.has(personKey(s.name)))
+      .map(({ s, i }) => ({
+        path: `stakeholders.${i}.name`,
+        message: `"${s.name}" is already in people; track them there only (drop them here, and put their stance or interest in that person's doing or detail)`,
+      }));
+    if (errors.length) return { ok: false, errors };
+  }
+  if (key === 'people') {
+    const onSide = new Set(part.data.map((p) => personKey(p.name)));
+    changes.stakeholders = goal.stakeholders.filter((s) => {
+      if (!onSide.has(personKey(s.name))) return true;
+      moved.push(s.name);
+      return false;
+    });
+  }
+  const next = goalSchema.safeParse({ ...goal, ...changes });
   if (!next.success) return { ok: false, errors: toIssues(next.error) };
-  return { ok: true, goal: next.data, warnings: reconcileGoal(next.data) };
+  const warnings = moved.map((n) => `"${n}" taken off stakeholders: they are in people now, so people is their only entry`);
+  return { ok: true, goal: next.data, warnings: [...warnings, ...reconcileGoal(next.data)] };
 }
+
+const personKey = (name) => name.trim().toLowerCase();
 
 /** Append one log entry (the only append path). */
 export function appendLog(goal, entry) {

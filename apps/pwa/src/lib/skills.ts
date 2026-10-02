@@ -134,13 +134,13 @@ goal: string, 10 words max — one plain idea, no dash-joined clauses. A write o
 subGoals?: [string] ≤5 entries, each ≤12 words / 100 chars — the parts or conditions of the aim itself (e.g. "without burning out"), not success criteria. Optional; omit if the goal has no distinct parts.
 successCriteria: [{text ≤120, kind: control|influence, lineOfOperation?: S, detail?: D}] (at least 1) — what "done" looks like, measurable. Distinct from subGoals: a criterion is checked off; a sub-goal is a condition on the aim.
 deadline: date | null
-people: [{name: S, status: confirmed|tentative|lead, doing: M, detail?}]
+people: [{name: S, status: confirmed|tentative|lead, doing: M, detail?}] — anyone the user deals with directly; writing someone here takes them off stakeholders
 posture: null | {current: {level: int ≥1, label: S}, levels: [{level, label: S, meaning?: M}], triggers: [M] ≤10, lastReviewed: date}
 plan: {linesOfOperation: [{label: S, focus?: true (the one line holding the Schwerpunkt; at most one), criticalPath: [{label: S, detail?, items?: [{label: S, status}] ≤10, status}] ≤6, nextActions: [{action: M, who: S, when: S, status, detail?: D (required when proposed: why this, why now)}] ≤5, status?: on_schedule|at_risk|blocked|done, blocker?: M}]} (at least 1 line); status = pending|done|dropped, and a next action may also be proposed (a move you suggest that the user hasn't agreed to yet; they keep or toss it)
 systemsNotes: null | {schwerpunkt: M, rationale?: M, confidence: high|moderate|low, topFindings: [{label: M, detail?, items?}] ≤5, lastReviewed: date}
 riskNotes: [{item: M, detail?: M, source: threat|premortem, accepted: boolean, dependsOn?: S (a people or stakeholders name, verbatim)}]
 criteriaStatus: [{text ≤120, kind, lineOfOperation?, status: met|on_track|at_risk|stalled|regressing, detail?}]
-stakeholders: [{name: S, power: high|med|low, stanceCurrent: S, stanceTarget: S, via: M, detail?}]
+stakeholders: [{name: S, power: high|med|low, stanceCurrent: S, stanceTarget: S, via: M, detail?}] — everyone else with a say; a name already in people is refused
 exposure: [{item: M, status: open|accepted, mustHandleBefore?: S, acceptedDate?: date, why?: M}]
 capacity: null | {availableHrsPerWeek: number ≥0 | null, runway: S, watch?: M, detail?, lastReviewed: date}
 forecasts: [{statement: M, probability: int 0-100, resolvesBy: date, resolvesVia: S, resolved: boolean, outcome?: yes|no, verdict?: M, detail?}]

@@ -166,6 +166,14 @@ the oldest whole turns first. The goal record is the durable memory across
 both caps — old chat and old log entries are safe to lose because the
 current goal state captures what matters.
 
+A name lives in `people` or `stakeholders`, never both — two owners writing
+about one person drift apart, and the stale copy reads as current.
+`writeSection` (`packages/core/src/ops.mjs`) refuses a `stakeholders` write
+that names someone in `people`, and a `people` write takes that person off
+`stakeholders`. A record written before this rule can still hold both; it
+reads fine, the People page shows that person once, and `reconcileGoal`
+warns until `stakeholders` is rewritten without them.
+
 Ownership is per key, not per full rewrite — `plan` owns
 `nextActions[].status` even for a single-field flip. When the user simply
 reports a next-action item done, blocked, or dropped in passing, that still

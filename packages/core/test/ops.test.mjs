@@ -176,3 +176,25 @@ test('writes reject prose above the reading-grade cap; short labels and names ar
   assert.equal(log.ok, false);
   assert.equal(log.errors[0].path, 'log.notes.0');
 });
+
+test('a name lives in people or stakeholders, never both', () => {
+  const sh = (name) => ({ name, power: 'high', stanceCurrent: 'unaware', stanceTarget: 'chases it', via: 'one email' });
+  const g = { ...stubGoal('g'), people: [{ name: 'Cr Blackmore', status: 'lead', doing: 'asked to chase it' }] };
+
+  const refused = writeSection(g, 'stakeholders', [sh('Rail'), sh(' cr blackmore')]);
+  assert.equal(refused.ok, false);
+  assert.equal(refused.errors[0].path, 'stakeholders.1.name');
+
+  const withRail = writeSection(g, 'stakeholders', [sh('Rail')]).goal;
+  const moved = writeSection(withRail, 'people', [...withRail.people, { name: 'Rail', status: 'lead', doing: 'emailed' }]);
+  assert.equal(moved.ok, true);
+  assert.deepEqual(moved.goal.stakeholders, []);
+  assert.match(moved.warnings[0], /"Rail" taken off stakeholders/);
+});
+
+test('reconcile flags a record that still holds someone in both lists', () => {
+  const g = { ...stubGoal('g'), people: [{ name: 'Ann', status: 'lead', doing: 'x' }], stakeholders: [{ name: 'Ann', power: 'low', stanceCurrent: 'a', stanceTarget: 'b', via: 'c' }] };
+  const r = writeSection(g, 'deadline', null);
+  assert.equal(r.ok, true);
+  assert.ok(r.warnings.some((w) => /in both people and stakeholders/.test(w)));
+});

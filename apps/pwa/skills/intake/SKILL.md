@@ -59,7 +59,7 @@ Read the marking back out loud and let the user correct it. A stalled influence 
 
 ### 5. Deadline and people
 
-Ask for a deadline as a real calendar date; if there truly is none, record none. Ask who is already on this or will have to be: confirmed, tentative, or only a lead. Names and what each is doing, nothing more.
+Ask for a deadline as a real calendar date; if there truly is none, record none. Ask who is already on this or will have to be: confirmed, tentative, or only a lead. Names and what each is doing, nothing more. Someone listed here leaves `stakeholders` if they were on it, so carry any interest worth keeping into their `detail`.
 
 ### 6. Show the read, then commit
 
