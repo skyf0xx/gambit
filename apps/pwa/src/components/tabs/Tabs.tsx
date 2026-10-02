@@ -53,8 +53,10 @@ function flashLine(el: HTMLElement) {
  * record of the last turn's writes. `settings` carries the goal-switcher/provider-form
  * props the Inside cover tab needs; App.tsx passes through what it used to
  * hand the old Settings Leaf. */
-export function Tabs({ g, goalId, settings }: { g: Goal; goalId: string; settings: SettingsPageProps }) {
+export function Tabs({ g, goalId, settings, onTabChange }: { g: Goal; goalId: string; settings: SettingsPageProps; onTabChange?: (t: TabId) => void }) {
   const [active, setActive] = useState<TabId>('moves');
+  // App.tsx hides the conversation on the Cover and Settings pages.
+  useEffect(() => { onTabChange?.(active); }, [active, onTabChange]);
   // The latest goto target, for content that keeps part of itself tucked
   // away (gotoContext.ts). A tab change by hand clears it, so coming back
   // to a tab later doesn't replay an old jump.

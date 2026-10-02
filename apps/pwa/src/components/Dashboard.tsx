@@ -6,6 +6,7 @@ import { MarksProvider } from './marks/context';
 import { MarksLayer } from './marks/MarksLayer';
 import { Tabs } from './tabs/Tabs';
 import type { SettingsPageProps } from './Settings';
+import type { TabId } from './tabs/tabDefs';
 
 export function useGoalView(goalId: string) {
   return useLiveQuery(async () => {
@@ -14,7 +15,7 @@ export function useGoalView(goalId: string) {
   }, [goalId]);
 }
 
-export function Dashboard({ goalId, settings }: { goalId: string; settings: SettingsPageProps }) {
+export function Dashboard({ goalId, settings, onTabChange }: { goalId: string; settings: SettingsPageProps; onTabChange?: (t: TabId) => void }) {
   const read = useGoalView(goalId);
   if (!read) return <div className="paper p-6"><PencilWord>Loading…</PencilWord></div>;
   if (read.status === 'needs_app_update') return <div className="paper m-4 p-4 text-[17px] leading-[27px] text-accent">This goal was saved by a newer version of Gambit (schema v{read.version}). Update the app to open it. It has not been changed.</div>;
@@ -39,7 +40,7 @@ export function Dashboard({ goalId, settings }: { goalId: string; settings: Sett
         style={{ borderLeft: '2px solid var(--margin-rule)' }}
       >
         <MarksLayer />
-        <Tabs g={g} goalId={goalId} settings={settings} />
+        <Tabs g={g} goalId={goalId} settings={settings} onTabChange={onTabChange} />
       </div>
     </MarksProvider>
   );

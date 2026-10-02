@@ -15,6 +15,7 @@ import { NewGoalDialog } from './components/NewGoal';
 import { useSessionCost } from './components/CostPanel';
 import { TextAction } from './components/ui';
 import { Filters } from './components/paper/Filters';
+import type { TabId } from './components/tabs/tabDefs';
 
 /** A pencilled line, restyled to sit inside the page area rather than
  * spanning the full width like the old header banners (work item 5). Placed
@@ -74,6 +75,10 @@ function Main() {
   const activeId = useLiveQuery(async () => (await getActiveGoalId()) ?? null, []);
   const { chatOpen, setChatOpen } = useUi();
   const [creating, setCreating] = useState(false);
+  // The Cover and Settings pages are about the notebook, not this goal, so
+  // the conversation steps aside on them.
+  const [tab, setTab] = useState<TabId>('moves');
+  const chatHidden = tab === 'cover' || tab === 'inside-cover';
   const cost = useSessionCost();
   const current = goals?.find((g) => g.id === activeId) ?? goals?.[0];
   const view = useGoalView(current?.id ?? '');
@@ -90,13 +95,13 @@ function Main() {
     <div className="paper flex h-dvh flex-col" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <Banners />
       {current ? (
-        <main className="relative min-h-0 flex-1 md:grid md:grid-cols-[1fr_440px] md:overflow-hidden">
+        <main className={`relative min-h-0 flex-1 md:grid md:overflow-hidden ${chatHidden ? 'md:grid-cols-1' : 'md:grid-cols-[1fr_440px]'}`}>
           {/* The page: a centred column at reading width, with room to
              either side so the desk shows through — no shared border with
              the conversation leaf (brand/identity.md §05). Bottom padding
              on mobile reserves space for the collapsed composer slip
              fixed over it, so it never covers the page's last content. */}
-          <section className="h-full min-h-0 overflow-y-auto pb-24 md:px-10 md:pb-0">
+          <section className={`h-full min-h-0 overflow-y-auto md:px-10 md:pb-0 ${chatHidden ? '' : 'pb-24'}`}>
             <Dashboard
               goalId={current.id}
               settings={{
@@ -107,14 +112,16 @@ function Main() {
                 onSwitchGoal: (id) => void setActiveGoal(id),
                 onNewGoal: () => setCreating(true),
               }}
+              onTabChange={setTab}
             />
           </section>
-          <section className="hidden h-full min-h-0 md:block">
+          {/* Hidden, not unmounted, so a turn in flight keeps streaming. */}
+          <section className={`hidden h-full min-h-0 ${chatHidden ? '' : 'md:block'}`}>
             <Chat goalId={current.id} stub={!!stub} variant="desktop" open onCollapse={() => {}} onExpand={() => {}} />
           </section>
           {/* Mobile: the conversation is a floating leaf, collapsed to its
              composer slip by default and expanded full-screen on open. */}
-          <section className="md:hidden">
+          <section className={chatHidden ? 'hidden' : 'md:hidden'}>
             <Chat goalId={current.id} stub={!!stub} variant="mobile" open={chatOpen} onCollapse={() => setChatOpen(false)} onExpand={() => setChatOpen(true)} />
           </section>
         </main>
