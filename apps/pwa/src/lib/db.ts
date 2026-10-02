@@ -35,6 +35,8 @@ export interface ChatRecord {
   model: ModelMessage[];
   display: DisplayMsg[];
   activeSkill?: string;
+  /** The skill a checkpoint skill (elicit) runs inside, resumed when it finishes. */
+  callerSkill?: string;
   /** Older turns have been dropped from this chat (agent.ts's CHAT_TURNS),
    * so the conversation says so above its first message. */
   trimmed?: boolean;

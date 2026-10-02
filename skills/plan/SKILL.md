@@ -2,19 +2,22 @@
 name: plan
 description: Use to break a goal or current focus into one or more sequenced, dependency-aware lines of operation — starting a new push, replanning after a failure, or when the existing plan feels stale. Builds a dependency graph per line, identifies each line's critical path, scales pace to posture, and lists the next 3-5 concrete actions per line. Also the skill to reach for when the user simply reports a next action done, blocked, or dropped in ordinary conversation — that's the lightweight "Quick Status Update" mode below, not a full replan.
 display: ordered-list
+writes: plan, successCriteria, log
+requires: goal
+next: strategy, systems, threat, decide, comms
 ---
 
 # Skill: plan
 
 **Trigger**: You need to break the goal (or the current focus from `strategy`) into concrete, ordered steps — starting a new push, replanning after something failed, or the existing plan feels stale. Also triggers, in its lightweight mode, whenever the user reports progress on a `nextActions` item in passing — "I finished X," "Y is done," "we're blocked on Z" — even though nothing about the message sounds like a planning request.
 
-**Purpose**: Turn a goal or focus into one or more sequenced, dependency-aware lines of operation. If the goal involves other people, sequence what they do too. Identify each line's critical path and what can run in parallel within it. Scale pace to current posture. Replan on failure without dwelling on it. `nextActions[].status` has exactly one owning skill — this one — so any status change, however small, is this skill's job even when nothing else about the moment looks like "planning."
+**Purpose**: Turn a goal or focus into one or more sequenced, dependency-aware lines of operation. If the goal involves other people, sequence what they do too. Identify each line's critical path and what can run in parallel within it. Scale pace to current posture. Replan on failure without dwelling on it. Any `nextActions[].status` change, however small, is this skill's job even when nothing else about the moment looks like "planning."
 
 ---
 
 ## Mode 0: Quick Status Update
 
-This mode exists because `nextActions[].status` and `criticalPath[].status` only ever change when `plan` writes them — nothing else in the app updates either automatically, so without this fast path a casually-reported completion silently fails to land in the goal until someone happens to trigger a full replan. Use this mode instead of the full sequence below whenever the user reports a `nextActions` item **or a `criticalPath` step** done, blocked, or dropped, and isn't asking for a replan.
+This mode is the fast path for a casually-reported completion, so it lands in the goal without a full replan. Use this mode instead of the full sequence below whenever the user reports a `nextActions` item **or a `criticalPath` step** done, blocked, or dropped, and isn't asking for a replan.
 
 1. **Load** the goal and scan every line's `nextActions` *and* `criticalPath` for an entry matching what the user described — a report can close either. Match on meaning, not exact string — "finished the ATS audit" matches an action reading "run ATS keyword/format audit," and "mapped contacts' networks" matches a critical-path step labeled "Map contacts' networks." If nothing plausible matches, say so and stop here rather than guessing; the update likely belongs under a different line, or the plan is stale enough to need Mode 1's full treatment.
 2. **Confirm in one line**, not a full elicitation checkpoint — this is a status flip, not a decision:
@@ -23,7 +26,7 @@ This mode exists because `nextActions[].status` and `criticalPath[].status` only
    ```
    On a yes, proceed. On a correction, use the corrected target instead.
 3. **Call `set_status`** with the dotted path to just that entry (e.g. `plan.linesOfOperation.0.nextActions.2`) and the new status (`done`, `dropped`, or back to `pending`; a `proposed` action the user keeps goes to `pending`, and one they toss goes to `dropped`) — on the matched `nextActions` entry or `criticalPath` step, whichever it was. This touches only that one field; it never rebuilds the graph, re-sequences, or touches any other item or key (plus, per step 4, the line's own `status` when the write closes it). Don't let a completed step's story live only in `detail` prose ("Done — see log") while `status` stays `pending` — the visual layer reads `status`, not `detail`, to show it's finished.
-4. **Check whether the line just closed** (every `nextActions` entry *and* every `criticalPath` step now `done` or `dropped`). If so, call `set_status` again to set that line's own `status` to `"done"` too — the line-level pill (`on_schedule`/`at_risk`/`blocked`/`done`) doesn't follow step completion automatically, so leaving it on its old value (often `on_schedule` or `at_risk`) after every step closes is stale and wrong, not neutral. Say the closure plainly and note that `strategy` should pick a new focus next run — per its existing recency-trap guidance, a closed line is a reason to reassess, not itself a next step. Don't run `strategy` yourself; just flag it.
+4. **Check whether the line just closed** (every `nextActions` entry *and* every `criticalPath` step now `done` or `dropped`). If so, call `set_status` again to set that line's own `status` to `"done"` too — the line-level pill (`on_schedule`/`at_risk`/`blocked`/`done`) doesn't follow step completion automatically, so leaving it on its old value (often `on_schedule` or `at_risk`) after every step closes is stale and wrong, not neutral. Say the closure plainly and note that `strategy` should pick a new focus next — per its existing recency-trap guidance, a closed line is a reason to reassess, not itself a next step. Flag it; don't run `strategy` yourself.
 5. If any `set_status` call returns `{ ok: false, errors }`, fix and retry before ending the turn.
 6. **Name the next step**: the next `pending` item in that line (critical-path step or next action, whichever comes first), or "run `strategy`" if the line just closed. When the flipped action was the focus line's last `pending` next action, the "Your top move" card now reads "nothing due yet"; say so, and offer a replan of that line or `strategy`.
 

@@ -1,7 +1,10 @@
 ---
 name: strategy
-description: Use when the user wants direction on a goal that already exists — starting a work session, asking "what should I focus on", or after a setback, new fact, deadline change, or escalation. Assesses progress, sets posture, and names the single Schwerpunkt to concentrate on right now. If the goal is still a stub, use onboard first.
+description: Use when the user wants direction on a goal that already exists — starting a work session, asking "what should I focus on", or after a setback, new fact, deadline change, or escalation. Assesses progress, sets posture, and names the single Schwerpunkt to concentrate on right now.
 display: ordered-list
+writes: posture, log
+requires: goal
+next: plan, systems, threat, premortem, stakeholders, decide, capacity
 ---
 
 # Skill: strategy
@@ -25,10 +28,7 @@ Present the situation, the options, and your recommendation — in that order, b
 ### 1. Load Context
 
 The goal's current state is already supplied in "Current goal state." Call `get_goal`
-instead if the user may have edited the dashboard since. If the goal is still a stub,
-stop and use `onboard` instead — it hands off to `intake`, which gets the goal, success
-criteria, deadline, and people defined one question at a time. Don't interrogate the user
-for all of that at once here.
+instead if the user may have edited the dashboard since.
 
 ### 2. Assess Progress
 
@@ -57,7 +57,7 @@ If `posture` is `null`, this step is optional — only introduce posture levels 
 Before escalating posture, check it against real capacity. An escalation the user can't
 sustain is a decision to burn reserves, and it should be made knowingly — if capacity
 hasn't been assessed recently, or the effort has been at elevated posture for weeks,
-hand to `capacity` before committing the change.
+load `capacity` before committing the change.
 
 ### 4. Set the Schwerpunkt
 
@@ -168,7 +168,7 @@ intensity themselves changed. Whenever this step runs at all — posture changed
 set `posture.lastReviewed` to today's date, so a later session can tell a genuinely
 current posture read from one that just hasn't been looked at in weeks.
 
-Call `append_log` with an entry — date, assessment, and the focus just set. When the focus lands on one line already on the page (a success criterion, a next action or a critical-path step), set `focusLine` to that line's text verbatim, so the page can highlight it; leave it out when the focus doesn't map to a single line. `notes` isn't rendered in the visual layer — it's the agent's own working record, not a user-scanned label — so don't force findings into an artificially short list; each entry still has its own 120-char cap (see AGENTS.md's char-cap note), so split a long finding into multiple entries rather than cramming it into one.
+Call `append_log` with an entry — date, assessment, and the focus just set. When the focus lands on one line already on the page (a success criterion, a next action or a critical-path step), set `focusLine` to that line's text verbatim, so the page can highlight it; leave it out when the focus doesn't map to a single line, which clears any earlier highlight. Only this skill sets the highlighted line, and the page tells the user that anything that doesn't help it can wait — so pick a line that really is the focus, not just the next task. `notes` isn't rendered in the visual layer — it's the agent's own working record, not a user-scanned label — so don't force findings into an artificially short list; each entry still has its own 120-char cap (see AGENTS.md's char-cap note), so split a long finding into multiple entries rather than cramming it into one.
 
 Apply `skills/_shared/NO_HISTORY.md` here specifically — this step is where it's easiest to
 break. When a prior focus turns out to have been wrong or under-specified (e.g. a Schwerpunkt
@@ -187,7 +187,7 @@ its own correction is the violation, not the presence of a fix.
 }
 ```
 
-`focus` on the log entry is where the Schwerpunkt is recorded — the visual layer and the next session's context both read the most recent non-null `focus` across `log`. The plan marks the line carrying it with `focus: true`, and the "Your top move" card reads that line first. `plan` owns that flag, so when the Schwerpunkt you just set sits on a different line from the one the plan marks, make `plan` the recommended next step, so the flag and the card follow the new focus.
+`focus` on the log entry is where the Schwerpunkt is recorded — the visual layer and the next session's context both read the most recent non-null `focus` across `log`. The plan marks the line carrying it with `focus: true`, and the "Your top move" card reads that line first. The plan sets that flag, so when the Schwerpunkt you just set sits on a different line from the one the plan marks, make `plan` the recommended next step, so the flag and the card follow the new focus.
 
 If either write returns `{ ok: false, errors }`, fix the reported fields and retry before ending the turn.
 
@@ -288,8 +288,7 @@ the two ever disagree, the schema wins.
 ```
 
 `systemsNotes`, `posture`, and `capacity` each carry a required `lastReviewed`
-(`YYYY-MM-DD`) — set by their owning skill (`systems`, `strategy`, `capacity`
-respectively) every time it writes that section, whether or not the content
+(`YYYY-MM-DD`) — set every time `systems`, `strategy` or `capacity` writes that section, whether or not the content
 changed. Unlike `log`, which records history, these are environmental *reads*
 that go stale even without user action — `lastReviewed` is what lets a later
 session tell a current read from a three-week-old one without scanning `log`.
@@ -309,12 +308,7 @@ Mark each success criterion `control` (you can cause it directly) or `influence`
 (it depends on a decision someone else makes). Influence criteria are legitimate, but
 progress against them is measured differently — see `eval`.
 
-Every key has exactly one owning skill (`plan` → `plan`, `systemsNotes` → `systems`,
-`riskNotes` → `threat`, `criteriaStatus` → `eval`, and so on), which replaces its own
-key's value wholesale rather than accumulating history. `log` is the only append-only
-array. Leave `posture`, `plan`, `systemsNotes`, and `capacity` as `null`, and the
-array-valued keys as `[]`, until the owning skill has actually run — don't force
-structure the goal doesn't need. Only include `people` entries and a non-null
+`log` is the only append-only array. Only include `people` entries and a non-null
 `posture` if they're actually relevant to this goal.
 
 Write validation also runs a soft reconciliation lint after the schema check: it warns
@@ -324,6 +318,3 @@ entirely `done` but the line's own `status` isn't `done`, and likewise when a
 Treat that warning as a prompt to update the parent status, not something to silently
 accept — but it's a hint, not proof, since a line can still be genuinely blocked on
 something in `nextActions` despite a finished `criticalPath`.
-
-If the goal is still a stub, `onboard` hands off to `intake` first to confirm the goal
-and success criteria with the user before this skill has anything to work with.

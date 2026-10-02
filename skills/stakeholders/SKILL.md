@@ -2,6 +2,9 @@
 name: stakeholders
 description: Use when the goal depends on people who are neither on your team nor your opponents — councils, regulators, media, landowners, sponsors, rival organisers, the undecided public. Maps who holds power over the outcome, what each actually wants underneath their stated position, and where the movable middle is. Distinct from threat, which models opposition to degrade.
 display: stakeholder-table
+writes: stakeholders, people, log
+requires: goal
+next: negotiate, comms, strategy, systems
 ---
 
 # Skill: stakeholders
@@ -52,6 +55,10 @@ makes that decision is by definition a stakeholder, and often the most important
 
 List everyone who affects the outcome or is materially affected by it. Push past the
 obvious — the missed stakeholder is usually the one who only appears when they object.
+
+Leave out anyone already in the `people` key. Once the user deals with someone directly
+— asked them for something, or has them on board — that person lives in `people` only.
+Their stance belongs in that entry's `doing` or `detail`, not in a second entry here.
 
 Prompts to work through:
 
@@ -140,6 +147,10 @@ affected rows rather than defending the grid.
 ### 8. Update the Goal
 
 Call `write_section` on `stakeholders` with the high-power entries, their current stance, and the movable middle. Keep it to the ones that matter — the full grid lives in the conversation.
+
+Write `stanceCurrent` as where they stand today, from everything the goal and the conversation now show. Re-read it on every write rather than carrying the old value forward. A stance that has gone stale ("no contact yet" once the user has written to them) is wrong, not history.
+
+No one in `people` goes in this list. When the user approaches someone on this map directly, move them to `people` with a `people` write, which takes them off this list. Put any interest worth keeping in their `people` entry's `detail`. In the same write, keep each `people` entry's `status` (`confirmed`, `tentative`, or `lead`) current with what the conversation shows.
 
 Each stakeholder entry must have:
 - `name` (required, max 40 chars): name or role

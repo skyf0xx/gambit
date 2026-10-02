@@ -2,6 +2,9 @@
 name: exposure
 description: Use before a public action, a filing, a publication, or anything that puts the user personally on the record — protests, campaigns, public criticism, or organising that touches permits, liability, employment, or personal safety. Maps legal, financial, professional, and personal-safety exposure, and what reduces each. Not legal advice; a checklist for knowing what to check and who to ask.
 display: plain-card
+writes: exposure, log
+requires: goal
+next: plan, decide, comms
 ---
 
 # Skill: exposure
@@ -161,7 +164,7 @@ user is entitled to withhold it; the assessment is partial where they do.
 
 Call `write_section` on `exposure` with the must-handle items as open actions and anything the
 user explicitly chose to accept — so later sessions don't re-raise a settled decision.
-Where an item is a real blocker on a plan step, say so and hand to `plan` to resequence.
+Where an item is a real blocker on a plan step, don't edit the plan here. Name the step in the reply and load `plan` to resequence.
 
 Each exposure entry must have:
 - `item` (required, max 120 chars): the exposure, item, or risk

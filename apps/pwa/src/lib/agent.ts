@@ -1,11 +1,11 @@
 import { generateText, streamText, stepCountIs, type ModelMessage, type StopCondition, type ToolSet } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
-import { summarizeChange } from '@gambit/core';
+import { summarizeChange, suggestSkills, type FlowSession } from '@gambit/core';
 import { db, type ChatRecord, type DisplayMsg } from './db';
 import { loadApiKey } from './crypto';
 import { getProvider, makeModel, GOOGLE_FALLBACK_MODEL, type ProviderKind } from './providers';
-import { PREAMBLE, getSkillStore, skillIndexText, skillText } from './skills';
-import { makeTools, goalStateJson, toolLabel, replySchema, type Reply } from './tools';
+import { PREAMBLE, getSkillStore, skillIndexText, skillText, flowOf, type SkillStore } from './skills';
+import { makeTools, goalStateJson, toolLabel, replySchema, today, type Reply } from './tools';
 import { readRecord, restoreSnapshot, snapshot } from './goals';
 import { changedKeys, changedLines } from './changes';
 import { session } from './session';
@@ -23,7 +23,7 @@ export const HISTORY_CHAR_BUDGET = 60_000;
  * history (which also holds every tool call and result) and the chat the
  * user sees always cover the same exchanges. */
 export const CHAT_TURNS = 12;
-const STUBBED = new Set(['load_skill', 'read_skill_file', 'get_goal']);
+const STUBBED = new Set(['load_skill', 'finish_skill', 'read_skill_file', 'get_goal']);
 const CACHE = { anthropic: { cacheControl: { type: 'ephemeral' as const } } };
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -89,6 +89,25 @@ export function keepLastTurns<T extends { role: string }>(messages: T[], turns =
   return messages.slice(starts[starts.length - turns]);
 }
 
+/**
+ * The flow lines of the turn's state block: the active skill with what it
+ * may write, and what the goal says is due, most pressing first.
+ */
+export function flowText(store: SkillStore, session: Pick<FlowSession, 'active' | 'caller'>, goal: Parameters<typeof suggestSkills>[0], day: string): string {
+  const active = session.active ? flowOf(store, session.active) : undefined;
+  const writes = (n?: string) => (n && flowOf(store, n)?.writes.join(', ')) || 'nothing';
+  const lines = [
+    active
+      ? `Active skill: ${active.name}${active.checkpoint && session.caller ? `, inside ${session.caller} (writes ${writes(session.caller)})` : ` (writes ${writes(active.name)})`}.`
+      : 'No skill is active; every write needs one.',
+  ];
+  const due = suggestSkills(goal, day).slice(0, 3);
+  if (due.length) lines.push(`Due now: ${due.map((s) => `${s.skill} (${s.why})`).join('; ')}.`);
+  const next = active?.checkpoint ? undefined : active?.next;
+  if (next?.length) lines.push(`${active!.name} hands off to: ${next.join(', ')}.`);
+  return lines.join('\n');
+}
+
 /** Loaded skill text lives in the system prompt while active, so old copies in history are dropped. */
 export function compactToolResults(messages: ModelMessage[]): ModelMessage[] {
   return messages.map((m) => {
@@ -134,13 +153,19 @@ export async function runTurn(opts: {
 
   const store = await getSkillStore();
   const stable = `${PREAMBLE}\n\n${skillIndexText(store)}`;
-  const skill = chat.activeSkill ? skillText(store, chat.activeSkill) : null;
-  const skillBlock = skill ? `# Active skill: ${chat.activeSkill}\n${skill.text}` : '';
+  const flow: FlowSession = { active: chat.activeSkill, caller: chat.callerSkill, fresh: [] };
+  const block = (title: string, name?: string) => {
+    const s = name ? skillText(store, name) : null;
+    return s ? `# ${title}: ${name}\n${s.text}` : '';
+  };
+  const skillBlock = [block('Active skill', flow.active), block('Calling skill, resumed on finish_skill', flow.caller)].filter(Boolean).join('\n\n');
   const webSearch = prov.kind === 'anthropic' && !!prov.webSearch;
   const { messages: history, trimmed } = trimHistory(chat.model);
+  const day = today();
   const state = [
-    `# Current goal state (id ${goalId}, today ${new Date().toISOString().slice(0, 10)})`,
+    `# Current goal state (id ${goalId}, today ${day})`,
     await goalStateJson(goalId),
+    flowText(store, flow, before, day),
     webSearch ? 'Web search tool: available.' : 'Web search tool: not available; label unverified claims as such.',
     trimmed ? 'Earlier conversation was trimmed; the goal state above is the durable record.' : '',
   ].filter(Boolean).join('\n');
@@ -151,11 +176,10 @@ export async function runTurn(opts: {
     { role: 'system', content: state },
   ];
   const userMsg: ModelMessage = { role: 'user', content: text };
-  let activeSkill = chat.activeSkill;
   let skillLoads = 0;
 
   const tools = {
-    ...makeTools({ goalId, onSkillLoaded: (n) => { activeSkill = n; skillLoads++; } }),
+    ...makeTools({ goalId, session: flow, onSkillLoaded: () => { skillLoads++; } }),
     ...(webSearch ? { web_search: anthropic.tools.webSearch_20250305({ maxUses: 3 }) } : {}),
   };
 
@@ -242,7 +266,8 @@ export async function runTurn(opts: {
   const fresh = (await db.chats.get(goalId)) ?? chat;
   const displayId = uid();
   fresh.model = keepLastTurns([...chat.model, userMsg, ...newMessages]);
-  fresh.activeSkill = activeSkill;
+  fresh.activeSkill = flow.active;
+  fresh.callerSkill = flow.caller;
   const display: DisplayMsg[] = [
     ...fresh.display,
     { id: displayId, role: 'assistant', text: out, reply, tools: entries, summary, snapshotId: summary.length || error ? snapshotId : undefined, error },

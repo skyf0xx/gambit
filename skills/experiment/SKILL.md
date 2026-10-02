@@ -2,6 +2,9 @@
 name: experiment
 description: Use when the plan rests on an unproven assumption that could be tested cheaply before committing serious effort — will people turn up, will anyone donate, does this message land, will the partner actually deliver. Designs the smallest test that could falsify the assumption, with a pass/fail line set in advance. Writes to the goal's experiments key.
 display: checklist
+writes: experiments
+requires: goal
+next: plan, systems, strategy, decide
 ---
 
 # Skill: experiment
@@ -167,9 +170,9 @@ Ambiguous is a legitimate outcome and must be recorded as such. Either design a 
 
 ### 8. Update the Goal and Name the Next Step
 
-Call `write_section` on `experiments` with the array from step 7. When one resolves, update the assumption's status wherever it
-appears — a falsified assumption sitting unchallenged in the `systemsNotes` key or `plan` key
-is worse than one never tested.
+Call `write_section` on `experiments` with the array from step 7. When one resolves, name the affected assumption in the reply and
+load `systems` or `plan` to carry it through. A falsified assumption sitting unchallenged in
+the systems notes or the plan is worse than one never tested.
 
 If the write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 
@@ -178,6 +181,7 @@ Next: [run the test, or the first step of it]
 
 Or:
   - It passed — commit and sequence → plan
+  - It failed and the assumption sits in the systems read → systems
   - It failed — the focus may be wrong → strategy
   - Ambiguous — sharpen the test, or decide without it → decide
   - Someone's already run this test → web search

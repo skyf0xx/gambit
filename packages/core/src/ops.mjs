@@ -19,20 +19,35 @@ const STATUSES = ['proposed', 'pending', 'done', 'dropped'];
 // whichever entry currently drives the focus highlight.
 export const LOG_CAP = 30;
 
+/** The skill that sets the focus, and so the only one whose log entry may
+ * name a line for the page to highlight. */
+export const FOCUS_SKILL = 'strategy';
+
 /**
- * Keep the newest LOG_CAP entries, but always keep the most recent entry
- * that carries a focusLine, even if it would otherwise fall outside the cap
- * — the page's highlighter reads it regardless of age.
+ * Whether a log entry sets the focus: it names one, and it came from
+ * `strategy` (an entry with no source predates source stamping, when only
+ * `strategy` was told to set a focus).
+ */
+export const isFocusEntry = (e) => e.focus != null && (!e.source || e.source === FOCUS_SKILL);
+
+/** The entry holding the current focus: the newest one that sets a focus.
+ * Its `focusLine`, if any, is the line the page highlights; a newer focus
+ * with no single line clears the highlight rather than leaving an old one. */
+export function currentFocusEntry(entries) {
+  for (let i = entries.length - 1; i >= 0; i--) if (isFocusEntry(entries[i])) return entries[i];
+  return undefined;
+}
+
+/**
+ * Keep the newest LOG_CAP entries, but always keep the entry holding the
+ * current focus, even if it would otherwise fall outside the cap — the
+ * page's highlighter reads it regardless of age.
  */
 export function capLog(entries) {
   if (entries.length <= LOG_CAP) return entries;
   const kept = entries.slice(-LOG_CAP);
-  const keptHasFocus = kept.some((e) => e.focusLine);
-  if (keptHasFocus) return kept;
-  for (let i = entries.length - LOG_CAP - 1; i >= 0; i--) {
-    if (entries[i].focusLine) return [entries[i], ...kept];
-  }
-  return kept;
+  const focus = currentFocusEntry(entries);
+  return !focus || kept.includes(focus) ? kept : [focus, ...kept];
 }
 
 const toIssues = (error, prefix = []) =>
@@ -65,20 +80,63 @@ export function writeSection(goal, key, value) {
   if (!part.success) return { ok: false, errors: toIssues(part.error, [key]) };
   const plain = plainLanguage.safeParse(part.data);
   if (!plain.success) return { ok: false, errors: toIssues(plain.error, [key]) };
-  const next = goalSchema.safeParse({ ...goal, [key]: part.data });
+  // A name lives in `people` or `stakeholders`, never both: two owners
+  // writing about one person drift apart, and the stale copy reads as
+  // current. `people` wins — someone you now deal with directly has left
+  // the stakeholder map — so a stakeholders write naming them is refused,
+  // and a people write takes them off the stakeholder list.
+  const changes = { [key]: part.data };
+  const moved = [];
+  if (key === 'stakeholders') {
+    const onSide = new Set(goal.people.map((p) => personKey(p.name)));
+    const errors = part.data
+      .map((s, i) => ({ s, i }))
+      .filter(({ s }) => onSide.has(personKey(s.name)))
+      .map(({ s, i }) => ({
+        path: `stakeholders.${i}.name`,
+        message: `"${s.name}" is already in people; track them there only (drop them here, and put their stance or interest in that person's doing or detail)`,
+      }));
+    if (errors.length) return { ok: false, errors };
+  }
+  if (key === 'people') {
+    const onSide = new Set(part.data.map((p) => personKey(p.name)));
+    changes.stakeholders = goal.stakeholders.filter((s) => {
+      if (!onSide.has(personKey(s.name))) return true;
+      moved.push(s.name);
+      return false;
+    });
+  }
+  const next = goalSchema.safeParse({ ...goal, ...changes });
   if (!next.success) return { ok: false, errors: toIssues(next.error) };
-  return { ok: true, goal: next.data, warnings: reconcileGoal(next.data) };
+  const warnings = moved.map((n) => `"${n}" taken off stakeholders: they are in people now, so people is their only entry`);
+  return { ok: true, goal: next.data, warnings: [...warnings, ...reconcileGoal(next.data)] };
 }
 
-/** Append one log entry (the only append path). */
-export function appendLog(goal, entry) {
+const personKey = (name) => name.trim().toLowerCase();
+
+/**
+ * Append one log entry (the only append path). `writer`, when given, is
+ * the skill writing it: it becomes the entry's `source` if none is set,
+ * and only `strategy` may name a `focusLine` — anyone else's is dropped
+ * with a warning, so a passing log entry can't move the page's highlight.
+ */
+export function appendLog(goal, entry, writer) {
+  const warnings = [];
+  if (writer) {
+    entry = { source: writer, ...entry };
+    if (entry.focusLine && writer !== FOCUS_SKILL) {
+      const { focusLine, ...rest } = entry;
+      entry = rest;
+      warnings.push(`focusLine dropped: only ${FOCUS_SKILL} sets the line the page highlights`);
+    }
+  }
   const parsed = logEntrySchema.safeParse(entry);
   if (!parsed.success) return { ok: false, errors: toIssues(parsed.error, ['log']) };
   const plain = plainLanguage.safeParse(parsed.data);
   if (!plain.success) return { ok: false, errors: toIssues(plain.error, ['log']) };
   const next = goalSchema.safeParse({ ...goal, log: capLog([...goal.log, parsed.data]) });
   if (!next.success) return { ok: false, errors: toIssues(next.error) };
-  return { ok: true, goal: next.data, warnings: [] };
+  return { ok: true, goal: next.data, warnings };
 }
 
 /**

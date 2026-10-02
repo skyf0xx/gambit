@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stubGoal, writeSection, appendLog, setStatus, summarizeChange, WRITABLE_KEYS, capLog, LOG_CAP, GOAL_MAX_WORDS, goalSchema, readingGrade, READING_GRADE_MAX } from '../src/index.mjs';
+import { stubGoal, writeSection, appendLog, setStatus, summarizeChange, WRITABLE_KEYS, capLog, currentFocusEntry, LOG_CAP, GOAL_MAX_WORDS, goalSchema, readingGrade, READING_GRADE_MAX } from '../src/index.mjs';
 
 const plan = {
   linesOfOperation: [{
@@ -107,9 +107,9 @@ test('capLog keeps only the newest LOG_CAP entries once over the cap', () => {
   assert.equal(capped.at(-1).notes[0], `e${LOG_CAP + 4}`);
 });
 
-test('capLog preserves the most recent focusLine entry even when older than the cap', () => {
+test('capLog preserves the current focus entry even when older than the cap', () => {
   const entries = Array.from({ length: LOG_CAP + 5 }, (_, i) => ({ date: '2026-09-19', focus: null, notes: [`e${i}`] }));
-  entries[2] = { ...entries[2], focusLine: 'the focused line' };
+  entries[2] = { ...entries[2], focus: 'f', focusLine: 'the focused line' };
   const capped = capLog(entries);
   assert.equal(capped.length, LOG_CAP + 1);
   assert.equal(capped[0].focusLine, 'the focused line');
@@ -118,7 +118,7 @@ test('capLog preserves the most recent focusLine entry even when older than the 
 
 test('capLog does not duplicate-preserve a focusLine entry already inside the window', () => {
   const entries = Array.from({ length: LOG_CAP + 5 }, (_, i) => ({ date: '2026-09-19', focus: null, notes: [`e${i}`] }));
-  entries[LOG_CAP + 2] = { ...entries[LOG_CAP + 2], focusLine: 'recent focus' };
+  entries[LOG_CAP + 2] = { ...entries[LOG_CAP + 2], focus: 'f', focusLine: 'recent focus' };
   const capped = capLog(entries);
   assert.equal(capped.length, LOG_CAP);
   assert.equal(capped.filter((e) => e.focusLine).length, 1);
@@ -175,4 +175,48 @@ test('writes reject prose above the reading-grade cap; short labels and names ar
   const log = appendLog(g, { date: '2026-10-01', focus: null, notes: ['We leveraged cross-functional stakeholder alignment to operationalize the strategic distribution initiative.'] });
   assert.equal(log.ok, false);
   assert.equal(log.errors[0].path, 'log.notes.0');
+});
+
+test('a name lives in people or stakeholders, never both', () => {
+  const sh = (name) => ({ name, power: 'high', stanceCurrent: 'unaware', stanceTarget: 'chases it', via: 'one email' });
+  const g = { ...stubGoal('g'), people: [{ name: 'Cr Blackmore', status: 'lead', doing: 'asked to chase it' }] };
+
+  const refused = writeSection(g, 'stakeholders', [sh('Rail'), sh(' cr blackmore')]);
+  assert.equal(refused.ok, false);
+  assert.equal(refused.errors[0].path, 'stakeholders.1.name');
+
+  const withRail = writeSection(g, 'stakeholders', [sh('Rail')]).goal;
+  const moved = writeSection(withRail, 'people', [...withRail.people, { name: 'Rail', status: 'lead', doing: 'emailed' }]);
+  assert.equal(moved.ok, true);
+  assert.deepEqual(moved.goal.stakeholders, []);
+  assert.match(moved.warnings[0], /"Rail" taken off stakeholders/);
+});
+
+test('reconcile flags a record that still holds someone in both lists', () => {
+  const g = { ...stubGoal('g'), people: [{ name: 'Ann', status: 'lead', doing: 'x' }], stakeholders: [{ name: 'Ann', power: 'low', stanceCurrent: 'a', stanceTarget: 'b', via: 'c' }] };
+  const r = writeSection(g, 'deadline', null);
+  assert.equal(r.ok, true);
+  assert.ok(r.warnings.some((w) => /in both people and stakeholders/.test(w)));
+});
+
+test('only strategy names the highlighted line; other writers are stamped as the source', () => {
+  const g = stubGoal('g');
+  const fromPlan = appendLog(g, { date: '2026-09-19', focus: 'x', focusLine: 'a line', notes: [] }, 'plan');
+  assert.equal(fromPlan.ok, true);
+  assert.equal(fromPlan.goal.log.at(-1).focusLine, undefined);
+  assert.equal(fromPlan.goal.log.at(-1).source, 'plan');
+  assert.match(fromPlan.warnings[0], /only strategy/);
+  const fromStrategy = appendLog(g, { date: '2026-09-19', focus: 'x', focusLine: 'a line', notes: [] }, 'strategy');
+  assert.equal(fromStrategy.goal.log.at(-1).focusLine, 'a line');
+  assert.deepEqual(fromStrategy.warnings, []);
+});
+
+test('currentFocusEntry is the newest strategy (or unsourced) entry that sets a focus', () => {
+  const log = [
+    { date: '2026-09-01', focus: 'old', focusLine: 'old line', notes: [] },
+    { date: '2026-09-02', focus: 'plan says', focusLine: 'plan line', source: 'plan', notes: [] },
+    { date: '2026-09-03', focus: null, notes: [] },
+  ];
+  assert.equal(currentFocusEntry(log).focusLine, 'old line');
+  assert.equal(currentFocusEntry([...log, { date: '2026-09-04', focus: 'new', source: 'strategy', notes: [] }]).focusLine, undefined);
 });

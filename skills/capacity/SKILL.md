@@ -2,6 +2,9 @@
 name: capacity
 description: Use when the plan assumes more time, money, or personal energy than actually exists — or periodically on any sustained effort. Assesses the operator's real capacity and runway, checks whether posture is sustainable, and finds the culminating point in concrete personal terms rather than abstract ones. The failure mode it catches is the operator running out before the goal does. Writes to the goal's capacity key.
 display: checklist
+writes: capacity, log
+requires: goal
+next: plan, strategy, decide, comms
 ---
 
 # Skill: capacity
@@ -183,8 +186,8 @@ Call `write_section` on `capacity` with the honest hours per week, the runway, a
 }
 ```
 
-Call `append_log` with a one-line summary. If capacity forces a scope change, hand to `plan` or `strategy`
-rather than quietly trimming the plan here.
+Call `append_log` with a one-line summary. If capacity forces a scope change, load `plan` or `strategy`
+rather than trimming the plan here.
 
 If the write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
 

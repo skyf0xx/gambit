@@ -58,7 +58,7 @@ describe('deriveMarks — tick', () => {
 });
 
 describe('deriveMarks — highlight', () => {
-  it('marks the line named by the latest log entry with a focusLine', () => {
+  it('marks the line named by the current focus, past later entries that set none', () => {
     const goal: Goal = {
       ...withPlan(stubGoal('Goal') as Goal),
       log: [
@@ -67,8 +67,29 @@ describe('deriveMarks — highlight', () => {
       ],
     };
     const { byPath } = deriveMarks(goal, 'g1', emptySession);
-    // the latest entry has no focusLine, so we walk back to the last one that does
+    // the latest entry sets no focus, so the earlier focus still holds
     expect(byPath.get('plan.linesOfOperation.0.criticalPath.0')).toEqual({ kind: 'highlight', sr: 'focus' });
+  });
+
+  it('clears when a newer focus names no single line', () => {
+    const goal: Goal = {
+      ...withPlan(stubGoal('Goal') as Goal),
+      log: [
+        { date: '2026-01-01', focus: 'earlier', focusLine: 'Step one', notes: [] },
+        { date: '2026-01-02', focus: 'broader now', notes: [] },
+      ],
+    };
+    const { byPath } = deriveMarks(goal, 'g1', emptySession);
+    expect([...byPath.values()].some((m) => m.kind === 'highlight')).toBe(false);
+  });
+
+  it('ignores a focusLine from a skill other than strategy', () => {
+    const goal: Goal = {
+      ...withPlan(stubGoal('Goal') as Goal),
+      log: [{ date: '2026-01-01', focus: 'f', focusLine: 'Step one', source: 'plan', notes: [] }],
+    };
+    const { byPath } = deriveMarks(goal, 'g1', emptySession);
+    expect([...byPath.values()].some((m) => m.kind === 'highlight')).toBe(false);
   });
 
   it('is absent when no log entry carries a focusLine', () => {
@@ -79,36 +100,35 @@ describe('deriveMarks — highlight', () => {
 });
 
 describe('deriveMarks — star', () => {
-  it('picks the first pending item in the line of operation containing the focus', () => {
-    const goal: Goal = {
-      ...withPlan(stubGoal('Goal') as Goal, {
-        criticalPath: [
-          { label: 'Step one', status: 'done' as const },
-          { label: 'Step two', status: 'pending' as const },
-        ],
-      }),
-      log: [{ date: '2026-01-01', focus: null, focusLine: 'Step one', notes: [] }],
-    };
+  it('marks the first open step on the top move\'s line', () => {
+    const goal = withPlan(stubGoal('Goal') as Goal, {
+      criticalPath: [
+        { label: 'Step one', status: 'done' as const },
+        { label: 'Step two', status: 'pending' as const },
+      ],
+    });
     const { byPath } = deriveMarks(goal, 'g1', emptySession);
     expect(byPath.get('plan.linesOfOperation.0.criticalPath.1')).toMatchObject({ kind: 'star' });
   });
 
-  it('falls back to the line matching the schwerpunkt label', () => {
+  it('follows the top move, not the highlight, when they sit on different lines', () => {
     const goal: Goal = {
-      ...withPlan(stubGoal('Goal') as Goal),
-      systemsNotes: {
-        schwerpunkt: 'Line A',
-        confidence: 'high' as const,
-        topFindings: [],
-        lastReviewed: '2026-01-01',
+      ...stubGoal('Goal') as Goal,
+      plan: {
+        linesOfOperation: [
+          { label: 'A', criticalPath: [{ label: 'A step', status: 'pending' }], nextActions: [] },
+          { label: 'B', focus: true, criticalPath: [{ label: 'B step', status: 'pending' }], nextActions: [{ action: 'Do B', who: 'me', when: 'fri', status: 'pending' }] },
+        ],
       },
+      log: [{ date: '2026-01-01', focus: 'f', focusLine: 'A step', notes: [] }],
     };
     const { byPath } = deriveMarks(goal, 'g1', emptySession);
-    expect(byPath.get('plan.linesOfOperation.0.criticalPath.0')).toMatchObject({ kind: 'star' });
+    expect(byPath.get('plan.linesOfOperation.1.criticalPath.0')).toMatchObject({ kind: 'star' });
+    expect(byPath.get('plan.linesOfOperation.0.criticalPath.0')).toMatchObject({ kind: 'highlight' });
   });
 
-  it('has no star when neither focus nor schwerpunkt resolves', () => {
-    const goal = withPlan(stubGoal('Goal') as Goal);
+  it('has no star without a top move', () => {
+    const goal = withPlan(stubGoal('Goal') as Goal, { nextActions: [] });
     const { byPath } = deriveMarks(goal, 'g1', emptySession);
     expect([...byPath.values()].filter((m) => m.kind === 'star')).toHaveLength(0);
   });
@@ -265,7 +285,7 @@ describe('deriveMarks — event marks win: cancel and loop', () => {
 
 describe('noteForMark — pencil-note tooltip text per mark', () => {
   it('gives the star its "waits on this" meaning', () => {
-    expect(noteForMark({ kind: 'star', sr: 'next up' })).toBe('everything else waits on this');
+    expect(noteForMark({ kind: 'star', sr: 'next up' })).toBe('your top move is working toward this');
   });
 
   it('gives an arrow its "depends on <name>" text verbatim from sr', () => {
@@ -273,7 +293,7 @@ describe('noteForMark — pencil-note tooltip text per mark', () => {
   });
 
   it('gives an open question its meaning', () => {
-    expect(noteForMark({ kind: 'question', sr: 'open question' })).toBe('open question');
+    expect(noteForMark({ kind: 'question', sr: 'open question' })).toBe('still to decide');
   });
 
   it('gives the loop its "new from your chat" meaning', () => {
@@ -281,7 +301,7 @@ describe('noteForMark — pencil-note tooltip text per mark', () => {
   });
 
   it('gives the highlighter its "focus right now" meaning', () => {
-    expect(noteForMark({ kind: 'highlight', sr: 'focus' })).toBe('the focus right now');
+    expect(noteForMark({ kind: 'highlight', sr: 'focus' })).toBe("anything that doesn't help this can wait");
   });
 
   it('has no note for a tick or a cancel mark', () => {

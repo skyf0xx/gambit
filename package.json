@@ -23,5 +23,8 @@
   "workspaces": [
     "packages/*",
     "apps/*"
-  ]
+  ],
+  "overrides": {
+    "undici": "6.29.0"
+  }
 }

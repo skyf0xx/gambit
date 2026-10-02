@@ -172,11 +172,15 @@ export function PencilNotes() {
       <svg width="16" height="10" style={{ position: 'absolute', top: -9, left: note.caretX - 8, overflow: 'visible' }} aria-hidden="true">
         <path d={caretPath(8, 0)} fill="var(--graphite)" filter="url(#graphite)" />
       </svg>
-      <div
-        className={`hand whitespace-nowrap px-1.5 py-0.5 text-[20px] leading-tight text-graphite ${reduced ? '' : phase === 'in' ? 'anim-write' : 'anim-fade-in'} paper rounded-[2px]`}
-        style={{ filter: 'url(#graphite)', animationDirection: phase === 'out' ? 'reverse' : 'normal' }}
-      >
-        {note.text}
+      {/* The pencil filter goes on the words only: on the slip too, it eats
+       * the paper and lets the line underneath show through. */}
+      <div className="paper rounded-[2px] px-1.5 py-0.5">
+        <div
+          className={`hand whitespace-nowrap text-[20px] leading-tight text-graphite ${reduced ? '' : phase === 'in' ? 'anim-write' : 'anim-fade-in'}`}
+          style={{ filter: 'url(#graphite)', animationDirection: phase === 'out' ? 'reverse' : 'normal' }}
+        >
+          {note.text}
+        </div>
       </div>
     </div>
   );

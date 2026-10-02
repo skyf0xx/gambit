@@ -2,6 +2,9 @@
 name: decide
 description: Use when analysis has produced options and one must be chosen — a fork in the plan, competing focuses, a tradeoff between speed and exposure, or a call the user keeps deferring. Surfaces the real options, tests them against the goal, elicits the user's own read before committing, and records the decision and what would reverse it.
 display: decision-callout
+writes: decisions
+requires: goal
+next: plan, strategy
 ---
 
 # Skill: decide
@@ -158,7 +161,7 @@ permanent by inertia — nobody notices the moment it stopped being right.
 
 Call `write_section` on `decisions` with the new decision added to the existing array. Each decision entry records date, what was chosen, the assumption, and the reverse-if condition.
 
-If the user isn't ready to choose, record the choice as **open** rather than leaving it unrecorded: `status: "open"`, the `question` in one line, and `reviewBy` if there's a date it must be settled by. The page marks an open decision with a "?" in the margin until it's settled. When it's decided later, replace that same entry in place with `status: "decided"`, the `choice` and the `reverseIf` (drop the `question`), per `skills/_shared/NO_HISTORY.md` — don't add a second entry beside it. If the decision changes the plan, say so and hand off to `plan` to resequence. If it changes what matters most, hand off to `strategy` to reset the focus.
+If the user isn't ready to choose, record the choice as **open** rather than leaving it unrecorded: `status: "open"`, the `question` in one line, and `reviewBy` if there's a date it must be settled by. The page marks an open decision with a "?" in the margin until it's settled. When it's decided later, replace that same entry in place with `status: "decided"`, the `choice` and the `reverseIf` (drop the `question`), per `skills/_shared/NO_HISTORY.md` — don't add a second entry beside it. If the decision changes the plan, say so and load `plan` to resequence. If it changes what matters most, load `strategy` to reset the focus.
 
 Fields per decision entry:
 - `date` (required, YYYY-MM-DD format): when this decision was made, or when an open one was raised

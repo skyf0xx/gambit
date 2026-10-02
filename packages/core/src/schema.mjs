@@ -287,6 +287,9 @@ export function wordCount(s) {
   return s.trim().split(/\s+/).filter(Boolean).length;
 }
 
+// The placeholder success criterion a stub goal carries until intake runs.
+export const STUB_CRITERION = 'define success criteria';
+
 // Schema-default stub for a new goal — every array empty, every optional
 // section null, goal/successCriteria seeded from the title so the document
 // is valid the instant it's written.
@@ -294,7 +297,7 @@ export function stubGoal(title) {
   return {
     schemaVersion: 3,
     goal: title,
-    successCriteria: [{ text: 'define success criteria', kind: 'control' }],
+    successCriteria: [{ text: STUB_CRITERION, kind: 'control' }],
     deadline: null,
     people: [],
     posture: null,
@@ -327,6 +330,14 @@ export function parseGoalJson(raw) {
 export function reconcileGoal(data) {
   const warnings = [];
   const names = new Set([...data.people, ...data.stakeholders].map((p) => p.name));
+  // Only a record written before the write path kept these apart can hold
+  // both; the stakeholder copy is the stale one (ops.mjs writeSection).
+  const onSide = new Set(data.people.map((p) => p.name.trim().toLowerCase()));
+  for (const s of data.stakeholders) {
+    if (onSide.has(s.name.trim().toLowerCase())) {
+      warnings.push(`"${s.name}" is in both people and stakeholders; keep them in people only and rewrite stakeholders without them`);
+    }
+  }
   for (const r of data.riskNotes) {
     if (r.dependsOn && !names.has(r.dependsOn)) {
       warnings.push(`riskNote "${r.item}": dependsOn "${r.dependsOn}" matches no people or stakeholders name`);
