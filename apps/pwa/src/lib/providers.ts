@@ -11,7 +11,7 @@ export interface ProviderSettings {
   model: string;
   /** Optional proxy / custom endpoint. Its origin must be in the build's connect-src. */
   baseURL?: string;
-  /** Anthropic only: let the model use provider-side web search. */
+  /** Anthropic and Google: let the model search the web. */
   webSearch?: boolean;
 }
 
@@ -55,7 +55,8 @@ export const KEY_LABEL = { google: 'Google', anthropic: 'Anthropic', openai: 'Op
 export function settingsForKey(p: NonNullable<ReturnType<typeof keyProvider>>): ProviderSettings {
   if (p === 'deepseek') return { kind: 'custom', model: 'deepseek-flash', baseURL: DEEPSEEK_BASE };
   if (p === 'openrouter') return { kind: 'custom', model: 'anthropic/claude-sonnet-4.5', baseURL: OPENROUTER_BASE };
-  return { kind: p, model: PROVIDERS[p].defaultModel };
+  // Google's search runs on the user's own free quota, so a new setup starts with it on.
+  return { kind: p, model: PROVIDERS[p].defaultModel, ...(p === 'google' ? { webSearch: true } : {}) };
 }
 
 export type KeyCheck = 'ok' | 'bad' | 'offline' | 'unreachable';

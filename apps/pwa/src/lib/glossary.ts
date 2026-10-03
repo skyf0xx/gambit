@@ -16,9 +16,6 @@ const UNTITLED: Record<string, string | null> = {
   deadline: 'the time left, under the title',
   subGoals: 'the short bullet list under the title (the parts of the goal)',
   posture: 'the words after the "All moves" label, e.g. "All moves - quiet posture" (its pencil note: what the level means, what would change it)',
-  intel: null,
-  courses: null,
-  prep: null,
 };
 
 /** Page furniture that isn't one key's section, with what it reads. */

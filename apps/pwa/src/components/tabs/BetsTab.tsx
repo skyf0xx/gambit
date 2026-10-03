@@ -8,10 +8,12 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
  * run, and predictions whose date has come. Empty when nothing is. */
 function waitingOn(g: Goal): string[] {
   const questions = (g.decisions ?? []).filter((d) => d.status === 'open').length;
+  const asks = (g.intel ?? []).filter((q) => q.status === 'open').length;
   const tests = (g.experiments ?? []).filter((e) => !e.done).length;
   const bets = (g.forecasts ?? []).filter((f) => { const n = f.resolved ? null : daysUntil(f.resolvesBy); return n !== null && n <= 0; }).length;
   return [
     questions && plural(questions, 'question to settle', 'questions to settle'),
+    asks && plural(asks, 'thing to find out', 'things to find out'),
     tests && plural(tests, 'test to run', 'tests to run'),
     bets && plural(bets, 'prediction to check', 'predictions to check'),
   ].filter((s): s is string => !!s);
@@ -26,7 +28,7 @@ export function BetsTab({ g, goalId }: { g: Goal; goalId: string }) {
   return (
     <>
       {waiting.length > 0 && <p className="text-[17px] font-medium leading-[27px] text-ink">Waiting on you: {waiting.join(', ')}.</p>}
-      <SectionList goalId={goalId} g={g} keys={['decisions', 'experiments', 'forecasts', 'systemsNotes']} />
+      <SectionList goalId={goalId} g={g} keys={['decisions', 'courses', 'intel', 'experiments', 'forecasts', 'systemsNotes']} />
     </>
   );
 }
