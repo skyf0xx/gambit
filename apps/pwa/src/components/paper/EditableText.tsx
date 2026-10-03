@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
-import { wordCount } from '@gambit/core';
+import { wordCount, lineText } from '@gambit/core';
 import { editLine, useEditedPaths } from '../../lib/edits';
 import type { OpResult } from '../../lib/goals';
+import { useMarksContext } from '../marks/context';
 
 // Edit a line where it sits. The text turns into a one-line field that
 // reads like the page (same font, an underline rule instead of a box), and
@@ -126,8 +127,9 @@ function EditedTag() {
 }
 
 /** A line of text that can be reworded in place. `children` is how the line
- * normally reads (it may carry dates or marks); `value` is the raw text the
- * edit starts from and is checked against. */
+ * normally reads (it may carry dates or marks). The edit starts from, and is
+ * checked against, the stored text: the page shows ISO dates as prose, so
+ * the displayed `value` is only the fallback outside a goal's page. */
 export function EditableText({ goalId, path, value, children, className = '', maxWords }: {
   goalId: string;
   path: string;
@@ -139,16 +141,18 @@ export function EditableText({ goalId, path, value, children, className = '', ma
   const [editing, setEditing] = useState(false);
   const [pressed, setPressed] = useState(false);
   const edited = useEditedPaths(goalId).has(path);
+  const goal = useMarksContext()?.goal;
+  const stored = (goal && lineText(goal, path)) ?? value;
 
   if (editing) {
     return (
       <span data-editing="" className={`block w-full ${className}`}>
         <InlineInput
-          initial={value}
-          original={value}
+          initial={stored}
+          original={stored}
           maxWords={maxWords}
           label={`Edit: ${value}`}
-          onSave={(draft) => editLine(goalId, path, draft, value)}
+          onSave={(draft) => editLine(goalId, path, draft, stored)}
           onDone={() => { setEditing(false); setPressed(true); }}
           onCancel={() => setEditing(false)}
         />

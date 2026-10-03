@@ -261,14 +261,20 @@ routes to `plan`'s lightweight status-update mode rather than sitting
 unrecorded. No other skill writes that field.
 
 The user can also edit the page directly, outside the skill flow. They can
-reword a move, step, sub-item, success criterion, sub-goal or the goal
-sentence, add a `pending` move, and tick, keep or toss one. Text edits go
+reword a move, step, sub-item, success criterion, sub-goal, the goal
+sentence, a risk, what a person is doing, or an open decision's question.
+They can also add a `pending` move, and tick, keep or toss one. Names stay
+chat-only, because they keep `people` and `stakeholders` apart. A decided
+decision changes only through `decide`. Forecasts and experiments aren't
+editable at all, because their worth is being fixed in advance. Text edits go
 through `editLine` and `addNextAction` (`packages/core/src/ops.mjs`), which
 call `writeSection`. So a page edit meets every write rule a skill write
 does (schema caps, grade-7 reading level, the goal word cap) and stamps
 `updated`. `editLine` takes the text the user started from and refuses the
-edit if the line changed since then. `isEditableLine` lists the editable
-paths. Every page edit, status flips included, is queued on the chat record
+edit if the line changed since then. One table in `ops.mjs` (`LINES`) says which field holds
+each line's text and whether it is editable. `lineText` and
+`isEditableLine` read it, and so does the page's change diff
+(`apps/pwa/src/lib/changes.ts`). Every page edit, status flips included, is queued on the chat record
 (`pendingEdits`, `apps/pwa/src/lib/edits.ts`). The next turn's state block
 lists the queue as the user's own word, and the queue clears once that turn
 completes.

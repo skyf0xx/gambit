@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { stubGoal } from '@gambit/core';
-import { SectionBody } from '../src/components/Sections';
+import { SectionBody, PeopleBody } from '../src/components/Sections';
 import type { Goal } from '../src/lib/types';
 
 // renderToStaticMarkup only: the edit affordances, not the typing.
@@ -41,5 +41,29 @@ describe('inline edits', () => {
     const html = render(planWith(3), false);
     expect(html).not.toContain('Edit: Move');
     expect(html).not.toContain('+ add a move');
+  });
+
+  it('edits a risk and an open decision, never a decided one', () => {
+    const risks = renderToStaticMarkup(<SectionBody k="riskNotes" data={[{ item: 'Lease falls through', source: 'threat', accepted: false }]} goalId="g1" editable />);
+    expect(risks).toContain('aria-label="Edit: Lease falls through"');
+    const decisions = renderToStaticMarkup(
+      <SectionBody
+        k="decisions"
+        data={[
+          { date: '2026-09-01', status: 'open', question: 'Lease or buy the van' },
+          { date: '2026-09-02', status: 'decided', choice: 'Hire one stylist', reverseIf: 'bookings drop' },
+        ]}
+        goalId="g1"
+        editable
+      />,
+    );
+    expect(decisions).toContain('aria-label="Edit: Lease or buy the van"');
+    expect(decisions).not.toContain('Edit: Hire one stylist');
+  });
+
+  it("edits what a person is doing, not their name", () => {
+    const html = renderToStaticMarkup(<PeopleBody goalId="g1" people={[{ name: 'Priya', status: 'confirmed', doing: 'Runs the front desk' }]} stakeholders={[]} />);
+    expect(html).toContain('aria-label="Edit: Runs the front desk"');
+    expect(html).not.toContain('Edit: Priya');
   });
 });

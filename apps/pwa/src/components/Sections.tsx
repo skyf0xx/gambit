@@ -627,7 +627,7 @@ function PersonRow({ goalId, path, alias, name, tag, main, more }: { goalId: str
   // The whole row opens, not only the word; it stands aside for anything
   // with its own click and for a drag that selected text.
   const onRowClick = (e: MouseEvent<HTMLLIElement>) => {
-    if ((e.target as Element).closest('button, a')) return;
+    if ((e.target as Element).closest('button, a, textarea, [data-editing]')) return;
     if (window.getSelection()?.toString()) return;
     setOpen((v) => !v);
   };
@@ -673,7 +673,7 @@ export function PeopleBody({ goalId, people: storedPeople, stakeholders: storedS
         alias={j !== undefined ? `stakeholders.${j}` : undefined}
         name={p.name}
         tag={p.status}
-        main={p.doing}
+        main={<EditableText goalId={goalId} path={`people.${i}.doing`} value={p.doing}>{p.doing}</EditableText>}
         more={[
           s && <><Stance s={s} /> · {powerWord(s.power)}</>,
           s && `via ${s.via}`,
@@ -773,7 +773,7 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
       <ul className="space-y-2 text-[17px] leading-[27px]">
         {data.map((r: Any, i: number) => (
           <li key={i}>
-            <Line goalId={goalId} path={`riskNotes.${i}`} className={r.accepted ? 'text-graphite' : ''}>
+            <Line goalId={goalId} path={`riskNotes.${i}`} className={r.accepted ? 'text-graphite' : ''} edit={editable ? { value: r.item } : undefined}>
               <span>{r.item}</span>
               <PencilWord className="ml-2">{r.accepted ? 'accepted' : 'open'}</PencilWord>
             </Line>
@@ -803,7 +803,8 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
             <li key={i} className="flex items-start gap-2.5">
               <Marker path={`decisions.${i}`} open={open} />
               <div className="min-w-0 flex-1">
-                <Line goalId={goalId} path={`decisions.${i}`}>
+                {/* An open question can be reframed here; a decided choice changes only through `decide`. */}
+                <Line goalId={goalId} path={`decisions.${i}`} edit={editable && open ? { value: d.question } : undefined}>
                   <span className="font-medium text-ink">{open ? d.question : d.choice}</span>
                 </Line>
                 {!open && <Facts rows={[['Why', d.because], ['Reverse if', d.reverseIf]]} />}
