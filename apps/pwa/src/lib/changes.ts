@@ -1,3 +1,4 @@
+import { lineText } from '@gambit/core';
 import type { Goal } from './types';
 
 // A dotted path into a goal document, in the same syntax packages/core's
@@ -29,29 +30,26 @@ function eq(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-function collectPlan(goal: Goal, out: Item[]) {
-  const lines = goal.plan?.linesOfOperation ?? [];
-  lines.forEach((line, li) => {
+// Where each bucket's lines sit; their text comes from core's `lineText`,
+// the same table the page's inline edits use.
+function linePaths(goal: Goal): { bucket: Bucket; path: LinePath; node: unknown }[] {
+  const out: { bucket: Bucket; path: LinePath; node: unknown }[] = [];
+  (goal.plan?.linesOfOperation ?? []).forEach((line, li) => {
     line.criticalPath.forEach((step, si) => {
-      out.push({ bucket: 'step', path: `plan.linesOfOperation.${li}.criticalPath.${si}`, text: step.label, after: step });
-      (step.items ?? []).forEach((it, ii) => {
-        out.push({ bucket: 'step', path: `plan.linesOfOperation.${li}.criticalPath.${si}.items.${ii}`, text: it.label, after: it });
-      });
+      out.push({ bucket: 'step', path: `plan.linesOfOperation.${li}.criticalPath.${si}`, node: step });
+      (step.items ?? []).forEach((it, ii) => out.push({ bucket: 'step', path: `plan.linesOfOperation.${li}.criticalPath.${si}.items.${ii}`, node: it }));
     });
-    line.nextActions.forEach((a, ai) => {
-      out.push({ bucket: 'nextAction', path: `plan.linesOfOperation.${li}.nextActions.${ai}`, text: a.action, after: a });
-    });
+    line.nextActions.forEach((a, ai) => out.push({ bucket: 'nextAction', path: `plan.linesOfOperation.${li}.nextActions.${ai}`, node: a }));
   });
+  const keyed: [Bucket, keyof Goal][] = [['criterion', 'successCriteria'], ['risk', 'riskNotes'], ['person', 'people'], ['decision', 'decisions']];
+  for (const [bucket, key] of keyed) {
+    ((goal[key] ?? []) as unknown[]).forEach((node, i) => out.push({ bucket, path: `${key}.${i}`, node }));
+  }
+  return out;
 }
 
 function indexByPath(goal: Goal): Map<LinePath, Item> {
-  const items: Item[] = [];
-  collectPlan(goal, items);
-  (goal.successCriteria ?? []).forEach((c, i) => items.push({ bucket: 'criterion', path: `successCriteria.${i}`, text: c.text, after: c }));
-  (goal.riskNotes ?? []).forEach((r, i) => items.push({ bucket: 'risk', path: `riskNotes.${i}`, text: r.item, after: r }));
-  (goal.people ?? []).forEach((p, i) => items.push({ bucket: 'person', path: `people.${i}`, text: p.name, after: p }));
-  (goal.decisions ?? []).forEach((d, i) => items.push({ bucket: 'decision', path: `decisions.${i}`, text: d.choice ?? d.question ?? '(open decision)', after: d }));
-  return new Map(items.map((i) => [i.path, i]));
+  return new Map(linePaths(goal).map(({ bucket, path, node }) => [path, { bucket, path, text: lineText(goal, path) ?? '(open decision)', after: node }]));
 }
 
 /**

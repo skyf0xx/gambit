@@ -1,40 +1,25 @@
-import { useState } from 'react';
-import { isStub, writeSection } from '@gambit/core';
-import { applyOp } from '../../lib/goals';
+import { isStub, GOAL_MAX_WORDS } from '@gambit/core';
 import type { Goal } from '../../lib/types';
-import { RuledInput, PencilWord } from '../ui';
+import { PencilWord } from '../ui';
 import { timeLeft, proseDates } from '../../lib/dates';
 import { Section, isEmptySection } from './SectionRenderer';
 import { FreshTag } from '../paper/FreshTag';
+import { EditableText } from '../paper/EditableText';
 import { KeepNotebook } from '../paper/KeepNotebook';
 
 const norm = (s: string) => s.trim().toLowerCase();
 
 function GoalHeader({ g, goalId }: { g: Goal; goalId: string }) {
-  const [editing, setEditing] = useState(false);
-  const [val, setVal] = useState(g.goal);
   const stub = isStub(g);
   return (
     <header className="space-y-1">
-      {editing ? (
-        <RuledInput
-          autoFocus
-          value={val}
-          maxLength={200}
-          onChange={(e) => setVal(e.target.value)}
-          onBlur={() => { setEditing(false); if (val.trim() && val !== g.goal) void applyOp(goalId, (x) => writeSection(x, 'goal', val.trim()) as never); }}
-          onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-        />
-      ) : (
-        <h1
-          data-line="goal"
-          className="ink-bleed cursor-text font-serif text-[29px] font-medium leading-[37px] text-ink"
-          onDoubleClick={() => { setVal(g.goal); setEditing(true); }}
-        >
-          {g.goal}
-          <FreshTag path="goal" />
-        </h1>
-      )}
+      <h1
+        data-line="goal"
+        className="ink-bleed font-serif text-[29px] font-medium leading-[37px] text-ink"
+      >
+        <EditableText goalId={goalId} path="goal" value={g.goal} maxWords={GOAL_MAX_WORDS}>{g.goal}</EditableText>
+        <FreshTag path="goal" />
+      </h1>
       {stub ? (
         <PencilWord>Not set yet.</PencilWord>
       ) : g.deadline ? (
@@ -49,13 +34,15 @@ function GoalHeader({ g, goalId }: { g: Goal; goalId: string }) {
  * read as the rest of the goal sentence. Reads from `goal.subGoals` (packages/core/src/schema.mjs,
  * merged from master: `z.array(subGoal).max(5).optional()`). Renders nothing
  * when absent/empty, same as any other empty-hideable section. */
-function SubGoals({ subGoals }: { subGoals: string[] }) {
+function SubGoals({ subGoals, goalId }: { subGoals: string[]; goalId: string }) {
   if (subGoals.length === 0) return null;
   return (
     <section className="anim-fade-in space-y-3">
       <ul className="list-disc space-y-1 pl-5 text-[17px] leading-[27px]">
         {subGoals.map((s, i) => (
-          <li key={i} data-line={`subGoals.${i}`}>{proseDates(s)}</li>
+          <li key={i} data-line={`subGoals.${i}`}>
+            <EditableText goalId={goalId} path={`subGoals.${i}`} value={s}>{proseDates(s)}</EditableText>
+          </li>
         ))}
       </ul>
     </section>
@@ -85,7 +72,7 @@ export function GoalTab({ g, goalId }: { g: Goal; goalId: string }) {
     <div className="space-y-8">
       <GoalHeader g={g} goalId={goalId} />
       {!stub && <KeepNotebook />}
-      <SubGoals subGoals={g.subGoals ?? []} />
+      <SubGoals subGoals={g.subGoals ?? []} goalId={goalId} />
       {isEmptySection(g.successCriteria) ? null : <Section goalId={goalId} k="successCriteria" data={criteria} />}
       {unmatched.length === 0 ? null : <Section goalId={goalId} k="criteriaStatus" data={unmatched} />}
     </div>

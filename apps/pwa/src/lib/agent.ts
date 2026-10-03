@@ -9,6 +9,7 @@ import { makeTools, goalStateJson, toolLabel, replySchema, today, type Reply } f
 import { readRecord, restoreSnapshot, snapshot } from './goals';
 import { changedKeys, changedLines } from './changes';
 import { session } from './session';
+import { pendingEditsText, type PageEdit } from './edits';
 
 export type AgentEvent =
   | { type: 'text'; text: string }
@@ -162,10 +163,12 @@ export async function runTurn(opts: {
   const webSearch = prov.kind === 'anthropic' && !!prov.webSearch;
   const { messages: history, trimmed } = trimHistory(chat.model);
   const day = today();
+  const sentEdits: PageEdit[] = chat.pendingEdits ?? [];
   const state = [
     `# Current goal state (id ${goalId}, today ${day})`,
     await goalStateJson(goalId),
     flowText(store, flow, before, day),
+    pendingEditsText(sentEdits),
     webSearch ? 'Web search tool: available.' : 'Web search tool: not available; label unverified claims as such.',
     trimmed ? 'Earlier conversation was trimmed; the goal state above is the durable record.' : '',
   ].filter(Boolean).join('\n');
@@ -268,6 +271,8 @@ export async function runTurn(opts: {
   fresh.model = keepLastTurns([...chat.model, userMsg, ...newMessages]);
   fresh.activeSkill = flow.active;
   fresh.callerSkill = flow.caller;
+  // The edits this turn carried are told; any made while it ran wait for the next.
+  if (!error) fresh.pendingEdits = (fresh.pendingEdits ?? []).filter((e) => !sentEdits.some((s) => JSON.stringify(s) === JSON.stringify(e)));
   const display: DisplayMsg[] = [
     ...fresh.display,
     { id: displayId, role: 'assistant', text: out, reply, tools: entries, summary, snapshotId: summary.length || error ? snapshotId : undefined, error },

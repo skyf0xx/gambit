@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { rendererForSection, setStatus } from '@gambit/core';
-import { applyOp } from '../lib/goals';
+import { rendererForSection, isEditableLine, NEXT_ACTIONS_MAX } from '@gambit/core';
+import { setLineStatus, addMove } from '../lib/edits';
 import { useSession } from '../lib/session';
 import { useLineMark, useMarksContext } from './marks/context';
 import { FreshTag } from './paper/FreshTag';
+import { EditableText, InlineInput } from './paper/EditableText';
 import { useGoto } from './gotoContext';
 import { undoTurn } from '../lib/agent';
 import type { Goal } from '../lib/types';
@@ -104,12 +105,12 @@ function ChangeNote({ goalId, path }: { goalId: string; path: string }) {
 
 /** A single markable line: text with its data-line hook, sr mark text, an
  * optional "→ Name" pencilled after it, and the change note beneath. */
-function Line({ goalId, path, alias, className = '', children }: { goalId: string; path: string; alias?: string; className?: string; children: ReactNode }) {
+function Line({ goalId, path, alias, className = '', edit, children }: { goalId: string; path: string; alias?: string; className?: string; edit?: { value: string }; children: ReactNode }) {
   const mark = useLineMark(path);
   return (
     <div>
       <span data-line={path} data-alias={alias} className={`${mark.pencil ? 'pencil' : ''} ${className}`}>
-        {children}
+        {edit ? <EditableText goalId={goalId} path={path} value={edit.value}>{children}</EditableText> : children}
         <FreshTag path={path} />
         <MarkSr path={path} />
         {mark.kind === 'arrow-text' && mark.toName && <PencilWord className="ml-1">{`→ ${mark.toName}`}</PencilWord>}
@@ -125,13 +126,13 @@ function Line({ goalId, path, alias, className = '', children }: { goalId: strin
  * through; the pencil tick is the only "done" signal (brand/identity.md §05). */
 function Toggle({ goalId, path, status, editable, onTick, title, children }: { goalId: string; path: string; status: string; editable: boolean; onTick?: (path: string) => void; title?: string; children: ReactNode }) {
   const next = status === 'done' ? 'pending' : 'done';
-  const toggle = () => { if (next === 'done') onTick?.(path); void applyOp(goalId, (g) => setStatus(g, path, next) as never); };
+  const toggle = () => { if (next === 'done') onTick?.(path); void setLineStatus(goalId, path, next); };
   // The whole row ticks, not only the box. The box button stays the
   // keyboard and screen-reader control; this is the pointer shortcut, so it
   // stands aside for anything with its own click (the box itself, "undo",
   // a nested sub-item's row) and for a drag that selected text.
   const onRowClick = (e: MouseEvent<HTMLLIElement>) => {
-    if ((e.target as Element).closest('button, a, li') !== e.currentTarget) return;
+    if ((e.target as Element).closest('button, a, li, textarea, input, [data-editing]') !== e.currentTarget) return;
     if (window.getSelection()?.toString()) return;
     toggle();
   };
@@ -167,7 +168,7 @@ const CRITERION_GROUPS = [
 /** One success criterion: an open ring — it isn't the user's to tick — which
  * becomes an ink tick once `eval` scores it met. The text and its note hang
  * beside the marker rather than wrapping under it. */
-function Criterion({ goalId, path, c }: { goalId: string; path: string; c: Any }) {
+function Criterion({ goalId, path, c, editable }: { goalId: string; path: string; c: Any; editable: boolean }) {
   const mark = useLineMark(path);
   // `progress` is the criterion's `eval` score, joined on by GoalTab.tsx.
   const slipping = alarm(c.progress);
@@ -175,7 +176,7 @@ function Criterion({ goalId, path, c }: { goalId: string; path: string; c: Any }
     <li className="flex items-start gap-2.5">
       <Marker path={path} open={c.progress !== 'met' && mark.kind !== 'tick'} />
       <div className="min-w-0 flex-1">
-        <Line goalId={goalId} path={path}>
+        <Line goalId={goalId} path={path} edit={editable && isEditableLine(path) ? { value: c.text } : undefined}>
           <span>{c.text}</span>
           {slipping && <PencilWord className="ml-2">{slipping}</PencilWord>}
         </Line>
@@ -307,13 +308,13 @@ function Steps({ goalId, base, steps, editable, rows }: { goalId: string; base: 
     <ol className="space-y-1.5">
       {list.map(({ s, i, path }) => (
         <Toggle key={i} goalId={goalId} path={path} status={s.status} editable={editable} onTick={rows.onTick} title={path === rows.detailFor ? undefined : s.detail}>
-          <Line goalId={goalId} path={path}><span>{s.label}</span></Line>
+          <Line goalId={goalId} path={path} edit={editable && isEditableLine(path) ? { value: s.label } : undefined}><span>{s.label}</span></Line>
           {path === rows.detailFor && <Detail>{s.detail}</Detail>}
           {s.items?.length > 0 && (
             <ul className="mt-1 space-y-1 pl-1">
               {s.items.map((it: Any, j: number) => (
                 <Toggle key={j} goalId={goalId} path={`${base}.${i}.items.${j}`} status={it.status} editable={editable}>
-                  <Line goalId={goalId} path={`${base}.${i}.items.${j}`} className="text-[14px]"><span>{it.label}</span></Line>
+                  <Line goalId={goalId} path={`${base}.${i}.items.${j}`} className="text-[14px]" edit={editable && isEditableLine(`${base}.${i}.items.${j}`) ? { value: it.label } : undefined}><span>{it.label}</span></Line>
                 </Toggle>
               ))}
             </ul>
@@ -321,6 +322,29 @@ function Steps({ goalId, base, steps, editable, rows }: { goalId: string; base: 
         </Toggle>
       ))}
     </ol>
+  );
+}
+
+/** "+ add a move": a pencilled link under a line's moves that opens the
+ * same inline field a reword uses, and adds the move as the user's own. */
+function AddMove({ goalId, li }: { goalId: string; li: number }) {
+  const [open, setOpen] = useState(false);
+  if (!open) {
+    return (
+      <TextAction className="-my-2 ml-11" onClick={() => setOpen(true)}>
+        <PencilWord className="text-[18px] text-graphite">+ add a move</PencilWord>
+      </TextAction>
+    );
+  }
+  return (
+    <div data-editing="" className="ml-11 text-[17px] leading-[27px]">
+      <InlineInput
+        label="New move"
+        onSave={(draft) => addMove(goalId, li, draft)}
+        onDone={() => setOpen(false)}
+        onCancel={() => setOpen(false)}
+      />
+    </div>
   );
 }
 
@@ -494,7 +518,10 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
               return (
                 <Toggle key={path} goalId={goalId} path={path} status={a.status} editable={editable} onTick={onTick} title={path === detailFor ? undefined : a.detail}>
                   <Line goalId={goalId} path={path}>
-                    <span>{a.action}</span>
+                    {/* Only the action is editable; who/when stays outside it. */}
+                    {editable && isEditableLine(path)
+                      ? <EditableText goalId={goalId} path={path} value={a.action}><span>{a.action}</span></EditableText>
+                      : <span>{a.action}</span>}
                     {meta && <span className="ml-2 text-[14px] text-graphite">{meta}</span>}
                   </Line>
                   {path === detailFor && <Detail>{a.detail}</Detail>}
@@ -503,6 +530,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
             })}
           </ol>
         )}
+        {editable && l.nextActions.length < NEXT_ACTIONS_MAX && <AddMove goalId={goalId} li={li} />}
         {hiddenDone > 0 && (
           <TextAction className="-my-2 ml-11" onClick={() => setShowDone((v) => !v)} aria-expanded={showDone}>
             <PencilWord className="text-[18px] text-graphite">{showDone ? 'hide done' : `${hiddenDone} done`}</PencilWord>
@@ -599,7 +627,7 @@ function PersonRow({ goalId, path, alias, name, tag, main, more }: { goalId: str
   // The whole row opens, not only the word; it stands aside for anything
   // with its own click and for a drag that selected text.
   const onRowClick = (e: MouseEvent<HTMLLIElement>) => {
-    if ((e.target as Element).closest('button, a')) return;
+    if ((e.target as Element).closest('button, a, textarea, [data-editing]')) return;
     if (window.getSelection()?.toString()) return;
     setOpen((v) => !v);
   };
@@ -645,7 +673,7 @@ export function PeopleBody({ goalId, people: storedPeople, stakeholders: storedS
         alias={j !== undefined ? `stakeholders.${j}` : undefined}
         name={p.name}
         tag={p.status}
-        main={p.doing}
+        main={<EditableText goalId={goalId} path={`people.${i}.doing`} value={p.doing}>{p.doing}</EditableText>}
         more={[
           s && <><Stance s={s} /> · {powerWord(s.power)}</>,
           s && `via ${s.via}`,
@@ -745,7 +773,7 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
       <ul className="space-y-2 text-[17px] leading-[27px]">
         {data.map((r: Any, i: number) => (
           <li key={i}>
-            <Line goalId={goalId} path={`riskNotes.${i}`} className={r.accepted ? 'text-graphite' : ''}>
+            <Line goalId={goalId} path={`riskNotes.${i}`} className={r.accepted ? 'text-graphite' : ''} edit={editable ? { value: r.item } : undefined}>
               <span>{r.item}</span>
               <PencilWord className="ml-2">{r.accepted ? 'accepted' : 'open'}</PencilWord>
             </Line>
@@ -775,7 +803,8 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
             <li key={i} className="flex items-start gap-2.5">
               <Marker path={`decisions.${i}`} open={open} />
               <div className="min-w-0 flex-1">
-                <Line goalId={goalId} path={`decisions.${i}`}>
+                {/* An open question can be reframed here; a decided choice changes only through `decide`. */}
+                <Line goalId={goalId} path={`decisions.${i}`} edit={editable && open ? { value: d.question } : undefined}>
                   <span className="font-medium text-ink">{open ? d.question : d.choice}</span>
                 </Line>
                 {!open && <Facts rows={[['Why', d.because], ['Reverse if', d.reverseIf]]} />}
@@ -813,7 +842,7 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
             <div key={kind} className="space-y-1.5">
               {split && <h3 className="text-[14px] leading-5 text-graphite">{label}</h3>}
               <ul className="space-y-3">
-                {group.map(({ c, path }: Any) => <Criterion key={path} goalId={goalId} path={path} c={c} />)}
+                {group.map(({ c, path }: Any) => <Criterion key={path} goalId={goalId} path={path} c={c} editable={editable} />)}
               </ul>
             </div>
           );
