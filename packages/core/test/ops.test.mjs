@@ -6,7 +6,7 @@ import * as core from '../src/index.mjs';
 const plan = {
   linesOfOperation: [{
     label: 'L', criticalPath: [{ label: 'a', status: 'pending' }],
-    nextActions: [{ action: 'do x', who: 'me', when: 'Fri' }, { action: 'do y', who: 'me', when: 'Mon' }],
+    nextActions: [{ action: 'do x', who: 'me', when: '2026-10-09' }, { action: 'do y', who: 'me', when: '2026-10-12' }],
   }],
 };
 
@@ -55,6 +55,51 @@ test('setStatus flips one node and surfaces reconcile warnings', () => {
   assert.equal(setStatus(g, 'plan.linesOfOperation.0.nextActions.0', 'maybe').ok, false);
 });
 
+test('setStatus stamps doneOn on a next action done, and clears it on any other status', () => {
+  const g = writeSection(stubGoal('g'), 'plan', plan).goal;
+  const path = 'plan.linesOfOperation.0.nextActions.0';
+  const done = setStatus(g, path, 'done', '2026-10-03').goal;
+  assert.equal(done.plan.linesOfOperation[0].nextActions[0].doneOn, '2026-10-03');
+  // Done again keeps the first date.
+  assert.equal(setStatus(done, path, 'done', '2026-10-05').goal.plan.linesOfOperation[0].nextActions[0].doneOn, '2026-10-03');
+  assert.equal(setStatus(done, path, 'pending', '2026-10-05').goal.plan.linesOfOperation[0].nextActions[0].doneOn, undefined);
+  // Steps carry no stamp.
+  assert.equal(setStatus(g, 'plan.linesOfOperation.0.criticalPath.0', 'done', '2026-10-03').goal.plan.linesOfOperation[0].criticalPath[0].doneOn, undefined);
+});
+
+test('writeSection keeps doneOn true across a plan rewrite', () => {
+  const g = setStatus(writeSection(stubGoal('g'), 'plan', plan).goal, 'plan.linesOfOperation.0.nextActions.0', 'done', '2026-10-01').goal;
+  const actions = (p) => p.linesOfOperation[0].nextActions;
+  const rewrite = (nextActions) => ({ linesOfOperation: [{ ...plan.linesOfOperation[0], nextActions }] });
+  const next = writeSection(g, 'plan', rewrite([
+    { action: 'do x', who: 'me', status: 'done' },
+    { action: 'do y', who: 'me', status: 'done' },
+    { action: 'do z', who: 'me', status: 'pending', doneOn: '2026-10-02' },
+  ]), '2026-10-03T09:00:00Z', '2026-10-03');
+  assert.equal(next.ok, true);
+  assert.deepEqual(actions(next.goal.plan).map((a) => a.doneOn), ['2026-10-01', '2026-10-03', undefined]);
+  // A date the model passes stands; one that is not a date is refused.
+  const given = writeSection(g, 'plan', rewrite([{ action: 'do y', who: 'me', status: 'done', doneOn: '2026-09-30' }]));
+  assert.equal(actions(given.goal.plan)[0].doneOn, '2026-09-30');
+  assert.equal(writeSection(g, 'plan', rewrite([{ action: 'do y', who: 'me', when: 'Friday' }])).ok, false);
+});
+
+test('intel, courses and prep validate their caps', () => {
+  const g = stubGoal('g');
+  const q = { question: 'Will the council meet in May?', via: 'ask the clerk', status: 'open', by: '2026-10-10' };
+  assert.equal(writeSection(g, 'intel', [q]).ok, true);
+  assert.equal(writeSection(g, 'intel', Array.from({ length: 9 }, () => q)).ok, false);
+  assert.equal(writeSection(g, 'intel', [{ ...q, status: 'maybe' }]).ok, false);
+  const c = (name, chosen) => ({ name, idea: 'Go to the press first', ...(chosen ? { chosen: true } : {}) });
+  assert.equal(writeSection(g, 'courses', [c('A', true), c('B')]).ok, true);
+  assert.equal(writeSection(g, 'courses', [c('A', true), c('B', true)]).ok, false);
+  assert.equal(writeSection(g, 'courses', [c('A'), c('B'), c('C'), c('D')]).ok, false);
+  const p = { with: 'Priya', on: '2026-10-08', ask: 'A two-year lease', batna: 'The unit on Hill Street', walkAway: 'Rent over 2,000 a month', concessions: ['pay a deposit'], done: false };
+  assert.equal(writeSection(g, 'prep', [p]).ok, true);
+  assert.equal(writeSection(g, 'prep', [{ ...p, concessions: Array.from({ length: 6 }, () => 'x') }]).ok, false);
+  assert.equal(writeSection(g, 'prep', Array.from({ length: 6 }, () => p)).ok, false);
+});
+
 test('setStatus: a proposed next action is kept or tossed; steps cannot be proposed', () => {
   const g = writeSection(stubGoal('g'), 'plan', plan).goal;
   g.plan.linesOfOperation[0].nextActions[1].detail = 'unblocks the lease talk';
@@ -78,7 +123,7 @@ test('only one line of the plan can carry focus', () => {
 test('a proposed move needs its detail on write, but an older one without it still reads and can be kept', () => {
   const g = stubGoal('g');
   const withProposal = (detail) => ({
-    linesOfOperation: [{ ...plan.linesOfOperation[0], nextActions: [{ action: 'call the landlord', who: 'me', when: 'Fri', status: 'proposed', detail }] }],
+    linesOfOperation: [{ ...plan.linesOfOperation[0], nextActions: [{ action: 'call the landlord', who: 'me', when: '2026-10-09', status: 'proposed', detail }] }],
   });
   const bare = writeSection(g, 'plan', withProposal(undefined));
   assert.equal(bare.ok, false);

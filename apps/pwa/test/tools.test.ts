@@ -41,6 +41,22 @@ describe('flow gates on the tools', () => {
     expect(await run(tools.write_section, { key: 'plan', value: plan })).toMatchObject({ ok: true });
   });
 
+  it('routes updates only from sitrep, and a cleared skill writes in the turn it loads', async () => {
+    const items = [{ skill: 'capacity', update: 'two hours a week less' }];
+    expect(await run(tools.route_updates, { items })).toMatchObject({ ok: false, error: expect.stringContaining('sitrep') });
+    await run(tools.load_skill, { name: 'sitrep' });
+    expect(await run(tools.route_updates, { items: [{ skill: 'nope', update: 'x' }] })).toMatchObject({ ok: false });
+    expect(await run(tools.route_updates, { items })).toMatchObject({ ok: true, routed: items });
+    expect(session.routed).toEqual(items);
+
+    // The next turn: the user said yes.
+    session = { fresh: [], cleared: ['capacity'] };
+    tools = makeTools({ goalId: 'g', session, onSkillLoaded: () => {} });
+    await run(tools.load_skill, { name: 'capacity' });
+    const capacity = { availableHrsPerWeek: 3, runway: '3 months', lastReviewed: '2026-10-03' };
+    expect(await run(tools.write_section, { key: 'capacity', value: capacity })).toMatchObject({ ok: true });
+  });
+
   it('runs elicit inside the active skill and hands back on finish', async () => {
     await run(tools.load_skill, { name: 'plan' });
     await run(tools.load_skill, { name: 'elicit' });

@@ -1,11 +1,12 @@
 import { generateText, streamText, stepCountIs, type ModelMessage, type StopCondition, type ToolSet } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
-import { summarizeChange, suggestSkills, type FlowSession } from '@gambit/core';
+import { summarizeChange, dueNow, routedText, type FlowSession, type RoutedUpdate } from '@gambit/core';
 import { db, type ChatRecord, type DisplayMsg } from './db';
 import { loadApiKey } from './crypto';
 import { getProvider, makeModel, GOOGLE_FALLBACK_MODEL, type ProviderKind } from './providers';
 import { PREAMBLE, getSkillStore, skillIndexText, skillText, flowOf, skillFlows, type SkillStore } from './skills';
-import { makeTools, goalStateJson, toolLabel, replySchema, today, type Reply } from './tools';
+import { makeTools, goalStateJson, toolLabel, replySchema, type Reply } from './tools';
+import { today } from './dates';
 import { readRecord, restoreSnapshot, snapshot } from './goals';
 import { changedKeys, changedLines } from './changes';
 import { session } from './session';
@@ -92,9 +93,10 @@ export function keepLastTurns<T extends { role: string }>(messages: T[], turns =
 
 /**
  * The flow lines of the turn's state block: the active skill with what it
- * may write, and what the goal says is due, most pressing first.
+ * may write, the routed updates the user just confirmed, and what the goal
+ * says is due, most pressing first.
  */
-export function flowText(store: SkillStore, session: Pick<FlowSession, 'active' | 'caller'>, goal: Parameters<typeof suggestSkills>[0], day: string): string {
+export function flowText(store: SkillStore, session: Pick<FlowSession, 'active' | 'caller'>, goal: Parameters<typeof dueNow>[0], day: string, confirmed?: RoutedUpdate[]): string {
   const active = session.active ? flowOf(store, session.active) : undefined;
   const writes = (n?: string) => (n && flowOf(store, n)?.writes.join(', ')) || 'nothing';
   const lines = [
@@ -102,7 +104,9 @@ export function flowText(store: SkillStore, session: Pick<FlowSession, 'active' 
       ? `Active skill: ${active.name}${active.checkpoint && session.caller ? `, inside ${session.caller} (writes ${writes(session.caller)})` : ` (writes ${writes(active.name)})`}.`
       : 'No skill is active; every write but remember and forget needs one.',
   ];
-  const due = suggestSkills(goal, day, skillFlows(store)).slice(0, 3);
+  const routed = routedText(confirmed);
+  if (routed) lines.push(routed);
+  const due = dueNow(goal, day, skillFlows(store));
   if (due.length) lines.push(`Due now: ${due.map((s) => `${s.skill} (${s.why})`).join('; ')}.`);
   const next = active?.checkpoint ? undefined : active?.next;
   if (next?.length) lines.push(`${active!.name} hands off to: ${next.join(', ')}.`);
@@ -154,7 +158,10 @@ export async function runTurn(opts: {
 
   const store = await getSkillStore();
   const stable = `${PREAMBLE}\n\n${skillIndexText(store)}`;
-  const flow: FlowSession = { active: chat.activeSkill, caller: chat.callerSkill, fresh: [] };
+  // Routed updates sitrep showed last turn are answered by this message, so
+  // each routed skill is cleared to write in the turn it loads: this one only.
+  const confirmed = chat.routed;
+  const flow: FlowSession = { active: chat.activeSkill, caller: chat.callerSkill, fresh: [], cleared: confirmed?.map((r) => r.skill) };
   const block = (title: string, name?: string) => {
     const s = name ? skillText(store, name) : null;
     return s ? `# ${title}: ${name}\n${s.text}` : '';
@@ -167,7 +174,7 @@ export async function runTurn(opts: {
   const state = [
     `# Current goal state (id ${goalId}, today ${day})`,
     await goalStateJson(goalId),
-    flowText(store, flow, before, day),
+    flowText(store, flow, before, day, confirmed),
     pendingEditsText(sentEdits),
     webSearch ? 'Web search tool: available.' : 'Web search tool: not available; label unverified claims as such.',
     trimmed ? 'Earlier conversation was trimmed; the goal state above is the durable record.' : '',
@@ -271,6 +278,8 @@ export async function runTurn(opts: {
   fresh.model = keepLastTurns([...chat.model, userMsg, ...newMessages]);
   fresh.activeSkill = flow.active;
   fresh.callerSkill = flow.caller;
+  // A turn that failed leaves the routing for the retry to answer.
+  if (!error) fresh.routed = flow.routed;
   // The edits this turn carried are told; any made while it ran wait for the next.
   if (!error) fresh.pendingEdits = (fresh.pendingEdits ?? []).filter((e) => !sentEdits.some((s) => JSON.stringify(s) === JSON.stringify(e)));
   const display: DisplayMsg[] = [
@@ -335,6 +344,7 @@ export async function undoTurn(goalId: string, displayId: string) {
   if (!chat || !msg?.snapshotId) return;
   await restoreSnapshot(msg.snapshotId);
   msg.undone = true;
+  chat.routed = undefined;
   session.clearLoop();
   session.clearFresh();
   chat.model.push(

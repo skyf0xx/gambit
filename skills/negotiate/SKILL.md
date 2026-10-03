@@ -1,8 +1,8 @@
 ---
 name: negotiate
-description: Use before a conversation where you need someone's agreement — a council, a landlord, a sponsor, a platform, a collaborator, a rival organiser. Preps interests on both sides, your walk-away alternative (BATNA), the zone where a deal exists, concessions ranked by cost, and the traps. Two-way, unlike comms, which prepares outward broadcast. Appends to the goal's log with the agreement and any commitments made.
+description: Use before a conversation where you need someone's agreement — a council, a landlord, a sponsor, a platform, a collaborator, a rival organiser. Preps interests on both sides, your walk-away alternative (BATNA), the zone where a deal exists, concessions ranked by cost, and the traps. Two-way, unlike comms, which prepares outward broadcast. Writes each conversation's prep to the goal's prep key, then its outcome once it has happened.
 display: decision-callout
-writes: log
+writes: prep, log
 requires: goal
 next: plan, comms, review
 ---

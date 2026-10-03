@@ -140,7 +140,7 @@ successCriteria: [{text ≤120, kind: control|influence, lineOfOperation?: S, de
 deadline: date | null
 people: [{name: S, status: confirmed|tentative|lead, doing: M, detail?}] — anyone the user deals with directly; writing someone here takes them off stakeholders
 posture: null | {current: {level: int ≥1, label: S}, levels: [{level, label: S, meaning?: M}], triggers: [M] ≤10, lastReviewed: date}
-plan: {linesOfOperation: [{label: S, focus?: true (the one line holding the Schwerpunkt; at most one), criticalPath: [{label: S, detail?, items?: [{label: S, status}] ≤10, status}] ≤6, nextActions: [{action: M, who: S, when: S, status, detail?: D (required when proposed: why this, why now)}] ≤5, status?: on_schedule|at_risk|blocked|done, blocker?: M}]} (at least 1 line); status = pending|done|dropped, and a next action may also be proposed (a move you suggest that the user hasn't agreed to yet; they keep or toss it)
+plan: {linesOfOperation: [{label: S, focus?: true (the one line holding the Schwerpunkt; at most one), criticalPath: [{label: S, detail?, items?: [{label: S, status}] ≤10, status}] ≤6, nextActions: [{action: M, who: S, when?: date (due by), status, doneOn?: date (stamped for you when it is done; keep it as is), detail?: D (required when proposed: why this, why now)}] ≤5, status?: on_schedule|at_risk|blocked|done, blocker?: M}]} (at least 1 line); status = pending|done|dropped, and a next action may also be proposed (a move you suggest that the user hasn't agreed to yet; they keep or toss it)
 systemsNotes: null | {schwerpunkt: M, rationale?: M, confidence: high|moderate|low, topFindings: [{label: M, detail?, items?}] ≤5, lastReviewed: date}
 riskNotes: [{item: M, detail?: M, source: threat|premortem, accepted: boolean, dependsOn?: S (a people or stakeholders name, verbatim)}]
 criteriaStatus: [{text ≤120, kind, lineOfOperation?, status: met|on_track|at_risk|stalled|regressing, detail?}]
@@ -150,6 +150,9 @@ capacity: null | {availableHrsPerWeek: number ≥0 | null, runway: S, watch?: M,
 forecasts: [{statement: M, probability: int 0-100, resolvesBy: date, resolvesVia: S, resolved: boolean, outcome?: yes|no, verdict?: M, detail?}]
 experiments: [{assumption: M, test: M, passIf: M, by: date, done: boolean, result?: M, changedAsResult?: M, detail?}]
 decisions: [{date, status?: open|decided (default decided), question?: M, choice?: M, because?: M, reverseIf?: M, reviewBy?: date}]; open needs question, decided needs choice and reverseIf
+intel: [{question: M, why?: M, by?: date, via: S (how to find out), status: open|answered, answer?: M}] ≤8 — open questions whose answer would change the plan
+courses: [{name: S, idea: M, wins?: M (why it could win), risks?: M, counter?: M (their likely reaction, and our answer), chosen?: true}] ≤3; at most one chosen
+prep: [{with: S (a people or stakeholders name, verbatim), on?: date, ask: M, batna: M, walkAway: M, concessions: [S] ≤5, done: boolean, outcome?: M}] ≤5 — one entry per conversation to prepare
 log entry (append_log): {date?, assessment?: on_track|at_risk|stalled|regressing, focus: ≤160 | null, focusLine?: ≤120 (strategy only: verbatim text of the one criterion, next action or step the focus lands on; the page highlights it), notes: [M] ≤3 — what happened or was decided in this exchange, never a restatement of the situation; source?: S}
 memory entry (remember / forget, any skill or none): {kind: fact|preference|constraint|rejected, text: M, date (set for you)} ≤20 entries; pass replaces: index to correct one in place`;
 
@@ -171,6 +174,7 @@ The skill index below lists every skill. When one applies, call load_skill(name)
 - A skill that writes shows the user its read as a confirm reply and writes after they answer, so never in the turn it was loaded. Status flips and log entries are the exception.
 - A skill that needs a defined goal won't load on a stub; \`intake\` defines it.
 - \`elicit\` runs inside the active skill: it pressure-tests that skill's work, then finish_skill hands back to it.
+- When the user brings several updates at once, load \`sitrep\`: it routes each to its skill with route_updates, and once they confirm, the state block lists the routed updates to load and write in that turn.
 - When a skill's work is done and nothing follows, call finish_skill. To move on, load the next skill.
 - The state block lists what is due now. Lead with the most pressing item when the user has no ask of their own.
 - An item due because its inputs changed ("stakeholders changed since systems last ran") means that section rests on an older picture. Say so before building on it, and offer to rerun its skill.

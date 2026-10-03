@@ -1,22 +1,19 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { writeSection, appendLog, setStatus, remember, forget, canLoad, canWrite, WRITABLE_KEYS, MEMORY_KINDS, LOG_NOTES_MAX, LOG_RECENT, type FlowSession } from '@gambit/core';
+import { writeSection, appendLog, setStatus, remember, forget, canLoad, canWrite, canRoute, WRITABLE_KEYS, MEMORY_KINDS, LOG_NOTES_MAX, LOG_RECENT, ROUTED_MAX, ROUTER_SKILL, type FlowSession } from '@gambit/core';
 import { applyOp, readRecord } from './goals';
 import { db } from './db';
+import { today } from './dates';
 import { getSkillStore, skillText, skillFile, skillFlows, flowOf, elicitationMethods } from './skills';
 
 export interface ToolContext {
   goalId: string;
-  /** Which skill is active, and which were loaded this turn. The tools
-   * update it in place; the agent persists it when the turn ends. */
+  /** Which skill is active, which were loaded this turn, which a routed
+   * update cleared, and the routing set this turn. The tools update it in
+   * place; the agent persists it when the turn ends. */
   session: FlowSession;
   onSkillLoaded: (name: string) => void;
 }
-
-export const today = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
 
 const result = (r: Awaited<ReturnType<typeof applyOp>>) =>
   r.ok ? { ok: true as const, ...(r.warnings.length ? { warnings: r.warnings } : {}) } : { ok: false as const, errors: r.errors };
@@ -133,7 +130,7 @@ export function makeTools(ctx: ToolContext) {
         // Array items need a concrete type: Gemini rejects an array schema without `items`.
         value: z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(z.union([z.string(), z.record(z.any())])), z.record(z.any())]).describe('The complete new value for the key, matching the section shapes in the system prompt.'),
       }),
-      execute: async ({ key, value }) => (await gate(ctx.session, key, 'write_section')) ?? result(await applyOp(ctx.goalId, (g) => writeSection(g, key, value) as never)),
+      execute: async ({ key, value }) => (await gate(ctx.session, key, 'write_section')) ?? result(await applyOp(ctx.goalId, (g) => writeSection(g, key, value, new Date().toISOString(), today()) as never)),
     }),
     append_log: tool({
       description: `Append one entry to the log, the only append-only key: what happened or what the user decided in this exchange, in ${LOG_NOTES_MAX} notes at most. Never restate the situation; a note that repeats a recent entry is refused. date defaults to today.`,
@@ -171,7 +168,22 @@ export function makeTools(ctx: ToolContext) {
     set_status: tool({
       description: 'Flip one step, sub-item or next action to pending, done or dropped without rewriting the section (a next action can also be set to proposed). path is dotted, e.g. "plan.linesOfOperation.0.nextActions.2".',
       inputSchema: z.object({ path: z.string(), status: z.enum(['proposed', 'pending', 'done', 'dropped']) }),
-      execute: async ({ path, status }) => (await gate(ctx.session, path.split('.')[0], 'set_status')) ?? result(await applyOp(ctx.goalId, (g) => setStatus(g, path, status) as never)),
+      execute: async ({ path, status }) => (await gate(ctx.session, path.split('.')[0], 'set_status')) ?? result(await applyOp(ctx.goalId, (g) => setStatus(g, path, status, today()) as never)),
+    }),
+    route_updates: tool({
+      description: `Only while ${ROUTER_SKILL} is active: route several updates the user just gave, each to the skill that writes it. Show the routing as a confirm reply; once the user answers, each routed skill may write in the turn it loads, so the next turn works through them all.`,
+      inputSchema: z.object({
+        items: z.array(z.object({
+          skill: z.string().describe('The skill that writes this update, from the skill index.'),
+          update: z.string().describe('What changed, in one short plain sentence.'),
+        })).max(ROUTED_MAX),
+      }),
+      execute: async ({ items }) => {
+        const r = canRoute(ctx.session, items, skillFlows(await getSkillStore()));
+        if (!r.ok) return { ok: false, error: r.error };
+        ctx.session.routed = r.routed;
+        return { ok: true, routed: r.routed };
+      },
     }),
     elicitation_methods: tool({
       description: 'Serve the elicitation method catalog used by the elicit skill.',
@@ -201,6 +213,7 @@ export function toolLabel(name: string, input: unknown): string {
     case 'read_skill_file': return `read ${i.skill}/${i.path}`;
     case 'get_goal': return 'read goal';
     case 'elicitation_methods': return 'method catalog';
+    case 'route_updates': return 'routed updates';
     default: return name;
   }
 }

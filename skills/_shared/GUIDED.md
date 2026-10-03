@@ -30,8 +30,7 @@ defer the analysis itself.
 useful next move (the reply's `bottomLine`) plus a short menu of
 alternatives (its `options`, recommended one first). A user handed an
 analysis with no route onward is worse off than before they asked. Where a
-skill has a clear recommendation it gives one — `status` is the exception,
-since it reports rather than steers. The menu is for the user's awareness,
+skill has a clear recommendation it gives one. The menu is for the user's awareness,
 not an invitation to poll: naming alternatives means stating the
 recommendation as the default action and letting the user redirect, not
 pausing on a formal choice between options the skill is equipped to make

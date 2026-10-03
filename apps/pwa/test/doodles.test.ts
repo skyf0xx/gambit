@@ -20,8 +20,8 @@ function richGoal(): Goal {
           label: 'Line A',
           criticalPath: [{ label: 'Step one', status: 'done' }, { label: 'Dropped step', status: 'dropped' }],
           nextActions: [
-            { action: 'Ship it', who: 'me', when: 'fri', status: 'pending' },
-            { action: 'Maybe this', who: 'me', when: 'fri', status: 'proposed' },
+            { action: 'Ship it', who: 'me', when: '2026-10-09', status: 'pending' },
+            { action: 'Maybe this', who: 'me', when: '2026-10-09', status: 'proposed' },
           ],
         },
       ],

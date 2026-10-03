@@ -47,7 +47,7 @@ execution sequence, grouped by what kind of move it makes.
 |---|---|
 | `onboard` | entry point — new goal intake, or welcome-back for a returning one |
 | `brief` | plain-language read of current state, jargon translated, read-only |
-| `status` | read-only snapshot in the system's own terms, no writes |
+| `sitrep` | take several updates at once and route each to the skill that writes it |
 
 **DIRECT**
 | Skill | Purpose |
@@ -55,6 +55,7 @@ execution sequence, grouped by what kind of move it makes.
 | `strategy` | assess progress, set posture, set focus (Schwerpunkt) |
 | `systems` | CoG / PMESII / ASCOPE analysis, find the leverage point |
 | `plan` | sequence the goal into a dependency-aware plan |
+| `options` | lay out up to three distinct courses of action and pick one |
 | `decide` | work an open choice to a recorded decision with a reverse-if condition |
 
 **ESTABLISH**
@@ -62,6 +63,7 @@ execution sequence, grouped by what kind of move it makes.
 |---|---|
 | `experiment` | smallest falsifiable test of an assumption, threshold set in advance |
 | `forecast` | dated falsifiable predictions, scored later for calibration |
+| `recon` | turn unknowns into dated questions with a way to find out |
 
 **STRESS**
 | Skill | Purpose |
@@ -147,13 +149,27 @@ The gates:
   record what the user just said, so they pass.
 - A checkpoint skill keeps its caller's write rights; `finish_skill` from it
   hands back to the caller. From any other skill, `finish_skill` ends it.
+- `route_updates` is accepted only while `sitrep` is active. It checks
+  that each routed skill exists and writes something (`canRoute`), and
+  stores the routing on the session (`routed`), which the chat record
+  keeps for the next turn. `sitrep` shows the routing as a `confirm`
+  reply. In the turn that answers it, each routed skill is in the
+  session's `cleared` list, so its `write_section` passes in the turn it
+  loads, and the state block lists the confirmed updates for the model to
+  load and write one after another. Clearance lasts that one turn: the
+  turn ends by storing its own routing, if any, in place of the old one.
 
 A refusal comes back as a tool error naming the rule, so the model fixes it
 in the same turn. Each turn's state block also names the active skill and
-what the goal says is due now (`suggestSkills`: forecasts to score,
-experiments past their date, decisions to review, no posture or plan, a
-stale focus, an overdue `eval`, unchecked capacity, and any section built
-before one of its `reads` changed).
+what the goal says is due now, most pressing first (`suggestSkills`;
+`dueNow` gives the top three the state block and the page show):
+forecasts to score, experiments past their date, pending moves past their
+`when`, open `intel` questions due, a `prep` talk past its date with no
+outcome, decisions to review, a deadline within 14 days with no premortem
+risk, no posture or plan, a stale focus, an overdue `eval`, unchecked
+capacity, a plan with no `threat` risk, influence criteria with no
+stakeholders mapped, and any section built before one of its `reads`
+changed).
 
 `writeSection` stamps each key it changes in the goal's `updated` map.
 `staleSections` (`flow.mjs`) compares those stamps: when `stakeholders`
@@ -200,6 +216,9 @@ frontmatter above; the owners are:
 - `forecasts` ← `forecast`
 - `experiments` ← `experiment`
 - `criteriaStatus` ← `eval`
+- `intel` ← `recon`
+- `courses` ← `options`
+- `prep` ← `negotiate`
 
 A few skills also write a key they don't own, for one narrow purpose:
 `plan` sets each success criterion's `lineOfOperation`, and `stakeholders`
@@ -254,6 +273,22 @@ that names someone in `people`, and a `people` write takes that person off
 reads fine, the People page shows that person once, and `reconcileGoal`
 warns until `stakeholders` is rewritten without them.
 
+`intel` holds open questions whose answer would change the plan, each
+with how to find out (`via`), an optional date to know by (`by`), and its
+answer once it comes in; at most 8. `courses` holds up to 3 distinct
+courses of action, compared side by side, with at most one `chosen`.
+`prep` holds up to 5 two-way conversations to prepare: who it is with (a
+`people` or `stakeholders` name, verbatim), when (`on`), the ask, the
+BATNA, the walk-away line, up to 5 concessions, and `done` plus `outcome`
+once it has happened.
+
+A next action's `when` is the date it is due by (YYYY-MM-DD), optional.
+`doneOn` is the date it was done: `setStatus` stamps it with today when the
+action flips to `done` and removes it on any other status. A `plan`
+rewrite keeps a valid `doneOn` the model passes, carries it over for an
+action still done under the same text, stamps today on one newly done, and
+drops it from any action not done.
+
 Ownership is per key, not per full rewrite — `plan` owns
 `nextActions[].status` even for a single-field flip. When the user simply
 reports a next-action item done, blocked, or dropped in passing, that still
@@ -266,7 +301,8 @@ sentence, a risk, what a person is doing, or an open decision's question.
 They can also add a `pending` move, and tick, keep or toss one. Names stay
 chat-only, because they keep `people` and `stakeholders` apart. A decided
 decision changes only through `decide`. Forecasts and experiments aren't
-editable at all, because their worth is being fixed in advance. Text edits go
+editable at all, because their worth is being fixed in advance; nor are
+`intel`, `courses` and `prep`, which change through their skills. Text edits go
 through `editLine` and `addNextAction` (`packages/core/src/ops.mjs`), which
 call `writeSection`. So a page edit meets every write rule a skill write
 does (schema caps, grade-7 reading level, the goal word cap) and stamps

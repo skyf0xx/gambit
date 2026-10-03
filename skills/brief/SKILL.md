@@ -16,8 +16,7 @@ Also use when the goal has accumulated framework vocabulary — Schwerpunkt, CoG
 culminating point — and the user shouldn't have to hold a glossary to read their own
 goal.
 
-**Purpose**: Translate. `status` gives a structured readout in the system's own
-vocabulary; this gives the same picture the way you'd explain it to a smart friend who
+**Purpose**: Translate. Give the picture the way you'd explain it to a smart friend who
 has no background in any of it.
 
 Read-only. Never writes to the goal.

@@ -7,13 +7,13 @@ import type { DisplayMsg } from '../src/lib/db';
 
 describe('skills and preamble', () => {
   const store = buildStore(bundledFiles, 'test');
-  it('indexes the 18 pack skills plus the two native ones, excluding _shared', () => {
+  it('indexes the 20 pack skills plus the two native ones, excluding _shared', () => {
     const names = store.index.map((s) => s.name);
     expect(names).toContain('plan');
     expect(names).toContain('intake');
     expect(names).toContain('elicit');
     expect(names).not.toContain('_shared');
-    expect(names.length).toBe(20);
+    expect(names.length).toBe(22);
     expect(store.index.every((s) => s.description.length > 20)).toBe(true);
   });
   it('carries the guided-session rules from skills/_shared/GUIDED.md', () => {
@@ -44,6 +44,8 @@ describe('skills and preamble', () => {
     expect(t).toContain('Active skill: elicit, inside intake (writes goal, subGoals');
     expect(t).not.toContain('hands off to');
     expect(flowText(store, { active: 'plan' }, goal, '2026-10-02')).toMatch(/plan hands off to: \w/);
+    const routed = flowText(store, {}, goal, '2026-10-02', [{ skill: 'plan', update: 'venue moved' }, { skill: 'capacity', update: 'less time' }]);
+    expect(routed).toContain('Routed updates the user confirmed: plan — venue moved; capacity — less time. Load each in turn and write it now');
   });
   it('parses the elicitation catalog', () => {
     expect(methods.length).toBeGreaterThan(60);

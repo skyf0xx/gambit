@@ -3,6 +3,7 @@ import { editLine as coreEditLine, addNextAction, setStatus, lineText } from '@g
 import { db, type ChatRecord } from './db';
 import { applyOp, type OpResult } from './goals';
 import type { LinePath } from './changes';
+import { today } from './dates';
 import type { Goal } from './types';
 
 // Edits the user makes on the page itself, outside the chat. Each one is
@@ -69,7 +70,7 @@ export async function setLineStatus(goalId: string, path: LinePath, status: stri
   const res = await applyOp(goalId, (g) => {
     before = statusAt(g, path) ?? 'pending';
     if (allow && before !== allow) return { ok: false, errors: [{ path, message: `target is not a ${allow} item` }] };
-    return setStatus(g, path, status) as never;
+    return setStatus(g, path, status, today()) as never;
   });
   if (res.ok) await recordEdit(goalId, { path, kind: 'status', label: lineText(res.goal, path), before, after: status });
   return res;

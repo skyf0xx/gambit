@@ -10,7 +10,7 @@ test('stubGoal is valid and seeded from title', () => {
   const g = stubGoal('Ship it');
   assert.equal(goalSchema.safeParse(g).success, true);
   assert.equal(g.goal, 'Ship it');
-  assert.equal(g.schemaVersion, 4);
+  assert.equal(g.schemaVersion, 5);
 });
 
 test('schema rejects bad dates, enums, and over-long labels', () => {
@@ -67,24 +67,39 @@ test('readGoal: ok, invalid, and newer-version paths', () => {
   assert.equal(readGoal(stubGoal('g')).status, 'ok');
   assert.equal(readGoal('{nope').status, 'invalid');
   assert.equal(readGoal({ goal: 'x' }).status, 'invalid');
-  assert.deepEqual(readGoal({ ...stubGoal('g'), schemaVersion: 5 }), { status: 'needs_app_update', version: 5 });
+  assert.deepEqual(readGoal({ ...stubGoal('g'), schemaVersion: 6 }), { status: 'needs_app_update', version: 6 });
 });
 
 test('readGoal: migration chain runs then validates', () => {
-  const migrations = [{ from: 4, to: 5, transform: (d) => ({ ...d, goal: d.goal.toUpperCase() }) }];
-  const r = readGoal(stubGoal('abc'), { migrations, current: 5 });
-  // current schema is still literal(4), so the migrated v5 doc must fail validation loudly rather than pass
+  const migrations = [{ from: 5, to: 6, transform: (d) => ({ ...d, goal: d.goal.toUpperCase() }) }];
+  const r = readGoal(stubGoal('abc'), { migrations, current: 6 });
+  // current schema is still literal(5), so the migrated v6 doc must fail validation loudly rather than pass
   assert.equal(r.status, 'invalid');
-  const noPath = readGoal(stubGoal('abc'), { migrations: [], current: 5 });
-  assert.match(noPath.error, /no migration from schemaVersion 4/);
+  const noPath = readGoal(stubGoal('abc'), { migrations: [], current: 6 });
+  assert.match(noPath.error, /no migration from schemaVersion 5/);
 });
 
-test('readGoal: a v1 document migrates all the way to v4 unchanged (short goal)', () => {
-  const { memory: _, ...v1 } = { ...stubGoal('abc'), schemaVersion: 1 };
+test('readGoal: a v1 document migrates all the way to v5 unchanged (short goal)', () => {
+  const { memory: _, intel: _i, courses: _c, prep: _p, ...v1 } = { ...stubGoal('abc'), schemaVersion: 1 };
   const r = readGoal(v1);
   assert.equal(r.status, 'ok');
   assert.equal(r.migratedFrom, 1);
-  assert.deepEqual(r.data, { ...v1, memory: [], schemaVersion: 4 });
+  assert.deepEqual(r.data, { ...v1, memory: [], intel: [], courses: [], prep: [], schemaVersion: 5 });
+});
+
+test('readGoal: v4 -> v5 migration keeps a dated when, drops a label, and adds the new keys', () => {
+  const { intel: _i, courses: _c, prep: _p, ...rest } = stubGoal('abc');
+  const nextActions = [
+    { action: 'a', who: 'me', when: '2026-10-09', status: 'pending' },
+    { action: 'b', who: 'me', when: 'this week', status: 'pending' },
+    { action: 'c', who: 'me', status: 'pending' },
+  ];
+  const r = readGoal({ ...rest, schemaVersion: 4, plan: { linesOfOperation: [{ label: 'L', criticalPath: [], nextActions }] } });
+  assert.equal(r.status, 'ok');
+  assert.deepEqual(r.data.plan.linesOfOperation[0].nextActions.map((a) => a.when), ['2026-10-09', undefined, undefined]);
+  assert.equal('when' in r.data.plan.linesOfOperation[0].nextActions[1], false);
+  assert.deepEqual([r.data.intel, r.data.courses, r.data.prep], [[], [], []]);
+  assert.equal(readGoal({ ...rest, schemaVersion: 4 }).status, 'ok');
 });
 
 test('readGoal: v3 -> v4 migration adds memory and keeps the first notes of each log entry', () => {
@@ -131,7 +146,7 @@ test('readGoal: v2 -> v3 migration leaves an over-long goal with no separator as
 
 test('v2: proposed next actions, met criteria, focusLine', () => {
   const ok = (patch) => goalSchema.safeParse({ ...stubGoal('g'), ...patch }).success;
-  const na = (status) => goalWithPlan({ nextActions: [{ action: 'get two quotes', who: 'me', when: 'Fri', status }] });
+  const na = (status) => goalWithPlan({ nextActions: [{ action: 'get two quotes', who: 'me', when: '2026-10-09', status }] });
   assert.equal(goalSchema.safeParse(na('proposed')).success, true);
   assert.equal(goalSchema.safeParse(goalWithPlan({ criticalPath: [step('proposed')] })).success, false);
   assert.equal(ok({ criteriaStatus: [{ text: 't', kind: 'control', status: 'met' }] }), true);
