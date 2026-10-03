@@ -57,7 +57,7 @@ test('a checkpoint keeps its caller\'s write rights', () => {
 });
 
 test('suggestSkills reads what is due from the goal', () => {
-  assert.deepEqual(suggestSkills(stubGoal('g'), '2026-10-02'), [{ skill: 'intake', why: 'the goal is not defined yet' }]);
+  assert.deepEqual(suggestSkills(stubGoal('g'), '2026-10-02'), [{ skill: 'intake', why: 'the goal is not defined yet', todo: 'Define the goal' }]);
   assert.deepEqual(suggestSkills(defined, '2026-10-02').map((s) => s.skill), ['strategy', 'plan']);
 
   const g = {
@@ -74,11 +74,11 @@ test('suggestSkills reads what is due from the goal', () => {
     log: [{ date: '2026-09-01', focus: null, notes: [] }],
   };
   assert.deepEqual(suggestSkills(g, '2026-10-02'), [
-    { skill: 'forecast', why: '1 forecast ready to score' },
-    { skill: 'decide', why: '1 open decision waiting' },
-    { skill: 'strategy', why: 'focus last reviewed 62 days ago' },
-    { skill: 'eval', why: 'no progress check yet' },
-    { skill: 'threat', why: 'plan not red-teamed yet' },
+    { skill: 'forecast', why: '1 forecast ready to score', todo: 'Score 1 forecast' },
+    { skill: 'decide', why: '1 open decision waiting', todo: 'Settle 1 open decision' },
+    { skill: 'strategy', why: 'focus last reviewed 62 days ago', todo: 'Review your focus' },
+    { skill: 'eval', why: 'no progress check yet', todo: 'Check progress' },
+    { skill: 'threat', why: 'plan not red-teamed yet', todo: 'Find weak spots in the plan' },
   ]);
   const checked = { ...g, log: [...g.log, { date: '2026-09-28', focus: null, notes: [], source: 'eval' }] };
   assert.equal(suggestSkills(checked, '2026-10-02').some((s) => s.skill === 'eval'), false);
@@ -112,12 +112,12 @@ test('suggestSkills flags overdue moves, due questions, talks with no outcome, a
     log: [{ date: '2026-09-30', focus: null, notes: [], source: 'eval' }],
   };
   assert.deepEqual(suggestSkills(g, day), [
-    { skill: 'plan', why: '2 moves overdue' },
-    { skill: 'recon', why: '1 open question due' },
-    { skill: 'negotiate', why: 'talk with Priya on 30 Sep needs its outcome recorded' },
-    { skill: 'premortem', why: 'deadline in 10 days, no premortem yet' },
-    { skill: 'threat', why: 'plan not red-teamed yet' },
-    { skill: 'stakeholders', why: '2 criteria depend on others; no one mapped' },
+    { skill: 'plan', why: '2 moves overdue', todo: 'Catch up on 2 overdue moves' },
+    { skill: 'recon', why: '1 open question due', todo: 'Answer 1 open question' },
+    { skill: 'negotiate', why: 'talk with Priya on 30 Sep needs its outcome recorded', todo: 'Record how the talk with Priya went' },
+    { skill: 'premortem', why: 'deadline in 10 days, no premortem yet', todo: 'Find what could sink this before the deadline' },
+    { skill: 'threat', why: 'plan not red-teamed yet', todo: 'Find weak spots in the plan' },
+    { skill: 'stakeholders', why: '2 criteria depend on others; no one mapped', todo: 'Map who else has a say' },
   ]);
   const twoTalks = { ...g, prep: g.prep.map((p) => ({ ...p, done: false })) };
   assert.equal(suggestSkills(twoTalks, day)[2].why, '2 talks need their outcomes recorded');
@@ -164,7 +164,7 @@ test('staleSections flags a section built before one of its inputs changed', () 
     systemsNotes: notes,
     updated: { systemsNotes: '2026-09-01T10:00:00Z', people: '2026-09-02T10:00:00Z', stakeholders: '2026-09-03T10:00:00Z', plan: '2026-09-04T10:00:00Z' },
   };
-  assert.deepEqual(staleSections(g, flows), [{ skill: 'systems', why: 'people and stakeholders changed since systems last ran' }]);
+  assert.deepEqual(staleSections(g, flows), [{ skill: 'systems', why: 'people and stakeholders changed since systems last ran', todo: 'Update the systems notes' }]);
   assert.deepEqual(staleSections({ ...g, updated: { ...g.updated, systemsNotes: '2026-09-05T10:00:00Z' } }, flows), []);
   // No stamp of its own: the section's lastReviewed stands in.
   const { systemsNotes: _, ...unstamped } = g.updated;

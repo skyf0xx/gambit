@@ -175,7 +175,7 @@ const and = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')
  * A section with no stamp falls back to its own `lastReviewed`.
  * @param {object} goal
  * @param {SkillFlow[]} skills
- * @returns {{ skill: string, why: string }[]}
+ * @returns {{ skill: string, why: string, todo: string }[]}
  */
 export function staleSections(goal, skills) {
   const stamps = goal.updated ?? {};
@@ -186,67 +186,68 @@ export function staleSections(goal, skills) {
     const built = stamps[key] ?? goal[key].lastReviewed;
     if (!built) continue;
     const moved = s.reads.filter((k) => stamps[k] && stamps[k] > built);
-    if (moved.length) out.push({ skill: s.name, why: `${and(moved.map(words))} changed since ${s.name} last ran` });
+    if (moved.length) out.push({ skill: s.name, why: `${and(moved.map(words))} changed since ${s.name} last ran`, todo: `Update the ${words(key)}` });
   }
   return out;
 }
 
 /**
- * What the goal says is due, most pressing first. Given the skill flows,
+ * What the goal says is due, most pressing first: `why` tells the model,
+ * `todo` is the same item as an action the page offers the user. Given the skill flows,
  * sections built before one of their inputs changed come last.
  * @param {object} goal
  * @param {string} today YYYY-MM-DD
  * @param {SkillFlow[]} [skills]
- * @returns {{ skill: string, why: string }[]}
+ * @returns {{ skill: string, why: string, todo: string }[]}
  */
 export function suggestSkills(goal, today, skills = []) {
-  if (isStub(goal)) return [{ skill: 'intake', why: 'the goal is not defined yet' }];
+  if (isStub(goal)) return [{ skill: 'intake', why: 'the goal is not defined yet', todo: 'Define the goal' }];
   const out = [];
   const due = (d) => d && d <= today;
   const past = (d) => d && d < today;
 
   const forecasts = goal.forecasts.filter((f) => !f.resolved && due(f.resolvesBy)).length;
-  if (forecasts) out.push({ skill: 'forecast', why: `${n(forecasts, 'forecast')} ready to score` });
+  if (forecasts) out.push({ skill: 'forecast', why: `${n(forecasts, 'forecast')} ready to score`, todo: `Score ${n(forecasts, 'forecast')}` });
   const experiments = goal.experiments.filter((e) => !e.done && due(e.by)).length;
-  if (experiments) out.push({ skill: 'experiment', why: `${n(experiments, 'experiment')} past ${experiments === 1 ? 'its' : 'their'} date` });
+  if (experiments) out.push({ skill: 'experiment', why: `${n(experiments, 'experiment')} past ${experiments === 1 ? 'its' : 'their'} date`, todo: `Record ${experiments === 1 ? 'an experiment result' : `${experiments} experiment results`}` });
   const overdue = (goal.plan?.linesOfOperation ?? []).flatMap((l) => l.nextActions).filter((a) => a.status === 'pending' && past(a.when)).length;
-  if (overdue) out.push({ skill: 'plan', why: `${n(overdue, 'move')} overdue` });
+  if (overdue) out.push({ skill: 'plan', why: `${n(overdue, 'move')} overdue`, todo: `Catch up on ${n(overdue, 'overdue move')}` });
   const questions = (goal.intel ?? []).filter((q) => q.status === 'open' && due(q.by)).length;
-  if (questions) out.push({ skill: 'recon', why: `${n(questions, 'open question')} due` });
+  if (questions) out.push({ skill: 'recon', why: `${n(questions, 'open question')} due`, todo: `Answer ${n(questions, 'open question')}` });
   const talks = (goal.prep ?? []).filter((p) => !p.done && past(p.on));
-  if (talks.length === 1) out.push({ skill: 'negotiate', why: `talk with ${talks[0].with} on ${sayDate(talks[0].on, today)} needs its outcome recorded` });
-  else if (talks.length) out.push({ skill: 'negotiate', why: `${talks.length} talks need their outcomes recorded` });
+  if (talks.length === 1) out.push({ skill: 'negotiate', why: `talk with ${talks[0].with} on ${sayDate(talks[0].on, today)} needs its outcome recorded`, todo: `Record how the talk with ${talks[0].with} went` });
+  else if (talks.length) out.push({ skill: 'negotiate', why: `${talks.length} talks need their outcomes recorded`, todo: `Record how ${talks.length} talks went` });
   const reviews = goal.decisions.filter((d) => (d.status ?? 'decided') === 'decided' && due(d.reviewBy)).length;
   const open = goal.decisions.filter((d) => d.status === 'open').length;
-  if (reviews) out.push({ skill: 'decide', why: `${n(reviews, 'decision')} due for review` });
-  else if (open) out.push({ skill: 'decide', why: `${n(open, 'open decision')} waiting` });
+  if (reviews) out.push({ skill: 'decide', why: `${n(reviews, 'decision')} due for review`, todo: `Review ${n(reviews, 'decision')}` });
+  else if (open) out.push({ skill: 'decide', why: `${n(open, 'open decision')} waiting`, todo: `Settle ${n(open, 'open decision')}` });
 
   const left = goal.deadline ? days(today, goal.deadline) : -1;
   if (left >= 0 && left <= PREMORTEM_DAYS && !goal.riskNotes.some((r) => r.source === 'premortem')) {
-    out.push({ skill: 'premortem', why: `${left ? `deadline in ${n(left, 'day')}` : 'deadline today'}, no premortem yet` });
+    out.push({ skill: 'premortem', why: `${left ? `deadline in ${n(left, 'day')}` : 'deadline today'}, no premortem yet`, todo: 'Find what could sink this before the deadline' });
   }
 
-  if (!goal.posture) out.push({ skill: 'strategy', why: 'no focus or posture set yet' });
+  if (!goal.posture) out.push({ skill: 'strategy', why: 'no focus or posture set yet', todo: 'Set up focus and posture' });
   else if (days(goal.posture.lastReviewed, today) >= REVIEW_DAYS.strategy) {
-    out.push({ skill: 'strategy', why: `focus last reviewed ${days(goal.posture.lastReviewed, today)} days ago` });
+    out.push({ skill: 'strategy', why: `focus last reviewed ${days(goal.posture.lastReviewed, today)} days ago`, todo: 'Review your focus' });
   }
-  if (!goal.plan) out.push({ skill: 'plan', why: 'no plan yet' });
+  if (!goal.plan) out.push({ skill: 'plan', why: 'no plan yet', todo: 'Make a plan' });
 
   if (goal.plan) {
     const evals = goal.log.filter((e) => e.source === 'eval' && e.date).map((e) => e.date).sort();
     const since = evals.at(-1) ?? goal.log.map((e) => e.date).filter(Boolean).sort()[0];
     if (since && days(since, today) >= REVIEW_DAYS.eval) {
-      out.push({ skill: 'eval', why: evals.length ? `last progress check ${days(since, today)} days ago` : 'no progress check yet' });
+      out.push({ skill: 'eval', why: evals.length ? `last progress check ${days(since, today)} days ago` : 'no progress check yet', todo: 'Check progress' });
     }
-    if (!goal.capacity) out.push({ skill: 'capacity', why: 'real hours and money not checked yet' });
+    if (!goal.capacity) out.push({ skill: 'capacity', why: 'real hours and money not checked yet', todo: 'Check your real hours and money' });
     else if (days(goal.capacity.lastReviewed, today) >= REVIEW_DAYS.capacity) {
-      out.push({ skill: 'capacity', why: `capacity last checked ${days(goal.capacity.lastReviewed, today)} days ago` });
+      out.push({ skill: 'capacity', why: `capacity last checked ${days(goal.capacity.lastReviewed, today)} days ago`, todo: 'Recheck your hours and money' });
     }
-    if (!goal.riskNotes.some((r) => r.source === 'threat')) out.push({ skill: 'threat', why: 'plan not red-teamed yet' });
+    if (!goal.riskNotes.some((r) => r.source === 'threat')) out.push({ skill: 'threat', why: 'plan not red-teamed yet', todo: 'Find weak spots in the plan' });
   }
   const influenced = goal.successCriteria.filter((c) => c.kind === 'influence').length;
   if (influenced && !goal.stakeholders.length) {
-    out.push({ skill: 'stakeholders', why: `${n(influenced, 'criterion', 'criteria')} ${influenced === 1 ? 'depends' : 'depend'} on others; no one mapped` });
+    out.push({ skill: 'stakeholders', why: `${n(influenced, 'criterion', 'criteria')} ${influenced === 1 ? 'depends' : 'depend'} on others; no one mapped`, todo: 'Map who else has a say' });
   }
   for (const s of staleSections(goal, skills)) if (!out.some((o) => o.skill === s.skill)) out.push(s);
   return out;
