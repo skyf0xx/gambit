@@ -2,6 +2,7 @@ import type { Goal } from '../../lib/types';
 import { IndexCard } from '../IndexCard';
 import { PostureLine } from '../PostureLine';
 import { StickyNotes } from '../StickyNotes';
+import { DueNow } from '../DueNow';
 import { Section, EmptySection, isEmptySection } from './SectionRenderer';
 
 const DEFAULT_SECTIONS = ['plan'] as const;
@@ -16,6 +17,7 @@ export function MovesTab({ g, goalId }: { g: Goal; goalId: string }) {
     <>
       <IndexCard goal={g} goalId={goalId} />
       <StickyNotes goal={g} goalId={goalId} />
+      <DueNow goal={g} />
       {showPlan && (isEmptySection(g.plan) ? <EmptySection k="plan" /> : <Section goalId={goalId} k="plan" data={g.plan} aside={<PostureLine goal={g} />} />)}
     </>
   );

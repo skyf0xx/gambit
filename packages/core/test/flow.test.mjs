@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stubGoal, isStub, skillFlow, canLoad, canWrite, writersOf, suggestSkills, staleSections } from '../src/index.mjs';
+import { stubGoal, isStub, skillFlow, canLoad, canWrite, canRoute, routedText, writersOf, suggestSkills, dueNow, staleSections } from '../src/index.mjs';
 
 const skills = [
   skillFlow('intake', { writes: 'goal, successCriteria, log', requires: 'any' }),
@@ -8,6 +8,8 @@ const skills = [
   skillFlow('review', { writes: 'plan, riskNotes, log' }),
   skillFlow('brief', {}),
   skillFlow('elicit', { requires: 'any', checkpoint: 'true' }),
+  skillFlow('sitrep', { writes: 'log' }),
+  skillFlow('capacity', { writes: 'capacity, log' }),
 ];
 const defined = { ...stubGoal('g'), successCriteria: [{ text: 'ship it', kind: 'control' }] };
 const plan = { linesOfOperation: [{ label: 'L', criticalPath: [], nextActions: [] }] };
@@ -76,10 +78,78 @@ test('suggestSkills reads what is due from the goal', () => {
     { skill: 'decide', why: '1 open decision waiting' },
     { skill: 'strategy', why: 'focus last reviewed 62 days ago' },
     { skill: 'eval', why: 'no progress check yet' },
+    { skill: 'threat', why: 'plan not red-teamed yet' },
   ]);
   const checked = { ...g, log: [...g.log, { date: '2026-09-28', focus: null, notes: [], source: 'eval' }] };
   assert.equal(suggestSkills(checked, '2026-10-02').some((s) => s.skill === 'eval'), false);
-  assert.equal(suggestSkills({ ...g, capacity: null }, '2026-10-02').at(-1).skill, 'capacity');
+  assert.equal(suggestSkills({ ...g, capacity: null }, '2026-10-02').at(-2).skill, 'capacity');
+  assert.deepEqual(dueNow(g, '2026-10-02').map((s) => s.skill), ['forecast', 'decide', 'strategy']);
+});
+
+test('suggestSkills flags overdue moves, due questions, talks with no outcome, and unchecked risk', () => {
+  const day = '2026-10-02';
+  const g = {
+    ...defined,
+    successCriteria: [{ text: 'ship it', kind: 'control' }, { text: 'council says yes', kind: 'influence' }, { text: 'press runs it', kind: 'influence' }],
+    deadline: '2026-10-12',
+    posture: { current: { level: 1, label: 'steady' }, levels: [{ level: 1, label: 'steady' }], triggers: [], lastReviewed: '2026-10-01' },
+    capacity: { availableHrsPerWeek: 5, runway: '3 months', lastReviewed: '2026-09-30' },
+    plan: { linesOfOperation: [{ label: 'L', criticalPath: [], nextActions: [
+      { action: 'a', who: 'me', when: '2026-10-01', status: 'pending' },
+      { action: 'b', who: 'me', when: '2026-09-20', status: 'pending' },
+      { action: 'c', who: 'me', when: '2026-10-02', status: 'pending' },
+      { action: 'd', who: 'me', when: '2026-09-20', status: 'done' },
+    ] }] },
+    intel: [
+      { question: 'q1', via: 'ask', status: 'open', by: '2026-10-02' },
+      { question: 'q2', via: 'ask', status: 'answered', by: '2026-09-01' },
+      { question: 'q3', via: 'ask', status: 'open' },
+    ],
+    prep: [
+      { with: 'Priya', on: '2026-09-30', ask: 'a', batna: 'b', walkAway: 'w', concessions: [], done: false },
+      { with: 'Dev', on: '2026-09-29', ask: 'a', batna: 'b', walkAway: 'w', concessions: [], done: true },
+    ],
+    log: [{ date: '2026-09-30', focus: null, notes: [], source: 'eval' }],
+  };
+  assert.deepEqual(suggestSkills(g, day), [
+    { skill: 'plan', why: '2 moves overdue' },
+    { skill: 'recon', why: '1 open question due' },
+    { skill: 'negotiate', why: 'talk with Priya on 30 Sep needs its outcome recorded' },
+    { skill: 'premortem', why: 'deadline in 10 days, no premortem yet' },
+    { skill: 'threat', why: 'plan not red-teamed yet' },
+    { skill: 'stakeholders', why: '2 criteria depend on others; no one mapped' },
+  ]);
+  const twoTalks = { ...g, prep: g.prep.map((p) => ({ ...p, done: false })) };
+  assert.equal(suggestSkills(twoTalks, day)[2].why, '2 talks need their outcomes recorded');
+  const handled = {
+    ...g,
+    deadline: '2026-10-30',
+    riskNotes: [{ item: 'x', source: 'threat', accepted: false }],
+    stakeholders: [{ name: 'Council', power: 'high', stanceCurrent: 'unsure', stanceTarget: 'for', via: 'the clerk' }],
+  };
+  assert.deepEqual(suggestSkills(handled, day).map((s) => s.skill), ['plan', 'recon', 'negotiate']);
+  assert.equal(suggestSkills({ ...g, deadline: day }, day)[3].why, 'deadline today, no premortem yet');
+  assert.equal(suggestSkills({ ...g, riskNotes: [{ item: 'x', source: 'premortem', accepted: false }] }, day).some((s) => s.skill === 'premortem'), false);
+  assert.equal(suggestSkills({ ...g, deadline: '2026-09-01' }, day).some((s) => s.skill === 'premortem'), false);
+});
+
+test('canRoute takes a routing only from sitrep, to skills that write', () => {
+  const items = [{ skill: 'plan', update: 'the venue moved to Friday ' }, { skill: 'capacity', update: 'two hours a week less' }];
+  assert.match(canRoute({ active: 'plan', fresh: [] }, items, skills).error, /only sitrep/);
+  const r = canRoute({ active: 'sitrep', fresh: [] }, items, skills);
+  assert.deepEqual(r, { ok: true, routed: [{ skill: 'plan', update: 'the venue moved to Friday' }, { skill: 'capacity', update: 'two hours a week less' }] });
+  assert.match(canRoute({ active: 'sitrep', fresh: [] }, [{ skill: 'nope', update: 'x' }], skills).error, /no skill "nope"/);
+  assert.match(canRoute({ active: 'sitrep', fresh: [] }, [{ skill: 'brief', update: 'x' }], skills).error, /writes nothing/);
+  assert.match(canRoute({ active: 'sitrep', fresh: [] }, [{ skill: 'plan', update: ' ' }], skills).error, /empty/);
+  assert.equal(canRoute({ active: 'sitrep', fresh: [] }, [], skills).ok, false);
+  assert.equal(routedText(undefined), '');
+  assert.equal(routedText(r.routed), 'Routed updates the user confirmed: plan — the venue moved to Friday; capacity — two hours a week less. Load each in turn and write it now; skip any the user just turned down.');
+});
+
+test('a routed skill the user confirmed writes in the turn it loads', () => {
+  const s = { active: 'capacity', fresh: ['capacity'], cleared: ['plan', 'capacity'] };
+  assert.equal(canWrite(s, 'capacity', 'write_section', skills).ok, true);
+  assert.match(canWrite({ ...s, cleared: ['plan'] }, 'capacity', 'write_section', skills).error, /confirm/);
 });
 
 test('staleSections flags a section built before one of its inputs changed', () => {

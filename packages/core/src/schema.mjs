@@ -10,7 +10,7 @@
 
 import { z } from 'zod';
 
-const dateString = z
+export const dateString = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'must be YYYY-MM-DD')
   .refine((s) => {
@@ -63,13 +63,16 @@ const posture = z.object({
 // 'proposed' is a move the advisor suggested that the user hasn't agreed to
 // yet — shown as a sticky note to keep (→ 'pending') or toss (→ 'dropped').
 // Only next actions can be proposed; steps and sub-items can't.
-// `when` is optional: a move the user adds on the page carries no date
-// until they or the advisor give it one.
+// `when` is the date the move is due by, optional: a move the user adds on
+// the page carries no date until they or the advisor give it one. `doneOn`
+// is the date it was ticked done, stamped by setStatus and writeSection
+// (ops.mjs) and present only while the status is 'done'.
 const nextAction = z.object({
   action: mediumLabel,
   who: shortLabel,
-  when: shortLabel.optional(),
+  when: dateString.optional(),
   status: z.enum(['proposed', 'pending', 'done', 'dropped']).default('pending'),
+  doneOn: dateString.optional(),
   detail,
 });
 
@@ -211,6 +214,55 @@ const decision = z
     }
   });
 
+// An open question whose answer would change the plan: what to find out,
+// why it matters, by when, and how. `via` is the way to find out (ask
+// someone, read a filing, visit), so the question is a task, not a worry.
+export const INTEL_MAX = 8;
+
+const intelItem = z.object({
+  question: mediumLabel,
+  why: mediumLabel.optional(),
+  by: dateString.optional(),
+  via: shortLabel,
+  status: z.enum(['open', 'answered']),
+  answer: mediumLabel.optional(),
+});
+
+// A distinct course of action, compared side by side before one is chosen:
+// why it could win, what could sink it, and how others would react to it
+// with our answer. At most one carries `chosen`.
+export const COURSES_MAX = 3;
+
+const course = z.object({
+  name: shortLabel,
+  idea: mediumLabel,
+  wins: mediumLabel.optional(),
+  risks: mediumLabel.optional(),
+  counter: mediumLabel.optional(),
+  chosen: z.literal(true).optional(),
+});
+
+const courses = z.array(course).max(COURSES_MAX).superRefine((cs, ctx) => {
+  if (cs.filter((c) => c.chosen).length > 1) ctx.addIssue({ code: 'custom', message: 'only one course can carry chosen: true' });
+});
+
+// Prep for one two-way conversation: who it is with (a `people` or
+// `stakeholders` name, verbatim), when, what we ask for, our best
+// alternative if it fails, the line we walk away at, and what we can give.
+// `done` and `outcome` record how it went.
+export const PREP_MAX = 5;
+
+const prepItem = z.object({
+  with: shortLabel,
+  on: dateString.optional(),
+  ask: mediumLabel,
+  batna: mediumLabel,
+  walkAway: mediumLabel,
+  concessions: z.array(shortLabel).max(5),
+  done: z.boolean(),
+  outcome: mediumLabel.optional(),
+});
+
 // A log entry records what happened in one exchange, not the state of the
 // goal: the owning keys already hold that. Hence few notes per entry.
 export const LOG_NOTES_MAX = 3;
@@ -253,7 +305,7 @@ const subGoal = z
   .refine((s) => s.trim().split(/\s+/).filter(Boolean).length <= 12, 'must be 12 words or fewer');
 
 export const goalSchema = z.object({
-  schemaVersion: z.literal(4),
+  schemaVersion: z.literal(5),
   goal: z.string().min(1).max(200),
   subGoals: z.array(subGoal).max(5).optional(),
   successCriteria: z.array(successCriterion).min(1),
@@ -270,6 +322,9 @@ export const goalSchema = z.object({
   forecasts: z.array(forecast),
   experiments: z.array(experiment),
   decisions: z.array(decision),
+  intel: z.array(intelItem).max(INTEL_MAX).default([]),
+  courses: courses.default([]),
+  prep: z.array(prepItem).max(PREP_MAX).default([]),
   // When each key last changed, as an ISO timestamp. Stamped by writeSection
   // (ops.mjs), never written by a skill; suggestSkills (flow.mjs) compares
   // it against what each section is built from.
@@ -321,7 +376,7 @@ export const STUB_CRITERION = 'define success criteria';
 // is valid the instant it's written.
 export function stubGoal(title) {
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     goal: title,
     successCriteria: [{ text: STUB_CRITERION, kind: 'control' }],
     deadline: null,
@@ -337,6 +392,9 @@ export function stubGoal(title) {
     forecasts: [],
     experiments: [],
     decisions: [],
+    intel: [],
+    courses: [],
+    prep: [],
     memory: [],
     log: [],
   };

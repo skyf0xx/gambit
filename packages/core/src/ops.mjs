@@ -86,9 +86,11 @@ const toIssues = (error, prefix = []) =>
  * whole document. Each key whose value changes is stamped with `now` in
  * `updated`, so a section built on it can tell it has moved since.
  * @param {string} [now] ISO timestamp, defaults to the current time
+ * @param {string} [day] YYYY-MM-DD, the date a next action newly done in
+ *   this write is stamped with; defaults to the date of `now`
  * @returns {{ ok: true, goal: Goal, warnings: string[] } | { ok: false, errors: Issue[] }}
  */
-export function writeSection(goal, key, value, now = new Date().toISOString()) {
+export function writeSection(goal, key, value, now = new Date().toISOString(), day = now.slice(0, 10)) {
   if (!WRITABLE_KEYS.includes(key)) {
     return { ok: false, errors: [{ path: key, message: `not a writable key; expected one of: ${WRITABLE_KEYS.join(', ')}` }] };
   }
@@ -115,6 +117,7 @@ export function writeSection(goal, key, value, now = new Date().toISOString()) {
   // current. `people` wins — someone you now deal with directly has left
   // the stakeholder map — so a stakeholders write naming them is refused,
   // and a people write takes them off the stakeholder list.
+  if (key === 'plan') stampDone(part.data, goal.plan, day);
   const changes = { [key]: part.data };
   const moved = [];
   if (key === 'stakeholders') {
@@ -147,6 +150,23 @@ export function writeSection(goal, key, value, now = new Date().toISOString()) {
 }
 
 const personKey = (name) => name.trim().toLowerCase();
+
+const nextActionsOf = (plan) => (plan?.linesOfOperation ?? []).flatMap((l) => l.nextActions);
+
+/**
+ * Keep `doneOn` true to each next action in a rewritten plan: only a done
+ * action carries it; one already done in the old plan (matched by its text)
+ * keeps the date it was done on, unless the write gives one; one newly done
+ * in this write is stamped `day`.
+ */
+function stampDone(plan, before, day) {
+  const wasDone = new Map(nextActionsOf(before).filter((a) => a.status === 'done').map((a) => [a.action, a.doneOn]));
+  for (const a of nextActionsOf(plan)) {
+    if (a.status !== 'done') delete a.doneOn;
+    else if (!a.doneOn && !wasDone.has(a.action)) a.doneOn = day;
+    else if (!a.doneOn && wasDone.get(a.action)) a.doneOn = wasDone.get(a.action);
+  }
+}
 
 /**
  * Append one log entry (the only append path). `writer`, when given, is
@@ -246,12 +266,17 @@ export function forget(goal, index) {
   return { ok: true, goal: { ...goal, memory: goal.memory.filter((_, i) => i !== index) }, warnings: [] };
 }
 
+const NEXT_ACTION_PATH = /^plan\.linesOfOperation\.\d+\.nextActions\.\d+$/;
+
 /**
  * Flip a single step, sub-item or next action to proposed/pending/done/dropped
  * ('proposed' is valid on next actions only; the schema rejects it elsewhere).
- * `path` is dotted, e.g. "plan.linesOfOperation.0.nextActions.2".
+ * `path` is dotted, e.g. "plan.linesOfOperation.0.nextActions.2". A next
+ * action flipped to done is stamped `doneOn: today`; any other status
+ * clears the stamp.
+ * @param {string} [today] YYYY-MM-DD
  */
-export function setStatus(goal, path, status) {
+export function setStatus(goal, path, status, today = new Date().toISOString().slice(0, 10)) {
   if (!STATUSES.includes(status)) return { ok: false, errors: [{ path: 'status', message: `must be one of ${STATUSES.join(', ')}` }] };
   const parts = String(path).split('.').filter(Boolean);
   const copy = structuredClone(goal);
@@ -264,6 +289,10 @@ export function setStatus(goal, path, status) {
     return { ok: false, errors: [{ path, message: 'target is not a step, sub-item or next action with a proposed/pending/done/dropped status' }] };
   }
   node.status = status;
+  if (NEXT_ACTION_PATH.test(parts.join('.'))) {
+    if (status === 'done') node.doneOn ??= today;
+    else delete node.doneOn;
+  }
   // Turning a move into a proposal is a write of that proposal, so it meets
   // the same rule as write_section (writeRules.plan). Keeping or tossing a
   // proposal that predates the rule stays allowed.

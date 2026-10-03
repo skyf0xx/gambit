@@ -4,10 +4,10 @@
 // for writing — it is reported as `needs_app_update` so a newer install's
 // data cannot be silently downgraded.
 
-import { goalSchema, GOAL_MAX_WORDS, LOG_NOTES_MAX, wordCount } from './schema.mjs';
+import { dateString, goalSchema, GOAL_MAX_WORDS, LOG_NOTES_MAX, wordCount } from './schema.mjs';
 import { capLog } from './ops.mjs';
 
-export const CURRENT_SCHEMA_VERSION = 4;
+export const CURRENT_SCHEMA_VERSION = 5;
 
 // Split an over-long goal sentence into a short goal plus sub-goals, purely
 // and deterministically — no model call. Only fires when the sentence is
@@ -84,6 +84,26 @@ export const MIGRATIONS = [
       ...doc,
       memory: [],
       log: (doc.log ?? []).map((e) => ({ ...e, notes: (e.notes ?? []).slice(0, LOG_NOTES_MAX) })),
+    }),
+  },
+  // v5 makes a next action's `when` a date and adds `doneOn`, `intel`,
+  // `courses` and `prep`. A `when` that is a label rather than a date
+  // ("this week") is dropped; the new keys start empty.
+  {
+    from: 4,
+    to: 5,
+    transform: (doc) => ({
+      ...doc,
+      intel: [],
+      courses: [],
+      prep: [],
+      plan: doc.plan && {
+        ...doc.plan,
+        linesOfOperation: (doc.plan.linesOfOperation ?? []).map((l) => ({
+          ...l,
+          nextActions: (l.nextActions ?? []).map(({ when, ...a }) => (dateString.safeParse(when).success ? { ...a, when } : a)),
+        })),
+      },
     }),
   },
 ];

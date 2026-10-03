@@ -721,6 +721,92 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
     return <PlanStack key={goalId} lines={data.linesOfOperation} goalId={goalId} editable={editable} />;
   }
 
+  if (k === 'intel') {
+    // Open questions are tasks: what to find out, how, and by when. Answered
+    // ones tick and show the answer.
+    return (
+      <StatusGroups
+        k="intel"
+        list={data as Any[]}
+        isOpen={(q) => q.status === 'open'}
+        due={(q) => q.by}
+        labels={['still to find out', 'found out']}
+        pinned={() => true}
+        render={(q, i) => {
+          const open = q.status === 'open';
+          return (
+            <li key={i} className="flex items-start gap-2.5">
+              <Marker path={`intel.${i}`} open={open} />
+              <div className="min-w-0 flex-1">
+                <Line goalId={goalId} path={`intel.${i}`} className={`font-medium ${open ? 'pencil' : ''}`}>
+                  <span>{q.question}</span>
+                </Line>
+                {open ? <Facts rows={[['Why it matters', q.why], ['Find out by', q.via]]} /> : <Facts rows={[['Answer', q.answer], ['Why it matters', q.why]]} />}
+                {open && (
+                  <ItemFooter
+                    when={q.by ? (isLate(q.by) ? `was due ${pencilDate(q.by)}` : byDate(q.by)) : undefined}
+                    late={isLate(q.by)}
+                    action={{ label: 'Tell me what you found', starter: `What I found out about "${q.question}": ` }}
+                  />
+                )}
+              </div>
+            </li>
+          );
+        }}
+      />
+    );
+  }
+
+  if (k === 'courses') {
+    return (
+      <ul className="space-y-5 text-[17px] leading-[27px]">
+        {(data as Any[]).map((c, i) => (
+          <li key={i}>
+            <Line goalId={goalId} path={`courses.${i}`}>
+              <span className="font-medium text-ink">{c.name}</span>
+              {c.chosen && <PencilWord className="ml-2">chosen</PencilWord>}
+            </Line>
+            <div>{c.idea}</div>
+            <Facts rows={[['Could win because', c.wins], ['Could sink it', c.risks], ['Their reaction', c.counter]]} />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  if (k === 'prep') {
+    return (
+      <StatusGroups
+        k="prep"
+        list={data as Any[]}
+        isOpen={(p) => !p.done}
+        due={(p) => p.on}
+        labels={['coming up', 'held']}
+        pinned={() => true}
+        render={(p, i) => (
+          <li key={i} className="flex items-start gap-2.5">
+            <Marker path={`prep.${i}`} open={!p.done} />
+            <div className="min-w-0 flex-1">
+              <Line goalId={goalId} path={`prep.${i}`}>
+                <span className="font-medium text-ink">{p.with}</span>
+              </Line>
+              <Facts
+                rows={[
+                  ['Ask for', p.ask],
+                  ['Walk away at', p.walkAway],
+                  ['If it fails', p.batna],
+                  ['Can give', p.concessions?.length ? p.concessions.join(', ') : undefined],
+                  ['How it went', p.done ? p.outcome : undefined],
+                ]}
+              />
+              {!p.done && <ItemFooter when={p.on ? (isLate(p.on) ? `was ${pencilDate(p.on)}` : byDate(p.on)) : undefined} late={isLate(p.on)} action={{ label: 'Tell me how it went', starter: `How the talk with ${p.with} went: ` }} />}
+            </div>
+          </li>
+        )}
+      />
+    );
+  }
+
   if (type === 'ordered-list') {
     return (
       <div className="space-y-3">

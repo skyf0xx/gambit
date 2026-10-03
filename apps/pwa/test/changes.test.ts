@@ -11,7 +11,7 @@ function withPlan(goal: Goal, overrides: Partial<NonNullable<Goal['plan']>['line
         {
           label: 'Line A',
           criticalPath: [{ label: 'Step one', status: 'pending' as const }],
-          nextActions: [{ action: 'Call Priya', who: 'me', when: 'fri', status: 'pending' as const }],
+          nextActions: [{ action: 'Call Priya', who: 'me', when: '2026-10-09', status: 'pending' as const }],
           ...overrides,
         },
       ],
@@ -30,7 +30,7 @@ describe('changedLines', () => {
   it('reports a status flip', () => {
     const before = withPlan(stubGoal('Goal') as Goal);
     const after = withPlan(stubGoal('Goal') as Goal, {
-      nextActions: [{ action: 'Call Priya', who: 'me', when: 'fri', status: 'done' as const }],
+      nextActions: [{ action: 'Call Priya', who: 'me', when: '2026-10-09', status: 'done' as const }],
     });
     const diff = changedLines(before, after);
     expect(diff).toEqual([{ path: 'plan.linesOfOperation.0.nextActions.0', text: 'Call Priya' }]);
@@ -39,7 +39,7 @@ describe('changedLines', () => {
   it('includes an item newly flipped to dropped', () => {
     const before = withPlan(stubGoal('Goal') as Goal);
     const after = withPlan(stubGoal('Goal') as Goal, {
-      nextActions: [{ action: 'Call Priya', who: 'me', when: 'fri', status: 'dropped' as const }],
+      nextActions: [{ action: 'Call Priya', who: 'me', when: '2026-10-09', status: 'dropped' as const }],
     });
     const diff = changedLines(before, after);
     expect(diff).toEqual([{ path: 'plan.linesOfOperation.0.nextActions.0', text: 'Call Priya' }]);

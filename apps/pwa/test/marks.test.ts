@@ -15,7 +15,7 @@ function withPlan(goal: Goal, overrides: Partial<NonNullable<Goal['plan']>['line
         {
           label: 'Line A',
           criticalPath: [{ label: 'Step one', status: 'pending' as const }],
-          nextActions: [{ action: 'Call Priya', who: 'me', when: 'fri', status: 'pending' as const }],
+          nextActions: [{ action: 'Call Priya', who: 'me', when: '2026-10-09', status: 'pending' as const }],
           ...overrides,
         },
       ],
@@ -26,7 +26,7 @@ function withPlan(goal: Goal, overrides: Partial<NonNullable<Goal['plan']>['line
 describe('deriveMarks — tick', () => {
   it('marks a done next action', () => {
     const goal = withPlan(stubGoal('Goal') as Goal, {
-      nextActions: [{ action: 'Call Priya', who: 'me', when: 'fri', status: 'done' as const }],
+      nextActions: [{ action: 'Call Priya', who: 'me', when: '2026-10-09', status: 'done' as const }],
     });
     const { byPath } = deriveMarks(goal, 'g1', emptySession);
     expect(byPath.get('plan.linesOfOperation.0.nextActions.0')).toEqual({ kind: 'tick', sr: 'done' });
@@ -117,7 +117,7 @@ describe('deriveMarks — star', () => {
       plan: {
         linesOfOperation: [
           { label: 'A', criticalPath: [{ label: 'A step', status: 'pending' }], nextActions: [] },
-          { label: 'B', focus: true, criticalPath: [{ label: 'B step', status: 'pending' }], nextActions: [{ action: 'Do B', who: 'me', when: 'fri', status: 'pending' }] },
+          { label: 'B', focus: true, criticalPath: [{ label: 'B step', status: 'pending' }], nextActions: [{ action: 'Do B', who: 'me', when: '2026-10-09', status: 'pending' }] },
         ],
       },
       log: [{ date: '2026-01-01', focus: 'f', focusLine: 'A step', notes: [] }],
@@ -217,7 +217,7 @@ describe('deriveMarks — question', () => {
 describe('deriveMarks — event marks win: cancel and loop', () => {
   it('cancel overrides a derived mark on the same path, in pencil, with SR "cancelled"', () => {
     const goal = withPlan(stubGoal('Goal') as Goal, {
-      nextActions: [{ action: 'Call Priya', who: 'me', when: 'fri', status: 'done' as const }],
+      nextActions: [{ action: 'Call Priya', who: 'me', when: '2026-10-09', status: 'done' as const }],
     });
     const session: SessionSnapshot = {
       turn: null,
@@ -229,7 +229,7 @@ describe('deriveMarks — event marks win: cancel and loop', () => {
 
   it('loop overrides a derived mark on the same path', () => {
     const goal = withPlan(stubGoal('Goal') as Goal, {
-      nextActions: [{ action: 'Call Priya', who: 'me', when: 'fri', status: 'done' as const }],
+      nextActions: [{ action: 'Call Priya', who: 'me', when: '2026-10-09', status: 'done' as const }],
     });
     const session: SessionSnapshot = {
       turn: { goalId: 'g1', turnId: 't1', lines: [{ path: 'plan.linesOfOperation.0.nextActions.0', text: 'Call Priya' }], animated: false },

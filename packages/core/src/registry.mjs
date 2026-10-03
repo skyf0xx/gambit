@@ -20,10 +20,13 @@ export const SECTION_RENDERERS = {
   capacity: 'checklist',
   experiments: 'checklist',
   forecasts: 'checklist',
+  intel: 'checklist',
+  courses: 'ordered-list',
   people: 'stakeholder-table',
   stakeholders: 'stakeholder-table',
   riskNotes: 'risk-list',
   decisions: 'decision-callout',
+  prep: 'decision-callout',
 };
 
 // Which collapsible group each section renders under on the dashboard
@@ -38,23 +41,26 @@ export const SECTION_GROUPS = {
   stakeholders: 'people',
   riskNotes: 'people',
   decisions: 'people',
+  prep: 'people',
   forecasts: 'forecasts',
   experiments: 'forecasts',
+  intel: 'forecasts',
   exposure: 'exposure',
   capacity: 'exposure',
   systemsNotes: 'reference',
+  courses: 'reference',
 };
 
 export const GROUP_LABELS = {
   plan: 'Plan & progress',
   people: 'People & risk',
-  forecasts: 'Forecasts & experiments',
+  forecasts: 'Bets & unknowns',
   exposure: 'Exposure & capacity',
   reference: 'Reference',
 };
 
 // Display order of groups on the page, and of sections within a group.
-// 'reference' (systemsNotes) sits last — it's background analysis that
+// 'reference' (systemsNotes, courses) sits last — it's background analysis that
 // fed the plan rather than something to act on, so it belongs below
 // everything the user might actually need to check or do.
 export const GROUP_ORDER = ['plan', 'people', 'forecasts', 'exposure', 'reference'];
@@ -63,7 +69,7 @@ export const GROUP_ORDER = ['plan', 'people', 'forecasts', 'exposure', 'referenc
 // reads, or prose the user reads in the session) — never diagrammed,
 // always the plain-card fallback if they ever do write something ad hoc.
 export const PLAIN_CARD_SKILLS = [
-  'onboard', 'brief', 'status', 'bmad-deep-recon', 'comms', 'exposure', 'premortem',
+  'onboard', 'brief', 'sitrep', 'comms', 'exposure', 'premortem',
 ];
 
 export function rendererForSection(key) {

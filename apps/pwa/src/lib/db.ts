@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import type { ModelMessage } from 'ai';
 import type { Reply } from './tools';
 import type { PageEdit } from './edits';
+import type { RoutedUpdate } from '@gambit/core';
 
 export interface GoalRecord {
   id: string;
@@ -38,6 +39,10 @@ export interface ChatRecord {
   activeSkill?: string;
   /** The skill a checkpoint skill (elicit) runs inside, resumed when it finishes. */
   callerSkill?: string;
+  /** Updates sitrep routed in the last turn and showed the user to confirm.
+   * The next turn clears each routed skill to write in the turn it loads,
+   * then replaces this with its own routing, if any. */
+  routed?: RoutedUpdate[];
   /** Older turns have been dropped from this chat (agent.ts's CHAT_TURNS),
    * so the conversation says so above its first message. */
   trimmed?: boolean;

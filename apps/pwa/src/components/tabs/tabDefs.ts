@@ -14,9 +14,9 @@ import type { Goal } from '../../lib/types';
 //   Moves       — the default selected tab on every load: index card,
 //                 sticky notes, all moves (plan), the focus. Always
 //                 shown.
-//   People      — people, stakeholders
+//   People      — people, stakeholders, prep (talk prep)
 //   Risks       — riskNotes, exposure
-//   Bets        — decisions, experiments, forecasts, systemsNotes
+//   Bets        — decisions, courses, intel (open questions), experiments, forecasts, systemsNotes
 //   Capacity    — capacity
 //   Doodles     — the whole plan as a pencil mind map. Shown once there's
 //                 a plan to draw.
@@ -65,9 +65,9 @@ export const TAB_LABELS: Record<TabId, string> = {
 // (GoalTab.tsx / MovesTab.tsx) rather than through this map. Inside cover
 // isn't goal-section content at all.
 export const TAB_SECTION_KEYS: Partial<Record<TabId, (keyof Goal)[]>> = {
-  people: ['people', 'stakeholders'],
+  people: ['people', 'stakeholders', 'prep'],
   risks: ['riskNotes', 'exposure'],
-  bets: ['decisions', 'experiments', 'forecasts', 'systemsNotes'],
+  bets: ['decisions', 'courses', 'intel', 'experiments', 'forecasts', 'systemsNotes'],
   capacity: ['capacity'],
 };
 

@@ -6,6 +6,12 @@
 
 const DAY_MS = 86_400_000;
 
+/** Today's local date as YYYY-MM-DD: the date the user's own day is on. */
+export const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 function parseIsoDateUTC(d: string): Date | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
   if (!m) return null;

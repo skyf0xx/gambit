@@ -5,7 +5,7 @@ display: ordered-list
 writes: systemsNotes, log
 reads: goal, subGoals, people, stakeholders
 requires: goal
-next: plan, strategy, threat
+next: plan, strategy, options, threat
 ---
 
 # Skill: systems

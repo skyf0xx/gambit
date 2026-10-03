@@ -18,20 +18,22 @@ next: strategy, systems, threat, decide, comms
 
 ## Mode 0: Quick Status Update
 
-This mode is the fast path for a casually-reported completion, so it lands in the goal without a full replan. Use this mode instead of the full sequence below whenever the user reports a `nextActions` item **or a `criticalPath` step** done, blocked, or dropped, and isn't asking for a replan.
+The fast path for a casually reported completion. Use it instead of the full sequence whenever the user reports a `nextActions` item **or a `criticalPath` step** done, blocked, or dropped and isn't asking for a replan.
 
-1. **Load** the goal and scan every line's `nextActions` *and* `criticalPath` for an entry matching what the user described — a report can close either. Match on meaning, not exact string — "finished the ATS audit" matches an action reading "run ATS keyword/format audit," and "mapped contacts' networks" matches a critical-path step labeled "Map contacts' networks." If nothing plausible matches, say so and stop here rather than guessing; the update likely belongs under a different line, or the plan is stale enough to need Mode 1's full treatment.
-2. **Confirm in one line**, not a full elicitation checkpoint — this is a status flip, not a decision:
+1. **Load** the goal and scan every line's `nextActions` *and* `criticalPath` for the entry the user described. Match on meaning, not exact string: "finished the ATS audit" matches "run ATS keyword/format audit". If nothing plausible matches, say so and stop rather than guessing; the update belongs under a different line, or the plan is stale enough for Mode 1.
+2. **Confirm in one line**, not a full checkpoint, since this is a status flip and not a decision:
    ```
    Marking "[label/action]" done in [line label]. Right?
    ```
-   On a yes, proceed. On a correction, use the corrected target instead.
-3. **Call `set_status`** with the dotted path to just that entry (e.g. `plan.linesOfOperation.0.nextActions.2`) and the new status (`done`, `dropped`, or back to `pending`; a `proposed` action the user keeps goes to `pending`, and one they toss goes to `dropped`) — on the matched `nextActions` entry or `criticalPath` step, whichever it was. This touches only that one field; it never rebuilds the graph, re-sequences, or touches any other item or key (plus, per step 4, the line's own `status` when the write closes it). Don't let a completed step's story live only in `detail` prose ("Done — see log") while `status` stays `pending` — the visual layer reads `status`, not `detail`, to show it's finished.
-4. **Check whether the line just closed** (every `nextActions` entry *and* every `criticalPath` step now `done` or `dropped`). If so, call `set_status` again to set that line's own `status` to `"done"` too — the line-level pill (`on_schedule`/`at_risk`/`blocked`/`done`) doesn't follow step completion automatically, so leaving it on its old value (often `on_schedule` or `at_risk`) after every step closes is stale and wrong, not neutral. Say the closure plainly and note that `strategy` should pick a new focus next — per its existing recency-trap guidance, a closed line is a reason to reassess, not itself a next step. Flag it; don't run `strategy` yourself.
-5. If any `set_status` call returns `{ ok: false, errors }`, fix and retry before ending the turn.
-6. **Name the next step**: the next `pending` item in that line (critical-path step or next action, whichever comes first), or "run `strategy`" if the line just closed. When the flipped action was the focus line's last `pending` next action, the "Your top move" card now reads "nothing due yet"; say so, and offer a replan of that line or `strategy`.
+   On a correction, use the corrected target.
+3. **Call `set_status`** with the dotted path to that one entry (e.g. `plan.linesOfOperation.0.nextActions.2`) and the new status: `done`, `dropped`, or back to `pending`. A `proposed` action the user keeps goes to `pending`; one they toss goes to `dropped`. It touches only that field and never rebuilds the graph. The code stamps `doneOn` itself. Don't leave a finished step's story in `detail` ("Done, see log") while `status` stays `pending`; the page reads `status`.
+4. **Check whether the line just closed**: every `nextActions` entry and every `criticalPath` step is `done` or `dropped`. If so, call `set_status` again to set the line's own `status` to `"done"`; it doesn't follow step completion by itself. Say the closure plainly and flag `strategy` as the next step. A closed line is a reason to reassess, not a focus. Don't run `strategy` yourself.
+5. If any `set_status` returns `{ ok: false, errors }`, fix and retry before ending the turn.
+6. **Name the next step**: the next `pending` item in that line, or `strategy` if the line closed. If the flipped action was the focus line's last `pending` one, the "Your top move" card reads "nothing due yet"; say so and offer a replan of that line or `strategy`.
 
-No log entry is required for a routine status flip — the `log` is for events worth a durable record, and `nextActions[].status` already carries the current state per AGENTS.md's no-history rule. If the report carries a reason worth remembering (why it's blocked, what changed), a short `log` entry is fine, but don't manufacture one just to document the flip itself.
+A routine flip needs no log entry; `nextActions[].status` carries the state. A reason worth keeping (why it's blocked) can go in a short entry.
+
+**Overdue moves.** When the state block lists moves past their `when` date, don't replan. Ask about each in one line: "[move], due [date]. Done, a new date, or drop it?" Done and dropped go through `set_status`. A new date is a `plan` write that changes only that move's `when` (YYYY-MM-DD). With three or more overdue on one line, or one move slipped twice, the plan is stale: say so and use Mode 1.
 
 If the user's report actually describes several changes at once, or implies the rest of the plan needs rethinking (a blocker with no workaround, a dependency that turned out wrong), stop and use Mode 1 (the full sequence below) instead — this mode is for a clean, isolated status change only.
 
@@ -49,9 +51,7 @@ When something is blocked, state what's blocked, what's blocking it, and what un
 
 ## Mode 1: Full Plan / Replan
 
-Use this sequence for an actual planning request — a new push, a replan after failure, or a stale plan. For a bare status report on an existing action, use Mode 0 above instead.
-
-## Execution Sequence
+Use this sequence for an actual planning request: a new push, a replan after failure, or a stale plan. A bare status report on an existing action is Mode 0. Moves are dated: every next action carries `when`, a YYYY-MM-DD date.
 
 ### 1. Load Context
 
@@ -59,14 +59,7 @@ Read the goal. Note the current focus (Schwerpunkt) if `strategy` has set one, t
 
 If the state block lists `plan` as due because `posture`, `systemsNotes` or `decisions` changed, rebuild the affected lines from that change.
 
-**Check the `systemsNotes` key.** If it's `null`, its Schwerpunkt confidence was recorded as `low`, or the state block lists `systems` as due because its inputs changed, the critical path you're about to build may rest on an unverified premise about how a third party or system responds. Flag this before building the graph rather than after:
-
-```
-No systems read backs this focus (or confidence was low / stale). The plan
-below will assume it holds. Run systems first, or proceed anyway?
-```
-
-Proceed only on explicit confirmation. If the user proceeds without resolving it, carry the caveat into the plan itself (see step 3) rather than dropping it.
+**Check the `systemsNotes` key.** If it's `null`, its Schwerpunkt confidence was recorded as `low`, or the state block lists `systems` as due because its inputs changed, the critical path you're about to build may rest on an unverified premise about how a third party or system responds. Flag this before building the graph: "No current systems read backs this focus, and the plan will assume it holds. Run systems first, or proceed anyway?" Proceed only on explicit confirmation. If the user proceeds without resolving it, carry the caveat into the plan itself (see step 3) rather than dropping it.
 
 ### 2. Identify the Lines of Operation
 
@@ -76,41 +69,19 @@ Each line gets a short label (e.g. "Funding", "Permit") — this is what ties it
 
 ### 3. Build the Dependency Graph (per line)
 
-For each line of operation, enumerate the concrete actions needed, and their dependencies. If an action belongs to someone specific, name them. If an action's payoff depends on an unverified premise about how a third party or system will behave — not just whether the user can do it, but whether doing it produces the intended effect — flag that node explicitly rather than sequencing it at face value:
-
-```
-Action A — no dependencies — can start immediately — [you | person's name/role]
-Action B — depends on: A — [...]
-Action C — depends on: A — [ASSUMPTION: {premise} — unverified] — insert cheap
-  verification step before committing to the expensive steps that follow it
-Action D — depends on: B, C — [...]
-
-Critical path: A → B → D (or A → C → D)
-Parallel opportunity: B and C once A is done
-```
-
-Don't let an unverified assumption sit silently inside an otherwise-confident-looking graph — a flagged node changes what "next action" should be (verify the premise cheaply) versus an unflagged one (execute the expensive step directly).
+List each line's concrete actions and what each depends on, naming who owns an action
+when it is someone specific. Flag any action whose payoff rests on an unverified premise
+about how a third party or system responds, and put a cheap verification step before the
+expensive ones that follow it. Never let an unverified assumption sit silently inside a
+confident-looking graph.
 
 ### 4. Identify Each Line's Critical Path
 
-For each line, call out the single longest dependency chain that, if delayed, delays that line's outcome the most. Keep each node a short label — arrow-chain it on one line if the labels are short enough to fit; switch to one bullet per step rather than let the line wrap:
-
-```
-CRITICAL PATH: [A] → [B] → [D]
-Estimated duration: [...]
-Status: on_schedule | at_risk | blocked | done
-Blocker (if any): [what's blocking, what resolves it]
-```
-
-```
-CRITICAL PATH:
-- [short label A]
-- [short label B]
-- [short label D]
-Estimated duration: [...]
-Status: on_schedule | at_risk | blocked | done
-Blocker (if any): [what's blocking, what resolves it]
-```
+Call out the one longest dependency chain per line, the one that delays the line's
+outcome most if it slips. Keep each node a short label. Give the duration estimate, the
+line's status (`on_schedule`, `at_risk`, `blocked`, `done`) and any blocker. Read with
+read_skill_file('plan', 'graph.md') for the graph and critical-path templates when
+building a graph from scratch.
 
 ### 5. Apply Posture
 
@@ -126,7 +97,7 @@ For each line, list its next 3-5 actions in priority order — Schwerpunkt align
 
 ```
 [Line label] NEXT
-1. [action] — [you | who] — unblocks: [...] — [today|this week]
+1. [action] — [you | who] — unblocks: [...] — by [YYYY-MM-DD]
 2. ...
 ```
 
@@ -134,15 +105,9 @@ If an action depends on someone who hasn't confirmed, flag that explicitly — d
 
 ### 6b. Reality-Check the Sequence
 
-You know the dependencies. The user knows what's actually feasible for them this week.
-Ask before committing the plan:
-
-```
-Before I write this down:
-
-  - Is #1 actually doable in that window, or is something in the way?
-  - Anything here you already know isn't going to happen?
-```
+You know the dependencies. The user knows what's feasible for them this week. Ask before
+committing the plan, as a `confirm` reply: is #1 doable by its date, and is anything here
+they already know won't happen?
 
 A plan the user privately knows they won't execute is worse than a shorter one they
 will. If they flag an action as unrealistic, resequence around it rather than logging it
@@ -155,36 +120,13 @@ If something in an existing line has failed or stalled, name it, name the altern
 
 ### 8. Update the Goal
 
-Call `write_section` on `plan` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?, items?, status}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `status` is one of `pending` (default), `done`, `dropped` — same enum and meaning as a `nextAction`'s, so a step that's finished or abandoned shows that in the visual layer instead of relying on prose in `detail`); `nextActions` is capped at 5 entries, each `{action, who, when, status, detail?}` where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `status` is one of `pending` (default), `proposed`, `done`, `dropped`. Set that line's own `status` to `on_schedule`, `at_risk`, `blocked`, or `done` — `done` means every `criticalPath` step and every `nextActions` entry on that line is itself `done` or `dropped`; don't set the line to `done` while any step or action is still `pending`. Set `blocker` only when `status` is `blocked`.
+Call `write_section` on `plan` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?, items?, status}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `status` is one of `pending` (default), `done`, `dropped` — same enum and meaning as a `nextAction`'s, so a step that's finished or abandoned shows that in the visual layer instead of relying on prose in `detail`); `nextActions` is capped at 5 entries, each `{action, who, when, status, doneOn?, detail?}` where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `when` is a date (YYYY-MM-DD) on every next action; `doneOn` is stamped by code when a move is done, so never write it by hand, and keep it as it is when you carry a done move forward. `status` is one of `pending` (default), `proposed`, `done`, `dropped`. Set that line's own `status` to `on_schedule`, `at_risk`, `blocked`, or `done` — `done` means every `criticalPath` step and every `nextActions` entry on that line is itself `done` or `dropped`; don't set the line to `done` while any step or action is still `pending`. Set `blocker` only when `status` is `blocked`.
 
-`detail` on a `criticalPath` step or a `nextAction` (max 280 chars) is shown in small
-grey text right under the move: in the plan, on the "Your top move" card, and on the
-sticky note. Write it as one plain sentence on why this move, why now: what it unblocks,
-what it tests, or which criterion it serves. Don't restate the label. A `proposed` action
-must carry it, because the sticky note asks the user to keep or toss the move and the
-detail is their reason to decide; a write without it is rejected. Give a `pending` action
-or step a detail too, unless the label alone makes the why obvious. It is never a
-substitute for `status` — "Done — see log" belongs in `status: "done"` with an optional
-short `detail` for context, not in `detail` alone with `status` left `pending`.
-
-`items` on a `criticalPath` step (array of `{label, status}` objects, max 10 entries,
-optional) is a real enumerable sub-list the step needs to track — e.g. a step drafting
-one angle per subreddit, one line per sub. `label` is `shortLabel` (40-char cap); `status`
-is one of `pending` (default), `done`, `dropped` — the same enum as a step's own `status`,
-tracked per item rather than only at the parent step. Use `items` whenever the step's
-content is actually a list of short items, not prose — the visual layer renders `items`
-as its own bulleted list with per-item done/dropped icons, where packing the same content
-into `detail` renders as one unbroken run-on line with no way to mark individual items
-done. Never comma- or semicolon-splice a list into `detail` just because `items` feels
-like more structure than the step needs — if there's more than one item to track, it's a
-list and belongs in `items`.
-
-A step's own `status` should agree with its `items`: don't mark the parent step `done`
-while any of its items are still `pending` — mark items done individually as they
-complete, and only flip the step to `done` once every item is `done` or `dropped`.
-Write validation warns (not a hard failure) when a step's items are all done but its own
-`status` still lags behind — treat that warning as a prompt to update the step, not
-something to ignore.
+`detail` (280 characters or less) is one plain sentence on why this move, why now; a
+`proposed` action must carry it. `items` on a step is a real list to tick off, never a
+comma-spliced `detail`, and the step's `status` agrees with its items. Read with
+read_skill_file('plan', 'fields.md') for the full rules before writing a step with
+items or a proposed move.
 
 ```json
 {
@@ -199,7 +141,7 @@ something to ignore.
           { "label": "D", "status": "pending" }
         ],
         "nextActions": [
-          { "action": "...", "who": "you | name", "when": "today | this week", "status": "pending" }
+          { "action": "...", "who": "you | name", "when": "YYYY-MM-DD", "status": "pending" }
         ],
         "status": "on_schedule",
         "blocker": "..."

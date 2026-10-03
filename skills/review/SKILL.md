@@ -63,6 +63,11 @@ WHAT WE EXPECTED
   Predicted risks: [from threat or premortem, if run]
 ```
 
+When the event was a negotiation or a meeting, find its entry in `prep` (match `with`
+and `on`) and use it as the baseline for what was expected: the `ask`, the `walkAway`
+line and the planned concessions, plus the `outcome` if the debrief already recorded
+one. Compare what happened against that, not against memory.
+
 If no expectation was recorded, say so plainly and note it as a finding in its own right
 — an action taken with no stated expected outcome can't be learned from properly, and
 that's worth fixing before the next one.

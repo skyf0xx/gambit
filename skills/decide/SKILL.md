@@ -4,7 +4,7 @@ description: Use when analysis has produced options and one must be chosen — a
 display: decision-callout
 writes: decisions
 requires: goal
-next: plan, strategy
+next: plan, strategy, options
 ---
 
 # Skill: decide
@@ -20,6 +20,26 @@ along to — a call they've reasoned through and can defend later when it gets h
 The user makes the decision. Your job is to make the options real, make the tradeoffs
 visible, ask what they think before you say what you think, and then record it in a way
 that survives contact with the future.
+
+---
+
+## Quit Check Mode
+
+Use when the goal or one line of the plan keeps stalling, or the user asks "should I
+keep going". The choice is continue, reframe or stop, and it deserves the same care as
+any other fork.
+
+1. **Stipulate kill criteria.** Ask what evidence would mean stop or reframe, and put
+   a date or a number on each. Offer two or three from the goal's own state: a
+   criterion `stalled` across checks, a runway line crossed, a person who said no.
+2. **Check sunk cost out loud.** Ask: if you were starting today with what you know,
+   would you begin this? Then name what is already spent (time, money, face) and say
+   it is gone either way. Only the next hour and pound count.
+3. **Give your read** on continue, reframe or stop, with the strongest case against
+   it. Stay opinionated; if the evidence says stop, say stop.
+4. **Confirm, then record** as a decision (step 8 below). `choice` says continue,
+   reframe to what, or stop. `reverseIf` holds the kill criteria, and `reviewBy` is
+   the date to run this check again.
 
 ---
 

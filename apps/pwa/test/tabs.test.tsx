@@ -37,7 +37,7 @@ function seededGoal(): Goal {
         {
           label: 'Line A',
           criticalPath: [{ label: 'Step one', status: 'pending' }],
-          nextActions: [{ action: 'Ship it', who: 'me', when: 'fri', status: 'pending' }],
+          nextActions: [{ action: 'Ship it', who: 'me', when: '2026-10-09', status: 'pending' }],
         },
       ],
     },
