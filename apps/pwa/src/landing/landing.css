@@ -128,7 +128,8 @@ html, body { height: auto; }
 .big-line.quiet { color: var(--graphite); }
 
 /* The two bakers: each beat is a line, then Gaston and Max side by side
-   (stacked, Gaston first, on phones). */
+   (stacked, Gaston first, on phones). The last beat leads with Max and
+   ends on Gaston's question. */
 .story { padding-top: clamp(64px, 9vw, 120px); }
 .beat { padding-block: clamp(40px, 6vw, 80px); text-align: center; }
 .beat-title { margin-bottom: clamp(32px, 4vw, 48px); }
@@ -153,6 +154,7 @@ html, body { height: auto; }
   color: var(--graphite);
 }
 .beat-quote strong { font-weight: 700; font-size: 1.25em; color: var(--quote); }
+.max-first .beat-quote { margin: clamp(32px, 4vw, 48px) auto 0; }
 .beat-pair {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -383,6 +385,11 @@ html, body { height: auto; }
   .move-m { order: 4; margin-top: 48px; }
   .beat-pair .sheet:last-child { order: 5; }
   .beat-pair .sheet { width: min(400px, 92%); }
+  .max-first .move-m { order: 1; margin-top: 0; }
+  .max-first .beat-pair .sheet:first-child { order: 2; }
+  .max-first .move-g { order: 3; margin-top: 48px; }
+  .max-first .beat-pair .sheet:last-child { order: 4; }
+  .max-first .beat-quote { order: 5; margin: 24px auto 0; }
   .levers-table tr { padding: 18px 18px 20px; }
   .levers-table td { font-size: 16px; }
   .levers-table td strong { font-size: 19px; }
