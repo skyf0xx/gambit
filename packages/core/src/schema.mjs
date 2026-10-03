@@ -19,6 +19,9 @@ const dateString = z
     return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
   }, 'not a real calendar date');
 
+/** Most next actions one line of the plan holds. */
+export const NEXT_ACTIONS_MAX = 5;
+
 const shortLabel = z.string().min(1).max(40);
 const mediumLabel = z.string().min(1).max(120);
 
@@ -60,10 +63,12 @@ const posture = z.object({
 // 'proposed' is a move the advisor suggested that the user hasn't agreed to
 // yet — shown as a sticky note to keep (→ 'pending') or toss (→ 'dropped').
 // Only next actions can be proposed; steps and sub-items can't.
+// `when` is optional: a move the user adds on the page carries no date
+// until they or the advisor give it one.
 const nextAction = z.object({
   action: mediumLabel,
   who: shortLabel,
-  when: shortLabel,
+  when: shortLabel.optional(),
   status: z.enum(['proposed', 'pending', 'done', 'dropped']).default('pending'),
   detail,
 });
@@ -95,7 +100,7 @@ const lineOfOperation = z.object({
   label: shortLabel,
   focus: z.literal(true).optional(),
   criticalPath: z.array(labeledStep).max(6),
-  nextActions: z.array(nextAction).max(5),
+  nextActions: z.array(nextAction).max(NEXT_ACTIONS_MAX),
   status: z.enum(['on_schedule', 'at_risk', 'blocked', 'done']).optional(),
   blocker: mediumLabel.optional(),
 });

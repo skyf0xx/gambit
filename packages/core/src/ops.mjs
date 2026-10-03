@@ -2,7 +2,7 @@
 // document and returns a result object instead of throwing, so an agent tool
 // can hand structured errors straight back to the model.
 
-import { goalSchema, reconcileGoal, writeRules, GOAL_MAX_WORDS, MEMORY_CAP, wordCount } from './schema.mjs';
+import { goalSchema, reconcileGoal, writeRules, GOAL_MAX_WORDS, MEMORY_CAP, NEXT_ACTIONS_MAX, wordCount } from './schema.mjs';
 import { plainLanguage } from './readability.mjs';
 
 /** @typedef {import('zod').infer<typeof goalSchema>} Goal */
@@ -313,4 +313,70 @@ export function summarizeChange(before, after) {
     }
   }
   return out;
+}
+
+// Lines the user can edit in place on the page, and which field of each
+// holds its text (null: the node is the string itself).
+const LINE_FIELDS = [
+  [/^goal$/, null],
+  [/^subGoals\.\d+$/, null],
+  [/^successCriteria\.\d+$/, 'text'],
+  [/^plan\.linesOfOperation\.\d+\.nextActions\.\d+$/, 'action'],
+  [/^plan\.linesOfOperation\.\d+\.criticalPath\.\d+$/, 'label'],
+  [/^plan\.linesOfOperation\.\d+\.criticalPath\.\d+\.items\.\d+$/, 'label'],
+];
+
+/** Whether the line at `path` can be edited in place on the page. */
+export const isEditableLine = (path) => LINE_FIELDS.some(([re]) => re.test(String(path)));
+
+/** The text of an editable line, or undefined if there's nothing there. */
+export function lineText(goal, path) {
+  const hit = LINE_FIELDS.find(([re]) => re.test(String(path)));
+  if (!hit) return undefined;
+  const node = String(path).split('.').reduce((n, p) => (n == null ? n : n[p]), goal);
+  const text = hit[1] ? node?.[hit[1]] : node;
+  return typeof text === 'string' ? text : undefined;
+}
+
+/**
+ * The user's own edit of one line's text on the page. Goes through
+ * writeSection on the line's top-level key, so it meets every rule a skill
+ * write does and stamps `updated`. `expected` is the text the user started
+ * from: if the line has changed since (a turn rewrote it), the edit is
+ * refused rather than landing on whatever now sits at that path.
+ */
+export function editLine(goal, path, value, expected) {
+  const hit = LINE_FIELDS.find(([re]) => re.test(String(path)));
+  if (!hit) return { ok: false, errors: [{ path, message: 'this line cannot be edited on the page' }] };
+  const text = String(value ?? '').trim();
+  if (!text) return { ok: false, errors: [{ path, message: 'a line needs some text' }] };
+  const current = lineText(goal, path);
+  if (current === undefined) return { ok: false, errors: [{ path, message: 'this line is no longer there' }] };
+  if (expected !== undefined && current !== expected) {
+    return { ok: false, errors: [{ path, message: 'this line just changed. Reopen it to edit' }] };
+  }
+  const [key, ...rest] = String(path).split('.');
+  if (!rest.length) return writeSection(goal, key, text);
+  const copy = structuredClone(goal[key]);
+  const field = hit[1];
+  if (field) {
+    rest.reduce((n, p) => n[p], copy)[field] = text;
+  } else {
+    rest.slice(0, -1).reduce((n, p) => n[p], copy)[rest.at(-1)] = text;
+  }
+  return writeSection(goal, key, copy);
+}
+
+/** The user adds a move of their own to a line of the plan: pending, theirs. */
+export function addNextAction(goal, lineIndex, value) {
+  const text = String(value ?? '').trim();
+  if (!text) return { ok: false, errors: [{ path: 'action', message: 'a move needs some text' }] };
+  const line = goal.plan?.linesOfOperation?.[lineIndex];
+  if (!line) return { ok: false, errors: [{ path: `plan.linesOfOperation.${lineIndex}`, message: 'no such line in the plan' }] };
+  if (line.nextActions.length >= NEXT_ACTIONS_MAX) {
+    return { ok: false, errors: [{ path: `plan.linesOfOperation.${lineIndex}.nextActions`, message: `this line already has ${NEXT_ACTIONS_MAX} moves` }] };
+  }
+  const plan = structuredClone(goal.plan);
+  plan.linesOfOperation[lineIndex].nextActions.push({ action: text, who: 'me', status: 'pending' });
+  return writeSection(goal, 'plan', plan);
 }
