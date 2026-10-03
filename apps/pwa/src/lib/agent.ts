@@ -1,5 +1,6 @@
 import { generateText, streamText, stepCountIs, type ModelMessage, type StopCondition, type ToolSet } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
+import { googleWebSearchTool } from './websearch';
 import { summarizeChange, dueNow, routedText, type FlowSession, type RoutedUpdate } from '@gambit/core';
 import { db, type ChatRecord, type DisplayMsg } from './db';
 import { loadApiKey } from './crypto';
@@ -167,7 +168,7 @@ export async function runTurn(opts: {
     return s ? `# ${title}: ${name}\n${s.text}` : '';
   };
   const skillBlock = [block('Active skill', flow.active), block('Calling skill, resumed on finish_skill', flow.caller)].filter(Boolean).join('\n\n');
-  const webSearch = prov.kind === 'anthropic' && !!prov.webSearch;
+  const webSearch = (prov.kind === 'anthropic' || prov.kind === 'google') && !!prov.webSearch;
   const { messages: history, trimmed } = trimHistory(chat.model);
   const day = today();
   const sentEdits: PageEdit[] = chat.pendingEdits ?? [];
@@ -190,7 +191,7 @@ export async function runTurn(opts: {
 
   const tools = {
     ...makeTools({ goalId, session: flow, onSkillLoaded: () => { skillLoads++; } }),
-    ...(webSearch ? { web_search: anthropic.tools.webSearch_20250305({ maxUses: 3 }) } : {}),
+    ...(webSearch ? { web_search: prov.kind === 'google' ? googleWebSearchTool(model, signal) : anthropic.tools.webSearch_20250305({ maxUses: 3 }) } : {}),
   };
 
   let out = '';

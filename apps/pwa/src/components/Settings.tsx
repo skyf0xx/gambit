@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, getSetting } from '../lib/db';
-import { deleteGoal } from '../lib/goals';
+import { deleteGoal, readRecord } from '../lib/goals';
+import { downloadIcs, goalDates } from '../lib/calendar';
 import { clearChat } from '../lib/agent';
 import { readDurability, requestPersistence, installRoute, installSteps, useUi, type Durability } from '../lib/persist';
 import { bindExportFile, commitImport, downloadExport, fileSyncState, fsAccessSupported, planImport, reauthorizeFileSync, unbindExportFile, type Choice, type ImportItem } from '../lib/portability';
@@ -238,12 +239,29 @@ export interface SettingsPageProps {
   onNewGoal?: () => void;
 }
 
+/** The goal's open dates as a calendar file. Hidden when it has none. */
+function CalendarDates({ goalId }: { goalId: string }) {
+  const goal = useLiveQuery(async () => {
+    const rec = await db.goals.get(goalId);
+    const read = rec ? await readRecord(rec) : null;
+    return read?.status === 'ok' ? read.data : null;
+  }, [goalId]);
+  const n = goal ? goalDates(goal).length : 0;
+  if (!goal || n === 0) return null;
+  return (
+    <Section title="Calendar">
+      <Row label="Add dates to calendar" value={`${n} ${n === 1 ? 'date' : 'dates'} from this goal`} action={<Act onClick={() => downloadIcs(goal, goalId)}>Download</Act>} />
+    </Section>
+  );
+}
+
 /** Inside cover: AI model, backup, chat, theme, delete. */
 export function SettingsPage({ goalId, cost }: SettingsPageProps) {
   return (
     <div className="space-y-6">
       <Section title="AI model"><Model /></Section>
       <Section title="Backup"><Backup /></Section>
+      {goalId && <CalendarDates goalId={goalId} />}
       <Section title="Chat">
         <Spend cost={cost} />
         {goalId && (

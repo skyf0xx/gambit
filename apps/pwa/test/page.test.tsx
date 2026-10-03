@@ -243,3 +243,40 @@ describe('sectionTitleFor', () => {
     expect(sectionTitleFor('somethingNew').title).toBe('somethingNew');
   });
 });
+
+describe('intel, courses and prep sections', () => {
+  it('shows open questions with an answered one ticked and its answer', () => {
+    const html = renderSection('intel', [
+      { question: 'Is the oven rated?', why: 'It sets the budget', via: 'ask the seller', by: '2026-10-12', status: 'open' },
+      { question: 'Who owns the wall?', via: 'land registry', status: 'answered', answer: 'The council' },
+    ]);
+    expect(html).toContain('Is the oven rated?');
+    expect(html).toContain('ask the seller');
+    expect(html).toContain('The council');
+    expect(html).toContain('data-box="intel.1"');
+    expect(html).not.toContain('data-box="intel.0"');
+  });
+  it('marks the chosen course', () => {
+    const html = renderSection('courses', [
+      { name: 'Rent', idea: 'Lease the shop', wins: 'Fast', chosen: true },
+      { name: 'Buy', idea: 'Buy the shop', risks: 'Cash' },
+    ]);
+    expect(html).toContain('Rent');
+    expect(html.match(/chosen/g)).toHaveLength(1);
+    expect(html).toContain('Cash');
+  });
+  it('shows a talk prep callout with the outcome once held', () => {
+    const html = renderSection('prep', [
+      { with: 'Priya', on: '2026-10-15', ask: 'Cut the rent', batna: 'Second site', walkAway: 'Above 3k', concessions: ['Longer lease', 'Deposit'], done: false },
+      { with: 'Omar', ask: 'Start early', batna: 'Wait', walkAway: 'No', concessions: [], done: true, outcome: 'Agreed to Monday' },
+    ]);
+    expect(html).toContain('Priya');
+    expect(html).toContain('Above 3k');
+    expect(html).toContain('Longer lease, Deposit');
+    expect(html).toContain('Agreed to Monday');
+  });
+  it('has plain titles', () => {
+    expect(sectionTitleFor('intel').title).toBe('Open questions');
+    expect(sectionTitleFor('prep').title).toBe('Talk prep');
+  });
+});

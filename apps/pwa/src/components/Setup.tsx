@@ -20,7 +20,7 @@ const CHECK_TEXT: Record<Exclude<KeyCheck, 'ok'>, string> = {
 
 /** Provider, model and key entry. Used under "Other options" on first run and inside Settings. */
 export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => void; beforeSave?: () => Promise<void>; firstRun?: boolean }) {
-  const [state, setS] = useState<ProviderSettings>({ kind: firstRun ? 'anthropic' : 'google', model: PROVIDERS[firstRun ? 'anthropic' : 'google'].defaultModel });
+  const [state, setS] = useState<ProviderSettings>({ kind: firstRun ? 'anthropic' : 'google', model: PROVIDERS[firstRun ? 'anthropic' : 'google'].defaultModel, webSearch: !firstRun });
   const s = state;
   const [key, setKey] = useState('');
   const [saved, setSaved] = useState(false);
@@ -42,7 +42,7 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
   }, [firstRun]);
 
   const change = async (kind: ProviderKind) => {
-    setS({ kind, model: PROVIDERS[kind].defaultModel, baseURL: undefined, webSearch: false });
+    setS({ kind, model: PROVIDERS[kind].defaultModel, baseURL: undefined, webSearch: kind === 'google' && !firstRun });
     setSaved(await hasApiKey(kind));
     setKey('');
     setDetected(null);
@@ -59,7 +59,7 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
     if (!p || (firstRun && p === 'google')) return null;
     const next = settingsForKey(p);
     const same = next.kind === s.kind && (next.kind !== 'custom' || (s.baseURL ?? '').startsWith(next.baseURL ?? ''));
-    return same ? null : { ...next, webSearch: false };
+    return same ? null : { ...next, webSearch: next.kind === 'google' };
   }
   function adopt(next: ProviderSettings) {
     setS(next);
@@ -130,10 +130,10 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
       ) : (
         <TextAction className="text-[14px]! text-graphite! underline underline-offset-[3px]" onClick={() => setShowBase(true)}>Custom base URL</TextAction>
       )}
-      {s.kind === 'anthropic' && !firstRun && (
+      {(s.kind === 'anthropic' || s.kind === 'google') && !firstRun && (
         <label className="flex items-center gap-2 text-[14px] text-graphite">
           <input type="checkbox" checked={!!s.webSearch} onChange={(e) => setS({ ...s, webSearch: e.target.checked })} />
-          Web search (billed by Anthropic)
+          {s.kind === 'google' ? 'Web search (uses your Google quota)' : 'Web search (billed by Anthropic)'}
         </label>
       )}
       {err && (

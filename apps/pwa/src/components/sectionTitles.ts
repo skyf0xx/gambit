@@ -28,6 +28,9 @@ const TITLES: Record<string, SectionTitle> = {
   capacity: { title: 'What you actually have' },
   forecasts: { title: 'Predictions', method: 'forecast', methodNote: 'forecast: a dated prediction, checked later to see how well you called it' },
   experiments: { title: 'Things to test', method: 'experiment', methodNote: 'experiment: the smallest test that could prove you wrong' },
+  intel: { title: 'Open questions' },
+  courses: { title: 'Ways to go' },
+  prep: { title: 'Talk prep' },
   criteriaStatus: { title: 'Progress' },
 };
 

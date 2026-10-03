@@ -211,6 +211,7 @@ export function toolLabel(name: string, input: unknown): string {
     case 'remember': return `remembered (${i.kind})`;
     case 'forget': return 'forgot one thing';
     case 'read_skill_file': return `read ${i.skill}/${i.path}`;
+    case 'web_search': return i.query ? `searched: ${i.query}` : 'web search';
     case 'get_goal': return 'read goal';
     case 'elicitation_methods': return 'method catalog';
     case 'route_updates': return 'routed updates';

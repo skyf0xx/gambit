@@ -12,7 +12,7 @@ import { SectionHeading } from '../paper/SectionHeading';
 // tab's content component can render its own section list without
 // duplicating the heading chrome.
 
-const SECTION_KEYS = ['plan', 'criteriaStatus', 'successCriteria', 'people', 'stakeholders', 'systemsNotes', 'riskNotes', 'decisions', 'exposure', 'capacity', 'forecasts', 'experiments'] as const;
+const SECTION_KEYS = ['plan', 'criteriaStatus', 'successCriteria', 'people', 'stakeholders', 'systemsNotes', 'riskNotes', 'decisions', 'exposure', 'capacity', 'forecasts', 'experiments', 'intel', 'courses', 'prep'] as const;
 export type SectionKey = (typeof SECTION_KEYS)[number];
 export const isEmptySection = (v: unknown) => v == null || (Array.isArray(v) ? v.length === 0 : typeof v === 'object' && Object.keys(v as object).length === 0);
 
