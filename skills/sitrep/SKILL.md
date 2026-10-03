@@ -97,9 +97,9 @@ Do not chase it this turn.
 
 ### 5. Log Only What Was Decided
 
-If something was decided across the batch, call `append_log` once with
-`source: "sitrep"`, at most three notes, each a thing that happened. Facts the
-owning keys hold are not repeated. If nothing was decided, write no entry.
+By now a routed skill is active, not `sitrep`, so any log entry comes from the
+routed skill that made the change, as its own quick mode would. Facts the owning
+keys hold are not repeated. If nothing was decided, write no entry.
 
 ### 6. Close with the Single Next Move
 

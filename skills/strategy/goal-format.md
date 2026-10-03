@@ -10,7 +10,7 @@ the two ever disagree, the schema wins.
 
 ```json
 {
-  "schemaVersion": 3,
+  "schemaVersion": 5,
   "goal": "[plain sentence, 10 words max — one idea, no dash-joined clauses]",
   "subGoals": ["[optional — a part or condition of the aim itself, e.g. \"without burning out\"; not a success criterion]"],
   "successCriteria": [
