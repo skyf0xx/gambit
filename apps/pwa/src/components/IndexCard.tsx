@@ -5,6 +5,7 @@ import { byDate, proseDates } from '../lib/dates';
 import { TextAction, PencilWord } from './ui';
 import { HandBox } from './paper/HandBox';
 import { FreshTag } from './paper/FreshTag';
+import { EditableText } from './paper/EditableText';
 
 // The taped index card (brand/identity.md §03/§05): the single next move,
 // shown as an index card taped to the top of the page — red header rule,
@@ -50,7 +51,7 @@ export function IndexCard({ goal, goalId }: { goal: Goal; goalId: string }) {
   // The move's text ticks the box too, as a row does in the plan; it
   // stands aside for the box's own click and for a drag that selected text.
   const onRowClick = (e: MouseEvent) => {
-    if ((e.target as Element).closest('button, a')) return;
+    if ((e.target as Element).closest('button, a, textarea, [data-editing]')) return;
     if (window.getSelection()?.toString()) return;
     void onDone();
   };
@@ -88,7 +89,7 @@ export function IndexCard({ goal, goalId }: { goal: Goal; goalId: string }) {
           </TextAction>
           <div className="min-w-0 flex-1">
             <p data-line={move.path} className="text-[20px] font-medium leading-7 text-ink">
-              {proseDates(move.action)}
+              <EditableText goalId={goalId} path={move.path} value={move.action}>{proseDates(move.action)}</EditableText>
               <FreshTag path={move.path} />
             </p>
             {move.detail && <p className="mt-0.5 text-[14px] leading-5 text-graphite">{proseDates(move.detail)}</p>}
