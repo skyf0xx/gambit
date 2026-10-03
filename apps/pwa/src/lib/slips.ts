@@ -6,10 +6,8 @@ import { session } from './session';
 // The two slips (brand/identity.md §03 "Slips", §05 "Pencil marks"): the
 // taped index card showing the single next move, and the sticky-note
 // suggestions the advisor has proposed but the user hasn't taken yet.
-// Both are read straight off `plan.linesOfOperation[].nextActions` — the
-// one key that already carries a `status` a person can flip themselves
-// (AGENTS.md's "the single user-driven write is flipping a next action's
-// status").
+// Both are read straight off `plan.linesOfOperation[].nextActions`. Their
+// flips are page edits (lib/edits.ts), queued for the advisor's next turn.
 
 export interface SlipItem {
   path: LinePath;

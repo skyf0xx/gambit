@@ -258,7 +258,20 @@ Ownership is per key, not per full rewrite — `plan` owns
 `nextActions[].status` even for a single-field flip. When the user simply
 reports a next-action item done, blocked, or dropped in passing, that still
 routes to `plan`'s lightweight status-update mode rather than sitting
-unrecorded. Nothing else writes that field.
+unrecorded. No other skill writes that field.
+
+The user can also edit the page directly, outside the skill flow. They can
+reword a move, step, sub-item, success criterion, sub-goal or the goal
+sentence, add a `pending` move, and tick, keep or toss one. Text edits go
+through `editLine` and `addNextAction` (`packages/core/src/ops.mjs`), which
+call `writeSection`. So a page edit meets every write rule a skill write
+does (schema caps, grade-7 reading level, the goal word cap) and stamps
+`updated`. `editLine` takes the text the user started from and refuses the
+edit if the line changed since then. `isEditableLine` lists the editable
+paths. Every page edit, status flips included, is queued on the chat record
+(`pendingEdits`, `apps/pwa/src/lib/edits.ts`). The next turn's state block
+lists the queue as the user's own word, and the queue clears once that turn
+completes.
 
 A move the advisor suggests that the user hasn't agreed to yet is written
 as a next action with `status: "proposed"`, which the page shows as a
