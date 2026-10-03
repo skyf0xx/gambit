@@ -315,26 +315,45 @@ export function summarizeChange(before, after) {
   return out;
 }
 
-// Lines the user can edit in place on the page, and which field of each
-// holds its text (null: the node is the string itself).
-const LINE_FIELDS = [
-  [/^goal$/, null],
-  [/^subGoals\.\d+$/, null],
-  [/^successCriteria\.\d+$/, 'text'],
-  [/^plan\.linesOfOperation\.\d+\.nextActions\.\d+$/, 'action'],
-  [/^plan\.linesOfOperation\.\d+\.criticalPath\.\d+$/, 'label'],
-  [/^plan\.linesOfOperation\.\d+\.criticalPath\.\d+\.items\.\d+$/, 'label'],
+// Every line the page draws from the goal: which field of the node at
+// that path holds its text (none: the node is the string itself; a
+// function: it depends on the node), and whether the user may edit it in
+// place. Names stay chat-only (they keep people and stakeholders apart),
+// and a decided decision changes only through `decide`.
+const LINES = [
+  { re: /^goal$/, edit: true },
+  { re: /^subGoals\.\d+$/, edit: true },
+  { re: /^successCriteria\.\d+$/, field: 'text', edit: true },
+  { re: /^plan\.linesOfOperation\.\d+\.nextActions\.\d+$/, field: 'action', edit: true },
+  { re: /^plan\.linesOfOperation\.\d+\.criticalPath\.\d+$/, field: 'label', edit: true },
+  { re: /^plan\.linesOfOperation\.\d+\.criticalPath\.\d+\.items\.\d+$/, field: 'label', edit: true },
+  { re: /^riskNotes\.\d+$/, field: 'item', edit: true },
+  { re: /^people\.\d+$/, field: 'name', edit: false },
+  { re: /^people\.\d+\.doing$/, edit: true },
+  { re: /^decisions\.\d+$/, field: (d) => (d?.status === 'open' ? 'question' : 'choice'), edit: (d) => d?.status === 'open' },
 ];
 
-/** Whether the line at `path` can be edited in place on the page. */
-export const isEditableLine = (path) => LINE_FIELDS.some(([re]) => re.test(String(path)));
+const lineRule = (path) => LINES.find(({ re }) => re.test(String(path)));
+const nodeAt = (goal, path) => String(path).split('.').reduce((n, p) => (n == null ? n : n[p]), goal);
+const fieldOf = (rule, node) => (typeof rule.field === 'function' ? rule.field(node) : rule.field);
 
-/** The text of an editable line, or undefined if there's nothing there. */
+/** Whether the line at `path` can be edited in place on the page. With a
+ * goal, also whether this particular line can (an open decision, not a
+ * decided one). */
+export function isEditableLine(path, goal) {
+  const rule = lineRule(path);
+  if (!rule) return false;
+  if (typeof rule.edit !== 'function') return rule.edit;
+  return goal === undefined || rule.edit(nodeAt(goal, path));
+}
+
+/** The text of the line at `path`, or undefined if there's nothing there. */
 export function lineText(goal, path) {
-  const hit = LINE_FIELDS.find(([re]) => re.test(String(path)));
-  if (!hit) return undefined;
-  const node = String(path).split('.').reduce((n, p) => (n == null ? n : n[p]), goal);
-  const text = hit[1] ? node?.[hit[1]] : node;
+  const rule = lineRule(path);
+  if (!rule) return undefined;
+  const node = nodeAt(goal, path);
+  const field = fieldOf(rule, node);
+  const text = field ? node?.[field] : node;
   return typeof text === 'string' ? text : undefined;
 }
 
@@ -346,19 +365,20 @@ export function lineText(goal, path) {
  * refused rather than landing on whatever now sits at that path.
  */
 export function editLine(goal, path, value, expected) {
-  const hit = LINE_FIELDS.find(([re]) => re.test(String(path)));
-  if (!hit) return { ok: false, errors: [{ path, message: 'this line cannot be edited on the page' }] };
+  const rule = lineRule(path);
+  if (!rule?.edit) return { ok: false, errors: [{ path, message: 'this line cannot be edited on the page' }] };
   const text = String(value ?? '').trim();
   if (!text) return { ok: false, errors: [{ path, message: 'a line needs some text' }] };
   const current = lineText(goal, path);
   if (current === undefined) return { ok: false, errors: [{ path, message: 'this line is no longer there' }] };
+  if (!isEditableLine(path, goal)) return { ok: false, errors: [{ path, message: 'this line can only change through the chat now' }] };
   if (expected !== undefined && current !== expected) {
     return { ok: false, errors: [{ path, message: 'this line just changed. Reopen it to edit' }] };
   }
   const [key, ...rest] = String(path).split('.');
   if (!rest.length) return writeSection(goal, key, text);
   const copy = structuredClone(goal[key]);
-  const field = hit[1];
+  const field = fieldOf(rule, nodeAt(goal, path));
   if (field) {
     rest.reduce((n, p) => n[p], copy)[field] = text;
   } else {

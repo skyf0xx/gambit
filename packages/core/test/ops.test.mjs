@@ -296,7 +296,7 @@ test('editLine edits one line through writeSection: rules, stamps, and a stale s
   assert.match(editLine(g, path, 'x', 'something else').errors[0].message, /just changed/);
   assert.equal(editLine(g, path, '   ', 'do y').ok, false);
   assert.equal(editLine(g, 'posture', 'x').ok, false);
-  assert.equal(isEditableLine('riskNotes.0'), false);
+  assert.equal(isEditableLine('experiments.0'), false);
 
   const step = editLine(g, 'plan.linesOfOperation.0.criticalPath.0', 'b', 'a');
   assert.equal(step.goal.plan.linesOfOperation[0].criticalPath[0].label, 'b');
@@ -322,4 +322,26 @@ test('addNextAction adds a pending move of the user\'s own, up to the cap', () =
   g = r.goal;
   while (g.plan.linesOfOperation[0].nextActions.length < NEXT_ACTIONS_MAX) g = addNextAction(g, 0, 'more').goal;
   assert.match(addNextAction(g, 0, 'one too many').errors[0].message, /already has 5/);
+});
+
+test('editLine reaches risks, what a person is doing, and an open decision only', () => {
+  const { editLine, isEditableLine, lineText } = core;
+  let g = writeSection(stubGoal('g'), 'riskNotes', [{ item: 'the lease falls through', source: 'threat', accepted: false }]).goal;
+  g = writeSection(g, 'people', [{ name: 'Priya', status: 'confirmed', doing: 'runs the front desk' }]).goal;
+  g = writeSection(g, 'decisions', [
+    { date: '2026-09-01', status: 'open', question: 'lease or buy the van' },
+    { date: '2026-09-02', status: 'decided', choice: 'hire one stylist', reverseIf: 'bookings drop' },
+  ]).goal;
+
+  assert.equal(editLine(g, 'riskNotes.0', 'the landlord sells', 'the lease falls through').goal.riskNotes[0].item, 'the landlord sells');
+  assert.equal(editLine(g, 'people.0.doing', 'runs the till', 'runs the front desk').goal.people[0].doing, 'runs the till');
+  assert.equal(editLine(g, 'people.0', 'Pri', 'Priya').ok, false);
+  assert.equal(isEditableLine('people.0'), false);
+
+  assert.equal(editLine(g, 'decisions.0', 'rent or buy the van', 'lease or buy the van').goal.decisions[0].question, 'rent or buy the van');
+  assert.equal(isEditableLine('decisions.1', g), false);
+  assert.match(editLine(g, 'decisions.1', 'hire two', 'hire one stylist').errors[0].message, /through the chat/);
+  assert.equal(lineText(g, 'decisions.1'), 'hire one stylist');
+  assert.equal(lineText(g, 'people.0'), 'Priya');
+  assert.equal(isEditableLine('forecasts.0'), false);
 });
