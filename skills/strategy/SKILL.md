@@ -5,7 +5,7 @@ display: ordered-list
 writes: posture, log
 reads: systemsNotes, capacity
 requires: goal
-next: plan, systems, threat, premortem, stakeholders, decide, capacity
+next: plan, systems, recon, options, threat, premortem, stakeholders, decide, capacity
 ---
 
 # Skill: strategy
@@ -79,34 +79,9 @@ INSTEAD OF: [what this deliberately deprioritises — naming the cost makes the 
 
 Diffusion across many priorities is the default failure mode. Naming one focus is the point of this skill.
 
-A Schwerpunkt is a state to reach, not a task to perform. "Report incidents," "send the
-email," "have the conversation" are actions — legitimate as the mechanism, but naming the
-mechanism as the focus skips the actual strategic step: what change in the world does
-that action need to cause before the goal moves? An action-shaped focus is seductive
-because it's concrete and immediately actionable, but concreteness is not the same as
-leverage. Before writing FOCUS, ask what the named action is *for* — the answer is
-usually the real Schwerpunkt, and the action becomes one line under WHY or belongs in
-`plan` instead. This failure compounds with the recency trap below: the most available
-action in front of you is also the easiest to mistake for the target.
+A Schwerpunkt is a state to reach, not a task to perform: "send the email" is the mechanism, and the focus is the change in the world it must cause. Recency is not leverage either: the most recent action is vivid, not necessarily the best place to concentrate. A line that just closed is the reason to pick a new focus, never the focus itself. Read with read_skill_file('strategy', 'focus-traps.md') before naming a focus that is action-shaped, built on the user's latest move, or set right after a line closed.
 
-If people are involved (see the `people` key), say plainly what this focus means for them — who you need to talk to, recruit, redirect, or stand down — but you do the talking. This skill does not send messages on your behalf.
-
-Be wary of a specific trap on a thin log (one entry, or a first session): recency is not
-the same as leverage. The most recent action is vivid — it's the only thing in front of
-you — but that vividness is not evidence it's the highest-leverage thing to concentrate
-on. Don't default to "double down on whatever just happened" just because it's the only
-candidate that comes easily to mind. If the candidate focus is built around continuing or
-capitalising on the user's most recent move, treat that as one hypothesis to test in 4b,
-not a conclusion — its own recency is exactly what makes it easy to overweight.
-
-A specific case of the same trap: if a `plan.linesOfOperation` entry just closed (its
-critical path completed, or its `status` moved to done) since the last session, that
-closure is not itself a focus — it's the reason to pick a new one. Report the closure in
-`notes`, then set `FOCUS` to whatever line or leverage point deserves concentration now
-that this one is closed — one of the remaining open lines, a newly-exposed bottleneck, or
-a fresh Schwerpunkt if the closure changes the picture. Writing "[line] closed" as the
-`focus` itself leaves the user with no forward direction and fails the state-not-task
-rule above the same way an action-shaped focus does.
+If people are involved (see the `people` key), say plainly what this focus means for them: who you need to talk to, recruit, redirect, or stand down. You do the advising; this skill does not send messages.
 
 ### 4b. Test the Focus Before Committing It
 
@@ -120,39 +95,7 @@ That's my read. Before I lock it in:
   - Is there anything blocking it that I don't know about?
 ```
 
-If the focus concentrates on the user's most recent action specifically — "keep working
-X," "double down on Y" — add a third question that checks the assumption directly, rather
-than letting recency stand in for leverage unchallenged:
-
-```
-  - How much conviction do you actually have in [that action]? Was it a considered bet,
-    or a low-conviction test you're not ready to commit further effort behind yet?
-```
-
-A low-conviction answer means the recommended focus was built on an unexamined
-assumption — treat it the same as disagreement (see below), not as a minor caveat to
-note and proceed past.
-
-Then act on the answer:
-
-- **They agree** → record it and move on. Don't belabour agreement.
-- **They disagree, or conviction in the underlying action turns out to be low** — this
-  is still your job, not theirs. You are the one being consulted for the read; do not
-  hand the strategic question back with "what would you focus on instead?" — that
-  defeats the purpose of the skill. Re-run step 4 with the new information they just
-  gave you (the constraint, the low conviction, whatever surfaced) and come back with a
-  **new recommendation**, reasoned the same way as the first: situation, options
-  weighed, one committed answer. Only ask a further question if it is narrow and
-  fact-checking (confirming a specific detail your new read depends on) — never a
-  second open "what do you think" in place of doing the reasoning yourself. If they
-  push back on the second recommendation too, say once where you think they're wrong,
-  then defer — it's their operation, but "defer" means adopting their stated reasoning,
-  not silently reflecting the question back to them.
-- **They surface a blocker** → that blocker may *be* the focus. Reassess before writing,
-  same rule: come back with a recommendation, not a question.
-- **They're unsure between two candidate focuses themselves** (not you) → hand off to
-  `decide` rather than picking for them. This is the one case where handing the choice
-  back is correct — because the user, not you, is the one holding two live options.
+If the focus concentrates on the user's latest action, add a third question on how much conviction they have in it. Then act on the answer. Agreement: record it and move on. Disagreement, low conviction or a blocker: that is still your job, so re-run step 4 with what they told you and return a new committed recommendation, never an open "what would you do instead?". If they push back on the second one too, say once where you think they're wrong, then adopt their stated reasoning. If the user is torn between two candidate focuses, hand off to `decide`. Read with read_skill_file('strategy', 'pushback.md') for the full handling before answering disagreement or low conviction.
 
 Do not turn this into a negotiation. One exchange, then commit.
 
@@ -219,106 +162,4 @@ for direction.
 
 ## Goal format
 
-The authoritative shape is the Zod schema in `packages/core/src/schema.mjs`
-(`goalSchema`) — every reader validates through it, including every `write_section`
-call. This section is a human-readable summary of that schema, not a second spec — if
-the two ever disagree, the schema wins.
-
-```json
-{
-  "schemaVersion": 3,
-  "goal": "[plain sentence, 10 words max — one idea, no dash-joined clauses]",
-  "subGoals": ["[optional — a part or condition of the aim itself, e.g. \"without burning out\"; not a success criterion]"],
-  "successCriteria": [
-    { "text": "[specific, measurable condition]", "kind": "control" },
-    { "text": "[specific, measurable condition]", "kind": "influence", "lineOfOperation": "[optional — matches a plan.linesOfOperation[].label]", "detail": "[optional — why this matters, hover-only]" }
-  ],
-  "deadline": "YYYY-MM-DD or null",
-  "people": [
-    { "name": "[name/role]", "status": "confirmed", "doing": "[what they're doing]", "detail": "[optional — why they matter, hover-only]" }
-  ],
-  "posture": {
-    "current": { "level": 1, "label": "Normal" },
-    "levels": [
-      { "level": 1, "label": "Normal", "meaning": "[pace/risk/ask of people]" },
-      { "level": 2, "label": "Heightened" }
-    ],
-    "triggers": ["[conditions that would force a change, if known]"],
-    "lastReviewed": "YYYY-MM-DD"
-  },
-  "plan": {
-    "linesOfOperation": [
-      {
-        "label": "[short name, matches a successCriteria[].lineOfOperation]",
-        "criticalPath": [
-          { "label": "A", "detail": "[optional — why this step exists, hover-only]" },
-          { "label": "B" },
-          { "label": "D" }
-        ],
-        "nextActions": [{ "action": "...", "who": "...", "when": "...", "status": "pending | done | dropped", "detail": "[optional, hover-only]" }],
-        "status": "on_schedule",
-        "blocker": "[optional, only when status is blocked]"
-      }
-    ]
-  },
-  "systemsNotes": {
-    "schwerpunkt": "...",
-    "confidence": "high",
-    "topFindings": [{ "label": "...", "detail": "[optional, hover-only]" }],
-    "lastReviewed": "YYYY-MM-DD"
-  },
-  "riskNotes": [{ "item": "...", "source": "threat", "accepted": false }],
-  "criteriaStatus": [
-    { "text": "[verbatim from successCriteria]", "kind": "control", "lineOfOperation": "[optional, echoes the matching successCriteria entry]", "status": "on_track", "detail": "[optional — why this status, hover-only]" }
-  ],
-  "stakeholders": [
-    { "name": "...", "power": "high", "stanceCurrent": "...", "stanceTarget": "...", "via": "...", "detail": "[optional, hover-only]" }
-  ],
-  "exposure": [{ "item": "...", "status": "open", "mustHandleBefore": "..." }],
-  "capacity": { "availableHrsPerWeek": 10, "runway": "[until date/condition]", "detail": "[optional — elaborates on runway, hover-only]", "lastReviewed": "YYYY-MM-DD" },
-  "forecasts": [
-    { "statement": "...", "probability": 70, "resolvesBy": "YYYY-MM-DD", "resolvesVia": "...", "resolved": false, "detail": "[optional, hover-only]" }
-  ],
-  "experiments": [
-    { "assumption": "...", "test": "...", "passIf": "...", "by": "YYYY-MM-DD", "done": false, "detail": "[optional, hover-only]" }
-  ],
-  "decisions": [
-    { "date": "YYYY-MM-DD", "choice": "[what was chosen]", "reverseIf": "[observable signal]" }
-  ],
-  "log": [
-    { "date": "YYYY-MM-DD", "assessment": "on_track", "focus": "...", "notes": ["..."] }
-  ]
-}
-```
-
-`systemsNotes`, `posture`, and `capacity` each carry a required `lastReviewed`
-(`YYYY-MM-DD`) — set every time `systems`, `strategy` or `capacity` writes that section, whether or not the content
-changed. Unlike `log`, which records history, these are environmental *reads*
-that go stale even without user action — `lastReviewed` is what lets a later
-session tell a current read from a three-week-old one without scanning `log`.
-
-Several array fields carry an optional `detail` (max 280 chars) — a hover-only tooltip
-in the visual layer, shown alongside the short scannable label rather than replacing it.
-It exists so a user returning later can see *why* a terse label was written without the
-label itself getting longer. Fill it in only when there's a genuinely non-obvious reason
-worth preserving, not mechanically on every entry. `plan.linesOfOperation[].criticalPath` and
-`systemsNotes.topFindings` are the two fields reshaped from bare label strings to
-`{label, detail?}` objects to carry this; every other touched field just gains `detail`
-alongside its existing keys. `postureLevel.meaning`, `riskNote.detail`,
-`exposureItem.why`, and `decision.because` already serve this same elaboration role
-under their own names and don't get a second `detail` field.
-
-Mark each success criterion `control` (you can cause it directly) or `influence`
-(it depends on a decision someone else makes). Influence criteria are legitimate, but
-progress against them is measured differently — see `eval`.
-
-`log` is the only append-only array. Only include `people` entries and a non-null
-`posture` if they're actually relevant to this goal.
-
-Write validation also runs a soft reconciliation lint after the schema check: it warns
-(doesn't fail the write) when a `lineOfOperation` has a non-empty `criticalPath` that's
-entirely `done` but the line's own `status` isn't `done`, and likewise when a
-`criticalPath` step's `items` are all `done` but the step's own `status` lags behind.
-Treat that warning as a prompt to update the parent status, not something to silently
-accept — but it's a hint, not proof, since a line can still be genuinely blocked on
-something in `nextActions` despite a finished `criticalPath`.
+The goal record's authoritative shape is `goalSchema` in `packages/core/src/schema.mjs`, summarised in the section shapes of your instructions. Read with read_skill_file('strategy', 'goal-format.md') for the annotated example and the notes on `lastReviewed`, `detail` and the reconciliation lint when you need them.

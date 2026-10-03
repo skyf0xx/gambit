@@ -46,7 +46,7 @@ execution sequence, grouped by what kind of move it makes.
 | Skill | Purpose |
 |---|---|
 | `onboard` | entry point — new goal intake, or welcome-back for a returning one |
-| `brief` | plain-language read of current state, jargon translated, read-only |
+| `brief` | plain-language read of current state, jargon translated; also a terse quick snapshot, read-only |
 | `sitrep` | take several updates at once and route each to the skill that writes it |
 
 **DIRECT**
@@ -55,15 +55,15 @@ execution sequence, grouped by what kind of move it makes.
 | `strategy` | assess progress, set posture, set focus (Schwerpunkt) |
 | `systems` | CoG / PMESII / ASCOPE analysis, find the leverage point |
 | `plan` | sequence the goal into a dependency-aware plan |
-| `options` | lay out up to three distinct courses of action and pick one |
-| `decide` | work an open choice to a recorded decision with a reverse-if condition |
+| `options` | develop and wargame up to three distinct courses of action, recommend one |
+| `decide` | work an open choice to a recorded decision with a reverse-if condition; also a quit check with kill criteria |
 
 **ESTABLISH**
 | Skill | Purpose |
 |---|---|
 | `experiment` | smallest falsifiable test of an assumption, threshold set in advance |
 | `forecast` | dated falsifiable predictions, scored later for calibration |
-| `recon` | turn unknowns into dated questions with a way to find out |
+| `recon` | priority intelligence requirements: dated questions with a way to find out, answers recorded |
 
 **STRESS**
 | Skill | Purpose |
@@ -77,7 +77,7 @@ execution sequence, grouped by what kind of move it makes.
 | Skill | Purpose |
 |---|---|
 | `stakeholders` | map power and interests of third parties; find the movable middle |
-| `negotiate` | prep a two-way conversation — interests, BATNA, ZOPA, concessions |
+| `negotiate` | prep a two-way conversation — interests, BATNA, ZOPA, concessions — one `prep` entry per counterpart, then a debrief that records the outcome |
 | `comms` | frame and sharpen outward communication |
 
 **ASSESS**
@@ -95,7 +95,9 @@ attribution and license in the same directory.
 
 The set draws on several domains deliberately, and the divisions matter
 when extending it. Operational planning doctrine supplies `strategy`,
-`systems`, `plan`, `threat`, `review`. Negotiation and stakeholder theory
+`systems`, `plan`, `threat`, `review`; `options` draws on the same
+doctrine's course-of-action development and wargaming, and `recon` on its
+intelligence requirements. Negotiation and stakeholder theory
 supply `stakeholders` and `negotiate`. Forecasting and behavioural science
 supply `forecast` and `premortem`. Lean experimentation supplies
 `experiment`. Operations and risk supply `capacity` and `exposure`.
@@ -111,6 +113,10 @@ different questions, and collapsing them loses the distinct one:
   finished action.
 - `systems` finds the culminating point abstractly; `capacity` finds it in
   the operator's actual hours and money.
+- `recon` finds out what is already knowable (ask, look up); `experiment`
+  tests an assumption by acting; `forecast` predicts what hasn't happened.
+- `options` builds the distinct courses and wargames them; `decide` takes
+  one open choice, however it arose, to a recorded call with a reverse-if.
 - `comms` prepares outward broadcast; `negotiate` prepares a two-way
   exchange where the other side has leverage.
 

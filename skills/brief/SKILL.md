@@ -1,6 +1,6 @@
 ---
 name: brief
-description: Use when the user wants to understand where things stand in plain language rather than in framework terms — returning after a gap, feeling lost, showing the situation to someone else, or asking "so what does all this actually mean". Translates the goal into ordinary prose, explains any jargon it contains, and names the one thing to do next. Read-only.
+description: Use when the user wants to understand where things stand in plain language rather than in framework terms — returning after a gap, feeling lost, showing the situation to someone else, or asking "so what does all this actually mean". Translates the goal into ordinary prose, explains any jargon it contains, and names the one thing to do next. Also gives a terse quick snapshot for "where are we" or "are we on track". Read-only.
 display: plain-card
 requires: goal
 next: strategy, plan, decide, eval
@@ -20,6 +20,30 @@ goal.
 has no background in any of it.
 
 Read-only. Never writes to the goal.
+
+---
+
+## Quick Snapshot Mode
+
+Use instead of the full brief when the ask is short: "where are we", "are we on track",
+"quick status". Terse, numbers and states, no interpretation. Read-only, like the rest
+of this skill.
+
+```
+SNAPSHOT [date]
+GOAL      [the goal sentence] · deadline [date or none] · [N days left]
+POSTURE   [level and label — omit if none]
+FOCUS     [the current focus, or "none set"]
+PLAN      [one line per line of operation: label · status · next move and its date]
+OVERDUE   [moves past their date — omit if none]
+OPEN      [open questions, forks and unscored forecasts, counted — omit if none]
+LAST EVAL [the date and the verdict, or "never run"]
+RECENT    [the last 3 log entries, one line each]
+```
+
+For "are we on track", answer from what the record shows: the latest `assessment`, the
+`criteriaStatus` counts, the overdue list. If the record is thin or mixed, say it is
+unclear and point to `eval` for a real audit. Don't soften a stall to be polite.
 
 ---
 

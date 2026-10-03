@@ -106,9 +106,12 @@ What's happened since?
 Then route on the answer:
 
 - **Nothing much** → offer to continue on the current focus, or reassess → `strategy`
-- **Something changed** — a setback, new information, a date moved, someone dropped out
+- **One thing changed** — a setback, new information, a date moved, someone dropped out
   → go straight to `strategy` to reassess. Don't ask permission; a changed situation
   invalidates a standing focus.
+- **Several things changed at once** — a list of news touching the plan, people, time
+  and money → load `sitrep`, silently. It sorts each item to its owner; name no skills
+  to the user.
 - **A decision is pending** → `decide`
 - **They don't know where they're at** → `brief`
 

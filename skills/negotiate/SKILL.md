@@ -172,30 +172,59 @@ I ALSO WALK IF: [the relationship or process condition — bad faith, moving ter
 Deciding to walk is nearly impossible in the room, under social pressure, with sunk time
 behind you. Deciding it beforehand is the only reliable way it happens.
 
-### 10. Update the Goal and Name the Next Step
+### 10. Confirm, Then Write the Prep
 
-Call `append_log` with the negotiation outcome, what was agreed, and any commitment the user made, in at most 3 notes — a commitment
-given in a conversation and not recorded is one nobody can hold either side to.
+Show the prep as one `confirm` reply (the ask, the walk-away, the first concession)
+and write after the user answers, never in the turn this skill was loaded.
+
+Call `write_section` on `prep` with one entry per counterpart, at most 5. `with` is
+the person's name exactly as it appears in `people` or `stakeholders`; `on` is the
+meeting date. Keep other conversations' entries as they are.
 
 ```json
 {
-  "log": [
+  "prep": [
     {
-      "date": "2026-09-02",
-      "assessment": null,
-      "focus": null,
-      "notes": ["Negotiated with [party]: agreed to [key terms], we commit to [obligation] by [date]"],
-      "source": "negotiate"
+      "with": "Council officer",
+      "on": "2026-10-14",
+      "ask": "Three-month permit extension",
+      "batna": "Hold it in the park across the road",
+      "walkAway": "Walk if they add a fee over £200",
+      "concessions": ["Share the route early", "Add a marshal"],
+      "done": false
     }
   ]
 }
 ```
 
-If it produced an agreement with obligations, load `plan` to sequence them.
+`ask`, `batna` and `walkAway` are 120 characters or less; each concession is 40 or
+less, ranked cheapest first.
 
-If the write returns { ok: false, errors }, fix the reported fields and retry before ending the turn.
+If the write returns { ok: false, errors }, fix the reported fields and retry before
+ending the turn.
 
 ```
 Next: [strengthen the BATNA | confirm a guessed interest → web search |
-       draft the opening → comms | after the conversation → review]
+       draft the opening → comms | after the conversation → debrief here]
 ```
+
+---
+
+## Debrief Mode
+
+Use after the talk, or when the state block flags a prep entry whose `on` date has
+passed with no outcome.
+
+1. Find the matching `prep` entry by `with`. Ask what happened in one question:
+   what was agreed, what was refused, what was promised on each side.
+2. Confirm the outcome in one line. This is a record of what the user just said, so
+   it needs no full checkpoint.
+3. Call `write_section` on `prep`, setting that entry to `done: true` and `outcome`
+   (120 characters or less: what was agreed and who owes what by when). Leave the
+   other entries as they are.
+4. Call `append_log` with `source: "negotiate"` and at most 3 notes: the outcome and
+   any commitment made. A commitment nobody recorded is one nobody can hold either
+   side to.
+5. Route what was promised into the next step. Commitments to sequence go to `plan`;
+   a stance that moved goes to `stakeholders`; a lesson worth extracting goes to
+   `review`.
