@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import type { ModelMessage } from 'ai';
 import type { Reply } from './tools';
+import type { PageEdit } from './edits';
 
 export interface GoalRecord {
   id: string;
@@ -40,6 +41,9 @@ export interface ChatRecord {
   /** Older turns have been dropped from this chat (agent.ts's CHAT_TURNS),
    * so the conversation says so above its first message. */
   trimmed?: boolean;
+  /** Edits the user made on the page since the last turn (lib/edits.ts),
+   * told to the advisor in the next turn's state block, then cleared. */
+  pendingEdits?: PageEdit[];
 }
 export interface UsageRecord {
   id?: number;

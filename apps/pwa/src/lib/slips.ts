@@ -1,7 +1,6 @@
-import { setStatus } from '@gambit/core';
 import type { LinePath } from './changes';
 import type { Goal } from './types';
-import { applyOp } from './goals';
+import { setLineStatus } from './edits';
 import { session } from './session';
 
 // The two slips (brand/identity.md §03 "Slips", §05 "Pencil marks"): the
@@ -85,29 +84,9 @@ export function proposals(goal: Goal): SlipItem[] {
   return out;
 }
 
-/** Read the next action currently at `path`, or null if there's nothing
- * there or it isn't a next action. */
-function nextActionAt(goal: Goal, path: LinePath): { status: string } | null {
-  const parts = String(path).split('.').filter(Boolean);
-  let node: unknown = goal;
-  for (const p of parts) {
-    if (node == null || typeof node !== 'object') return null;
-    node = (node as Record<string, unknown>)[p];
-  }
-  if (node == null || typeof node !== 'object') return null;
-  const status = (node as { status?: unknown }).status;
-  return typeof status === 'string' ? { status } : null;
-}
-
 /** Flip a `proposed` next action to `pending` (keeping a sticky note). */
 export async function keep(goalId: string, path: LinePath): Promise<void> {
-  const res = await applyOp(goalId, (g) => {
-    const item = nextActionAt(g, path);
-    if (!item || item.status !== 'proposed') {
-      return { ok: false, errors: [{ path, message: 'target is not a proposed next action' }] } as never;
-    }
-    return setStatus(g, path, 'pending') as never;
-  });
+  const res = await setLineStatus(goalId, path, 'pending', 'proposed');
   if (!res.ok) throw new Error(res.errors.map((e) => e.message).join('; '));
 }
 
@@ -115,25 +94,13 @@ export async function keep(goalId: string, path: LinePath): Promise<void> {
  * erase it from this session's marks layer immediately (brand/identity.md
  * §05: the eraser mark "lasts only one session"). */
 export async function toss(goalId: string, path: LinePath): Promise<void> {
-  const res = await applyOp(goalId, (g) => {
-    const item = nextActionAt(g, path);
-    if (!item || item.status !== 'proposed') {
-      return { ok: false, errors: [{ path, message: 'target is not a proposed next action' }] } as never;
-    }
-    return setStatus(g, path, 'dropped') as never;
-  });
+  const res = await setLineStatus(goalId, path, 'dropped', 'proposed');
   if (!res.ok) throw new Error(res.errors.map((e) => e.message).join('; '));
   session.markDropped(goalId, path);
 }
 
 /** Flip a `pending` next action to `done` — the index card's "Done". */
 export async function markDone(goalId: string, path: LinePath): Promise<void> {
-  const res = await applyOp(goalId, (g) => {
-    const item = nextActionAt(g, path);
-    if (!item || item.status !== 'pending') {
-      return { ok: false, errors: [{ path, message: 'target is not a pending next action' }] } as never;
-    }
-    return setStatus(g, path, 'done') as never;
-  });
+  const res = await setLineStatus(goalId, path, 'done', 'pending');
   if (!res.ok) throw new Error(res.errors.map((e) => e.message).join('; '));
 }

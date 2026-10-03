@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { rendererForSection, setStatus } from '@gambit/core';
-import { applyOp } from '../lib/goals';
+import { rendererForSection } from '@gambit/core';
+import { setLineStatus } from '../lib/edits';
 import { useSession } from '../lib/session';
 import { useLineMark, useMarksContext } from './marks/context';
 import { FreshTag } from './paper/FreshTag';
@@ -125,7 +125,7 @@ function Line({ goalId, path, alias, className = '', children }: { goalId: strin
  * through; the pencil tick is the only "done" signal (brand/identity.md §05). */
 function Toggle({ goalId, path, status, editable, onTick, title, children }: { goalId: string; path: string; status: string; editable: boolean; onTick?: (path: string) => void; title?: string; children: ReactNode }) {
   const next = status === 'done' ? 'pending' : 'done';
-  const toggle = () => { if (next === 'done') onTick?.(path); void applyOp(goalId, (g) => setStatus(g, path, next) as never); };
+  const toggle = () => { if (next === 'done') onTick?.(path); void setLineStatus(goalId, path, next); };
   // The whole row ticks, not only the box. The box button stays the
   // keyboard and screen-reader control; this is the pointer shortcut, so it
   // stands aside for anything with its own click (the box itself, "undo",
