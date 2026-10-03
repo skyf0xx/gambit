@@ -74,8 +74,8 @@ test('suggestSkills reads what is due from the goal', () => {
     log: [{ date: '2026-09-01', focus: null, notes: [] }],
   };
   assert.deepEqual(suggestSkills(g, '2026-10-02'), [
-    { skill: 'forecast', why: '1 forecast ready to score', todo: 'Score 1 forecast' },
-    { skill: 'decide', why: '1 open decision waiting', todo: 'Settle 1 open decision' },
+    { skill: 'forecast', why: '1 forecast ready to score', todo: 'Score a forecast' },
+    { skill: 'decide', why: '1 open decision waiting', todo: 'Settle an open decision' },
     { skill: 'strategy', why: 'focus last reviewed 62 days ago', todo: 'Review your focus' },
     { skill: 'eval', why: 'no progress check yet', todo: 'Check progress' },
     { skill: 'threat', why: 'plan not red-teamed yet', todo: 'Find weak spots in the plan' },
@@ -113,7 +113,7 @@ test('suggestSkills flags overdue moves, due questions, talks with no outcome, a
   };
   assert.deepEqual(suggestSkills(g, day), [
     { skill: 'plan', why: '2 moves overdue', todo: 'Catch up on 2 overdue moves' },
-    { skill: 'recon', why: '1 open question due', todo: 'Answer 1 open question' },
+    { skill: 'recon', why: '1 open question due', todo: 'Answer an open question' },
     { skill: 'negotiate', why: 'talk with Priya on 30 Sep needs its outcome recorded', todo: 'Record how the talk with Priya went' },
     { skill: 'premortem', why: 'deadline in 10 days, no premortem yet', todo: 'Find what could sink this before the deadline' },
     { skill: 'threat', why: 'plan not red-teamed yet', todo: 'Find weak spots in the plan' },

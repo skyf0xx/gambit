@@ -153,6 +153,8 @@ export function routedText(routed) {
 const DAY = 86_400_000;
 const days = (from, to) => Math.round((Date.parse(to) - Date.parse(from)) / DAY);
 const n = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
+/** "a forecast", "an open question", or "3 forecasts": a count as the page says it. */
+const some = (count, one) => (count === 1 ? `${/^[aeiou]/.test(one) ? 'an' : 'a'} ${one}` : `${count} ${one}s`);
 
 /** Days between reviews before a section reads as stale. */
 export const REVIEW_DAYS = { eval: 14, strategy: 30, capacity: 30 };
@@ -207,20 +209,20 @@ export function suggestSkills(goal, today, skills = []) {
   const past = (d) => d && d < today;
 
   const forecasts = goal.forecasts.filter((f) => !f.resolved && due(f.resolvesBy)).length;
-  if (forecasts) out.push({ skill: 'forecast', why: `${n(forecasts, 'forecast')} ready to score`, todo: `Score ${n(forecasts, 'forecast')}` });
+  if (forecasts) out.push({ skill: 'forecast', why: `${n(forecasts, 'forecast')} ready to score`, todo: `Score ${some(forecasts, 'forecast')}` });
   const experiments = goal.experiments.filter((e) => !e.done && due(e.by)).length;
   if (experiments) out.push({ skill: 'experiment', why: `${n(experiments, 'experiment')} past ${experiments === 1 ? 'its' : 'their'} date`, todo: `Record ${experiments === 1 ? 'an experiment result' : `${experiments} experiment results`}` });
   const overdue = (goal.plan?.linesOfOperation ?? []).flatMap((l) => l.nextActions).filter((a) => a.status === 'pending' && past(a.when)).length;
-  if (overdue) out.push({ skill: 'plan', why: `${n(overdue, 'move')} overdue`, todo: `Catch up on ${n(overdue, 'overdue move')}` });
+  if (overdue) out.push({ skill: 'plan', why: `${n(overdue, 'move')} overdue`, todo: `Catch up on ${some(overdue, 'overdue move')}` });
   const questions = (goal.intel ?? []).filter((q) => q.status === 'open' && due(q.by)).length;
-  if (questions) out.push({ skill: 'recon', why: `${n(questions, 'open question')} due`, todo: `Answer ${n(questions, 'open question')}` });
+  if (questions) out.push({ skill: 'recon', why: `${n(questions, 'open question')} due`, todo: `Answer ${some(questions, 'open question')}` });
   const talks = (goal.prep ?? []).filter((p) => !p.done && past(p.on));
   if (talks.length === 1) out.push({ skill: 'negotiate', why: `talk with ${talks[0].with} on ${sayDate(talks[0].on, today)} needs its outcome recorded`, todo: `Record how the talk with ${talks[0].with} went` });
   else if (talks.length) out.push({ skill: 'negotiate', why: `${talks.length} talks need their outcomes recorded`, todo: `Record how ${talks.length} talks went` });
   const reviews = goal.decisions.filter((d) => (d.status ?? 'decided') === 'decided' && due(d.reviewBy)).length;
   const open = goal.decisions.filter((d) => d.status === 'open').length;
-  if (reviews) out.push({ skill: 'decide', why: `${n(reviews, 'decision')} due for review`, todo: `Review ${n(reviews, 'decision')}` });
-  else if (open) out.push({ skill: 'decide', why: `${n(open, 'open decision')} waiting`, todo: `Settle ${n(open, 'open decision')}` });
+  if (reviews) out.push({ skill: 'decide', why: `${n(reviews, 'decision')} due for review`, todo: `Review ${some(reviews, 'decision')}` });
+  else if (open) out.push({ skill: 'decide', why: `${n(open, 'open decision')} waiting`, todo: `Settle ${some(open, 'open decision')}` });
 
   const left = goal.deadline ? days(today, goal.deadline) : -1;
   if (left >= 0 && left <= PREMORTEM_DAYS && !goal.riskNotes.some((r) => r.source === 'premortem')) {
