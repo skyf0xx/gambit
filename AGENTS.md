@@ -389,9 +389,10 @@ of figures and writes the total beneath: a line under the tasks that reach
 it, at their level, with the milestone written under it and no box, since
 nobody ticks it. The line the plan is heading to is drawn in pencil and its
 milestone carries the star; one further on is a faint broken line; a passed
-one stays in place, gone over in ink with a tick in the tick column, its
-done tasks folded into an "n done" row in their place above the line. A
-task no milestone lists sits before the one the line is heading to.
+one stays in place, gone over in ink with a tick in the tick column. Done
+tasks never fold away: they stay where they were, ticked and grey, so a
+passed milestone keeps the moves that reached it above its line. A task no
+milestone lists sits before the one the line is heading to.
 
 A next action's `when` is the date it is due by (YYYY-MM-DD), optional.
 `doneOn` is the date it was done: `setStatus` stamps it with today when the

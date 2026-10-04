@@ -123,8 +123,9 @@ function Line({ goalId, path, alias, className = '', edit, children }: { goalId:
 
 /** A tickable row: the 44x44 tick-toggle tap area, wrapping the small box
  * the marks layer draws — always, ticked or not — plus the row's own text,
- * which ticks on click too. Done items stay in normal ink — nothing here strikes
- * through; the pencil tick is the only "done" signal (brand/identity.md §05). */
+ * which ticks on click too. Nothing here strikes through; the tick is the
+ * "done" signal (brand/identity.md §05). A done move in the plan also goes
+ * grey beside its tick, so the moves still to make stand out above it. */
 function Toggle({ goalId, path, status, editable, onTick, title, children }: { goalId: string; path: string; status: string; editable: boolean; onTick?: (path: string) => void; title?: string; children: ReactNode }) {
   const next = status === 'done' ? 'pending' : 'done';
   const toggle = () => { if (next === 'done') onTick?.(path); void setLineStatus(goalId, path, next); };
@@ -327,18 +328,6 @@ function MilestoneRule({ goalId, path, step, editable, stage }: {
   );
 }
 
-/** "n done" in a passed stretch, where its folded tasks sit: above the
- * milestone they reached. Opened, it reads "fold" under the tasks. */
-function DoneFold({ count, open, onFold }: { count: number; open: boolean; onFold: () => void }) {
-  return (
-    <li className="ml-11">
-      <TextAction className="-my-[8.5px]" onClick={onFold} aria-expanded={open}>
-        <PencilWord className="text-[17px] text-graphite">{open ? 'fold' : `${count} done`}</PencilWord>
-      </TextAction>
-    </li>
-  );
-}
-
 /** "+ add a move": a pencilled link under a line's moves that opens the
  * same inline field a reword uses, and adds the move as the user's own. */
 function AddMove({ goalId, li }: { goalId: string; li: number }) {
@@ -505,18 +494,6 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     if (gotoLine != null) setPicked(gotoLine);
   }
 
-  // A passed milestone folds its done tasks away behind "n done" on its
-  // rule, unless the user opened it, or a task in it was ticked here: that
-  // stretch stays open until the page is next opened, so the tick that
-  // passes the milestone isn't snatched away the moment it lands.
-  const [justDone, setJustDone] = useState<Set<string>>(() => new Set());
-  const [unfolded, setUnfolded] = useState<Set<string>>(() => new Set());
-  const onTick = (path: string) => setJustDone((s) => new Set(s).add(path));
-  const toggleFold = (path: string) => setUnfolded((s) => {
-    const next = new Set(s);
-    if (!next.delete(path)) next.add(path);
-    return next;
-  });
 
   // The strip fades out at the right edge while there's more to scroll to.
   const stripRef = useRef<HTMLDivElement>(null);
@@ -571,7 +548,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     const tasks = l.nextActions.filter((a: Any) => a.status !== 'dropped');
     const stateOf = (a: Any) => taskState(a, plan, day);
     // A message that went out and hasn't been answered is still in play: it
-    // waits for a reply, not in the done fold.
+    // waits for a reply, marked ✉, rather than ticked done.
     const awaiting = (a: Any) => a.status === 'done' && a.to && !a.replied;
     const isFork = (a: Any) => stateOf(a) === 'waiting' && a.if && 'event' in a.if;
     // An escalation still waiting shows only in its message's "if no reply"
@@ -588,7 +565,6 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
       const k = a.id ? steps.findIndex(({ st }: Any) => st.after?.includes(a.id)) : -1;
       return k >= 0 ? k : heading;
     };
-    const isDone = (a: Any) => (a.status === 'done' && !awaiting(a)) || a.status === 'dropped';
     const rowsIn = (k: number) => visible.filter(({ a, path }) => path !== top && !isFork(a) && !isChained(a) && stretchOf(a) === k);
     const forks = visible.filter(({ a }) => isFork(a));
     const detailFor = rowsIn(heading).find(({ a }) => stateOf(a) === 'live' && a.status === 'pending')?.path ?? null;
@@ -628,8 +604,8 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
       const meta = [!isSelf(a.who) && a.who, a.to && `to ${a.to}`, a.when && byDate(a.when)].filter(Boolean).join(' · ');
       const opens = unlocks(a);
       return (
-        <Toggle key={path} goalId={goalId} path={path} status={a.status} editable={editable} onTick={onTick} title={path === detailFor ? undefined : a.detail}>
-          <Line goalId={goalId} path={path}>
+        <Toggle key={path} goalId={goalId} path={path} status={a.status} editable={editable} title={path === detailFor ? undefined : a.detail}>
+          <Line goalId={goalId} path={path} className={a.status === 'done' ? 'text-graphite' : ''}>
             {/* Only the action is editable; who/when stays outside it. */}
             {editable && isEditableLine(path)
               ? <EditableText goalId={goalId} path={path} value={a.action}><span>{a.action}</span></EditableText>
@@ -653,15 +629,10 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
             const rows = rowsIn(k);
             if (!m) return rows.map(row);
             const stage = m.reached ? 'passed' : k === current ? 'current' : 'ahead';
-            // A passed stretch keeps showing what still asks something of
-            // the user (a message waiting for a reply); its done tasks fold
-            // into "n done", in their place above the milestone.
-            const done = rows.filter(({ a }) => isDone(a));
-            const open = unfolded.has(m.path) || done.some(({ path }) => justDone.has(path) || goto?.path === path);
-            const shownRows = stage === 'passed' && !open ? rows.filter(({ a }) => !isDone(a)) : rows;
+            // Done tasks stay where they were, ticked and grey, so a passed
+            // milestone keeps the moves that reached it above its line.
             return [
-              ...shownRows.map(row),
-              stage === 'passed' && done.length > 0 && <DoneFold key={`${m.path}:fold`} count={done.length} open={open} onFold={() => toggleFold(m.path)} />,
+              ...rows.map(row),
               <MilestoneRule key={m.path} goalId={goalId} path={m.path} step={m.st} editable={editable} stage={stage} />,
             ];
           })}

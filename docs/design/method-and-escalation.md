@@ -125,7 +125,8 @@ is heading to, a faint broken pencil line for one further on. Each task row's ma
 says where that task stands, so no group labels are needed except for forks:
 
 ```
-   2 done
+☑  Find who owns the tunnel                       (grey)
+☑  Ask Sydney Trains who cleans it                (grey)
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✓  Owner on record
 
@@ -149,15 +150,16 @@ if things change
 ```
 
 A passed milestone stays where it was, its line gone over in ink and a tick in the tick
-column. Its done tasks fold into an "n done" row in their place above the line, which
-opens them there; a message in that stretch still waiting for a reply stays in view. The
-milestone the plan is heading to carries the star, and done tasks toward it stay ticked
-above its line, so progress toward it shows. A task no milestone lists sits before the
+column. Done tasks never fold away: they stay where they were, ticked and grey, so a
+passed milestone keeps the moves that reached it above its line, and the moves still to
+make stand out in ink. A message still waiting for a reply stays in ink, marked ✉. The
+milestone the plan is heading to carries the star, and the done tasks above its line
+show how far toward it the plan has come. A task no milestone lists sits before the
 milestone the plan is heading to. The arrow always means "then"; "to" names who a
 message goes to. ☐, ✉, • and a passed milestone's tick share one column, so every row's
 text starts at one edge.
 
-A sent message stays in view, marked ✉, until it's answered, rather than folding into
+A sent message stays marked ✉ until it's answered, rather than ticked
 done. An escalation still waiting shows only in its message's "if no reply" line, and
 becomes a row of its own when its wait runs out.
 

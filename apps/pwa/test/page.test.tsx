@@ -122,9 +122,11 @@ describe('notebook page markup', () => {
     const order = ['data-milestone="passed"', 'Owner on record', 'Book the hall', 'Report it', 'data-milestone="current"', 'Clean-up date set', 'Walk the site with the crew', 'data-milestone="ahead"', 'Tunnel cleaned', '>if things change<'].map((l) => html.indexOf(l));
     expect(order.every((n) => n >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
-    // A passed milestone keeps its place, ticked, with its done tasks folded.
-    expect(html).not.toContain('Find who owns the tunnel');
-    expect(html).toContain('>1 done<');
+    // A passed milestone keeps its place, ticked, under the done task that
+    // reached it, which stays ticked and grey.
+    expect(html.indexOf('Find who owns the tunnel')).toBeLessThan(html.indexOf('data-milestone="passed"'));
+    expect(html).toMatch(/data-line="plan\.linesOfOperation\.0\.nextActions\.0" class="[^"]*text-graphite/);
+    expect(html).not.toContain(' done<');
     expect(html).toMatch(/data-box="plan\.linesOfOperation\.0\.criticalPath\.0"[^>]*data-checked/);
     // Milestones still ahead carry no box: nobody ticks them.
     expect(html).not.toContain('data-box="plan.linesOfOperation.0.criticalPath.1"');
@@ -164,10 +166,9 @@ describe('notebook page markup', () => {
     const passed = renderSection('plan', line('done'));
     expect(passed).toContain('data-milestone="passed"');
     expect(passed.indexOf('Sydney Trains has heard it')).toBeLessThan(passed.indexOf('data-milestone="current"'));
-    expect(passed).toContain('>2 done<');
-    // The fold sits where its tasks were: above the milestone's line.
-    expect(passed.indexOf('>2 done<')).toBeLessThan(passed.indexOf('data-milestone="passed"'));
-    expect(passed).not.toContain('Call customer care');
+    // Both tasks that reached it stay above its line, ticked and grey.
+    for (const t of ['Fill in the feedback form', 'Call customer care']) expect(passed.indexOf(t)).toBeLessThan(passed.indexOf('data-milestone="passed"'));
+    expect((passed.match(/data-checked/g) ?? []).length).toBe(3);
     // The task waiting on the milestone is a move to make now.
     expect(passed).toContain('data-box="plan.linesOfOperation.0.nextActions.3"');
 
@@ -181,21 +182,6 @@ describe('notebook page markup', () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     expect(unticked).toMatch(/data-box="plan\.linesOfOperation\.0\.nextActions\.0"[^>]*data-checked/);
     expect(unticked).toContain('Sydney Trains has heard it → </span><span>Lodge the TfNSW complaint');
-  });
-
-  it('opens a passed milestone\'s folded tasks on a goto into one', () => {
-    const plan = { linesOfOperation: [{ label: 'L', criticalPath: [{ id: 'm', label: 'Met', after: ['a'] }], nextActions: [
-      { id: 'a', action: 'Folded move', who: 'me', status: 'done' },
-      { action: 'Top', who: 'me', status: 'pending' },
-    ] }] };
-    expect(renderSection('plan', plan)).not.toContain('Folded move');
-    const html = renderToStaticMarkup(
-      <GotoContext.Provider value={{ path: 'plan.linesOfOperation.0.nextActions.0', seq: 1 }}>
-        <SectionBody k="plan" data={plan} goalId="g1" editable />
-      </GotoContext.Provider>,
-    );
-    expect(html).toContain('Folded move');
-    expect(html).toContain('>fold<');
   });
 
   it('labels no groups when a line has only moves to make', () => {
@@ -325,7 +311,7 @@ describe('plan as a strip of lines', () => {
     expect(html).not.toContain('B action');
     expect(html).toContain('B step');
     expect(html).toContain('data-milestone="passed"');
-    expect(html).not.toContain('B done');
+    expect(html.indexOf('B done')).toBeLessThan(html.indexOf('data-milestone="passed"'));
     expect(html).not.toContain('A step');
     expect(html).not.toContain('C step');
     expect((html.match(/data-plan-sheet/g) ?? []).length).toBe(3);
