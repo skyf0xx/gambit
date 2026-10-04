@@ -106,9 +106,27 @@ carries the one every plan has: no measurable progress by a date, then rethink t
 approach. A worry about being sidetracked by a token gesture is a `threat` risk, not a
 fork. The user's own routine is a plain dated move.
 
-**Page.** Each linked task carries a grey "↳" note: "after: …", "if [someone] don't reply
-in 14 days", "if [event], check [date]". It reads grey until it is live. A sent message
-offers "they replied"; a waiting fork offers "it happened" and "it didn't".
+**Page.** A line's tasks are grouped by how they stand, with group labels only when more
+than one group has something, so a picnic reads as a plain list:
+
+```
+now
+☐ Collect signatures from neighbours        Mon 12 Oct
+     unlocks: Print the flyers
+waiting for a reply
+✉ Report the graffiti · to Sydney Trains · sent Mon 28 Sep · day 6 of 14
+   if no reply: Formal complaint → TfNSW complaints, then State MP,
+   then Local paper (public)                               they replied
+if things change
+◇ if under 10 sign-ups · check Sun 1 Nov
+   then Door-knock the street first               it happened  it didn't
+later
+   Print the flyers · after: Collect signatures from neighbours
+```
+
+A sent message stays under "waiting for a reply" until it's answered, rather than
+folding into done. An escalation still waiting shows only in its message's "if no
+reply" line, and moves up into "now" when its wait runs out.
 
 How the skills share the work:
 

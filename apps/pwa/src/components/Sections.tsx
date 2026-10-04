@@ -362,17 +362,39 @@ function visibleActions(actions: Any[], goalId: string, base: string, dropped: M
     });
 }
 
-/** What a task waits on, in a few plain words, or '' for a plain move:
- * the tasks it comes after, the message whose silence it escalates, or the
- * event its fork turns on. */
-function taskCondition(a: Any, byId: Map<string, Any>): string {
-  const names = (ids: string[]) => ids.map((id) => byId.get(id)?.action ?? id).join(', ');
-  const after = a.after?.length ? `after: ${names(a.after)}` : '';
-  const cond = !a.if ? ''
-    : 'noReply' in a.if ? `if ${byId.get(a.if.noReply)?.to ?? 'they'} don't reply in ${a.if.days} days`
-    : a.if.happened ? `${a.if.event}: it happened`
-    : `if ${a.if.event}${a.if.by ? `, check ${byDate(a.if.by)}` : ''}`;
-  return [after, cond].filter(Boolean).join(' · ');
+/** Each escalation level in the page's words. */
+const LEVEL_WORD: Record<string, string> = { interests: 'ask', rights: 'formal', power: 'public' };
+
+/** The escalations that follow a message, in climbing order: the one that
+ * escalates it, then the one that escalates that, and so on. */
+function chainAfter(msg: Any, tasks: Any[]): Any[] {
+  const out: Any[] = [];
+  let cur = msg;
+  for (let n = 0; cur?.id && n < tasks.length; n++) {
+    const next = tasks.find((t) => t.status === 'pending' && t.if && 'noReply' in t.if && t.if.noReply === cur.id);
+    if (!next) break;
+    out.push(next);
+    cur = next;
+  }
+  return out;
+}
+
+/** "if no reply: Formal complaint → TfNSW, then State MP, then Local paper
+ * (public)": the rest of a message's climb on one line. */
+function ChainLine({ chain }: { chain: Any[] }) {
+  if (!chain.length) return null;
+  const step = (t: Any, i: number) => `${i ? `then ${t.to}` : `${t.action} → ${t.to}`}${t.level === 'power' ? ' (public)' : ''}`;
+  return (
+    <div className="text-[14px] leading-5 text-graphite">
+      <span className="text-ink">if no reply: </span>
+      {chain.map((t, i) => <span key={i}>{i ? ', ' : ''}{step(t, i)}</span>)}
+    </div>
+  );
+}
+
+/** A group's pencilled label, shown only when the line has more than one. */
+function GroupLabel({ show, children }: { show: boolean; children: ReactNode }) {
+  return show ? <h4><PencilWord className="text-[19px] text-graphite">{children}</PencilWord></h4> : null;
 }
 
 const PLAN_LINE_PATH = /^plan\.linesOfOperation\.(\d+)(?:\.|$)/;
@@ -510,54 +532,129 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
   const body = (li: number) => {
     const l = lines[li];
     const stepBase = `plan.linesOfOperation.${li}.criticalPath`;
-    const actions = visibleActions(l.nextActions, goalId, `plan.linesOfOperation.${li}.nextActions`, dropped).filter(({ path }) => path !== top);
+    const day = today();
+    const visible = visibleActions(l.nextActions, goalId, `plan.linesOfOperation.${li}.nextActions`, dropped);
+    const tasks = l.nextActions.filter((a: Any) => a.status !== 'dropped');
+    const stateOf = (a: Any) => taskState(a, plan, day);
+    // A message that went out and hasn't been answered is still in play: it
+    // waits for a reply, not in the done fold.
+    const awaiting = ({ a }: { a: Any }) => a.status === 'done' && a.to && !a.replied;
+    // An escalation still waiting shows only in its message's "if no reply"
+    // line, so it appears in no group of its own.
+    const isFork = ({ a }: { a: Any }) => stateOf(a) === 'waiting' && a.if && 'event' in a.if;
+    const now = visible.filter((x) => (stateOf(x.a) === 'live' || x.a.status === 'done' || x.a.status === 'dropped') && !awaiting(x) && x.path !== top);
+    const waitingReply = visible.filter(awaiting);
+    const forks = visible.filter(isFork);
+    const later = visible.filter((x) => stateOf(x.a) === 'blocked');
     const donePaths = [
       ...l.criticalPath.flatMap((x: Any, i: number) => (x.status === 'done' ? [`${stepBase}.${i}`] : [])),
-      ...actions.filter(({ a }) => a.status === 'done').map(({ path }) => path),
+      ...now.filter(({ a }) => a.status === 'done').map(({ path }) => path),
     ];
     const hiddenDone = donePaths.filter((p) => !justDone.has(p)).length;
     const shown = (path: string, status: string) => status !== 'done' || showDone || justDone.has(path);
     // The one row that keeps its "why" on show: the first thing still to do.
     const firstStep = l.criticalPath.findIndex((x: Any) => x.status === 'pending');
-    const detailFor = firstStep >= 0 ? `${stepBase}.${firstStep}` : (actions.find(({ a }) => a.status === 'pending')?.path ?? null);
+    const detailFor = firstStep >= 0 ? `${stepBase}.${firstStep}` : (now.find(({ a }) => a.status === 'pending')?.path ?? null);
     const rows: SheetRows = { shown, detailFor, onTick };
-    const liveActions = actions.filter(({ a, path }) => shown(path, a.status));
+    const nowShown = now.filter(({ a, path }) => shown(path, a.status));
+    const labelled = [nowShown, waitingReply, forks, later].filter((g) => g.length).length > 1;
+    const unlocks = (a: Any) => (a.id ? tasks.filter((t: Any) => t.after?.includes(a.id) && t.status === 'pending').map((t: Any) => t.action) : []);
+    const name = (id: string) => byId.get(id)?.action ?? id;
     return (
       <>
         <Steps goalId={goalId} base={stepBase} steps={l.criticalPath} editable={editable} rows={rows} />
         {l.blocker && <p className="text-[14px] text-graphite">Blocked: {l.blocker}</p>}
-        {liveActions.length > 0 && (
-          <ol className="space-y-1.5">
-            {liveActions.map(({ a, path }) => {
-              const meta = [!isSelf(a.who) && a.who, a.to && `to ${a.to}`, a.when && byDate(a.when)].filter(Boolean).join(' · ');
-              const state = taskState(a, plan, today());
-              const condition = taskCondition(a, byId);
-              const waits = state === 'waiting' || state === 'blocked';
-              return (
-                <Toggle key={path} goalId={goalId} path={path} status={a.status} editable={editable} onTick={onTick} title={path === detailFor ? undefined : a.detail}>
+        {nowShown.length > 0 && (
+          <div className="space-y-1">
+            <GroupLabel show={labelled}>now</GroupLabel>
+            <ol className="space-y-1.5">
+              {nowShown.map(({ a, path }) => {
+                const meta = [!isSelf(a.who) && a.who, a.to && `to ${a.to}`, a.when && byDate(a.when)].filter(Boolean).join(' · ');
+                const opens = unlocks(a);
+                return (
+                  <Toggle key={path} goalId={goalId} path={path} status={a.status} editable={editable} onTick={onTick} title={path === detailFor ? undefined : a.detail}>
+                    <Line goalId={goalId} path={path}>
+                      {/* Only the action is editable; who/when stays outside it. */}
+                      {editable && isEditableLine(path)
+                        ? <EditableText goalId={goalId} path={path} value={a.action}><span>{a.action}</span></EditableText>
+                        : <span>{a.action}</span>}
+                      {meta && <span className="ml-2 text-[14px] text-graphite">{meta}</span>}
+                    </Line>
+                    {a.status !== 'done' && <ChainLine chain={chainAfter(a, tasks)} />}
+                    {opens.length > 0 && <div className="text-[14px] leading-5 text-graphite">unlocks: {opens.join(', ')}</div>}
+                    {a.replied && <div className="text-[14px] leading-5 text-graphite">replied {pencilDate(a.replied)}{a.reply ? `: “${a.reply}”` : ''}</div>}
+                    {path === detailFor && <Detail>{a.detail}</Detail>}
+                  </Toggle>
+                );
+              })}
+            </ol>
+          </div>
+        )}
+        {waitingReply.length > 0 && (
+          <div className="space-y-1">
+            <GroupLabel show={labelled}>waiting for a reply</GroupLabel>
+            <ul className="ml-11 space-y-2 text-[15px] leading-[22px]">
+              {waitingReply.map(({ a, path }) => {
+                const chain = chainAfter(a, tasks);
+                const wait = chain[0]?.if?.days;
+                const waited = a.doneOn ? Math.max(0, -(daysUntil(a.doneOn) ?? 0)) : 0;
+                return (
+                  <li key={path}>
+                    {/* Not a Line: the marks layer would tick it as done, and
+                     * it isn't finished until they answer. */}
+                    <div>
+                      <span aria-hidden="true">✉ </span>
+                      <span>{a.action}</span>
+                      <span className="text-[14px] text-graphite"> · to {a.to}{a.doneOn ? ` · sent ${pencilDate(a.doneOn)}` : ''} · day {waited}{wait ? ` of ${wait}` : ''}</span>
+                    </div>
+                    <ChainLine chain={chain} />
+                    {editable && (
+                      <TextAction className="-my-2 text-[14px] underline" onClick={() => void markTaskReplied(goalId, path)}>they replied</TextAction>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+        {forks.length > 0 && (
+          <div className="space-y-1">
+            <GroupLabel show={labelled}>if things change</GroupLabel>
+            <ul className="ml-11 space-y-2 text-[15px] leading-[22px]">
+              {forks.map(({ a, path }) => (
+                <li key={path}>
                   <Line goalId={goalId} path={path}>
-                    {/* Only the action is editable; who/when stays outside it. */}
-                    {editable && isEditableLine(path)
-                      ? <EditableText goalId={goalId} path={path} value={a.action}><span>{a.action}</span></EditableText>
-                      : <span>{a.action}</span>}
-                    {meta && <span className="ml-2 text-[14px] text-graphite">{meta}</span>}
+                    <span aria-hidden="true">◇ </span>
+                    <span className="text-graphite">if </span><span>{a.if.event}</span>
+                    {a.if.by && <span className="text-[14px] text-graphite"> · check {byDate(a.if.by)}</span>}
+                    <br />
+                    <span className="text-graphite">then </span><span>{a.action}</span>
                   </Line>
-                  {condition && <div className={`text-[14px] leading-5 ${waits ? 'text-graphite' : 'text-ink'}`}>↳ {condition}</div>}
-                  {a.replied && <div className="text-[14px] leading-5 text-graphite">replied {pencilDate(a.replied)}{a.reply ? `: “${a.reply}”` : ''}</div>}
-                  {editable && a.to && a.status === 'done' && !a.replied && (
-                    <TextAction className="-my-2 text-[14px] underline" onClick={() => void markTaskReplied(goalId, path)}>they replied</TextAction>
-                  )}
-                  {editable && state === 'waiting' && a.if && 'event' in a.if && (
+                  {editable && (
                     <div className="flex gap-x-4 text-[14px]">
                       <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, true)}>it happened</TextAction>
                       <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, false)}>it didn’t</TextAction>
                     </div>
                   )}
-                  {path === detailFor && <Detail>{a.detail}</Detail>}
-                </Toggle>
-              );
-            })}
-          </ol>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {later.length > 0 && (
+          <div className="space-y-1">
+            <GroupLabel show={labelled}>later</GroupLabel>
+            <ul className="ml-11 space-y-1 text-[15px] leading-[22px] text-graphite">
+              {later.map(({ a, path }) => (
+                <li key={path}>
+                  <Line goalId={goalId} path={path}>
+                    <span>{a.action}</span>
+                    <span className="text-[14px]"> · after: {(a.after ?? []).map(name).join(', ')}</span>
+                  </Line>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         {editable && l.nextActions.length < NEXT_ACTIONS_MAX && <AddMove goalId={goalId} li={li} />}
         {hiddenDone > 0 && (

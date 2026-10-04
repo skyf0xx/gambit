@@ -96,26 +96,49 @@ describe('notebook page markup', () => {
     expect(html).not.toContain('Dropped action');
   });
 
-  it('notes what a linked task waits on, greys it until it is live, and offers replied and fork buttons', () => {
+  it('groups linked tasks: now, waiting for a reply with the climb, if things change, later', () => {
     const plan = {
       linesOfOperation: [{
         label: 'Tunnel', criticalPath: [], nextActions: [
           { id: 'photos', action: 'Take the weekly photos', who: 'me', status: 'pending' },
+          { id: 'hall', action: 'Book the hall', who: 'me', status: 'pending' },
           { id: 'report', action: 'Report it', who: 'me', to: 'Sydney Trains', level: 'interests', status: 'done', doneOn: '2099-10-01' },
-          { action: 'Formal complaint quoting the reference', who: 'me', to: 'TfNSW complaints', level: 'rights', status: 'pending', if: { noReply: 'report', days: 14 } },
+          { id: 'complaint', action: 'Formal complaint quoting the reference', who: 'me', to: 'TfNSW complaints', level: 'rights', status: 'pending', if: { noReply: 'report', days: 14 } },
+          { action: 'Pitch the story', who: 'me', to: 'Local paper', level: 'power', status: 'pending', if: { noReply: 'complaint', days: 30 } },
           { action: 'Door-knock the street first', who: 'me', status: 'pending', if: { event: 'under 10 sign-ups', by: '2099-11-01' } },
-          { action: 'Print the flyers', who: 'me', status: 'pending', after: ['photos'] },
+          { action: 'Print the flyers', who: 'me', status: 'pending', after: ['hall'] },
         ],
       }],
     };
     const html = renderSection('plan', plan);
-    expect(html).toContain('Formal complaint quoting the reference');
-    expect(html).toContain('to TfNSW complaints');
-    expect(html).toContain('↳ if Sydney Trains don&#x27;t reply in 14 days');
-    expect(html).toContain('↳ if under 10 sign-ups, check Sun 1 Nov 2099');
-    expect(html).toContain('↳ after: Take the weekly photos');
-    expect(html).toContain('it happened');
+    const order = ['>now<', '>waiting for a reply<', '>if things change<', '>later<'].map((l) => html.indexOf(l));
+    expect(order.every((n) => n >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    // The top move is on the card; the rest of now shows what it unlocks.
+    expect(html).not.toContain('Take the weekly photos');
+    expect(html).toContain('unlocks: Print the flyers');
+    // A sent message waits for a reply, with its climb on one line.
+    expect(html).toContain(' · to Sydney Trains · sent Thu 1 Oct 2099 · day 0 of 14');
+    expect(html).toContain('if no reply: ');
+    expect(html).not.toContain('data-line="plan.linesOfOperation.0.nextActions.2"');
+    expect(html).toContain('Formal complaint quoting the reference → TfNSW complaints');
+    expect(html).toContain(', then Local paper (public)');
+    expect(html).toContain('they replied');
+    // Waiting escalations appear only in the climb, not as rows of their own.
+    expect(html).not.toContain('data-line="plan.linesOfOperation.0.nextActions.3"');
+    expect(html).toContain('under 10 sign-ups');
+    expect(html).toContain('check Sun 1 Nov 2099');
     expect(html).toContain('it didn’t');
+    expect(html).toContain(' · after: Book the hall');
+  });
+
+  it('labels no groups when a line has only moves to make', () => {
+    const html = renderSection('plan', { linesOfOperation: [{ label: 'Picnic', criticalPath: [], nextActions: [
+      { action: 'Book the spot', who: 'me', status: 'pending' },
+      { action: 'Buy the food', who: 'me', status: 'pending' },
+    ] }] });
+    expect(html).toContain('Buy the food');
+    expect(html).not.toContain('>now<');
   });
 
   it('leaves the top move to the index card and folds done moves away', () => {
