@@ -392,9 +392,10 @@ diamond in the marker column, the name where a task's text starts (a size
 smaller than a task and not bold), and the stroke running on to the right
 edge.
 The diamond is open until those tasks are done, then filled, with the day
-it was reached pencilled beside it. A passed milestone stays in place with
-its line in ink; the one the plan is heading to has a pencil line; one
-further on has a faint broken line and its name in grey. Done tasks never
+it was reached pencilled beside it. Every milestone is drawn the same,
+quieter than the tasks: a faint dotted pencil line and a grey name, so
+only the diamond tells a passed one from one still to come, and no
+milestone outweighs the moves. A passed milestone stays in place. Done tasks never
 fold away: they stay where they were, ticked and grey, so a passed
 milestone keeps the moves that reached it above its line. A task no
 milestone lists sits before the one the line is heading to. The top move,

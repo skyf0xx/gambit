@@ -123,15 +123,15 @@ on to the right edge. The diamond is open until
 those tasks are done, then filled. The name is a size smaller than a task and not bold, so
 the moves stay the loudest thing on the page, and it stays left-aligned with them, so
 every row starts at one edge and a milestone never reads as a heading for what follows.
-The line's material says where it stands, the way the rest of the page does: ink once
-passed, pencil for the one the plan is heading to, a faint broken pencil line for one
-further on. Each task row's marker says where that task stands, so no group labels are
+Every milestone is drawn the same, one step quieter than the tasks: a faint dotted pencil
+line and a grey name. Only the diamond, filled once reached, tells a passed milestone from
+one still to come, so no milestone outweighs the moves around it. Each task row's marker says where that task stands, so no group labels are
 needed except for forks:
 
 ```
 ☑  Find who owns the tunnel                       (grey)
 ☑  Ask Sydney Trains who cleans it                (grey)
-━◆ Owner on record ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+-◆ Owner on record - - - - - - - - - - - - - - (grey)
    reached Wed 16 Sep
 
 ☐  Collect signatures from neighbours        Mon 12 Oct
@@ -141,7 +141,7 @@ needed except for forks:
       if no reply: Formal complaint to TfNSW complaints, then State MP,
       then Local paper (public)                            they replied
 •  Collect signatures from neighbours → Print the flyers
-─◇ Clean-up date set ─────────────────────────────
+-◇ Clean-up date set - - - - - - - - - - - - - (grey)
 
 •  Clean-up date set → Walk the site with the crew
 -◇ Tunnel cleaned - - - - - - - - - - - - - - (grey)
@@ -151,7 +151,7 @@ if things change
       then Door-knock the street first            it happened  it didn't
 ```
 
-A passed milestone stays where it was, its diamond filled, its line in ink, and the day it
+A passed milestone stays where it was, its diamond filled, and the day it
 was reached (the last day a task toward it was done) pencilled under its name. Done tasks
 never fold away: they stay where they were, ticked and grey, so a passed milestone keeps
 the moves that reached it above it, and the moves still to make stand out in ink. A

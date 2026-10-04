@@ -312,17 +312,20 @@ function Diamond({ filled }: { filled: boolean }) {
  * has no box. It is a checkpoint ruled across the page after the tasks
  * that reach it, the way a notebook rules off a section: a short stroke,
  * the diamond in the marker column, its name where a task's text starts,
- * then the stroke runs on to the right edge, all on one line. The diamond
- * is open until those tasks are done, then filled, with the day it was
- * reached; unticking a task opens it again. Passed, the line is in ink and
- * stays where it was; the one the line is heading to is in pencil, in ink
- * type; one further on is a faint broken line with its name in grey. */
+ * then the stroke runs on to the right edge, all on one line. Every
+ * milestone is drawn the same, quieter than the tasks: a faint dotted
+ * pencil line and a grey name. The diamond is open until its tasks are
+ * done, then filled, with the day it was reached; unticking a task opens
+ * it again. */
 function MilestoneRule({ goalId, path, step, editable, stage, reachedOn }: {
   goalId: string; path: string; step: Any; editable: boolean;
   stage: 'passed' | 'current' | 'ahead'; reachedOn?: string;
 }) {
-  const tone = stage === 'passed' ? 'ink' : stage === 'current' ? 'pencil' : 'faint';
-  const ink = stage === 'ahead' ? 'text-graphite' : 'text-ink';
+  // Every milestone sits one step quieter than the tasks, in the same
+  // faint dotted pencil; only the diamond, filled once reached, tells them
+  // apart.
+  const tone = 'faint';
+  const ink = 'text-graphite';
   // Each stroke sits in a box one text line tall, so it meets the middle
   // of the name's first line however the name wraps.
   const stroke = (side: string, className: string) => (
