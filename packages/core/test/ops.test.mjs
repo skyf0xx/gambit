@@ -440,7 +440,7 @@ test('setStatus climbs a ladder and settles a decision point', () => {
   const g = writeSection(mapped, 'plan', {
     linesOfOperation: [{
       label: 'Council', criticalPath: [], nextActions: [],
-      decisionPoints: [{ if: 'no reply by 20 Oct', then: 'go to the head of council' }],
+      decisionPoints: [{ if: 'no reply by 20 Oct', then: 'start the petition' }],
       ladder: [rung(), rung({ level: 'rights', action: 'complain' })],
     }],
   }).goal;
@@ -482,4 +482,38 @@ test('an if-then is two short phrases the page can label', () => {
   assert.match(write([{ if: 'photos missed', then: 'restart: new week one' }]).errors[0].message, /no colon/);
   assert.equal(write([{ if: 'iffy weather', then: 'thence onward' }]).ok, true);
   assert.equal(write([{ if: 'x', then: 'y' }], [rung({ action: 'Send the letter of complaint with photos and the reference number' })]).ok, false);
+});
+
+test('a checkpoint starts in lower case unless it starts with a name', () => {
+  const g = { ...mapped, stakeholders: [...mapped.stakeholders, { name: 'Rail Corp', power: 'high', stanceCurrent: 'silent', stanceTarget: 'acts', via: 'complaints' }] };
+  const points = [
+    { if: 'Two weekly photos get missed', then: 'Restart the baseline' },
+    { if: 'Council offers a one-off clean', then: 'Take it, keep chasing' },
+    { if: "Rail's written refusal arrives", then: 'TfNSW gets the trail' },
+    { if: 'Friday rain over 50%', then: 'I move it indoors' },
+  ];
+  const r = writeSection(g, 'plan', { linesOfOperation: [{ label: 'L', criticalPath: [], nextActions: [], decisionPoints: points }] });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.goal.plan.linesOfOperation[0].decisionPoints.map((d) => [d.if, d.then]), [
+    ['two weekly photos get missed', 'restart the baseline'],
+    ['Council offers a one-off clean', 'take it, keep chasing'],
+    ["Rail's written refusal arrives", 'TfNSW gets the trail'],
+    ['Friday rain over 50%', 'I move it indoors'],
+  ]);
+});
+
+test('a ladder never climbs to the user, and a checkpoint never repeats a rung', () => {
+  const me = writeSection(mapped, 'plan', withLadder([rung({ to: 'me', action: 'take the weekly photos' })]));
+  assert.equal(me.ok, false);
+  assert.match(me.errors[0].message, /never the user/);
+  const twice = writeSection(mapped, 'plan', {
+    linesOfOperation: [{
+      label: 'L', criticalPath: [], nextActions: [],
+      ladder: [rung(), rung({ level: 'rights', action: 'complaint to the head', to: 'Sam' })],
+      decisionPoints: [{ if: 'six weeks of silence', then: 'Sam gets the paper trail' }, { if: 'under five signatures', then: 'send the chase anyway' }],
+    }],
+  });
+  assert.equal(twice.ok, false);
+  assert.deepEqual(twice.errors.map((e) => e.path), ['plan.linesOfOperation.0.decisionPoints.0.then']);
+  assert.match(twice.errors[0].message, /the ladder already takes this to Sam/);
 });

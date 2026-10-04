@@ -340,13 +340,16 @@ line's text, not the plan's shape).
   (`BRANCH_MAX_WORDS`), with no leading "if" or "then", no colon,
   semicolon or second sentence. The reading-grade check can't catch a
   run-on line of short words, so this is a rule of its own, on the write
-  path only.
+  path only. `writeSection` saves each half starting in lower case unless
+  its first word is a `people` or `stakeholders` name, a day or month, "I",
+  or has capitals inside it. A checkpoint whose `then` names a rung's `to`
+  on the same line is refused: the ladder's wait already says that.
 - `ladder`: up to 6 rungs `{level, action, to, carries?, waitDays, status,
   sentOn?, outcome?}`, for an ask someone else can ignore. `level` climbs
   `interests` → `rights` → `power` and never steps back down. `to` names a
-  `people` or `stakeholders` entry, verbatim, and a skill write naming
-  anyone else is refused, so the ladder goes to whoever actually holds the
-  authority; `reconcileGoal` warns when a later write drops that name.
+  `people` or `stakeholders` entry, verbatim, never the user ("me", "you"),
+  and a skill write naming anyone else is refused, so the ladder goes to
+  whoever actually holds the authority; `reconcileGoal` warns when a later write drops that name.
   `status` is `pending | sent | answered | unanswered | skipped`, with one
   rung `sent` at a time. `sentOn` is stamped like `doneOn`: `setStatus`
   stamps today when a rung flips to `sent` and marks the rung out before it

@@ -132,7 +132,15 @@ date; `then` is a verb phrase.
 | council offers a one-off clean | take it, keep chasing |
 
 A condition nobody could check isn't a decision point. A move that needs more than 8
-words is more than one move: put the rest in the plan's steps.
+words is more than one move: put the rest in the plan's steps. The code saves each half
+starting in lower case unless it starts with a name.
+
+A checkpoint watches something outside the user's control: another person's response,
+the weather, a count of sign-ups. The user's own routine ("take the weekly photo") is a
+dated next action, which the due list already flags when it slips. And a checkpoint never
+repeats the ladder: "rail stays silent six weeks → the mayor gets the trail" is what a
+rung's wait and the next rung already say, so a checkpoint handing the matter to a rung's
+`to` is refused.
 
 **An escalation ladder**, when the line needs someone else to act and they can ignore
 the user: a council, a landlord, a supplier, an employer. The same ask, put to a harder
@@ -149,7 +157,8 @@ Each rung is `{level, action, to, carries?, waitDays, status: "pending"}`, at mo
 `action` is 8 words or fewer ("Formal complaint quoting the reference"); the page adds
 who it goes to and what it carries.
 `to` is a name from `people` or `stakeholders`, verbatim, and a rung naming anyone else is
-refused. The first job is finding who actually holds the authority (a tunnel may belong to
+refused. A rung never goes to the user: the ladder is what others are asked, and the
+user's own work is a next action. The first job is finding who actually holds the authority (a tunnel may belong to
 the rail operator, not the council). If they aren't mapped, load `stakeholders` before
 building the ladder. `carries` is what the rung brings forward from the ones before: the
 reference number, the paper trail, photos. `waitDays` is how long the rung gets before the

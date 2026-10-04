@@ -83,6 +83,12 @@ second clause, so it reads at a glance. Flesch-Kincaid already runs on every goa
 but it measures word and sentence length, so a run-on line of short words passes it.
 The word cap is what keeps each half to one idea.
 
+A checkpoint watches what the user doesn't control: someone else's reply, the weather, a
+count. The user's own routine is a dated next action instead, and slips show in the due
+list. A checkpoint never hands the matter to one of the ladder's rungs; the rung's wait
+already does that. Each half is saved starting in lower case unless it opens with a name,
+so it reads after the page's "if" and "then".
+
 **Ladder**: at most 6 rungs per line, one ladder per line, so a campaign can push on
 two authorities in parallel.
 
@@ -100,8 +106,8 @@ rung = {
 
 - Rungs climb `interests` → `rights` → `power`, never back down, with one rung sent at
   a time.
-- `to` must already be in `people` or `stakeholders`, which forces the question of who
-  actually holds the authority.
+- `to` must already be in `people` or `stakeholders`, and is never the user, which
+  forces the question of who actually holds the authority.
 - Sending the next rung marks the silent one before it `unanswered`, so the ladder
   keeps the paper trail.
 - An answer stops the climb until `plan` decides whether it settles the ask.

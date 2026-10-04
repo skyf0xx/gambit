@@ -412,6 +412,11 @@ const branchText = (text, lead, ctx, path) => {
   }
 };
 
+/** Whether a name means the user: a ladder climbs toward someone else. */
+export const isSelfName = (name) => /^(me|you|i|myself|yourself|self|user|the user)$/i.test(String(name ?? '').trim());
+
+const mentions = (text, name) => new RegExp(`\\b${name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text);
+
 export const writeRules = {
   plan: plan.superRefine((p, ctx) => {
     if (p.linesOfOperation.filter((l) => l.focus).length > 1) {
@@ -422,7 +427,29 @@ export const writeRules = {
         branchText(d.if, 'if', ctx, ['linesOfOperation', li, 'decisionPoints', di, 'if']);
         branchText(d.then, 'then', ctx, ['linesOfOperation', li, 'decisionPoints', di, 'then']);
       });
-      (l.ladder ?? []).forEach((r, ri) => branchText(r.action, null, ctx, ['linesOfOperation', li, 'ladder', ri, 'action']));
+      (l.ladder ?? []).forEach((r, ri) => {
+        branchText(r.action, null, ctx, ['linesOfOperation', li, 'ladder', ri, 'action']);
+        if (isSelfName(r.to)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['linesOfOperation', li, 'ladder', ri, 'to'],
+            message: 'a rung goes to someone else, never the user; the user\'s own work is a dated next action',
+          });
+        }
+      });
+      // A ladder already says what happens when a rung gets no reply: a
+      // decision point that hands the matter to one of its rungs says it
+      // twice, and the two drift apart.
+      (l.decisionPoints ?? []).forEach((d, di) => {
+        const rung = (l.ladder ?? []).find((r) => !isSelfName(r.to) && mentions(d.then, r.to));
+        if (rung) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['linesOfOperation', li, 'decisionPoints', di, 'then'],
+            message: `the ladder already takes this to ${rung.to}; let that rung's wait handle it and drop this checkpoint`,
+          });
+        }
+      });
       const ladder = l.ladder ?? [];
       ladder.forEach((r, ri) => {
         if (ri && RUNG_LEVELS.indexOf(r.level) < RUNG_LEVELS.indexOf(ladder[ri - 1].level)) {

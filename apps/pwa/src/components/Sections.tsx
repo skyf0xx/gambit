@@ -408,8 +408,9 @@ function Branches({ goalId, base, line, editable }: { goalId: string; base: stri
               <li key={i} className={`grid grid-cols-[6.5rem_1fr] gap-x-3 ${d.status === 'open' ? 'text-ink' : 'text-graphite'}`}>
                 <span className="text-[14px] text-graphite">{d.status === 'open' ? (d.by ? pencilDate(d.by) : 'any time') : d.status === 'taken' ? 'happened' : 'didn’t happen'}</span>
                 <Line goalId={goalId} path={`${base}.decisionPoints.${i}`}>
-                  <span className="block"><span className="text-graphite">if </span>{d.if}</span>
-                  <span className="block"><span className="text-graphite">then </span>{d.then}</span>
+                  <span><span className="text-graphite">if </span>{d.if}</span>
+                  <br />
+                  <span><span className="text-graphite">then </span>{d.then}</span>
                 </Line>
               </li>
             ))}

@@ -115,7 +115,7 @@ describe('notebook page markup', () => {
     expect(html).toContain('checkpoints');
     // Soonest check first, the date in a column of its own, then if and then on lines of their own.
     expect(html.indexOf('council offers')).toBeLessThan(html.indexOf('no clean-up date'));
-    expect(html).toMatch(/Mon 19 Oct 2099<\/span>[\s\S]*?<span class="text-graphite">if <\/span>council offers a one-off clean<\/span><span class="block"><span class="text-graphite">then <\/span>take it, keep chasing/);
+    expect(html).toMatch(/Mon 19 Oct 2099<\/span>[\s\S]*?<span class="text-graphite">if <\/span>council offers a one-off clean<\/span><br\/><span><span class="text-graphite">then <\/span>take it, keep chasing/);
     expect(html).toContain('if they don&#x27;t answer');
     expect(html).toMatch(/ask<\/div>[\s\S]*formal channels<\/div>[\s\S]*go public<\/div>/);
     expect(html).toContain('Formal complaint</span><span class="text-graphite"> · to TfNSW complaints</span>');

@@ -124,6 +124,7 @@ export function writeSection(goal, key, value, now = new Date().toISOString(), d
   if (key === 'plan') {
     stampDone(part.data, goal.plan, day);
     stampSent(part.data, goal.plan, day);
+    lowerCheckpoints(part.data, goal);
     if (!opts.page) {
       const errors = planShape(part.data, goal);
       if (errors.length) return { ok: false, errors };
@@ -188,6 +189,32 @@ function planShape(plan, goal) {
     }
   }));
   return errors;
+}
+
+const PROPER = new Set('monday tuesday wednesday thursday friday saturday sunday january february march april may june july august september october november december'.split(' '));
+
+/**
+ * A checkpoint reads "if under five residents signed / then send the chase",
+ * the page supplying "if" and "then", so each half starts in lower case,
+ * unless its first word is a name: someone in `people` or `stakeholders`,
+ * a day or month, "I", or a word with capitals inside it (TfNSW).
+ */
+function lowerLead(text, names) {
+  const first = text.match(/^[\p{L}'’]+/u)?.[0];
+  if (!first || first === 'I' || /\p{Lu}/u.test(first.slice(1))) return text;
+  const bare = first.replace(/['’]s$/, '').toLowerCase();
+  if (names.has(bare) || PROPER.has(bare)) return text;
+  return first[0].toLowerCase() + text.slice(1);
+}
+
+function lowerCheckpoints(plan, goal) {
+  const names = new Set([...goal.people, ...goal.stakeholders].map((p) => personKey(p.name).split(/\s+/)[0]));
+  for (const l of plan.linesOfOperation) {
+    for (const d of l.decisionPoints ?? []) {
+      d.if = lowerLead(d.if, names);
+      d.then = lowerLead(d.then, names);
+    }
+  }
 }
 
 const rungsOf = (plan) => (plan?.linesOfOperation ?? []).flatMap((l) => l.ladder ?? []);
