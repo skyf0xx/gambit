@@ -154,7 +154,8 @@ column. Done tasks never fold away: they stay where they were, ticked and grey, 
 passed milestone keeps the moves that reached it above its line, and the moves still to
 make stand out in ink. A message still waiting for a reply stays in ink, marked ✉. The
 milestone the plan is heading to carries the star, and the done tasks above its line
-show how far toward it the plan has come. A task no milestone lists sits before the
+show how far toward it the plan has come. The top move, on the index card, is listed in
+its place too, pencilled "top move", so its milestone always has a move above its line. A task no milestone lists sits before the
 milestone the plan is heading to. The arrow always means "then"; "to" names who a
 message goes to. ☐, ✉, • and a passed milestone's tick share one column, so every row's
 text starts at one edge.

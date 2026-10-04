@@ -133,8 +133,10 @@ describe('notebook page markup', () => {
     expect(html).not.toContain('data-box="plan.linesOfOperation.0.criticalPath.2"');
     expect(html).not.toContain('⚑');
     expect(html).toContain('Clean-up date set → </span><span>Walk the site with the crew');
-    // The top move is on the card; the rest of now shows what it unlocks.
-    expect(html).not.toContain('Take the weekly photos');
+    // The top move is on the card and in its place in the list, pencilled
+    // as the top move; the rest of now shows what it unlocks.
+    expect(html.indexOf('Take the weekly photos')).toBeLessThan(html.indexOf('>top move<'));
+    expect(html.indexOf('>top move<')).toBeLessThan(html.indexOf('data-milestone="current"'));
     expect(html).toContain('→ Print the flyers');
     // A sent message waits for a reply, with its climb on one line.
     expect(html).toContain(' · to Sydney Trains · sent Thu 1 Oct 2099 · waiting for a reply, day 0 of 14');
@@ -193,9 +195,10 @@ describe('notebook page markup', () => {
     expect(html).not.toContain('>now<');
   });
 
-  it('leaves the top move to the index card and keeps done moves ticked toward the next milestone', () => {
+  it('lists the top move in its place, pencilled, and keeps done moves ticked toward the next milestone', () => {
     const html = renderSection('plan', g.plan);
-    expect(html).not.toContain('Pending action');
+    expect(html.indexOf('Pending action')).toBeLessThan(html.indexOf('data-milestone="current"'));
+    expect(html).toContain('>top move<');
     expect(html).toContain('Done action');
     expect(html).toMatch(/data-box="plan\.linesOfOperation\.0\.nextActions\.1"[^>]*data-checked/);
   });
@@ -269,8 +272,8 @@ describe('notebook page markup', () => {
 
   it('gives each row one box, and only the done one is checked', () => {
     const planHtml = renderSection('plan', g.plan);
-    // the top move is on the index card, and the milestone ahead has no box
-    expect((planHtml.match(/data-box/g) ?? []).length).toBe(1);
+    // the top move and the done move; the milestone ahead has no box
+    expect((planHtml.match(/data-box/g) ?? []).length).toBe(2);
     expect((planHtml.match(/data-checked/g) ?? []).length).toBe(1);
   });
 });
@@ -308,7 +311,7 @@ describe('plan as a strip of lines', () => {
 
   it('lists every line as a pill and shows only one of them', () => {
     const html = renderSection('plan', { linesOfOperation: lines });
-    expect(html).not.toContain('B action');
+    expect(html).toContain('B action');
     expect(html).toContain('B step');
     expect(html).toContain('data-milestone="passed"');
     expect(html.indexOf('B done')).toBeLessThan(html.indexOf('data-milestone="passed"'));

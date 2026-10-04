@@ -534,8 +534,9 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     strip.scrollTo({ left: to > max - 40 ? max : to < 40 ? 0 : to, behavior: 'smooth' });
   }, [open]);
   const changedLine = turn?.goalId === goalId ? planLineIndex(turn.lines[0]?.path) : null;
-  // The top move is already on the index card above; the list doesn't
-  // repeat it.
+  // The top move is on the index card above, and in its place in the list
+  // too, pencilled "top move", so the milestone it works toward isn't left
+  // with nothing above it.
   const plan = { linesOfOperation: lines } as NonNullable<Goal['plan']>;
   const top = nextMove({ plan } as Goal)?.path;
   const byId = new Map(lines.flatMap((l: Any) => l.nextActions).filter((a: Any) => a.id).map((a: Any) => [a.id, a]));
@@ -565,9 +566,9 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
       const k = a.id ? steps.findIndex(({ st }: Any) => st.after?.includes(a.id)) : -1;
       return k >= 0 ? k : heading;
     };
-    const rowsIn = (k: number) => visible.filter(({ a, path }) => path !== top && !isFork(a) && !isChained(a) && stretchOf(a) === k);
+    const rowsIn = (k: number) => visible.filter(({ a }) => !isFork(a) && !isChained(a) && stretchOf(a) === k);
     const forks = visible.filter(({ a }) => isFork(a));
-    const detailFor = rowsIn(heading).find(({ a }) => stateOf(a) === 'live' && a.status === 'pending')?.path ?? null;
+    const detailFor = rowsIn(heading).find(({ a, path }) => path !== top && stateOf(a) === 'live' && a.status === 'pending')?.path ?? null;
     const unlocks = (a: Any) => (a.id ? tasks.filter((t: Any) => t.after?.includes(a.id) && t.status === 'pending').map((t: Any) => t.action) : []);
     const name = (id: string) => byId.get(id)?.action ?? l.criticalPath.find((st: Any) => st.id === id)?.label ?? id;
 
@@ -611,6 +612,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
               ? <EditableText goalId={goalId} path={path} value={a.action}><span>{a.action}</span></EditableText>
               : <span>{a.action}</span>}
             {meta && <span className="ml-2 text-[14px] text-graphite">{meta}</span>}
+            {path === top && <PencilWord className="ml-2 text-[17px] text-graphite">top move</PencilWord>}
           </Line>
           {a.status !== 'done' && <ChainLine chain={chainAfter(a, tasks)} />}
           {opens.length > 0 && <div className="text-[14px] leading-5 text-graphite">→ {opens.join(', ')}</div>}

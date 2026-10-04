@@ -392,7 +392,9 @@ milestone carries the star; one further on is a faint broken line; a passed
 one stays in place, gone over in ink with a tick in the tick column. Done
 tasks never fold away: they stay where they were, ticked and grey, so a
 passed milestone keeps the moves that reached it above its line. A task no
-milestone lists sits before the one the line is heading to.
+milestone lists sits before the one the line is heading to. The top move,
+on the index card, is listed in its place too, pencilled "top move", so its
+milestone always has the move toward it above its line.
 
 A next action's `when` is the date it is due by (YYYY-MM-DD), optional.
 `doneOn` is the date it was done: `setStatus` stamps it with today when the
