@@ -8,7 +8,6 @@ import {
   hashSeed,
   highlightPoints,
   zigzagPoints,
-  starPoints,
   strokePath,
   tickPoints,
   crossPoints,
@@ -333,12 +332,6 @@ export function MarksLayer() {
         });
       }
 
-      if (mark.kind === 'star') {
-        const L = lines[0];
-        drawStroke(starPoints(marginX, L, seed), over, { size: 1.6, thinning: 0.4 });
-        marginNote(L, note);
-      }
-
       if (mark.kind === 'question') {
         const L = lines[0];
         const t = svgNS('text', {
@@ -458,7 +451,7 @@ export function MarksLayer() {
     <div ref={containerRef} className="pointer-events-none absolute inset-0" aria-hidden="true">
       <svg ref={underRef} className="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true" />
       {/* Above the page content (which would otherwise catch the pointer
-       * over a margin star or "?") but under the sticky title bar (z-10).
+       * over a margin "?") but under the sticky title bar (z-10).
        * It ignores the pointer except on those marks' hit areas. */}
       <svg ref={overRef} className="pointer-events-none absolute inset-0 z-[5] h-full w-full overflow-visible" aria-hidden="true" />
     </div>
@@ -471,8 +464,6 @@ export function MarksLayer() {
  * text inline, so it needs no separate note. */
 export function noteForMark(mark: Mark): string | null {
   switch (mark.kind) {
-    case 'star':
-      return 'your top move is working toward this';
     case 'arrow':
       return mark.sr;
     case 'question':

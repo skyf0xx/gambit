@@ -32,14 +32,12 @@ describe('deriveMarks — tick', () => {
     expect(byPath.get('plan.linesOfOperation.0.nextActions.0')).toEqual({ kind: 'tick', sr: 'done' });
   });
 
-  it('ticks a milestone once its tasks reach it, and takes the tick off when one is unticked', () => {
+  it('never ticks a milestone: it becomes true, so its diamond fills instead', () => {
     const goal = withPlan(stubGoal('Goal') as Goal, {
       criticalPath: [{ id: 'one', label: 'Step one', after: ['call'] }],
       nextActions: [{ id: 'call', action: 'Call Priya', who: 'me', when: '2026-10-09', status: 'done' as const }],
     });
-    expect(deriveMarks(goal, 'g1', emptySession).byPath.get('plan.linesOfOperation.0.criticalPath.0')).toEqual({ kind: 'tick', sr: 'done' });
-    goal.plan!.linesOfOperation[0].nextActions[0].status = 'pending';
-    expect(deriveMarks(goal, 'g1', emptySession).byPath.get('plan.linesOfOperation.0.criticalPath.0')).not.toEqual({ kind: 'tick', sr: 'done' });
+    expect(deriveMarks(goal, 'g1', emptySession).byPath.get('plan.linesOfOperation.0.criticalPath.0')).toBeUndefined();
   });
 
   it('marks a criterion scored met', () => {
@@ -101,42 +99,13 @@ describe('deriveMarks — highlight', () => {
   });
 });
 
-describe('deriveMarks — star', () => {
-  it('marks the first milestone not yet reached on the top move\'s line', () => {
-    const goal = withPlan(stubGoal('Goal') as Goal, {
-      criticalPath: [
-        { id: 'one', label: 'Step one', after: ['done'] },
-        { id: 'two', label: 'Step two', after: ['call'] },
-      ],
-      nextActions: [
-        { id: 'done', action: 'Book the room', who: 'me', status: 'done' as const },
-        { id: 'call', action: 'Call Priya', who: 'me', when: '2026-10-09', status: 'pending' as const },
-      ],
-    });
-    const { byPath } = deriveMarks(goal, 'g1', emptySession);
-    expect(byPath.get('plan.linesOfOperation.0.criticalPath.1')).toMatchObject({ kind: 'star' });
-  });
-
-  it('follows the top move, not the highlight, when they sit on different lines', () => {
+describe('deriveMarks — milestones', () => {
+  it('lets the focus highlight land on a milestone', () => {
     const goal: Goal = {
-      ...stubGoal('Goal') as Goal,
-      plan: {
-        linesOfOperation: [
-          { label: 'A', criticalPath: [{ label: 'A step' }], nextActions: [] },
-          { label: 'B', focus: true, criticalPath: [{ label: 'B step' }], nextActions: [{ action: 'Do B', who: 'me', when: '2026-10-09', status: 'pending' }] },
-        ],
-      },
+      ...withPlan(stubGoal('Goal') as Goal, { criticalPath: [{ label: 'A step' }] }),
       log: [{ date: '2026-01-01', focus: 'f', focusLine: 'A step', notes: [] }],
     };
-    const { byPath } = deriveMarks(goal, 'g1', emptySession);
-    expect(byPath.get('plan.linesOfOperation.1.criticalPath.0')).toMatchObject({ kind: 'star' });
-    expect(byPath.get('plan.linesOfOperation.0.criticalPath.0')).toMatchObject({ kind: 'highlight' });
-  });
-
-  it('has no star without a top move', () => {
-    const goal = withPlan(stubGoal('Goal') as Goal, { nextActions: [] });
-    const { byPath } = deriveMarks(goal, 'g1', emptySession);
-    expect([...byPath.values()].filter((m) => m.kind === 'star')).toHaveLength(0);
+    expect(deriveMarks(goal, 'g1', emptySession).byPath.get('plan.linesOfOperation.0.criticalPath.0')).toMatchObject({ kind: 'highlight' });
   });
 });
 
@@ -290,10 +259,6 @@ describe('deriveMarks — event marks win: cancel and loop', () => {
 });
 
 describe('noteForMark — pencil-note tooltip text per mark', () => {
-  it('gives the star its "waits on this" meaning', () => {
-    expect(noteForMark({ kind: 'star', sr: 'next up' })).toBe('your top move is working toward this');
-  });
-
   it('gives an arrow its "depends on <name>" text verbatim from sr', () => {
     expect(noteForMark({ kind: 'arrow', sr: 'depends on Priya', to: 'people.0' })).toBe('depends on Priya');
   });

@@ -40,7 +40,7 @@ Every element on screen is made of one of these, and each one means something:
 | **Page** | The record, which you read | Ivory paper with a fine grain, a pink legal-pad margin rule on the left, and a soft shadow on the desk |
 | **Ink** | Committed: the goal, criteria, people, moves, decisions | Crisp typed text. The goal title and the one filled button have a faint bleed, like ink that soaked in. |
 | **Pencil** | Changeable or unproven: statuses, dates, guesses, notes to self | Graphite with visible grain. Short pencilled words are handwritten. |
-| **Margin** | Notes about a line | The strip left of the margin rule. Stars, "?" and arrows live here, never over the text. |
+| **Margin** | Notes about a line | The strip left of the margin rule. "?" and arrows live here, never over the text. |
 | **Slip** | Something you can touch or act on | Paper laid on top of the page, the only material that casts a shadow |
 | **Highlighter** | The focus | One translucent yellow swipe behind the text |
 | **Eraser** | No longer true | A strikethrough, a grey smudge and a fade |
@@ -121,7 +121,7 @@ All fonts are **self-hosted** (`@fontsource-variable/*` and `@fontsource/caveat`
 - **Actions are text by default.** "Keep it" and "Toss" are plain typed words. Marking something done is the exception: it is always a hand-drawn tick box, on the index card as on every other line. On hover or keyboard focus, a pencil circles the action. Quiet secondary links ("undo", "Details") stay underlined instead of circled. A screen has at most one filled button, a block of ink with a slight bleed, and only when a single action is clearly the way forward ("Open Google AI Studio").
 - **The next move is the index card at the top of the page** (§03). When nothing is due, the card asks "What's your next move?", and its pencilled line says there's nothing due yet.
 - **Where you write is ruled.** The first-screen writing area and text fields sit on `--card-rule` lines.
-- **A milestone is a line drawn under the moves that reach it,** with the milestone written beneath, like the total under a column of figures. The line is faint and broken further on, in pencil where the plan is heading, and gone over in ink, with a tick, once its moves are done. It never has a box: nobody ticks it. Done moves stay above their line, ticked and grey, so a passed milestone still shows what reached it.
+- **A milestone is a checkpoint, not a task.** A task is something to do and gets a tick box; a milestone is something that becomes true and never does. It is a line drawn under the moves that reach it, then its name, a size smaller than a move and not bold, beside a diamond in the marker column: open until its moves are done, then filled, with the day it was reached in pencil. Its line is faint and broken further on, in pencil where the plan is heading, and in ink once passed. Done moves stay above their line, ticked and grey, so a passed milestone still shows what reached it.
 - **The conversation is a loose leaf over the page.** It reads like a messenger without the bubbles: your words and the advisor's are typed text. Yours sit on the right behind a pencilled rule, with no mark. The advisor's sit on the left beside its portrait (`apps/pwa/public/avatar.webp`: a hand-drawn strategist in ink and muted wash, with one accent pocket square) in a pencilled ring. The conversation's top bar names the other side once, with the portrait and "Gambit", never over each message. Everything between turns sits centred in pencil: "thinking…", the "Show reasoning" toggle, and the one line summing up what the turn wrote to the page ("wrote to your page: Priya confirmed · 1 new risk").
 - **A change made by the conversation** gets the accent loop, and a pencilled accent note under the line ("new, from your chat · undo").
 - **An empty section is one pencilled question you can tap**, phrased as the question that fills it ("Nobody named yet. Who has a say in this?"). It isn't an illustration or a button.
@@ -139,9 +139,8 @@ Strokes are drawn with **perfect-freehand**, so they taper with pressure like a 
 |---|---|---|---|---|
 | Index card | Your top move | The first `pending` next action on the focus line, else in plan order | Slip, taped | Always, for the next move only |
 | Open loop | The most important change from the last conversation | The last turn's writes | Pencil, in the accent | Until the next session, a tap on the line, or undo. Draws in once, then stays still. |
-| Tick | Done | A next action with status `done`, a milestone its tasks have reached, or a criterion `eval` scored `met` | Ink, overshooting a hand-drawn box | While true |
+| Tick | Done | A next action with status `done`, or a criterion `eval` scored `met` | Ink, overshooting a hand-drawn box | While true |
 | Highlighter | The focus: anything that doesn't help this can wait | The line named by `focusLine` on the newest log entry that sets a focus, from `strategy` only; a newer focus with no single line clears it | Highlighter, behind the text | While it's the focus |
-| Star | The milestone your top move is working toward | The first milestone not yet reached on the top move's own line. None without a top move or a milestone still ahead on its line | Pencil, in the margin | While it's pending |
 | Arrow | This depends on that: a risk and the person it hangs on | A risk's `dependsOn`, pointing at a name in people or stakeholders | Pencil, out through the margin and back | While the link holds |
 | Status label | Not known yet: an assumption or prediction, not a fact | Open experiments grouped under "not tested yet", open forecasts under "waiting to find out", open decisions under "still to decide" | A pencilled label over the group, and the unproven text itself is in pencil | Until a test, forecast or decision settles it, when the item moves to the settled group |
 | Erased | No longer true: dropped, disproved, or a risk that went away | An item set to `dropped` (including a tossed suggestion), a failed experiment, a removed risk | Pencil strikethrough, smudge and fade | Only in the session it happened. After that the line leaves the page, and the log keeps it. |
@@ -151,7 +150,7 @@ Strokes are drawn with **perfect-freehand**, so they taper with pressure like a 
 **Rules:**
 - **The loop is the only mark in the accent,** so it stays the one thing on screen to look at.
 - **At most one mark per line.** When two apply, the event mark (the loop or the eraser) wins while it's showing.
-- **One loop and one highlighter per page.** The Moves divider tab also carries a faint wash of the highlighter, to mark it as the tab the notebook is for; it sits on the desk, outside the page, so it doesn't count against this. A star is always single, never two or three, so it can't read as a rating.
+- **One loop and one highlighter per page.** The Moves divider tab also carries a faint wash of the highlighter, to mark it as the tab the notebook is for; it sits on the desk, outside the page, so it doesn't count against this.
 - **Margin marks stay in the margin.** An arrow runs through the margin, never across text, and only one is visible at a time. When its two ends are more than a screen apart, it becomes a pencilled note on the line instead ("→ Priya").
 - **The eraser is the one mark that shows something that is no longer true,** and it lasts only one session, so the page still reads as current state.
 - **No boxes drawn around text.** A drawn box reads as a container, and containers are slips.

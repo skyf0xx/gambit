@@ -122,21 +122,24 @@ describe('notebook page markup', () => {
     const order = ['data-milestone="passed"', 'Owner on record', 'Book the hall', 'Report it', 'data-milestone="current"', 'Clean-up date set', 'Walk the site with the crew', 'data-milestone="ahead"', 'Tunnel cleaned', '>if things change<'].map((l) => html.indexOf(l));
     expect(order.every((n) => n >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
-    // A passed milestone keeps its place, ticked, under the done task that
-    // reached it, which stays ticked and grey.
+    // A passed milestone keeps its place, its diamond filled and the day it
+    // was reached pencilled, under the done task that reached it, which
+    // stays ticked and grey.
     expect(html.indexOf('Find who owns the tunnel')).toBeLessThan(html.indexOf('data-milestone="passed"'));
     expect(html).toMatch(/data-line="plan\.linesOfOperation\.0\.nextActions\.0" class="[^"]*text-graphite/);
     expect(html).not.toContain(' done<');
-    expect(html).toMatch(/data-box="plan\.linesOfOperation\.0\.criticalPath\.0"[^>]*data-checked/);
-    // Milestones still ahead carry no box: nobody ticks them.
-    expect(html).not.toContain('data-box="plan.linesOfOperation.0.criticalPath.1"');
-    expect(html).not.toContain('data-box="plan.linesOfOperation.0.criticalPath.2"');
+    expect(html).toContain('reached Sun 20 Sep 2099');
+    // A milestone becomes true rather than being done: never a box, an open
+    // diamond until reached, then a filled one.
+    expect(html).not.toMatch(/data-box="plan\.linesOfOperation\.0\.criticalPath/);
+    expect((html.match(/<path d="M6 0\.9[^"]*" fill="currentColor"/g) ?? []).length).toBe(1);
+    expect((html.match(/<path d="M6 0\.9[^"]*" fill="none"/g) ?? []).length).toBe(2);
     expect(html).not.toContain('⚑');
     expect(html).toContain('Clean-up date set → </span><span>Walk the site with the crew');
-    // The top move is on the card and in its place in the list, pencilled
-    // as the top move; the rest of now shows what it unlocks.
-    expect(html.indexOf('Take the weekly photos')).toBeLessThan(html.indexOf('>top move<'));
-    expect(html.indexOf('>top move<')).toBeLessThan(html.indexOf('data-milestone="current"'));
+    // The top move is on the card and in its place in the list, unlabelled;
+    // it shows what it unlocks.
+    expect(html.indexOf('Take the weekly photos')).toBeLessThan(html.indexOf('data-milestone="current"'));
+    expect(html).not.toContain('top move');
     expect(html).toContain('→ Print the flyers');
     // A sent message waits for a reply, with its climb on one line.
     expect(html).toContain(' · to Sydney Trains · sent Thu 1 Oct 2099 · waiting for a reply, day 0 of 14');
@@ -152,7 +155,7 @@ describe('notebook page markup', () => {
     expect(html).toContain('it didn’t');
     expect(html).toContain('Book the hall → </span><span>Print the flyers');
     // Waiting, fork and later rows put their marker in the tick-box column.
-    for (const mark of ['✉', '◇', '•']) expect(html).toContain(`<span class="w-11 shrink-0 text-center text-graphite" aria-hidden="true">${mark}</span>`);
+    for (const mark of ['✉', '↳', '•']) expect(html).toContain(`<span class="w-11 shrink-0 text-center text-graphite" aria-hidden="true">${mark}</span>`);
   });
 
   it('passes a milestone when its tasks are done and un-passes it when one is unticked, in the same place', () => {
@@ -170,7 +173,7 @@ describe('notebook page markup', () => {
     expect(passed.indexOf('Sydney Trains has heard it')).toBeLessThan(passed.indexOf('data-milestone="current"'));
     // Both tasks that reached it stay above its line, ticked and grey.
     for (const t of ['Fill in the feedback form', 'Call customer care']) expect(passed.indexOf(t)).toBeLessThan(passed.indexOf('data-milestone="passed"'));
-    expect((passed.match(/data-checked/g) ?? []).length).toBe(3);
+    expect((passed.match(/data-checked/g) ?? []).length).toBe(2);
     // The task waiting on the milestone is a move to make now.
     expect(passed).toContain('data-box="plan.linesOfOperation.0.nextActions.3"');
 
@@ -195,10 +198,9 @@ describe('notebook page markup', () => {
     expect(html).not.toContain('>now<');
   });
 
-  it('lists the top move in its place, pencilled, and keeps done moves ticked toward the next milestone', () => {
+  it('lists the top move in its place and keeps done moves ticked toward the next milestone', () => {
     const html = renderSection('plan', g.plan);
     expect(html.indexOf('Pending action')).toBeLessThan(html.indexOf('data-milestone="current"'));
-    expect(html).toContain('>top move<');
     expect(html).toContain('Done action');
     expect(html).toMatch(/data-box="plan\.linesOfOperation\.0\.nextActions\.1"[^>]*data-checked/);
   });

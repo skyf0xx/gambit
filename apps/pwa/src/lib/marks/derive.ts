@@ -1,5 +1,4 @@
-import { currentFocusEntry, milestoneReached } from '@gambit/core';
-import { nextMove } from '../slips';
+import { currentFocusEntry } from '@gambit/core';
 import type { LinePath } from '../changes';
 import type { Goal } from '../types';
 import type { Mark } from './types';
@@ -26,8 +25,7 @@ interface Named {
 const norm = (s: string) => s.trim().toLowerCase();
 
 // Every next action / milestone / criterion, with enough context to find
-// "the line of operation containing X" and to flip status to a tick. A
-// milestone's status is derived: done once its tasks reach it.
+// "the line of operation containing X" and to flip status to a tick.
 interface PlanLine extends Named {
   status?: 'proposed' | 'pending' | 'done' | 'dropped';
   loIndex: number; // index of the containing lineOfOperation
@@ -37,8 +35,9 @@ function collectPlanLines(goal: Goal): PlanLine[] {
   const out: PlanLine[] = [];
   (goal.plan?.linesOfOperation ?? []).forEach((line, li) => {
     line.criticalPath.forEach((step, si) => {
-      const status = milestoneReached(step, goal.plan) ? 'done' : 'pending';
-      out.push({ path: `plan.linesOfOperation.${li}.criticalPath.${si}`, text: step.label, status, loIndex: li });
+      // No status: a milestone isn't ticked; its diamond fills once its
+      // tasks reach it. It is here so a focusLine can land on it.
+      out.push({ path: `plan.linesOfOperation.${li}.criticalPath.${si}`, text: step.label, loIndex: li });
     });
     line.nextActions.forEach((a, ai) => {
       out.push({ path: `plan.linesOfOperation.${li}.nextActions.${ai}`, text: a.action, status: a.status, loIndex: li });
@@ -61,7 +60,7 @@ function collectPeopleAndStakeholders(goal: Goal): Named[] {
 /**
  * Derive every line's mark plus the arrow list, from the goal record and the
  * in-tab session snapshot. One mark per line; event marks (loop, cancel) win
- * over derived ones. At most one loop, one highlight and one star.
+ * over derived ones. At most one loop and one highlight.
  */
 export function deriveMarks(goal: Goal, goalId: string, sessionState: SessionSnapshot): DerivedMarks {
   const byPath = new Map<LinePath, Mark>();
@@ -76,7 +75,7 @@ export function deriveMarks(goal: Goal, goalId: string, sessionState: SessionSna
     byPath.set(path, mark);
   };
 
-  // --- tick: a done next action, a reached milestone, or a criterion scored 'met' ---
+  // --- tick: a done next action, or a criterion scored 'met' ---
   for (const pl of planLines) {
     if (pl.status === 'done') set(pl.path, { kind: 'tick', sr: 'done' });
   }
@@ -93,17 +92,6 @@ export function deriveMarks(goal: Goal, goalId: string, sessionState: SessionSna
     const target = norm(fl);
     const hit = [...planLines, ...criteria].find((n) => norm(n.text) === target);
     if (hit) set(hit.path, { kind: 'highlight', sr: 'focus' });
-  }
-
-  // --- star: the milestone the top move is working toward — the first one
-  // not yet reached on the top move's own line (slips.ts nextMove, the index
-  // card). No top move, or every milestone on its line reached, means no
-  // star. ---
-  const top = nextMove(goal);
-  if (top) {
-    const li = Number(top.path.split('.')[2]);
-    const step = (goal.plan?.linesOfOperation[li]?.criticalPath ?? []).findIndex((st) => !milestoneReached(st, goal.plan));
-    if (step >= 0) set(`plan.linesOfOperation.${li}.criticalPath.${step}`, { kind: 'star', sr: 'your top move is working toward this' });
   }
 
   // --- arrow: riskNotes[].dependsOn matched to a person/stakeholder name.

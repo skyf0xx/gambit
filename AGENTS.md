@@ -384,17 +384,20 @@ refused; the due list flags an older one that lists none ("Link milestones
 to their moves") and one whose every task was dropped ("Find a new way
 to").
 
-The page draws a milestone the way a notebook draws a line under a column
-of figures and writes the total beneath: a line under the tasks that reach
-it, at their level, with the milestone written under it and no box, since
-nobody ticks it. The line the plan is heading to is drawn in pencil and its
-milestone carries the star; one further on is a faint broken line; a passed
-one stays in place, gone over in ink with a tick in the tick column. Done
-tasks never fold away: they stay where they were, ticked and grey, so a
-passed milestone keeps the moves that reached it above its line. A task no
+A task is something to do; a milestone is something that becomes true. So
+the page never gives a milestone a box. It draws it as a checkpoint, the
+way a notebook draws a line under a column of figures and writes the total
+beneath: a line under the tasks that reach it, then its name, a size
+smaller than a task and not bold, beside a diamond in the marker column.
+The diamond is open until those tasks are done, then filled, with the day
+it was reached pencilled beside it. A passed milestone stays in place with
+its line in ink; the one the plan is heading to has a pencil line; one
+further on has a faint broken line and its name in grey. Done tasks never
+fold away: they stay where they were, ticked and grey, so a passed
+milestone keeps the moves that reached it above its line. A task no
 milestone lists sits before the one the line is heading to. The top move,
-on the index card, is listed in its place too, pencilled "top move", so its
-milestone always has the move toward it above its line.
+on the index card, is listed in its place too, so its milestone always
+has the move toward it above its line.
 
 A next action's `when` is the date it is due by (YYYY-MM-DD), optional.
 `doneOn` is the date it was done: `setStatus` stamps it with today when the

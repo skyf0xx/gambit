@@ -298,29 +298,40 @@ function StatusGroups<T>({ k, list, isOpen, due, labels, pinned, render }: {
   );
 }
 
-/** A milestone: a line drawn under the tasks that reach it, with the
- * milestone written beneath, the way a notebook draws a line under a column
- * of figures and writes the total below. It sits at the tasks' level and
- * has no box, because nobody ticks it: it is reached once those tasks are
- * done, so unticking one un-reaches it. Passed, the line is gone over in
- * ink with a tick in the tick column, and stays where it was. The one the
- * line is heading to is drawn in pencil and carries the margin star; one
- * further on is a faint broken line. */
-function MilestoneRule({ goalId, path, step, editable, stage }: {
+/** A checkpoint's diamond: open while the milestone is still to come,
+ * filled once it has become true. */
+function Diamond({ filled }: { filled: boolean }) {
+  return (
+    <svg viewBox="0 0 12 12" className="h-[11px] w-[11px]" aria-hidden="true">
+      <path d="M6 0.9 L11.1 6 L6 11.1 L0.9 6 Z" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** A milestone: something that becomes true, not something to do, so it
+ * has no box. It is a checkpoint drawn the way a notebook draws a line
+ * under a column of figures and writes the total below: a line under the
+ * tasks that reach it, at their level, then its name, smaller than a task,
+ * beside a diamond in the marker column. The diamond is open until those
+ * tasks are done, then filled, with the day it was reached; unticking a
+ * task opens it again. Passed, the line is in ink and stays where it was;
+ * the one the line is heading to is in pencil, in ink type; one further on
+ * is a faint broken line with its name in grey. */
+function MilestoneRule({ goalId, path, step, editable, stage, reachedOn }: {
   goalId: string; path: string; step: Any; editable: boolean;
-  stage: 'passed' | 'current' | 'ahead';
+  stage: 'passed' | 'current' | 'ahead'; reachedOn?: string;
 }) {
   const tone = stage === 'passed' ? 'ink' : stage === 'current' ? 'pencil' : 'faint';
+  const ink = stage === 'ahead' ? 'text-graphite' : 'text-ink';
   return (
-    <li data-milestone={stage} className="mb-4 flex items-start text-[17px] leading-[27px]" title={step.detail}>
-      <span className="flex w-11 shrink-0 justify-center pt-3" aria-hidden="true">
-        {stage === 'passed' && <span className="box mt-[4.5px] shrink-0" data-box={path} data-bare="" data-checked="" />}
-      </span>
-      <div className="min-w-0 flex-1">
-        {/* The line drawn under the tasks above. */}
-        <PencilRule seed={path} tone={tone} />
-        <div className={`pt-1 ${stage === 'ahead' ? 'text-graphite' : 'font-semibold text-ink'}`}>
-          <Line goalId={goalId} path={path} edit={editable && isEditableLine(path) ? { value: step.label } : undefined}><span>{step.label}</span></Line>
+    <li data-milestone={stage} className="mb-3 pt-1" title={step.detail}>
+      {/* The line drawn under the tasks above. */}
+      <div className="ml-11"><PencilRule seed={path} tone={tone} /></div>
+      <div className={`flex items-start pt-1 text-[15px] leading-[22px] ${ink}`}>
+        <span className="flex h-[22px] w-11 shrink-0 items-center justify-center"><Diamond filled={stage === 'passed'} /></span>
+        <div className="min-w-0 flex-1">
+          <Line goalId={goalId} path={path} className="font-medium" edit={editable && isEditableLine(path) ? { value: step.label } : undefined}><span>{step.label}</span></Line>
+          {stage === 'passed' && reachedOn && <span className="text-[14px] text-graphite">reached {pencilDate(reachedOn)}</span>}
           <span className="sr-only">{stage === 'passed' ? ' (milestone, reached)' : stage === 'current' ? ' (milestone, next)' : ' (milestone, further on)'}</span>
         </div>
       </div>
@@ -398,7 +409,7 @@ function ChainLine({ chain }: { chain: Any[] }) {
 
 /** A row whose marker sits in the same 44px column as the tick boxes, so
  * every row's text starts at one edge: ✉ a message waiting for a reply,
- * ◇ a fork, • a move waiting on another. */
+ * ↳ a fork, • a move waiting on another. */
 function MarkedRow({ mark, children }: { mark: string; children: ReactNode }) {
   return (
     <li className="flex items-start text-[15px] leading-[22px]">
@@ -510,13 +521,14 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     return () => ro.disconnect();
   }, [lines.length]);
 
+  const plan = { linesOfOperation: lines } as NonNullable<Goal['plan']>;
+  const top = nextMove({ plan } as Goal)?.path;
+  // The line the focus highlight lands on, else the top move's line.
   let focusLine: number | null = null;
-  for (const kind of ['highlight', 'star']) {
-    if (focusLine != null) break;
-    marks?.derived.byPath.forEach((mark, path) => {
-      if (focusLine == null && mark.kind === kind) focusLine = planLineIndex(path);
-    });
-  }
+  marks?.derived.byPath.forEach((mark, path) => {
+    if (focusLine == null && mark.kind === 'highlight') focusLine = planLineIndex(path);
+  });
+  focusLine ??= planLineIndex(top);
   const open = picked != null && picked < lines.length ? picked : defaultOpenLine(lines, focusLine);
   // Keep the selected pill in view — on a tap, a goto, or the default.
   useEffect(() => {
@@ -534,11 +546,9 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     strip.scrollTo({ left: to > max - 40 ? max : to < 40 ? 0 : to, behavior: 'smooth' });
   }, [open]);
   const changedLine = turn?.goalId === goalId ? planLineIndex(turn.lines[0]?.path) : null;
-  // The top move is on the index card above, and in its place in the list
-  // too, pencilled "top move", so the milestone it works toward isn't left
-  // with nothing above it.
-  const plan = { linesOfOperation: lines } as NonNullable<Goal['plan']>;
-  const top = nextMove({ plan } as Goal)?.path;
+  // The top move is on the index card above and in its place in the list
+  // too, so the milestone it works toward isn't left with nothing above it.
+  // Its detail shows on the card only.
   const byId = new Map(lines.flatMap((l: Any) => l.nextActions).filter((a: Any) => a.id).map((a: Any) => [a.id, a]));
 
   const body = (li: number) => {
@@ -561,6 +571,8 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     // lists sits in the stretch the line is heading through.
     const steps = l.criticalPath.map((st: Any, i: number) => ({ st, path: `${base}.criticalPath.${i}`, reached: milestoneReached(st, plan) }));
     const current = steps.findIndex((m: Any) => !m.reached);
+    // The day a milestone became true: the last day a task toward it was done.
+    const reachedOn = (st: Any) => (st.after ?? []).map((id: string) => byId.get(id)?.doneOn).filter(Boolean).sort().pop();
     const heading = current >= 0 ? current : steps.length;
     const stretchOf = (a: Any) => {
       const k = a.id ? steps.findIndex(({ st }: Any) => st.after?.includes(a.id)) : -1;
@@ -612,7 +624,6 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
               ? <EditableText goalId={goalId} path={path} value={a.action}><span>{a.action}</span></EditableText>
               : <span>{a.action}</span>}
             {meta && <span className="ml-2 text-[14px] text-graphite">{meta}</span>}
-            {path === top && <PencilWord className="ml-2 text-[17px] text-graphite">top move</PencilWord>}
           </Line>
           {a.status !== 'done' && <ChainLine chain={chainAfter(a, tasks)} />}
           {opens.length > 0 && <div className="text-[14px] leading-5 text-graphite">→ {opens.join(', ')}</div>}
@@ -635,7 +646,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
             // milestone keeps the moves that reached it above its line.
             return [
               ...rows.map(row),
-              <MilestoneRule key={m.path} goalId={goalId} path={m.path} step={m.st} editable={editable} stage={stage} />,
+              <MilestoneRule key={m.path} goalId={goalId} path={m.path} step={m.st} editable={editable} stage={stage} reachedOn={m.reached ? reachedOn(m.st) : undefined} />,
             ];
           })}
         </ol>
@@ -645,7 +656,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
             <GroupLabel>if things change</GroupLabel>
             <ul className="space-y-2">
               {forks.map(({ a, path }) => (
-                <MarkedRow key={path} mark="◇">
+                <MarkedRow key={path} mark="↳">
                   <Line goalId={goalId} path={path}>
                     <span className="text-graphite">if </span><span>{a.if.event}</span>
                     {a.if.by && <span className="text-[14px] text-graphite"> · check {byDate(a.if.by)}</span>}

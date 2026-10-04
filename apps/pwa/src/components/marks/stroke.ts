@@ -146,27 +146,6 @@ export function zigzagPoints(line: Box, seed: number): Point[] {
   );
 }
 
-/** A five-point star in the margin, next to one line of text. */
-export function starPoints(cx: number, line: Box, seed: number, r = 8): Point[] {
-  const cy = line.t + line.h / 2;
-  const tips: [number, number][] = [0, 2, 4, 1, 3, 0].map((k) => {
-    const a = -Math.PI / 2 + (k * 2 * Math.PI) / 5;
-    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
-  });
-  const rnd = rng(seed);
-  const pts: Point[] = [];
-  for (let k = 0; k < tips.length - 1; k++) {
-    for (let s = 0; s < 6; s++) {
-      pts.push([
-        tips[k][0] + (tips[k + 1][0] - tips[k][0]) * (s / 6) + (rnd() - 0.5) * 0.8,
-        tips[k][1] + (tips[k + 1][1] - tips[k][1]) * (s / 6) + (rnd() - 0.5) * 0.8,
-      ]);
-    }
-  }
-  pts.push([...tips.at(-1)!]);
-  return pts.map((p, k) => [p[0], p[1], 0.4 + 0.4 * Math.sin((Math.PI * k) / pts.length)]);
-}
-
 /** A hand-drawn checkbox outline (four sides, slightly overshot corners). */
 export function boxPoints(box: Box, seed: number): Point[][] {
   const r = rng(seed);

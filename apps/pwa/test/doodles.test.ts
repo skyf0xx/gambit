@@ -66,12 +66,12 @@ describe('toMarkmap', () => {
     expect(risk).toContain('data-goto="riskNotes.0"');
   });
 
-  it('prefixes a done item, and a milestone its tasks reached, with a tick', () => {
-    expect(toMarkmap(buildDoodleTree(richGoal())!).children[0].children[0].content).not.toContain('✓');
+  it('prefixes a done item with a tick, and a milestone with a diamond, filled once reached', () => {
+    expect(toMarkmap(buildDoodleTree(richGoal())!).children[0].children[0].content).toContain('◇ Step one');
     const g = richGoal();
     g.plan!.linesOfOperation[0].nextActions[0].status = 'done';
     const line = toMarkmap(buildDoodleTree(g)!).children[0];
-    expect(line.children[0].content).toContain('✓ Step one');
+    expect(line.children[0].content).toContain('◆ Step one');
     expect(line.children[1].content).toContain('✓ Ship it');
   });
 });

@@ -10,6 +10,8 @@ export interface DoodleItem {
   label: string;
   kind: 'goal' | 'group' | 'line' | 'item' | 'person' | 'risk';
   done?: boolean;
+  /** A milestone: shown with a diamond, filled once reached, never a tick. */
+  milestone?: boolean;
   proposed?: boolean;
   focus?: boolean; // the current focus line
   children: DoodleItem[];
@@ -32,7 +34,7 @@ export function buildDoodleTree(goal: Goal): DoodleItem | null {
     const base = `plan.linesOfOperation.${li}`;
     const items: DoodleItem[] = [];
     line.criticalPath.forEach((s, si) => {
-      items.push({ path: `${base}.criticalPath.${si}`, label: s.label, kind: 'item', done: milestoneReached(s, goal.plan), focus: isFocus(s.label), children: [] });
+      items.push({ path: `${base}.criticalPath.${si}`, label: s.label, kind: 'item', milestone: true, done: milestoneReached(s, goal.plan), focus: isFocus(s.label), children: [] });
     });
     line.nextActions.forEach((a, ai) => {
       if (a.status === 'dropped') return;
@@ -73,7 +75,8 @@ export interface MarkmapNode {
 
 export function toMarkmap(item: DoodleItem): MarkmapNode {
   const cls = ['doodle-node', `doodle-${item.kind}`, item.focus && 'doodle-focus', item.proposed && 'doodle-proposed'].filter(Boolean).join(' ');
-  const text = `${item.done ? '✓ ' : ''}${item.kind === 'risk' ? 'Risk: ' : ''}${item.label}`;
+  const mark = item.milestone ? (item.done ? '◆ ' : '◇ ') : item.done ? '✓ ' : '';
+  const text = `${mark}${item.kind === 'risk' ? 'Risk: ' : ''}${item.label}`;
   return {
     content: `<span class="${cls}" data-goto="${escapeHtml(item.path)}">${escapeHtml(text)}</span>`,
     children: item.children.map(toMarkmap),
