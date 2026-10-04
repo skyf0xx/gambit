@@ -385,10 +385,12 @@ to their moves") and one whose every task was dropped ("Find a new way
 to").
 
 A task is something to do; a milestone is something that becomes true. So
-the page never gives a milestone a box. It draws it as a checkpoint, the
-way a notebook draws a line under a column of figures and writes the total
-beneath: a line under the tasks that reach it, then its name, a size
-smaller than a task and not bold, beside a diamond in the marker column.
+the page never gives a milestone a box. It draws it as a checkpoint ruled
+across the page after the tasks that reach it, the way a notebook rules off
+a section: one line, with a short stroke in from the left edge to a
+diamond in the marker column, the name where a task's text starts (a size
+smaller than a task and not bold), and the stroke running on to the right
+edge.
 The diamond is open until those tasks are done, then filled, with the day
 it was reached pencilled beside it. A passed milestone stays in place with
 its line in ink; the one the plan is heading to has a pencil line; one

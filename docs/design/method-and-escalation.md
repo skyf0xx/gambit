@@ -116,9 +116,10 @@ so the page and the due list can't disagree with the tasks. The due list flags
 a milestone whose every task was dropped: its route is gone, so it needs a new one.
 
 **Page.** A task is something to do; a milestone is something that becomes true, so it
-never gets a box. It is a checkpoint, drawn the way a notebook draws a line under a column
-of figures and writes the total beneath: a line under the tasks that reach it, at their
-level, then its name beside a diamond in the marker column. The diamond is open until
+never gets a box. It is a checkpoint ruled across the page after the tasks that reach it,
+the way a notebook rules off a section: one line, a short stroke from the left edge to a
+diamond in the marker column, its name where a task's text starts, and the stroke running
+on to the right edge. The diamond is open until
 those tasks are done, then filled. The name is a size smaller than a task and not bold, so
 the moves stay the loudest thing on the page, and it stays left-aligned with them, so
 every row starts at one edge and a milestone never reads as a heading for what follows.
@@ -130,8 +131,7 @@ needed except for forks:
 ```
 ☑  Find who owns the tunnel                       (grey)
 ☑  Ask Sydney Trains who cleans it                (grey)
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-◆  Owner on record
+━◆ Owner on record ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    reached Wed 16 Sep
 
 ☐  Collect signatures from neighbours        Mon 12 Oct
@@ -141,12 +141,10 @@ needed except for forks:
       if no reply: Formal complaint to TfNSW complaints, then State MP,
       then Local paper (public)                            they replied
 •  Collect signatures from neighbours → Print the flyers
-   ─────────────────────────────────────────────
-◇  Clean-up date set
+─◇ Clean-up date set ─────────────────────────────
 
 •  Clean-up date set → Walk the site with the crew
-   - - - - - - - - - - - - - - - - - - - - - - -
-◇  Tunnel cleaned                                 (grey)
+-◇ Tunnel cleaned - - - - - - - - - - - - - - (grey)
 
 if things change
 ↳  if under 10 sign-ups · check Sun 1 Nov
@@ -156,7 +154,7 @@ if things change
 A passed milestone stays where it was, its diamond filled, its line in ink, and the day it
 was reached (the last day a task toward it was done) pencilled under its name. Done tasks
 never fold away: they stay where they were, ticked and grey, so a passed milestone keeps
-the moves that reached it above its line, and the moves still to make stand out in ink. A
+the moves that reached it above it, and the moves still to make stand out in ink. A
 message still waiting for a reply stays in ink, marked ✉. The done tasks above the line
 the plan is heading to show how far toward it the plan has come. The top move, on the
 index card, is listed in its place too, so its milestone always has a move above its

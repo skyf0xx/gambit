@@ -309,32 +309,39 @@ function Diamond({ filled }: { filled: boolean }) {
 }
 
 /** A milestone: something that becomes true, not something to do, so it
- * has no box. It is a checkpoint drawn the way a notebook draws a line
- * under a column of figures and writes the total below: a line under the
- * tasks that reach it, at their level, then its name, smaller than a task,
- * beside a diamond in the marker column. The diamond is open until those
- * tasks are done, then filled, with the day it was reached; unticking a
- * task opens it again. Passed, the line is in ink and stays where it was;
- * the one the line is heading to is in pencil, in ink type; one further on
- * is a faint broken line with its name in grey. */
+ * has no box. It is a checkpoint ruled across the page after the tasks
+ * that reach it, the way a notebook rules off a section: a short stroke,
+ * the diamond in the marker column, its name where a task's text starts,
+ * then the stroke runs on to the right edge, all on one line. The diamond
+ * is open until those tasks are done, then filled, with the day it was
+ * reached; unticking a task opens it again. Passed, the line is in ink and
+ * stays where it was; the one the line is heading to is in pencil, in ink
+ * type; one further on is a faint broken line with its name in grey. */
 function MilestoneRule({ goalId, path, step, editable, stage, reachedOn }: {
   goalId: string; path: string; step: Any; editable: boolean;
   stage: 'passed' | 'current' | 'ahead'; reachedOn?: string;
 }) {
   const tone = stage === 'passed' ? 'ink' : stage === 'current' ? 'pencil' : 'faint';
   const ink = stage === 'ahead' ? 'text-graphite' : 'text-ink';
+  // Each stroke sits in a box one text line tall, so it meets the middle
+  // of the name's first line however the name wraps.
+  const stroke = (side: string, className: string) => (
+    <span className={`flex h-[22px] items-center ${className}`}><span className="w-full"><PencilRule seed={`${path}:${side}`} tone={tone} /></span></span>
+  );
   return (
-    <li data-milestone={stage} className="mb-3 pt-1" title={step.detail}>
-      {/* The line drawn under the tasks above. */}
-      <div className="ml-11"><PencilRule seed={path} tone={tone} /></div>
-      <div className={`flex items-start pt-1 text-[15px] leading-[22px] ${ink}`}>
-        <span className="flex h-[22px] w-11 shrink-0 items-center justify-center"><Diamond filled={stage === 'passed'} /></span>
-        <div className="min-w-0 flex-1">
-          <Line goalId={goalId} path={path} className="font-medium" edit={editable && isEditableLine(path) ? { value: step.label } : undefined}><span>{step.label}</span></Line>
-          {stage === 'passed' && reachedOn && <span className="text-[14px] text-graphite">reached {pencilDate(reachedOn)}</span>}
-          <span className="sr-only">{stage === 'passed' ? ' (milestone, reached)' : stage === 'current' ? ' (milestone, next)' : ' (milestone, further on)'}</span>
-        </div>
+    <li data-milestone={stage} className={`my-3 flex items-start text-[15px] leading-[22px] ${ink}`} title={step.detail}>
+      {/* The diamond keeps the marker column's centre, where ✉ and the
+       * boxes sit; the stroke runs in from the left edge to meet it. */}
+      <span className="flex w-11 shrink-0 items-start">
+        {stroke('l', 'w-[14px] shrink-0')}
+        <span className="ml-[3px] flex h-[22px] items-center"><Diamond filled={stage === 'passed'} /></span>
+      </span>
+      <div className="min-w-0 shrink pr-2">
+        <Line goalId={goalId} path={path} className="font-medium" edit={editable && isEditableLine(path) ? { value: step.label } : undefined}><span>{step.label}</span></Line>
+        {stage === 'passed' && reachedOn && <span className="text-[14px] text-graphite">reached {pencilDate(reachedOn)}</span>}
+        <span className="sr-only">{stage === 'passed' ? ' (milestone, reached)' : stage === 'current' ? ' (milestone, next)' : ' (milestone, further on)'}</span>
       </div>
+      {stroke('r', 'min-w-[24px] flex-1')}
     </li>
   );
 }
