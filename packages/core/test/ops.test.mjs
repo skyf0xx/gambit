@@ -472,7 +472,7 @@ test('a ladder rung naming someone the goal no longer holds is flagged', () => {
 
 test('an if-then is two short phrases the page can label', () => {
   const write = (decisionPoints, ladder) => writeSection(mapped, 'plan', { linesOfOperation: [{ label: 'L', criticalPath: [], nextActions: [], decisionPoints, ...(ladder ? { ladder } : {}) }] });
-  assert.equal(write([{ if: 'under 5 residents signed', then: 'send the chase anyway' }]).ok, true);
+  assert.equal(write([{ if: 'under 5 residents signed', then: 'door-knock the street first' }]).ok, true);
   const long = write([{ if: 'Council offers another one-off clean-up of the tunnel this month', then: 'Take the clean, keep the chase and the signs and bins ask on the record' }]);
   assert.equal(long.ok, false);
   assert.deepEqual(long.errors.map((e) => e.path), ['plan.linesOfOperation.0.decisionPoints.0.if', 'plan.linesOfOperation.0.decisionPoints.0.then']);
@@ -488,7 +488,7 @@ test('a checkpoint starts in lower case unless it starts with a name', () => {
   const g = { ...mapped, stakeholders: [...mapped.stakeholders, { name: 'Rail Corp', power: 'high', stanceCurrent: 'silent', stanceTarget: 'acts', via: 'complaints' }] };
   const points = [
     { if: 'Two weekly photos get missed', then: 'Restart the baseline' },
-    { if: 'Council offers a one-off clean', then: 'Take it, keep chasing' },
+    { if: 'Council offers a one-off clean', then: 'Ask for the date in writing' },
     { if: "Rail's written refusal arrives", then: 'TfNSW gets the trail' },
     { if: 'Friday rain over 50%', then: 'I move it indoors' },
   ];
@@ -496,7 +496,7 @@ test('a checkpoint starts in lower case unless it starts with a name', () => {
   assert.equal(r.ok, true);
   assert.deepEqual(r.goal.plan.linesOfOperation[0].decisionPoints.map((d) => [d.if, d.then]), [
     ['two weekly photos get missed', 'restart the baseline'],
-    ['Council offers a one-off clean', 'take it, keep chasing'],
+    ['Council offers a one-off clean', 'ask for the date in writing'],
     ["Rail's written refusal arrives", 'TfNSW gets the trail'],
     ['Friday rain over 50%', 'I move it indoors'],
   ]);
@@ -510,10 +510,21 @@ test('a ladder never climbs to the user, and a checkpoint never repeats a rung',
     linesOfOperation: [{
       label: 'L', criticalPath: [], nextActions: [],
       ladder: [rung(), rung({ level: 'rights', action: 'complaint to the head', to: 'Sam' })],
-      decisionPoints: [{ if: 'six weeks of silence', then: 'Sam gets the paper trail' }, { if: 'under five signatures', then: 'send the chase anyway' }],
+      decisionPoints: [{ if: 'six weeks of silence', then: 'Sam gets the paper trail' }, { if: 'under five signatures', then: 'door-knock the street first' }],
     }],
   });
   assert.equal(twice.ok, false);
   assert.deepEqual(twice.errors.map((e) => e.path), ['plan.linesOfOperation.0.decisionPoints.0.then']);
   assert.match(twice.errors[0].message, /the ladder already takes this to Sam/);
+});
+
+test('a checkpoint forks: a move that happens either way is refused', () => {
+  const write = (then) => writeSection(mapped, 'plan', { linesOfOperation: [{ label: 'L', criticalPath: [], nextActions: [], decisionPoints: [{ if: 'under five residents signed', then }] }] });
+  for (const then of ['send the follow-up anyway', 'take the clean, keep chasing', 'still send the letters', 'continue as planned', 'carry on regardless']) {
+    const r = write(then);
+    assert.equal(r.ok, false, then);
+    assert.match(r.errors[0].message, /forks nothing/);
+  }
+  assert.equal(write('door-knock the street first').ok, true);
+  assert.equal(write('rethink the approach').ok, true);
 });

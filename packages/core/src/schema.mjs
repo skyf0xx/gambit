@@ -415,6 +415,11 @@ const branchText = (text, lead, ctx, path) => {
 /** Whether a name means the user: a ladder climbs toward someone else. */
 export const isSelfName = (name) => /^(me|you|i|myself|yourself|self|user|the user)$/i.test(String(name ?? '').trim());
 
+// A checkpoint is a fork: its move is one the user wouldn't make if the
+// condition stayed false. These words say the plan carries on unchanged,
+// so the "checkpoint" changes nothing.
+const NO_FORK = /\b(anyway|anyhow|regardless|still|carry on|keep (going|chasing|pushing|at it)|continue|as planned|no change)\b/i;
+
 const mentions = (text, name) => new RegExp(`\\b${name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text);
 
 export const writeRules = {
@@ -426,6 +431,14 @@ export const writeRules = {
       (l.decisionPoints ?? []).forEach((d, di) => {
         branchText(d.if, 'if', ctx, ['linesOfOperation', li, 'decisionPoints', di, 'if']);
         branchText(d.then, 'then', ctx, ['linesOfOperation', li, 'decisionPoints', di, 'then']);
+        const same = d.then.match(NO_FORK);
+        if (same) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['linesOfOperation', li, 'decisionPoints', di, 'then'],
+            message: `"${same[0]}" means the plan goes on unchanged, so this checkpoint forks nothing. Its move must be one you wouldn't make otherwise. If nothing forks here, use "no [progress] by [date]" then "rethink the approach"; a worry about being sidetracked is a threat risk`,
+          });
+        }
       });
       (l.ladder ?? []).forEach((r, ri) => {
         branchText(r.action, null, ctx, ['linesOfOperation', li, 'ladder', ri, 'action']);

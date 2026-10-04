@@ -118,7 +118,12 @@ them; the focus line (else the first) must, and a write without one is refused. 
 kinds, from planning doctrine's branches and decision points:
 
 **Decision points**, for any goal: a condition set now, the date it is checked, and the
-move it triggers. `{if, by?, then, status: "open"}`, at most 4 per line. The page shows
+move it triggers. A decision point is a fork: if the condition comes true, the user does
+something they would not do otherwise. Test each one: if the condition stayed false,
+would they still do the `then`? If yes, it forks nothing, so it isn't a decision point.
+"Under five signed → send the follow-up anyway" fails: the follow-up goes out either
+way. A `then` saying the plan carries on ("anyway", "still", "keep chasing", "continue")
+is refused for that reason. `{if, by?, then, status: "open"}`, at most 4 per line. The page shows
 them as checkpoints, date first, then "if …" and "then …" on lines of their own, so each
 half is one short phrase of 8 words or fewer, with no leading "if" or "then", no colon
 and no second clause; a longer one is refused. `if` is a fact you could check on the
@@ -126,10 +131,17 @@ date; `then` is a verb phrase.
 
 | `if` | `then` |
 |---|---|
-| under 10 sign-ups | door-knock the street |
+| under 10 sign-ups by the date | door-knock the street first |
 | rain over 50% on Friday | move to the church hall |
 | 2 runs missed in a week | cut the target to 3 days |
-| council offers a one-off clean | take it, keep chasing |
+| no reply to the letter in 3 weeks | ask the local MP instead |
+
+**When nothing on a line forks**, don't invent a checkpoint to satisfy the rule. Every
+plan has one honest fork: the date by which, if the line isn't working, the approach
+changes. Write it with a measurable `if` and send the `then` back to `strategy`: "no
+clean-up date set by 1 Dec" then "rethink the approach". A worry about being sidetracked
+("they offer a one-off clean to make us stop") is a risk, not a fork: it belongs to
+`threat`, or to a walk-away line in `negotiate`.
 
 A condition nobody could check isn't a decision point. A move that needs more than 8
 words is more than one move: put the rest in the plan's steps. The code saves each half

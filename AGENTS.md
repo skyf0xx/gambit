@@ -335,7 +335,11 @@ line's text, not the plan's shape).
 
 - `decisionPoints`: up to 4 `{if, by?, then, status: open | taken | passed}`.
   A condition set in advance, the date it is checked, and the move it
-  triggers. The page labels each half itself, so `if` and `then` (and a
+  triggers. It is a fork: the move is one the user wouldn't make if the
+  condition stayed false, so a `then` saying the plan carries on
+  ("anyway", "still", "keep chasing", "continue") is refused. A line with
+  no natural fork carries the one every plan has: no measurable progress
+  by a date, then rethink the approach (back to `strategy`). The page labels each half itself, so `if` and `then` (and a
   rung's `action`) are each one phrase of at most 8 words
   (`BRANCH_MAX_WORDS`), with no leading "if" or "then", no colon,
   semicolon or second sentence. The reading-grade check can't catch a

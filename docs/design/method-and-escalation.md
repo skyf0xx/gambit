@@ -72,16 +72,24 @@ line. It becomes due once `by` passes while still open. The page lists them as
 checkpoints, open ones soonest first, each with its date in a column of its own:
 
 ```
-Sun 18 Oct   if   2 weekly photos missed
-             then restart the baseline
-Mon 19 Oct   if   council offers a one-off clean
-             then take it, keep chasing
+Mon 19 Oct   if   under 10 sign-ups
+             then door-knock the street first
+Tue 1 Dec    if   no clean-up date set
+             then rethink the approach
 ```
 
 Each half is one phrase of at most 8 words, with no leading "if" or "then" and no
 second clause, so it reads at a glance. Flesch-Kincaid already runs on every goal write,
 but it measures word and sentence length, so a run-on line of short words passes it.
 The word cap is what keeps each half to one idea.
+
+A checkpoint is a fork: if its condition comes true, the user does something they
+wouldn't do otherwise. "Under five signed → send the follow-up anyway" forks nothing,
+since the follow-up goes out either way, and a `then` saying the plan carries on
+("anyway", "still", "keep chasing") is refused. Requiring an if-then on every plan
+would otherwise push the model to invent one, so a line with no natural fork carries the
+fork every plan has: no measurable progress by a date, then rethink the approach. A
+worry about being sidetracked by a token gesture is a `threat` risk, not a checkpoint.
 
 A checkpoint watches what the user doesn't control: someone else's reply, the weather, a
 count. The user's own routine is a dated next action instead, and slips show in the due
