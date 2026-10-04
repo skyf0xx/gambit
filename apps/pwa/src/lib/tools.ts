@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { writeSection, appendLog, setStatus, remember, forget, canLoad, canWrite, canRoute, WRITABLE_KEYS, MEMORY_KINDS, LOG_NOTES_MAX, LOG_RECENT, ROUTED_MAX, ROUTER_SKILL, type FlowSession } from '@gambit/core';
+import { writeSection, appendLog, setStatus, remember, forget, canLoad, canWrite, canRoute, WRITABLE_KEYS, MEMORY_KINDS, LOG_NOTES_MAX, LOG_RECENT, ROUTED_MAX, ROUTER_SKILL, ALL_STATUSES, type FlowSession } from '@gambit/core';
 import { applyOp, readRecord } from './goals';
 import { db } from './db';
 import { today } from './dates';
@@ -76,10 +76,9 @@ export function makeTools(ctx: ToolContext) {
         const flow = flowOf(store, name);
         if (!s || !flow) return { ok: false, error: `unknown skill "${name}"`, available: store.index.map((i) => i.name) };
         const goal = await currentGoal(ctx.goalId);
-        if (goal) {
-          const r = canLoad(flow, goal);
-          if (!r.ok) return { ok: false, error: r.error };
-        }
+        const verdict = goal ? canLoad(flow, goal) : undefined;
+        if (verdict && !verdict.ok) return { ok: false, error: verdict.error };
+        const warning = verdict?.ok ? verdict.warning : undefined;
         const { session } = ctx;
         if (session.active !== name) {
           const current = session.active ? flowOf(store, session.active) : undefined;
@@ -88,7 +87,7 @@ export function makeTools(ctx: ToolContext) {
           session.fresh.push(name);
           ctx.onSkillLoaded(name);
         }
-        return { ok: true, skill: name, text: s.text, supportingFiles: s.extras };
+        return { ok: true, skill: name, ...(warning ? { warning } : {}), text: s.text, supportingFiles: s.extras };
       },
     }),
     finish_skill: tool({
@@ -166,8 +165,8 @@ export function makeTools(ctx: ToolContext) {
       execute: async ({ index }) => result(await applyOp(ctx.goalId, (g) => forget(g, index) as never)),
     }),
     set_status: tool({
-      description: 'Flip one step, sub-item or next action to pending, done or dropped without rewriting the section (a next action can also be set to proposed). path is dotted, e.g. "plan.linesOfOperation.0.nextActions.2".',
-      inputSchema: z.object({ path: z.string(), status: z.enum(['proposed', 'pending', 'done', 'dropped']) }),
+      description: 'Flip one status without rewriting the section. A step, sub-item or next action takes pending, done or dropped (a next action can also be proposed); a ladder rung takes pending, sent, answered, unanswered or skipped (sent stamps sentOn and marks the rung out before it unanswered); a decision point takes open, taken or passed. path is dotted, e.g. "plan.linesOfOperation.0.nextActions.2" or "plan.linesOfOperation.0.ladder.1".',
+      inputSchema: z.object({ path: z.string(), status: z.enum(ALL_STATUSES as [string, ...string[]]) }),
       execute: async ({ path, status }) => (await gate(ctx.session, path.split('.')[0], 'set_status')) ?? result(await applyOp(ctx.goalId, (g) => setStatus(g, path, status, today()) as never)),
     }),
     route_updates: tool({

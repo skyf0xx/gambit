@@ -30,8 +30,15 @@ describe('flow gates on the tools', () => {
     expect(await run(tools.load_skill, { name: 'intake' })).toMatchObject({ ok: true });
   });
 
+  it('loads a skill that skips ahead of the method, with a warning naming the phase', async () => {
+    const r = await run(tools.load_skill, { name: 'plan' });
+    expect(r).toMatchObject({ ok: true, warning: expect.stringContaining('the method is at direct (no focus set yet)') });
+    expect(session.active).toBe('plan');
+    expect(await run(tools.load_skill, { name: 'strategy' })).not.toHaveProperty('warning');
+  });
+
   it('refuses writes without the right active skill, and a write_section in the loading turn', async () => {
-    const plan = { linesOfOperation: [{ label: 'L', criticalPath: [], nextActions: [] }] };
+    const plan = { linesOfOperation: [{ label: 'L', criticalPath: [], nextActions: [], decisionPoints: [{ if: 'no word by Friday', then: 'call them' }] }] };
     expect(await run(tools.write_section, { key: 'plan', value: plan })).toMatchObject({ ok: false });
     await run(tools.load_skill, { name: 'plan' });
     expect(await run(tools.write_section, { key: 'plan', value: plan })).toMatchObject({ ok: false, errors: [{ message: expect.stringContaining('confirm') }] });

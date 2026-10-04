@@ -5,6 +5,7 @@ display: checklist
 writes: intel, log
 reads: posture, stakeholders
 requires: goal
+phase: understand
 next: experiment, forecast, strategy, decide
 ---
 
@@ -46,6 +47,10 @@ matter.
 List what the focus and the plan rest on that nobody has checked. Take each next
 action and ask what has to be true for it to work. Take each stakeholder whose stance
 is a guess.
+
+Before `plan` builds an escalation ladder, the usual unknowns are who owns the problem
+and how its formal channels work: the complaint process, how long the body has to
+answer, who sits above it.
 
 Keep the few that would change a decision. At most 8, usually 3. Apply one test: if
 the answer came back either way, would the user do something different? If not, cut

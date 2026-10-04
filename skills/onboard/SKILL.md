@@ -3,6 +3,7 @@ name: onboard
 description: Use at the start of any session touching a goal — a vague first message ("I want to...", "help me with...", "help me plan...", "what's going on with this"), or any time it's unclear whether the goal has been defined yet. Not a coding task even if the phrasing sounds like one ("help me plan" here means a life/business/campaign goal, not a software plan). Branches to intake for a new goal, or a welcome-back snapshot for a returning one, then hands off to strategy.
 display: plain-card
 requires: any
+phase: any
 next: intake, strategy, decide, brief, elicit
 ---
 

@@ -2,7 +2,7 @@
 // document and returns a result object instead of throwing, so an agent tool
 // can hand structured errors straight back to the model.
 
-import { goalSchema, reconcileGoal, writeRules, GOAL_MAX_WORDS, MEMORY_CAP, NEXT_ACTIONS_MAX, wordCount } from './schema.mjs';
+import { goalSchema, reconcileGoal, writeRules, focusLineOf, hasBranch, GOAL_MAX_WORDS, MEMORY_CAP, NEXT_ACTIONS_MAX, RUNG_STATUSES, DECISION_POINT_STATUSES, wordCount } from './schema.mjs';
 import { plainLanguage } from './readability.mjs';
 
 /** @typedef {import('zod').infer<typeof goalSchema>} Goal */
@@ -17,6 +17,8 @@ export const WRITABLE_KEYS = Object.keys(goalSchema.shape).filter((k) => !UNWRIT
 const logEntrySchema = goalSchema.shape.log.element;
 const memoryEntrySchema = goalSchema.shape.memory.element;
 const STATUSES = ['proposed', 'pending', 'done', 'dropped'];
+/** Every status set_status takes; which ones a target accepts depends on what it is. */
+export const ALL_STATUSES = [...new Set([...STATUSES, ...RUNG_STATUSES, ...DECISION_POINT_STATUSES])];
 
 // `log` is append-only but bounded: the page only needs recent history plus
 // whichever entry currently drives the focus highlight.
@@ -86,11 +88,13 @@ const toIssues = (error, prefix = []) =>
  * whole document. Each key whose value changes is stamped with `now` in
  * `updated`, so a section built on it can tell it has moved since.
  * @param {string} [now] ISO timestamp, defaults to the current time
- * @param {string} [day] YYYY-MM-DD, the date a next action newly done in
- *   this write is stamped with; defaults to the date of `now`
+ * @param {string} [day] YYYY-MM-DD, the date a next action newly done or a
+ *   rung newly sent in this write is stamped with; defaults to the date of `now`
+ * @param {{ page?: boolean }} [opts] page: the user's own edit on the page,
+ *   which changes one line's text and so skips the rules on the plan's shape
  * @returns {{ ok: true, goal: Goal, warnings: string[] } | { ok: false, errors: Issue[] }}
  */
-export function writeSection(goal, key, value, now = new Date().toISOString(), day = now.slice(0, 10)) {
+export function writeSection(goal, key, value, now = new Date().toISOString(), day = now.slice(0, 10), opts = {}) {
   if (!WRITABLE_KEYS.includes(key)) {
     return { ok: false, errors: [{ path: key, message: `not a writable key; expected one of: ${WRITABLE_KEYS.join(', ')}` }] };
   }
@@ -117,7 +121,14 @@ export function writeSection(goal, key, value, now = new Date().toISOString(), d
   // current. `people` wins — someone you now deal with directly has left
   // the stakeholder map — so a stakeholders write naming them is refused,
   // and a people write takes them off the stakeholder list.
-  if (key === 'plan') stampDone(part.data, goal.plan, day);
+  if (key === 'plan') {
+    stampDone(part.data, goal.plan, day);
+    stampSent(part.data, goal.plan, day);
+    if (!opts.page) {
+      const errors = planShape(part.data, goal);
+      if (errors.length) return { ok: false, errors };
+    }
+  }
   const changes = { [key]: part.data };
   const moved = [];
   if (key === 'stakeholders') {
@@ -150,6 +161,50 @@ export function writeSection(goal, key, value, now = new Date().toISOString(), d
 }
 
 const personKey = (name) => name.trim().toLowerCase();
+
+/**
+ * Rules on a plan written by a skill. The focus line (else the first) says
+ * what happens if it stalls: a decision point or a ladder. Each rung goes
+ * to someone already in `people` or `stakeholders`, so the ladder names
+ * who actually holds the authority at each step.
+ */
+function planShape(plan, goal) {
+  const errors = [];
+  const focus = focusLineOf(plan);
+  if (!hasBranch(focus)) {
+    const li = plan.linesOfOperation.indexOf(focus);
+    errors.push({
+      path: `plan.linesOfOperation.${li}`,
+      message: `"${focus.label}" needs an if-then: at least one decision point (if, then, by) or an escalation ladder, so the plan says what happens if it stalls`,
+    });
+  }
+  const names = new Set([...goal.people, ...goal.stakeholders].map((p) => personKey(p.name)));
+  plan.linesOfOperation.forEach((l, li) => (l.ladder ?? []).forEach((r, ri) => {
+    if (!names.has(personKey(r.to))) {
+      errors.push({
+        path: `plan.linesOfOperation.${li}.ladder.${ri}.to`,
+        message: `"${r.to}" is not in people or stakeholders; map who holds the authority first (stakeholders), then name them here verbatim`,
+      });
+    }
+  }));
+  return errors;
+}
+
+const rungsOf = (plan) => (plan?.linesOfOperation ?? []).flatMap((l) => l.ladder ?? []);
+
+/**
+ * Keep `sentOn` true to each rung in a rewritten plan, as stampDone does
+ * for next actions: a rung that went out (sent, answered, unanswered)
+ * keeps the date it went out, matched by its text; one newly sent is
+ * stamped `day`; a pending or skipped rung carries none.
+ */
+function stampSent(plan, before, day) {
+  const wasSent = new Map(rungsOf(before).filter((r) => r.sentOn).map((r) => [r.action, r.sentOn]));
+  for (const r of rungsOf(plan)) {
+    if (r.status === 'pending' || r.status === 'skipped') delete r.sentOn;
+    else r.sentOn ??= wasSent.get(r.action) ?? day;
+  }
+}
 
 const nextActionsOf = (plan) => (plan?.linesOfOperation ?? []).flatMap((l) => l.nextActions);
 
@@ -267,31 +322,54 @@ export function forget(goal, index) {
 }
 
 const NEXT_ACTION_PATH = /^plan\.linesOfOperation\.\d+\.nextActions\.\d+$/;
+const RUNG_PATH = /^plan\.linesOfOperation\.\d+\.ladder\.\d+$/;
+const DECISION_POINT_PATH = /^plan\.linesOfOperation\.\d+\.decisionPoints\.\d+$/;
+
+/** The statuses the node at `path` takes, and what to call it in an error. */
+function statusTarget(path) {
+  if (RUNG_PATH.test(path)) return { statuses: RUNG_STATUSES, what: 'a ladder rung' };
+  if (DECISION_POINT_PATH.test(path)) return { statuses: DECISION_POINT_STATUSES, what: 'a decision point' };
+  return { statuses: STATUSES, what: 'a step, sub-item or next action' };
+}
 
 /**
- * Flip a single step, sub-item or next action to proposed/pending/done/dropped
- * ('proposed' is valid on next actions only; the schema rejects it elsewhere).
- * `path` is dotted, e.g. "plan.linesOfOperation.0.nextActions.2". A next
- * action flipped to done is stamped `doneOn: today`; any other status
- * clears the stamp.
+ * Flip a single status without rewriting the section: a step, sub-item or
+ * next action to proposed/pending/done/dropped ('proposed' is valid on next
+ * actions only; the schema rejects it elsewhere), a ladder rung to
+ * pending/sent/answered/unanswered/skipped, or a decision point to
+ * open/taken/passed. `path` is dotted, e.g.
+ * "plan.linesOfOperation.0.nextActions.2". A next action flipped to done is
+ * stamped `doneOn: today`, and any other status clears the stamp. A rung
+ * flipped to sent is stamped `sentOn: today`, and the rung sent before it,
+ * still waiting, becomes unanswered: the climb is the answer to its silence.
  * @param {string} [today] YYYY-MM-DD
  */
 export function setStatus(goal, path, status, today = new Date().toISOString().slice(0, 10)) {
-  if (!STATUSES.includes(status)) return { ok: false, errors: [{ path: 'status', message: `must be one of ${STATUSES.join(', ')}` }] };
   const parts = String(path).split('.').filter(Boolean);
+  const { statuses, what } = statusTarget(parts.join('.'));
+  if (!statuses.includes(status)) return { ok: false, errors: [{ path: 'status', message: `${what} takes one of ${statuses.join(', ')}` }] };
   const copy = structuredClone(goal);
   let node = copy;
   for (const p of parts) {
     node = node?.[p];
     if (node === undefined) return { ok: false, errors: [{ path, message: `nothing at "${p}"` }] };
   }
-  if (typeof node !== 'object' || node === null || !STATUSES.includes(node.status ?? 'pending')) {
-    return { ok: false, errors: [{ path, message: 'target is not a step, sub-item or next action with a proposed/pending/done/dropped status' }] };
+  if (typeof node !== 'object' || node === null || !statuses.includes(node.status ?? statuses[0])) {
+    return { ok: false, errors: [{ path, message: `target is not ${what} with a ${statuses.join('/')} status` }] };
   }
   node.status = status;
-  if (NEXT_ACTION_PATH.test(parts.join('.'))) {
+  const at = parts.join('.');
+  if (NEXT_ACTION_PATH.test(at)) {
     if (status === 'done') node.doneOn ??= today;
     else delete node.doneOn;
+  }
+  if (RUNG_PATH.test(at)) {
+    if (status === 'pending' || status === 'skipped') delete node.sentOn;
+    else node.sentOn ??= today;
+    if (status === 'sent') {
+      const ladder = copy.plan.linesOfOperation[Number(parts[2])].ladder;
+      for (const r of ladder) if (r !== node && r.status === 'sent') r.status = 'unanswered';
+    }
   }
   // Turning a move into a proposal is a write of that proposal, so it meets
   // the same rule as write_section (writeRules.plan). Keeping or tossing a
@@ -348,7 +426,8 @@ export function summarizeChange(before, after) {
 // that path holds its text (none: the node is the string itself; a
 // function: it depends on the node), and whether the user may edit it in
 // place. Names stay chat-only (they keep people and stakeholders apart),
-// and a decided decision changes only through `decide`.
+// a decided decision changes only through `decide`, and decision points
+// and ladder rungs, set in advance, change only through `plan`.
 const LINES = [
   { re: /^goal$/, edit: true },
   { re: /^subGoals\.\d+$/, edit: true },
@@ -356,6 +435,8 @@ const LINES = [
   { re: /^plan\.linesOfOperation\.\d+\.nextActions\.\d+$/, field: 'action', edit: true },
   { re: /^plan\.linesOfOperation\.\d+\.criticalPath\.\d+$/, field: 'label', edit: true },
   { re: /^plan\.linesOfOperation\.\d+\.criticalPath\.\d+\.items\.\d+$/, field: 'label', edit: true },
+  { re: /^plan\.linesOfOperation\.\d+\.decisionPoints\.\d+$/, field: 'if', edit: false },
+  { re: /^plan\.linesOfOperation\.\d+\.ladder\.\d+$/, field: 'action', edit: false },
   { re: /^riskNotes\.\d+$/, field: 'item', edit: true },
   { re: /^people\.\d+$/, field: 'name', edit: false },
   { re: /^people\.\d+\.doing$/, edit: true },
@@ -405,7 +486,8 @@ export function editLine(goal, path, value, expected) {
     return { ok: false, errors: [{ path, message: 'this line just changed. Reopen it to edit' }] };
   }
   const [key, ...rest] = String(path).split('.');
-  if (!rest.length) return writeSection(goal, key, text);
+  const write = (v) => writeSection(goal, key, v, undefined, undefined, { page: true });
+  if (!rest.length) return write(text);
   const copy = structuredClone(goal[key]);
   const field = fieldOf(rule, nodeAt(goal, path));
   if (field) {
@@ -413,7 +495,7 @@ export function editLine(goal, path, value, expected) {
   } else {
     rest.slice(0, -1).reduce((n, p) => n[p], copy)[rest.at(-1)] = text;
   }
-  return writeSection(goal, key, copy);
+  return write(copy);
 }
 
 /** The user adds a move of their own to a line of the plan: pending, theirs. */
@@ -427,5 +509,5 @@ export function addNextAction(goal, lineIndex, value) {
   }
   const plan = structuredClone(goal.plan);
   plan.linesOfOperation[lineIndex].nextActions.push({ action: text, who: 'me', status: 'pending' });
-  return writeSection(goal, 'plan', plan);
+  return writeSection(goal, 'plan', plan, undefined, undefined, { page: true });
 }

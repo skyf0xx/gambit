@@ -97,16 +97,62 @@ const labeledStep = z.object({
   status: z.enum(['pending', 'done', 'dropped']).default('pending'),
 });
 
+// A decision point (planning doctrine's branch): a condition set in
+// advance, the date it is checked, and the move it triggers. `taken` means
+// the condition came true and the branch ran; `passed` means it didn't.
+export const DECISION_POINTS_MAX = 4;
+export const DECISION_POINT_STATUSES = ['open', 'taken', 'passed'];
+
+const decisionPoint = z.object({
+  if: mediumLabel,
+  by: dateString.optional(),
+  then: mediumLabel,
+  status: z.enum(DECISION_POINT_STATUSES).default('open'),
+});
+
+// An escalation ladder: the same ask, put to a harder audience at each rung,
+// cheapest first. Rungs climb interests → rights → power (Ury, Brett &
+// Goldberg): ask the one who can fix it, then use formal channels, then go
+// public. `to` names a `people` or `stakeholders` entry, verbatim.
+// `waitDays` is how long a sent rung gets before the next one is due.
+// `sentOn` is stamped by setStatus and writeSection (ops.mjs) when a rung
+// is sent; a sent rung that got no reply becomes `unanswered` when the
+// next one goes out, so the ladder keeps the paper trail.
+export const LADDER_MAX = 6;
+export const RUNG_LEVELS = ['interests', 'rights', 'power'];
+export const RUNG_STATUSES = ['pending', 'sent', 'answered', 'unanswered', 'skipped'];
+
+const rung = z.object({
+  level: z.enum(RUNG_LEVELS),
+  action: mediumLabel,
+  to: shortLabel,
+  carries: shortLabel.optional(),
+  waitDays: z.number().int().min(1).max(90),
+  status: z.enum(RUNG_STATUSES).default('pending'),
+  sentOn: dateString.optional(),
+  outcome: mediumLabel.optional(),
+});
+
 // focus: true marks the one line holding the Schwerpunkt. The index card
 // takes its first pending next action before any other line's.
+// decisionPoints and ladder are the line's if-thens: what happens when it
+// stalls. The focus line carries at least one (writeRules.plan).
 const lineOfOperation = z.object({
   label: shortLabel,
   focus: z.literal(true).optional(),
   criticalPath: z.array(labeledStep).max(6),
   nextActions: z.array(nextAction).max(NEXT_ACTIONS_MAX),
+  decisionPoints: z.array(decisionPoint).max(DECISION_POINTS_MAX).optional(),
+  ladder: z.array(rung).max(LADDER_MAX).optional(),
   status: z.enum(['on_schedule', 'at_risk', 'blocked', 'done']).optional(),
   blocker: mediumLabel.optional(),
 });
+
+/** The line the plan concentrates on: the focus line, else the first. */
+export const focusLineOf = (plan) => plan?.linesOfOperation.find((l) => l.focus) ?? plan?.linesOfOperation[0];
+
+/** Whether a line says what happens if it stalls. */
+export const hasBranch = (line) => Boolean(line?.decisionPoints?.length || line?.ladder?.length);
 
 const plan = z.object({
   linesOfOperation: z.array(lineOfOperation).min(1),
@@ -346,12 +392,28 @@ export const GOAL_MAX_WORDS = 10;
 //
 // A proposed move needs its `detail`: the sticky note asks the user to keep
 // or toss it, and the why is what makes that an informed choice. At most one
-// line carries `focus` — the Schwerpunkt is one thing, not a ranking.
+// line carries `focus` — the Schwerpunkt is one thing, not a ranking. A
+// ladder climbs and never steps back down, with one rung out at a time.
 export const writeRules = {
   plan: plan.superRefine((p, ctx) => {
     if (p.linesOfOperation.filter((l) => l.focus).length > 1) {
       ctx.addIssue({ code: 'custom', path: ['linesOfOperation'], message: 'only one line can carry focus: true' });
     }
+    p.linesOfOperation.forEach((l, li) => {
+      const ladder = l.ladder ?? [];
+      ladder.forEach((r, ri) => {
+        if (ri && RUNG_LEVELS.indexOf(r.level) < RUNG_LEVELS.indexOf(ladder[ri - 1].level)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['linesOfOperation', li, 'ladder', ri, 'level'],
+            message: `rungs climb ${RUNG_LEVELS.join(' → ')}; a ${r.level} rung can't follow a ${ladder[ri - 1].level} one`,
+          });
+        }
+      });
+      if (ladder.filter((r) => r.status === 'sent').length > 1) {
+        ctx.addIssue({ code: 'custom', path: ['linesOfOperation', li, 'ladder'], message: 'only one rung can be sent at a time; mark the earlier one answered or unanswered' });
+      }
+    });
     p.linesOfOperation.forEach((l, li) => l.nextActions.forEach((a, ai) => {
       if (a.status === 'proposed' && !a.detail?.trim()) {
         ctx.addIssue({
@@ -429,6 +491,9 @@ export function reconcileGoal(data) {
     }
   }
   for (const line of data.plan?.linesOfOperation ?? []) {
+    for (const r of line.ladder ?? []) {
+      if (!names.has(r.to)) warnings.push(`ladder rung "${r.action}": to "${r.to}" matches no people or stakeholders name`);
+    }
     if (line.criticalPath.length > 0 && line.criticalPath.every((s) => s.status === 'done') && line.status !== 'done') {
       warnings.push(`lineOfOperation "${line.label}": all criticalPath steps done but status is "${line.status ?? 'unset'}"`);
     }

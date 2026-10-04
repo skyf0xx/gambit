@@ -5,14 +5,15 @@ display: ordered-list
 writes: plan, successCriteria, log
 reads: posture, systemsNotes, decisions
 requires: goal
-next: strategy, systems, threat, decide, comms
+phase: plan
+next: strategy, systems, threat, decide, comms, stakeholders, exposure
 ---
 
 # Skill: plan
 
 **Trigger**: You need to break the goal (or the current focus from `strategy`) into concrete, ordered steps — starting a new push, replanning after something failed, or the existing plan feels stale. Also triggers, in its lightweight mode, whenever the user reports progress on a `nextActions` item in passing — "I finished X," "Y is done," "we're blocked on Z" — even though nothing about the message sounds like a planning request.
 
-**Purpose**: Turn a goal or focus into one or more sequenced, dependency-aware lines of operation. If the goal involves other people, sequence what they do too. Identify each line's critical path and what can run in parallel within it. Scale pace to current posture. Replan on failure without dwelling on it. Any `nextActions[].status` change, however small, is this skill's job even when nothing else about the moment looks like "planning."
+**Purpose**: Turn a goal or focus into one or more sequenced, dependency-aware lines of operation. If the goal involves other people, sequence what they do too. Identify each line's critical path and what can run in parallel within it. Say in advance what happens if a line stalls: decision points, and, for an ask someone else can ignore, an escalation ladder. Scale pace to current posture. Replan on failure without dwelling on it. Any `nextActions[].status` change, however small, is this skill's job even when nothing else about the moment looks like "planning."
 
 ---
 
@@ -34,6 +35,13 @@ The fast path for a casually reported completion. Use it instead of the full seq
 A routine flip needs no log entry; `nextActions[].status` carries the state. A reason worth keeping (why it's blocked) can go in a short entry.
 
 **Overdue moves.** When the state block lists moves past their `when` date, don't replan. Ask about each in one line: "[move], due [date]. Done, a new date, or drop it?" Done and dropped go through `set_status`. A new date is a `plan` write that changes only that move's `when` (YYYY-MM-DD). With three or more overdue on one line, or one move slipped twice, the plan is stale: say so and use Mode 1.
+
+**Ladder rungs and decision points.** The same quick path covers the if-thens:
+
+- "I sent the letter": `set_status` on that rung (`plan.linesOfOperation.N.ladder.M`) to `sent`. The code stamps `sentOn`, and marks the rung out before it `unanswered`.
+- "They replied": `set_status` to `answered`, then ask what they said and write it as that rung's `outcome` in a `plan` write. An answer stops the climb. Decide with the user whether it settles the ask (the line moves on) or falls short (the next rung stays live). Offer them the way back down: a reply that meets the ask ends the ladder, however high it got.
+- The state block lists a rung with no reply past its `waitDays`: name the next rung and who it goes to, and offer `comms` to draft it. Once the user sends it, `set_status` it to `sent`. No rung left means the ladder is spent: say so and flag `strategy`.
+- A decision point past its `by` date: ask whether its condition came true. `taken` when it did, and its `then` becomes a next action; `passed` when it didn't.
 
 If the user's report actually describes several changes at once, or implies the rest of the plan needs rethinking (a blocker with no workaround, a dependency that turned out wrong), stop and use Mode 1 (the full sequence below) instead — this mode is for a clean, isolated status change only.
 
@@ -103,11 +111,52 @@ For each line, list its next 3-5 actions in priority order — Schwerpunkt align
 
 If an action depends on someone who hasn't confirmed, flag that explicitly — don't plan around a person as if their involvement is settled when `people` marks them `tentative`.
 
+### 6a. Set the If-Thens
+
+A plan isn't finished until it says what happens if it stalls. Every line may carry
+them; the focus line (else the first) must, and a write without one is refused. Two
+kinds, from planning doctrine's branches and decision points:
+
+**Decision points**, for any goal: a condition set now, the date it is checked, and the
+move it triggers. `{if, by?, then, status: "open"}`, at most 4 per line. Make the
+condition checkable on the date: "under 10 sign-ups by 1 Nov → door-knock the street",
+"rain over 50% on Friday's forecast → move to the church hall", "missed 2 runs in a week →
+cut the target to 3 days". A condition nobody could check isn't a decision point.
+
+**An escalation ladder**, when the line needs someone else to act and they can ignore
+the user: a council, a landlord, a supplier, an employer. The same ask, put to a harder
+audience at each rung, cheapest first. Rungs climb in three levels (Ury, Brett &
+Goldberg), and never step back down:
+
+1. `interests`: ask whoever can fix it, directly. Cheap, and keeps the relationship.
+2. `rights`: formal channels with authority behind them: a complaint with a reference
+   number, the person above, an ombudsman, a regulator, an elected member.
+3. `power`: pressure from outside: press, petition, public posts. Costly, and burns the
+   relationship.
+
+Each rung is `{level, action, to, carries?, waitDays, status: "pending"}`, at most 6.
+`to` is a name from `people` or `stakeholders`, verbatim, and a rung naming anyone else is
+refused. The first job is finding who actually holds the authority (a tunnel may belong to
+the rail operator, not the council). If they aren't mapped, load `stakeholders` before
+building the ladder. `carries` is what the rung brings forward from the ones before: the
+reference number, the paper trail, photos. `waitDays` is how long the rung gets before the
+next is due: long enough for a real reply (14 days for a formal body is usual), short
+enough that the deadline survives the whole climb. Add the waits up and check them against
+`deadline`.
+
+Keep the way back open on every rung: each message says what would settle it, so the
+other side can stop the climb by meeting the ask. A `power` rung puts the user's name in
+public, so `exposure` runs before it goes out.
+
+Skip the ladder when nobody else's decision is involved. A picnic or a running habit gets
+a decision point, not a ladder.
+
 ### 6b. Reality-Check the Sequence
 
 You know the dependencies. The user knows what's feasible for them this week. Ask before
-committing the plan, as a `confirm` reply: is #1 doable by its date, and is anything here
-they already know won't happen?
+committing the plan, as a `confirm` reply: is #1 doable by its date, is anything here
+they already know won't happen, and do the if-thens fit (the waits, who each rung goes
+to)?
 
 A plan the user privately knows they won't execute is worse than a shorter one they
 will. If they flag an action as unrealistic, resequence around it rather than logging it
@@ -120,7 +169,7 @@ If something in an existing line has failed or stalled, name it, name the altern
 
 ### 8. Update the Goal
 
-Call `write_section` on `plan` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?, items?, status}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `status` is one of `pending` (default), `done`, `dropped` — same enum and meaning as a `nextAction`'s, so a step that's finished or abandoned shows that in the visual layer instead of relying on prose in `detail`); `nextActions` is capped at 5 entries, each `{action, who, when, status, doneOn?, detail?}` where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `when` is a date (YYYY-MM-DD) on every next action; `doneOn` is stamped by code when a move is done, so never write it by hand, and keep it as it is when you carry a done move forward. `status` is one of `pending` (default), `proposed`, `done`, `dropped`. Set that line's own `status` to `on_schedule`, `at_risk`, `blocked`, or `done` — `done` means every `criticalPath` step and every `nextActions` entry on that line is itself `done` or `dropped`; don't set the line to `done` while any step or action is still `pending`. Set `blocker` only when `status` is `blocked`.
+Call `write_section` on `plan` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?, items?, status}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `status` is one of `pending` (default), `done`, `dropped` — same enum and meaning as a `nextAction`'s, so a step that's finished or abandoned shows that in the visual layer instead of relying on prose in `detail`); `nextActions` is capped at 5 entries, each `{action, who, when, status, doneOn?, detail?}` where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `when` is a date (YYYY-MM-DD) on every next action; `doneOn` is stamped by code when a move is done, so never write it by hand, and keep it as it is when you carry a done move forward. `status` is one of `pending` (default), `proposed`, `done`, `dropped`. `decisionPoints` and `ladder` are the line's if-thens, as step 6a sets them; `sentOn` on a rung is stamped by code when it goes out, so never write it by hand, and keep it as it is when you carry a rung forward. Set that line's own `status` to `on_schedule`, `at_risk`, `blocked`, or `done` — `done` means every `criticalPath` step and every `nextActions` entry on that line is itself `done` or `dropped`; don't set the line to `done` while any step or action is still `pending`. Set `blocker` only when `status` is `blocked`.
 
 `detail` (280 characters or less) is one plain sentence on why this move, why now; a
 `proposed` action must carry it. `items` on a step is a real list to tick off, never a
@@ -142,6 +191,13 @@ items or a proposed move.
         ],
         "nextActions": [
           { "action": "...", "who": "you | name", "when": "YYYY-MM-DD", "status": "pending" }
+        ],
+        "decisionPoints": [
+          { "if": "...", "by": "YYYY-MM-DD", "then": "...", "status": "open" }
+        ],
+        "ladder": [
+          { "level": "interests", "action": "...", "to": "a stakeholders name", "waitDays": 14, "status": "pending" },
+          { "level": "rights", "action": "...", "to": "...", "carries": "reference number", "waitDays": 21, "status": "pending" }
         ],
         "status": "on_schedule",
         "blocker": "..."
@@ -171,4 +227,5 @@ Or:
   - Check a fact the plan rests on → web search, or say it's unverified
   - Resolve a fork the plan exposed → decide
   - Draft something the plan requires you to send → comms
+  - Check your own risk before a rung goes public → exposure
 ```

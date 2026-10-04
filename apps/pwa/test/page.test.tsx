@@ -96,6 +96,30 @@ describe('notebook page markup', () => {
     expect(html).not.toContain('Dropped action');
   });
 
+  it('shows a line\'s if-thens: decision points, and the ladder by level with the next step to mark', () => {
+    const plan = {
+      linesOfOperation: [{
+        label: 'Tunnel', criticalPath: [], nextActions: [],
+        decisionPoints: [{ if: 'no clean-up date by 1 Dec', then: 'start the petition', by: '2099-12-01', status: 'open' }],
+        ladder: [
+          { level: 'interests', action: 'Report it', to: 'Sydney Trains', waitDays: 14, status: 'sent', sentOn: '2099-10-01' },
+          { level: 'rights', action: 'Formal complaint', to: 'TfNSW complaints', carries: 'reference number', waitDays: 21, status: 'pending' },
+          { level: 'power', action: 'Story pitch', to: 'Local paper', waitDays: 14, status: 'pending' },
+        ],
+      }],
+    };
+    const html = renderSection('plan', plan);
+    expect(html).toContain('if it stalls');
+    expect(html).toContain('If no clean-up date by 1 Dec → start the petition');
+    expect(html).toContain('if they don&#x27;t answer');
+    expect(html).toMatch(/ask<\/div>[\s\S]*formal channels<\/div>[\s\S]*go public<\/div>/);
+    expect(html).toContain('Formal complaint → TfNSW complaints');
+    expect(html).toContain('with reference number');
+    expect(html).toContain('they answered');
+    expect(html.match(/mark sent/g)).toHaveLength(1);
+    expect(html).toContain('data-line="plan.linesOfOperation.0.ladder.1"');
+  });
+
   it('leaves the top move to the index card and folds done moves away', () => {
     const html = renderSection('plan', g.plan);
     expect(html).not.toContain('Pending action');

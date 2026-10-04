@@ -4,6 +4,7 @@ description: Use when the user brings several updates at once — "quick catch-u
 display: plain-card
 writes: log
 requires: goal
+phase: run
 next: plan, stakeholders, capacity, decide, strategy, recon
 ---
 

@@ -5,6 +5,7 @@ display: ordered-list
 writes: courses, log
 reads: systemsNotes, stakeholders
 requires: goal
+phase: develop
 next: decide, plan, threat
 ---
 
@@ -43,7 +44,8 @@ Read the goal, the focus, `systemsNotes`, `stakeholders`, `capacity`, `riskNotes
 Up to three. Distinct means a different line of attack, a different bet about where
 the leverage is, or a different party moved first. Not the same idea at another speed
 or budget. Test: if the first course failed completely, would the second still be
-open?
+open? The same ask at three volumes (ask, complain, go public) is one course with an
+escalation ladder, which `plan` builds, not three courses.
 
 For each:
 

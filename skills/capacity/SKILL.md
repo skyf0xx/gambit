@@ -4,6 +4,7 @@ description: Use when the plan assumes more time, money, or personal energy than
 display: checklist
 writes: capacity, log
 requires: goal
+phase: understand
 next: plan, strategy, decide, comms
 ---
 

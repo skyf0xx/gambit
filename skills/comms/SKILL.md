@@ -4,6 +4,7 @@ description: Use when the user needs to draft or sharpen outward communication i
 display: plain-card
 writes: log
 requires: goal
+phase: run
 next: threat, plan
 ---
 
@@ -26,6 +27,12 @@ Adapts to the audience the user is writing for — warm where the audience is wa
 ### 1. Load Context
 
 Read the goal — the goal statement, success criteria, and current focus (if any). Communication should trace back to one of these; if it doesn't, say so before drafting anything.
+
+If the message is a rung of a plan's escalation ladder, draft that rung: to its `to`,
+bringing what it `carries` (the reference number, the paper trail). Each rung names what
+would settle the matter, so the other side can stop the climb by meeting the ask, and a
+`rights` rung lists the earlier rungs and their dates. A `power` rung puts the user in
+public: if `exposure` hasn't checked it, say so before drafting.
 
 ### 2. Frame the Message
 
@@ -96,5 +103,5 @@ Next: [send it, or the specific thing that has to happen first]
 Or:
   - Check a claim in the draft before it goes out → web search, or say it's unverified
   - Think through how this could land badly → threat
-  - Sequence what follows once it's sent → plan
+  - Sequence what follows once it's sent, or mark a ladder rung sent → plan
 ```

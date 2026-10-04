@@ -3,6 +3,7 @@ name: brief
 description: Use when the user wants to understand where things stand in plain language rather than in framework terms — returning after a gap, feeling lost, showing the situation to someone else, or asking "so what does all this actually mean". Translates the goal into ordinary prose, explains any jargon it contains, and names the one thing to do next. Also gives a terse quick snapshot for "where are we" or "are we on track". Read-only.
 display: plain-card
 requires: goal
+phase: any
 next: strategy, plan, decide, eval
 ---
 

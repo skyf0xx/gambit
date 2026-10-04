@@ -3,6 +3,7 @@ name: elicit
 description: Use at a natural pause, or when the user asks for a deeper critique or names a method (socratic, first principles, pre-mortem, red team), to pressure-test the most recent piece of work — a draft, plan, decision or set of criteria — by running a chosen elicitation method against it. Offers a short menu of methods drawn from a catalog, runs the chosen ones, and hands back an improved version.
 display: plain-card
 requires: any
+phase: any
 checkpoint: true
 ---
 

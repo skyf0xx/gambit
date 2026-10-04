@@ -54,7 +54,7 @@ execution sequence, grouped by what kind of move it makes.
 |---|---|
 | `strategy` | assess progress, set posture, set focus (Schwerpunkt) |
 | `systems` | CoG / PMESII / ASCOPE analysis, find the leverage point |
-| `plan` | sequence the goal into a dependency-aware plan |
+| `plan` | sequence the goal into a dependency-aware plan, with what happens if it stalls: decision points and escalation ladders |
 | `options` | develop and wargame up to three distinct courses of action, recommend one |
 | `decide` | work an open choice to a recorded decision with a reverse-if condition; also a quit check with kill criteria |
 
@@ -122,9 +122,43 @@ different questions, and collapsing them loses the distinct one:
 
 `onboard` is the front door: it branches to `intake` (first-contact setup)
 for a stub goal or a welcome-back snapshot for a returning session, then
-hands off to `strategy`. Other skills assume a real goal already exists and
-never re-implement intake; the flow gate below refuses to load them on a
-stub.
+hands off along the method. Other skills assume a real goal already exists
+and never re-implement intake; the flow gate below refuses to load them on
+a stub.
+
+## The method
+
+Every goal moves through one fixed cycle, so skills follow one order
+rather than whichever comes to mind. It follows the military planning
+process (US Army FM 5-0, Joint Publication 5-0): understand the situation,
+develop courses of action, decide, plan with branches, then assess and
+loop. Each skill declares its phase in its frontmatter (`phase:`).
+
+| # | Phase | Question | Skills | Done when |
+|---|---|---|---|---|
+| 1 | `define` | What exactly do we want? | `intake` | the goal is not a stub |
+| 2 | `understand` | Who decides, what moves them, what can we spend? | `stakeholders`, `systems`, `capacity`, `recon` | `stakeholders` mapped, if any criterion is `influence` |
+| 3 | `direct` | Where do we push, and how hard? | `strategy` | a focus is set (`posture`, or a `strategy` log entry with a focus) |
+| 4 | `develop` | What are the real routes? | `options`, `decide` | a course is `chosen`; needed only for an `influence` goal with no plan yet, or courses with none chosen |
+| 5 | `plan` | What happens, in what order, and what if it stalls? | `plan` | a plan whose focus line carries a decision point or a ladder |
+| 6 | `stress` | How does it fail, and what does it cost the user? | `threat`, `premortem`, `exposure` | a `threat` risk, if the goal rests on others or has a ladder; an `exposure` entry, if a ladder has a `power` rung still to go |
+| 7 | `run` | What happened, what now? | `sitrep`, `comms`, `negotiate`, `forecast`, `experiment`, `review`, `eval` | never: it loops back to `direct` on a review, a stale focus, or a branch taken |
+
+`onboard`, `brief` and `elicit` sit outside the cycle (`phase: any`).
+
+How much each phase asks scales with the goal, read from the goal itself
+rather than a size the user picks. A goal that rests on other people's
+decisions (an `influence` criterion) needs its stakeholders mapped, its
+routes compared and its plan red-teamed. A picnic or a running habit goes
+from focus to plan in two turns. The one requirement every goal shares is
+the phase order and an if-then on the plan's focus line.
+
+`methodStep` (`packages/core/src/flow.mjs`) derives the first phase not yet
+done from the goal; nothing about the method is stored. Escalation follows
+the same sources: a plan's decision points and branches come from the same
+doctrine, and its escalation ladder climbs interests → rights → power (Ury,
+Brett & Goldberg, *Getting Disputes Resolved*): ask whoever can fix it, then
+use formal channels, then go public.
 
 ## The skill flow
 
@@ -140,11 +174,15 @@ Each skill declares its place in the flow in its `SKILL.md` frontmatter:
   key in `writes`)
 - `checkpoint: true` — runs inside the active skill instead of replacing it
   (`elicit`)
+- `phase` — its place in the method (`define`, `understand`, `direct`,
+  `develop`, `plan`, `stress`, `run`), or `any` for a skill outside it
 
 The gates:
 
 - `load_skill` refuses a `requires: goal` skill while the goal is a stub
-  and points to `intake`.
+  and points to `intake`. A skill further on in the method than the goal
+  has reached still loads, with a warning naming the skipped phase; the
+  model says so in one line and offers that phase's skill first.
 - `write_section`, `set_status` and `append_log` need an active skill whose
   `writes` holds the key; with no active skill, none of them writes.
   `remember` and `forget` (the `memory` key) are the exception: they
@@ -166,16 +204,18 @@ The gates:
   turn ends by storing its own routing, if any, in place of the old one.
 
 A refusal comes back as a tool error naming the rule, so the model fixes it
-in the same turn. Each turn's state block also names the active skill and
-what the goal says is due now, most pressing first (`suggestSkills`;
-`dueNow` gives the top three the state block and the page show):
-forecasts to score, experiments past their date, pending moves past their
-`when`, open `intel` questions due, a `prep` talk past its date with no
-outcome, decisions to review, a deadline within 14 days with no premortem
-risk, no posture or plan, a stale focus, an overdue `eval`, unchecked
-capacity, a plan with no `threat` risk, influence criteria with no
-stakeholders mapped, and any section built before one of its `reads`
-changed).
+in the same turn. Each turn's state block also names the active skill,
+where the goal sits in the method (`methodText`), and what the goal says is
+due now, most pressing first (`suggestSkills`; `dueNow` gives the top three
+the state block and the page show). Dated items come first: forecasts to
+score, experiments past their date, pending moves past their `when`, a
+sent ladder rung past its `waitDays`, an answered rung with no `outcome`, a
+decision point past its `by`, open `intel` questions due, a `prep` talk
+past its date with no outcome, decisions to review, a deadline within 14
+days with no premortem risk. Then the method's next phase. Then the reviews
+that keep a running goal honest: a stale focus, an overdue `eval`,
+unchecked or stale capacity. Last, any section built before one of its
+`reads` changed.
 
 `writeSection` stamps each key it changes in the goal's `updated` map.
 `staleSections` (`flow.mjs`) compares those stamps: when `stakeholders`
@@ -288,6 +328,26 @@ courses of action, compared side by side, with at most one `chosen`.
 BATNA, the walk-away line, up to 5 concessions, and `done` plus `outcome`
 once it has happened.
 
+Each plan line can carry its if-thens: what happens when it stalls. The
+focus line (else the first) must carry at least one, and a `plan` write
+without one is refused (page edits are let through, since they change one
+line's text, not the plan's shape).
+
+- `decisionPoints`: up to 4 `{if, by?, then, status: open | taken | passed}`.
+  A condition set in advance, the date it is checked, and the move it
+  triggers.
+- `ladder`: up to 6 rungs `{level, action, to, carries?, waitDays, status,
+  sentOn?, outcome?}`, for an ask someone else can ignore. `level` climbs
+  `interests` → `rights` → `power` and never steps back down. `to` names a
+  `people` or `stakeholders` entry, verbatim, and a skill write naming
+  anyone else is refused, so the ladder goes to whoever actually holds the
+  authority; `reconcileGoal` warns when a later write drops that name.
+  `status` is `pending | sent | answered | unanswered | skipped`, with one
+  rung `sent` at a time. `sentOn` is stamped like `doneOn`: `setStatus`
+  stamps today when a rung flips to `sent` and marks the rung out before it
+  `unanswered`; a `plan` rewrite carries it over by the rung's text and
+  stamps today on one newly sent.
+
 A next action's `when` is the date it is due by (YYYY-MM-DD), optional.
 `doneOn` is the date it was done: `setStatus` stamps it with today when the
 action flips to `done` and removes it on any other status. A `plan`
@@ -304,9 +364,11 @@ unrecorded. No other skill writes that field.
 The user can also edit the page directly, outside the skill flow. They can
 reword a move, step, sub-item, success criterion, sub-goal, the goal
 sentence, a risk, what a person is doing, or an open decision's question.
-They can also add a `pending` move, and tick, keep or toss one. Names stay
+They can also add a `pending` move, and tick, keep or toss one, and mark a
+ladder's next rung sent or the rung that's out answered. Names stay
 chat-only, because they keep `people` and `stakeholders` apart. A decided
-decision changes only through `decide`. Forecasts and experiments aren't
+decision changes only through `decide`, and decision points and rungs,
+set in advance, only through `plan`. Forecasts and experiments aren't
 editable at all, because their worth is being fixed in advance; nor are
 `intel`, `courses` and `prep`, which change through their skills. Text edits go
 through `editLine` and `addNextAction` (`packages/core/src/ops.mjs`), which
@@ -376,8 +438,9 @@ every goal write — same treatment, read them rather than duplicating them.
   `SKILL.md` carrying YAML frontmatter (`name`, `description`, `display` —
   one of the renderer types in `packages/core/src/registry.mjs`) so the
   dashboard knows how to draw its output, plus the flow fields (`writes`,
-  `requires`, `next`) described under "The skill flow" — a test checks
-  them against the goal keys and the other skills. It needs a next-step section, an
+  `requires`, `next`, `phase`) described under "The skill flow" — a test
+  checks them against the goal keys, the method's phases and the other
+  skills. It needs a next-step section, an
   elicitation checkpoint if it writes to the goal, and — if it writes a new
   key — a declared entry in `goalSchema` plus a matching entry in
   `packages/core/src/registry.mjs`.

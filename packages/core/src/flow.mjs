@@ -11,21 +11,42 @@
 //   checkpoint: "true" for a skill that runs inside another one (elicit):
 //               it keeps the calling skill's write rights and hands back
 //               to it when finished
+//   phase:      its place in the method (PHASES), or "any" for a skill
+//               outside the cycle (onboard, brief, elicit)
 //
 // The agent tools call canLoad / canWrite and return a refusal as a tool
 // error, so the model corrects itself in the same turn. suggestSkills reads
 // the goal for what is due, so the next move comes from real state.
+//
+// The method: every goal moves through the same phases in the same order,
+// after military planning (understand, develop, decide, plan, then assess
+// and loop). methodStep reads the goal for the first phase not yet done,
+// so skills follow one order rather than whichever came to mind. How much
+// each phase asks scales with the goal: a goal that rests on other
+// people's decisions (an influence criterion) needs its stakeholders
+// mapped, its routes compared and its plan red-teamed; a picnic goes
+// straight from focus to plan.
 //
 // `sitrep` takes several updates at once: canRoute checks its routing (each
 // update to the skill that writes it), the user confirms it, and in the
 // turn that follows each routed skill is cleared to write in the turn it
 // loads (FlowSession.cleared), so the whole batch lands in that one turn.
 
-import { WRITABLE_KEYS } from './ops.mjs';
-import { STUB_CRITERION } from './schema.mjs';
+import { WRITABLE_KEYS, currentFocusEntry } from './ops.mjs';
+import { STUB_CRITERION, focusLineOf, hasBranch } from './schema.mjs';
 
 export const FLOW_KEYS = [...WRITABLE_KEYS, 'log'];
 const REQUIRES = ['goal', 'any'];
+
+/**
+ * The method's phases, in order. define: what we want. understand: who
+ * decides and what moves them. direct: where to push, and how hard.
+ * develop: the real routes. plan: what happens, in what order, and what if
+ * it stalls. stress: how it fails, and what it costs the user. run: work
+ * it, assess, and loop back to direct.
+ */
+export const PHASES = ['define', 'understand', 'direct', 'develop', 'plan', 'stress', 'run'];
+const SKILL_PHASES = [...PHASES, 'any'];
 
 /** A goal that has been named but not defined: intake has not run. */
 export function isStub(goal) {
@@ -34,7 +55,7 @@ export function isStub(goal) {
 
 const list = (s) => (s ?? '').split(',').map((x) => x.trim()).filter(Boolean);
 
-/** @typedef {{ name: string, writes: string[], reads: string[], requires: string, next: string[], checkpoint: boolean, errors: string[] }} SkillFlow */
+/** @typedef {{ name: string, writes: string[], reads: string[], requires: string, next: string[], phase: string, checkpoint: boolean, errors: string[] }} SkillFlow */
 /** @typedef {{ skill: string, update: string }} RoutedUpdate */
 /**
  * @typedef {{ active?: string, caller?: string, fresh: string[], cleared?: string[], routed?: RoutedUpdate[] }} FlowSession
@@ -55,13 +76,15 @@ export function skillFlow(name, meta) {
   const reads = list(meta.reads);
   const next = list(meta.next);
   const requires = meta.requires ?? 'goal';
+  const phase = meta.phase ?? '';
   const errors = [
     ...writes.filter((k) => !FLOW_KEYS.includes(k)).map((k) => `writes: "${k}" is not a goal key`),
     ...reads.filter((k) => !WRITABLE_KEYS.includes(k)).map((k) => `reads: "${k}" is not a writable goal key`),
     ...(reads.length && !WRITABLE_KEYS.includes(writes[0]) ? ['reads: needs a section of its own as the first key in writes'] : []),
     ...(REQUIRES.includes(requires) ? [] : [`requires: must be one of ${REQUIRES.join(', ')}`]),
+    ...(SKILL_PHASES.includes(phase) ? [] : [`phase: must be one of ${SKILL_PHASES.join(', ')}`]),
   ];
-  return { name, writes, reads, requires, next, checkpoint: meta.checkpoint === 'true', errors };
+  return { name, writes, reads, requires, next, phase, checkpoint: meta.checkpoint === 'true', errors };
 }
 
 /**
@@ -74,15 +97,66 @@ export function writersOf(key, skills) {
 }
 
 /**
- * May this skill be loaded against this goal?
+ * May this skill be loaded against this goal? A skill further on in the
+ * method than the goal has reached still loads, with a warning naming the
+ * phase it skips: the user may want just this one thing, and refusing
+ * would stop them.
  * @param {SkillFlow} skill
- * @returns {{ ok: true } | { ok: false, error: string }}
+ * @returns {{ ok: true, warning?: string } | { ok: false, error: string }}
  */
 export function canLoad(skill, goal) {
   if (skill.requires === 'goal' && isStub(goal)) {
     return { ok: false, error: `the goal is not defined yet, so ${skill.name} has nothing to work on; load intake first` };
   }
+  const step = methodStep(goal);
+  if (step.skill && step.skill !== skill.name && PHASES.indexOf(skill.phase) > PHASES.indexOf(step.phase)) {
+    return {
+      ok: true,
+      warning: `the method is at ${step.phase} (${step.why}); ${skill.name} belongs to ${skill.phase}, further on. If the user came for ${skill.name}'s own work, say in one line what it skips and offer ${step.skill} first, then go ahead if they still want it. A quick status update needs no mention.`,
+    };
+  }
   return { ok: true };
+}
+
+/** @typedef {{ phase: string, skill?: string, why?: string, todo?: string }} MethodStep */
+
+/**
+ * The first phase of the method this goal hasn't done, with the skill that
+ * does it. Each phase asks only what the goal calls for, so a goal that
+ * needs no stakeholders, routes or red-team passes straight through.
+ * @returns {MethodStep}
+ */
+export function methodStep(goal) {
+  if (isStub(goal)) return { phase: 'define', skill: 'intake', why: 'the goal is not defined yet', todo: 'Define the goal' };
+  const influenced = goal.successCriteria.filter((c) => c.kind === 'influence').length;
+  if (influenced && !goal.stakeholders.length) {
+    return { phase: 'understand', skill: 'stakeholders', why: `${n(influenced, 'criterion', 'criteria')} ${influenced === 1 ? 'depends' : 'depend'} on others; no one mapped`, todo: 'Map who else has a say' };
+  }
+  if (!goal.posture && !currentFocusEntry(goal.log)) return { phase: 'direct', skill: 'strategy', why: 'no focus set yet', todo: 'Set the focus' };
+  const courses = goal.courses ?? [];
+  if (courses.length && !courses.some((c) => c.chosen)) return { phase: 'develop', skill: 'options', why: 'routes compared, none chosen', todo: 'Pick a route' };
+  if (!goal.plan && influenced && !courses.length) {
+    return { phase: 'develop', skill: 'options', why: 'success rests on others; no routes compared yet', todo: 'Compare the routes' };
+  }
+  if (!goal.plan) return { phase: 'plan', skill: 'plan', why: 'no plan yet', todo: 'Make a plan' };
+  const focus = focusLineOf(goal.plan);
+  if (!hasBranch(focus)) return { phase: 'plan', skill: 'plan', why: `"${focus.label}" has no if-then yet`, todo: 'Decide what happens if it stalls' };
+  const rungs = goal.plan.linesOfOperation.flatMap((l) => l.ladder ?? []);
+  if ((influenced || goal.stakeholders.length || rungs.length) && !goal.riskNotes.some((r) => r.source === 'threat')) {
+    return { phase: 'stress', skill: 'threat', why: 'plan not red-teamed yet', todo: 'Find weak spots in the plan' };
+  }
+  if (rungs.some((r) => r.level === 'power' && (r.status === 'pending' || r.status === 'sent')) && !goal.exposure.length) {
+    return { phase: 'stress', skill: 'exposure', why: 'the ladder ends in public; your own risk not checked', todo: 'Check your own risk before going public' };
+  }
+  return { phase: 'run' };
+}
+
+/** The state-block line naming where the goal sits in the method. */
+export function methodText(goal) {
+  const step = methodStep(goal);
+  return step.skill
+    ? `Method: ${step.phase}, next ${step.skill} (${step.why}).`
+    : 'Method: run. Work the plan; loop back to strategy on a review, a stale focus or a branch taken.';
 }
 
 /**
@@ -195,8 +269,11 @@ export function staleSections(goal, skills) {
 
 /**
  * What the goal says is due, most pressing first: `why` tells the model,
- * `todo` is the same item as an action the page offers the user. Given the skill flows,
- * sections built before one of their inputs changed come last.
+ * `todo` is the same item as an action the page offers the user. Dated
+ * items come first (a forecast to score, a rung with no reply, a deadline
+ * close with no premortem), then the method's next phase, then the
+ * reviews that keep a running goal honest, then, given the skill flows,
+ * sections built before one of their inputs changed.
  * @param {object} goal
  * @param {string} today YYYY-MM-DD
  * @param {SkillFlow[]} [skills]
@@ -207,13 +284,33 @@ export function suggestSkills(goal, today, skills = []) {
   const out = [];
   const due = (d) => d && d <= today;
   const past = (d) => d && d < today;
+  const lines = goal.plan?.linesOfOperation ?? [];
 
   const forecasts = goal.forecasts.filter((f) => !f.resolved && due(f.resolvesBy)).length;
   if (forecasts) out.push({ skill: 'forecast', why: `${n(forecasts, 'forecast')} ready to score`, todo: `Score ${some(forecasts, 'forecast')}` });
   const experiments = goal.experiments.filter((e) => !e.done && due(e.by)).length;
   if (experiments) out.push({ skill: 'experiment', why: `${n(experiments, 'experiment')} past ${experiments === 1 ? 'its' : 'their'} date`, todo: `Record ${experiments === 1 ? 'an experiment result' : `${experiments} experiment results`}` });
-  const overdue = (goal.plan?.linesOfOperation ?? []).flatMap((l) => l.nextActions).filter((a) => a.status === 'pending' && past(a.when)).length;
+  const overdue = lines.flatMap((l) => l.nextActions).filter((a) => a.status === 'pending' && past(a.when)).length;
   if (overdue) out.push({ skill: 'plan', why: `${n(overdue, 'move')} overdue`, todo: `Catch up on ${some(overdue, 'overdue move')}` });
+  for (const l of lines) {
+    const ladder = l.ladder ?? [];
+    const at = ladder.findIndex((r) => r.status === 'sent');
+    const sent = ladder[at];
+    if (sent?.sentOn && days(sent.sentOn, today) >= sent.waitDays) {
+      const next = ladder.slice(at + 1).find((r) => r.status === 'pending');
+      out.push({
+        skill: 'plan',
+        why: `no reply from ${sent.to} in ${n(days(sent.sentOn, today), 'day')}; ${next ? `next rung: ${next.to}` : 'no rung left'}`,
+        todo: next ? `Take it to ${next.to}` : `Rethink the ask to ${sent.to}`,
+      });
+    }
+    for (const r of ladder.filter((x) => x.status === 'answered' && !x.outcome)) {
+      out.push({ skill: 'plan', why: `${r.to} answered; what they said isn't recorded`, todo: `Record what ${r.to} said` });
+    }
+    for (const d of (l.decisionPoints ?? []).filter((x) => x.status === 'open' && due(x.by))) {
+      out.push({ skill: 'plan', why: `decision point due: ${d.if}`, todo: `Check: ${d.if}` });
+    }
+  }
   const questions = (goal.intel ?? []).filter((q) => q.status === 'open' && due(q.by)).length;
   if (questions) out.push({ skill: 'recon', why: `${n(questions, 'open question')} due`, todo: `Answer ${some(questions, 'open question')}` });
   const talks = (goal.prep ?? []).filter((p) => !p.done && past(p.on));
@@ -229,12 +326,13 @@ export function suggestSkills(goal, today, skills = []) {
     out.push({ skill: 'premortem', why: `${left ? `deadline in ${n(left, 'day')}` : 'deadline today'}, no premortem yet`, todo: 'Find what could sink this before the deadline' });
   }
 
-  if (!goal.posture) out.push({ skill: 'strategy', why: 'no focus or posture set yet', todo: 'Set up focus and posture' });
-  else if (days(goal.posture.lastReviewed, today) >= REVIEW_DAYS.strategy) {
-    out.push({ skill: 'strategy', why: `focus last reviewed ${days(goal.posture.lastReviewed, today)} days ago`, todo: 'Review your focus' });
-  }
-  if (!goal.plan) out.push({ skill: 'plan', why: 'no plan yet', todo: 'Make a plan' });
+  const step = methodStep(goal);
+  if (step.skill) out.push({ skill: step.skill, why: step.why, todo: step.todo });
 
+  const focused = goal.posture?.lastReviewed ?? currentFocusEntry(goal.log)?.date;
+  if (focused && days(focused, today) >= REVIEW_DAYS.strategy) {
+    out.push({ skill: 'strategy', why: `focus last reviewed ${days(focused, today)} days ago`, todo: 'Review your focus' });
+  }
   if (goal.plan) {
     const evals = goal.log.filter((e) => e.source === 'eval' && e.date).map((e) => e.date).sort();
     const since = evals.at(-1) ?? goal.log.map((e) => e.date).filter(Boolean).sort()[0];
@@ -245,11 +343,6 @@ export function suggestSkills(goal, today, skills = []) {
     else if (days(goal.capacity.lastReviewed, today) >= REVIEW_DAYS.capacity) {
       out.push({ skill: 'capacity', why: `capacity last checked ${days(goal.capacity.lastReviewed, today)} days ago`, todo: 'Recheck your hours and money' });
     }
-    if (!goal.riskNotes.some((r) => r.source === 'threat')) out.push({ skill: 'threat', why: 'plan not red-teamed yet', todo: 'Find weak spots in the plan' });
-  }
-  const influenced = goal.successCriteria.filter((c) => c.kind === 'influence').length;
-  if (influenced && !goal.stakeholders.length) {
-    out.push({ skill: 'stakeholders', why: `${n(influenced, 'criterion', 'criteria')} ${influenced === 1 ? 'depends' : 'depend'} on others; no one mapped`, todo: 'Map who else has a say' });
   }
   for (const s of staleSections(goal, skills)) if (!out.some((o) => o.skill === s.skill)) out.push(s);
   return out;

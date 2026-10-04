@@ -1,7 +1,7 @@
 import { generateText, streamText, stepCountIs, type ModelMessage, type StopCondition, type ToolSet } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { googleWebSearchTool } from './websearch';
-import { summarizeChange, dueNow, routedText, type FlowSession, type RoutedUpdate } from '@gambit/core';
+import { summarizeChange, dueNow, routedText, methodText, type FlowSession, type RoutedUpdate } from '@gambit/core';
 import { db, type ChatRecord, type DisplayMsg } from './db';
 import { loadApiKey } from './crypto';
 import { getProvider, makeModel, GOOGLE_FALLBACK_MODEL, type ProviderKind } from './providers';
@@ -94,8 +94,8 @@ export function keepLastTurns<T extends { role: string }>(messages: T[], turns =
 
 /**
  * The flow lines of the turn's state block: the active skill with what it
- * may write, the routed updates the user just confirmed, and what the goal
- * says is due, most pressing first.
+ * may write, the routed updates the user just confirmed, where the goal
+ * sits in the method, and what the goal says is due, most pressing first.
  */
 export function flowText(store: SkillStore, session: Pick<FlowSession, 'active' | 'caller'>, goal: Parameters<typeof dueNow>[0], day: string, confirmed?: RoutedUpdate[]): string {
   const active = session.active ? flowOf(store, session.active) : undefined;
@@ -107,6 +107,7 @@ export function flowText(store: SkillStore, session: Pick<FlowSession, 'active' 
   ];
   const routed = routedText(confirmed);
   if (routed) lines.push(routed);
+  lines.push(methodText(goal));
   const due = dueNow(goal, day, skillFlows(store));
   if (due.length) lines.push(`Due now: ${due.map((s) => `${s.skill} (${s.why})`).join('; ')}.`);
   const next = active?.checkpoint ? undefined : active?.next;

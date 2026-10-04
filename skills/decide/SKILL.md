@@ -4,6 +4,7 @@ description: Use when analysis has produced options and one must be chosen — a
 display: decision-callout
 writes: decisions
 requires: goal
+phase: develop
 next: plan, strategy, options
 ---
 

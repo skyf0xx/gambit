@@ -4,6 +4,7 @@ description: Use before a conversation where you need someone's agreement — a 
 display: decision-callout
 writes: prep, log
 requires: goal
+phase: run
 next: plan, comms, review
 ---
 
@@ -44,7 +45,9 @@ most common failure, and it's expensive.
 
 Read the goal — the goal statement, the `plan` key, the `people` key, the `stakeholders` array if non-empty. If the
 counterparty appears in the `stakeholders` array, pull their recorded interest rather than
-re-deriving it.
+re-deriving it. If this talk is a rung of a plan's escalation ladder, the next rung up is
+part of the user's BATNA: name it, and use it as leverage only if the user is ready to
+climb.
 
 ### 2. Define What You Actually Need
 

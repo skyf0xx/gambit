@@ -4,6 +4,7 @@ description: Use for a periodic check-in or an honest audit of progress against 
 display: checklist
 writes: criteriaStatus, log
 requires: goal
+phase: run
 next: strategy, plan, decide
 ---
 

@@ -4,6 +4,7 @@ description: Use for new-goal intake — the active goal is still a stub (its on
 display: plain-card
 writes: goal, subGoals, successCriteria, deadline, people, log
 requires: any
+phase: define
 next: strategy, capacity, stakeholders, premortem, elicit
 ---
 
@@ -72,7 +73,7 @@ Call `write_section` for `goal`, `subGoals` (only if there are any — omit the 
 
 ### 7. Name the next step
 
-End with one recommended next move, defaulting to `strategy` to find the focus, plus a short menu of alternatives (`capacity`, `stakeholders`, `premortem`). State the recommendation as the default and let the user redirect, then load the skill they pick.
+End with one recommended next move, following the method's next phase: `stakeholders` when a success criterion depends on someone else's decision (`influence`), since nobody can plan around a decision-maker not yet named; otherwise `strategy` to find the focus. Add a short menu of alternatives (`capacity`, `premortem`). State the recommendation as the default and let the user redirect, then load the skill they pick.
 
 ## Fields written
 

@@ -4,6 +4,7 @@ description: Use when the goal depends on people who are neither on your team no
 display: stakeholder-table
 writes: stakeholders, people, log
 requires: goal
+phase: understand
 next: negotiate, comms, strategy, systems
 ---
 
@@ -62,6 +63,10 @@ Their stance belongs in that entry's `doing` or `detail`, not in a second entry 
 
 Prompts to work through:
 
+- Who actually owns the problem? The body with the authority to fix it is often not the
+  obvious one: a rail tunnel belongs to the rail operator, not the council. Name it, and
+  who sits above it (a complaints unit, an ombudsman, a regulator, an elected member).
+  A plan's escalation ladder can only go to names on this map.
 - Who has to say yes? Permits, venues, funding, platform access.
 - Who can say no, or slow it down? Not the same list.
 - Who is affected but has no seat — residents, workers, users, neighbours?
@@ -180,6 +185,7 @@ Next: [the single highest-value stakeholder move]
 Or:
   - Prep the conversation with them → negotiate
   - Draft what you'd say → comms
+  - Build the escalation ladder to the one who owns it → plan
   - Confirm an interest you're guessing at → web search
   - This changes where the leverage is → strategy or systems
 ```

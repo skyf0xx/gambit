@@ -7,6 +7,7 @@ const plan = {
   linesOfOperation: [{
     label: 'L', criticalPath: [{ label: 'a', status: 'pending' }],
     nextActions: [{ action: 'do x', who: 'me', when: '2026-10-09' }, { action: 'do y', who: 'me', when: '2026-10-12' }],
+    decisionPoints: [{ if: 'no word by Friday', then: 'call them', by: '2026-10-16' }],
   }],
 };
 
@@ -114,7 +115,7 @@ test('setStatus: a proposed next action is kept or tossed; steps cannot be propo
 });
 
 test('only one line of the plan can carry focus', () => {
-  const line = (label) => ({ label, criticalPath: [], nextActions: [], focus: true });
+  const line = (label) => ({ label, criticalPath: [], nextActions: [], focus: true, decisionPoints: plan.linesOfOperation[0].decisionPoints });
   const r = writeSection(stubGoal('g'), 'plan', { linesOfOperation: [line('A'), line('B')] });
   assert.equal(r.ok, false);
   assert.equal(writeSection(stubGoal('g'), 'plan', { linesOfOperation: [line('A'), { label: 'B', criticalPath: [], nextActions: [] }] }).ok, true);
@@ -389,4 +390,82 @@ test('editLine reaches risks, what a person is doing, and an open decision only'
   assert.equal(lineText(g, 'decisions.1'), 'hire one stylist');
   assert.equal(lineText(g, 'people.0'), 'Priya');
   assert.equal(isEditableLine('forecasts.0'), false);
+});
+
+test('a plan written by a skill says on its focus line what happens if it stalls; a page edit is let through', () => {
+  const flat = { linesOfOperation: [{ label: 'A', criticalPath: [{ label: 'a', status: 'pending' }], nextActions: [] }, { ...plan.linesOfOperation[0], label: 'B' }] };
+  const r = writeSection(stubGoal('g'), 'plan', flat);
+  assert.equal(r.ok, false);
+  assert.equal(r.errors[0].path, 'plan.linesOfOperation.0');
+  assert.match(r.errors[0].message, /"A" needs an if-then/);
+  // The focus line, not the first, is the one that needs it.
+  const focusB = { linesOfOperation: [flat.linesOfOperation[0], { ...flat.linesOfOperation[1], focus: true }] };
+  assert.equal(writeSection(stubGoal('g'), 'plan', focusB).ok, true);
+  // An older plan with no if-then still takes the user's own edits.
+  const legacy = { ...stubGoal('g'), plan: goalSchema.shape.plan.parse(flat) };
+  assert.equal(core.editLine(legacy, 'plan.linesOfOperation.0.criticalPath.0', 'b', 'a').ok, true);
+  assert.equal(core.addNextAction(legacy, 0, 'book the van').ok, true);
+});
+
+const rung = (over) => ({ level: 'interests', action: 'send letter', to: 'Council', waitDays: 14, ...over });
+const withLadder = (ladder) => ({ linesOfOperation: [{ label: 'Council', criticalPath: [], nextActions: [], ladder }] });
+const mapped = { ...stubGoal('g'), stakeholders: [{ name: 'Council', power: 'high', stanceCurrent: 'unaware', stanceTarget: 'acts', via: 'complaints line' }], people: [{ name: 'Sam', status: 'confirmed', doing: 'takes photos' }] };
+
+test('a ladder names people the goal knows, climbs in order, and has one rung out at a time', () => {
+  assert.equal(writeSection(mapped, 'plan', withLadder([rung(), rung({ level: 'power', to: 'sam', action: 'post photos' })])).ok, true);
+  const stranger = writeSection(mapped, 'plan', withLadder([rung({ to: 'Mayor' })]));
+  assert.equal(stranger.ok, false);
+  assert.equal(stranger.errors[0].path, 'plan.linesOfOperation.0.ladder.0.to');
+  const down = writeSection(mapped, 'plan', withLadder([rung({ level: 'rights' }), rung({ action: 'ask nicely' })]));
+  assert.equal(down.ok, false);
+  assert.match(down.errors[0].message, /interests rung can't follow a rights one/);
+  const twoOut = writeSection(mapped, 'plan', withLadder([rung({ status: 'sent' }), rung({ level: 'rights', action: 'complain', status: 'sent' })]));
+  assert.equal(twoOut.ok, false);
+  assert.match(twoOut.errors[0].message, /one rung can be sent/);
+  assert.equal(writeSection(mapped, 'plan', withLadder([rung({ waitDays: 0 })])).ok, false);
+});
+
+test('a rung going out is stamped sentOn, and keeps it across a rewrite', () => {
+  const sent = writeSection(mapped, 'plan', withLadder([rung({ status: 'sent' }), rung({ level: 'rights', action: 'complain' })]), '2026-10-01T09:00:00Z');
+  const ladder = (r) => r.goal.plan.linesOfOperation[0].ladder;
+  assert.equal(ladder(sent)[0].sentOn, '2026-10-01');
+  assert.equal(ladder(sent)[1].sentOn, undefined);
+  const again = writeSection(sent.goal, 'plan', withLadder([rung({ status: 'unanswered' }), rung({ level: 'rights', action: 'complain', status: 'sent' })]), '2026-10-16T09:00:00Z');
+  assert.deepEqual(ladder(again).map((r) => r.sentOn), ['2026-10-01', '2026-10-16']);
+  const reset = writeSection(again.goal, 'plan', withLadder([rung({ status: 'pending', sentOn: '2026-10-01' })]));
+  assert.equal(ladder(reset)[0].sentOn, undefined);
+});
+
+test('setStatus climbs a ladder and settles a decision point', () => {
+  const g = writeSection(mapped, 'plan', {
+    linesOfOperation: [{
+      label: 'Council', criticalPath: [], nextActions: [],
+      decisionPoints: [{ if: 'no reply by 20 Oct', then: 'go to the head of council' }],
+      ladder: [rung(), rung({ level: 'rights', action: 'complain' })],
+    }],
+  }).goal;
+  const path = (i) => `plan.linesOfOperation.0.ladder.${i}`;
+  const first = setStatus(g, path(0), 'sent', '2026-10-01');
+  assert.equal(first.ok, true);
+  assert.equal(first.goal.plan.linesOfOperation[0].ladder[0].sentOn, '2026-10-01');
+  // The next rung going out marks the silent one unanswered.
+  const climbed = setStatus(first.goal, path(1), 'sent', '2026-10-16').goal.plan.linesOfOperation[0].ladder;
+  assert.deepEqual(climbed.map((r) => [r.status, r.sentOn]), [['unanswered', '2026-10-01'], ['sent', '2026-10-16']]);
+  assert.equal(setStatus(first.goal, path(0), 'answered', '2026-10-05').goal.plan.linesOfOperation[0].ladder[0].sentOn, '2026-10-01');
+  assert.equal(setStatus(first.goal, path(0), 'pending').goal.plan.linesOfOperation[0].ladder[0].sentOn, undefined);
+  assert.match(setStatus(g, path(0), 'done').errors[0].message, /a ladder rung takes one of pending, sent, answered, unanswered, skipped/);
+  const dp = 'plan.linesOfOperation.0.decisionPoints.0';
+  assert.equal(setStatus(g, dp, 'taken').goal.plan.linesOfOperation[0].decisionPoints[0].status, 'taken');
+  assert.equal(setStatus(g, dp, 'sent').ok, false);
+  assert.equal(setStatus(g, 'plan.linesOfOperation.0', 'taken').ok, false);
+  assert.equal(core.lineText(g, path(1)), 'complain');
+  assert.equal(core.lineText(g, dp), 'no reply by 20 Oct');
+  assert.equal(core.isEditableLine(path(1)), false);
+});
+
+test('a ladder rung naming someone the goal no longer holds is flagged', () => {
+  const g = writeSection(mapped, 'plan', withLadder([rung()])).goal;
+  const r = writeSection(g, 'stakeholders', []);
+  assert.equal(r.ok, true);
+  assert.ok(r.warnings.some((w) => /to "Council" matches no people or stakeholders name/.test(w)));
 });

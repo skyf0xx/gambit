@@ -5,6 +5,7 @@ display: ordered-list
 writes: systemsNotes, log
 reads: goal, subGoals, people, stakeholders
 requires: goal
+phase: understand
 next: plan, strategy, options, threat
 ---
 

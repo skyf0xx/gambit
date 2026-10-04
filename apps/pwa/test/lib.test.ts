@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { WRITABLE_KEYS, stubGoal, writersOf } from '@gambit/core';
+import { WRITABLE_KEYS, PHASES, stubGoal, writersOf } from '@gambit/core';
 import { PREAMBLE, SECTION_SHAPES, buildStore, bundledFiles, guidedRules, methods, skillFile, skillFlows, elicitationMethods } from '../src/lib/skills';
 import { compactToolResults, trimHistory, keepLastTurns, flowText, CHAT_TURNS, HISTORY_CHAR_BUDGET } from '../src/lib/agent';
 import type { ModelMessage } from 'ai';
@@ -36,10 +36,12 @@ describe('skills and preamble', () => {
     for (const k of [...WRITABLE_KEYS, 'log']) expect(writersOf(k, flows), k).not.toEqual([]);
     expect(flows.filter((f) => f.checkpoint).map((f) => f.name)).toEqual(['elicit']);
     expect(flows.filter((f) => f.requires === 'any').map((f) => f.name).sort()).toEqual(['elicit', 'intake', 'onboard']);
+    expect(flows.filter((f) => f.phase === 'any').map((f) => f.name).sort()).toEqual(['brief', 'elicit', 'onboard']);
+    for (const p of PHASES) expect(flows.some((f) => f.phase === p), p).toBe(true);
   });
   it('states the active skill and what is due in the turn state', () => {
     const goal = stubGoal('g');
-    expect(flowText(store, {}, goal, '2026-10-02')).toBe('No skill is active; every write but remember and forget needs one.\nDue now: intake (the goal is not defined yet).');
+    expect(flowText(store, {}, goal, '2026-10-02')).toBe('No skill is active; every write but remember and forget needs one.\nMethod: define, next intake (the goal is not defined yet).\nDue now: intake (the goal is not defined yet).');
     const t = flowText(store, { active: 'elicit', caller: 'intake' }, goal, '2026-10-02');
     expect(t).toContain('Active skill: elicit, inside intake (writes goal, subGoals');
     expect(t).not.toContain('hands off to');

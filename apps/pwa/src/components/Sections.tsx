@@ -362,6 +362,90 @@ function visibleActions(actions: Any[], goalId: string, base: string, dropped: M
     });
 }
 
+/** The date `days` after an ISO date, as an ISO date. */
+const addDays = (iso: string, days: number) => new Date(Date.parse(iso) + days * 86_400_000).toISOString().slice(0, 10);
+
+/** Each rung level in the page's words: the cheap ask, the formal
+ * channel, then going public. */
+const RUNG_LEVEL: Record<string, string> = { interests: 'ask', rights: 'formal channels', power: 'go public' };
+
+/** Where a rung stands, in a few pencilled words. */
+function rungState(r: Any): string {
+  switch (r.status) {
+    case 'sent': return `sent ${pencilDate(r.sentOn)} · next rung ${byDate(addDays(r.sentOn, r.waitDays))}`;
+    case 'answered': return 'answered';
+    case 'unanswered': return 'no reply';
+    case 'skipped': return 'skipped';
+    default: return `give it ${r.waitDays} day${r.waitDays === 1 ? '' : 's'}`;
+  }
+}
+
+/** A line's if-thens: its decision points ("if this, then that"), and its
+ * escalation ladder, rung by rung, grouped under its level as it climbs.
+ * The user can mark the next rung sent, or the rung that's out answered;
+ * everything else changes through the chat. */
+function Branches({ goalId, base, line, editable }: { goalId: string; base: string; line: Any; editable: boolean }) {
+  const points: Any[] = line.decisionPoints ?? [];
+  const ladder: Any[] = line.ladder ?? [];
+  if (!points.length && !ladder.length) return null;
+  const out = ladder.findIndex((r) => r.status === 'sent');
+  const next = ladder.findIndex((r, i) => r.status === 'pending' && i > out);
+  return (
+    <div className="space-y-3 pt-1">
+      {points.length > 0 && (
+        <div className="space-y-1">
+          <h4><PencilWord className="text-[19px] text-graphite">if it stalls</PencilWord></h4>
+          <ul className="ml-11 space-y-1 text-[15px] leading-[22px]">
+            {points.map((d, i) => (
+              <li key={i} className={d.status === 'open' ? 'text-ink' : 'text-graphite'}>
+                <Line goalId={goalId} path={`${base}.decisionPoints.${i}`}>
+                  <span>If {d.if} → {d.then}</span>
+                  {d.status === 'open'
+                    ? d.by && <span className="ml-2 text-[14px] text-graphite">check {byDate(d.by)}</span>
+                    : <span className="ml-2 text-[14px] text-graphite">{d.status === 'taken' ? 'taken' : 'not needed'}</span>}
+                </Line>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {ladder.length > 0 && (
+        <div className="space-y-1">
+          <h4><PencilWord className="text-[19px] text-graphite">if they don't answer</PencilWord></h4>
+          <ol className="ml-11 space-y-1.5 text-[15px] leading-[22px]">
+            {ladder.map((r, i) => {
+              const path = `${base}.ladder.${i}`;
+              const level = i === 0 || ladder[i - 1].level !== r.level ? RUNG_LEVEL[r.level] : undefined;
+              const act = !editable ? undefined
+                : i === out ? { label: 'they answered', status: 'answered' }
+                : i === next ? { label: 'mark sent', status: 'sent' }
+                : undefined;
+              return (
+                <li key={i} className={r.status === 'pending' || r.status === 'sent' ? 'text-ink' : 'text-graphite'}>
+                  {level && <div className="text-[13px] uppercase tracking-wide text-graphite">{level}</div>}
+                  <Line goalId={goalId} path={path}>
+                    <span>{r.action} → {r.to}</span>
+                    {r.carries && <span className="ml-2 text-[14px] text-graphite">with {r.carries}</span>}
+                  </Line>
+                  <div className="flex flex-wrap items-center gap-x-4 text-[14px] text-graphite">
+                    <span>{rungState(r)}</span>
+                    {r.outcome && <span>“{r.outcome}”</span>}
+                    {act && (
+                      <TextAction className="-my-2 underline" onClick={() => void setLineStatus(goalId, path, act.status)}>
+                        {act.label}
+                      </TextAction>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const PLAN_LINE_PATH = /^plan\.linesOfOperation\.(\d+)(?:\.|$)/;
 
 /** Which line of operation a dotted LinePath sits in, or null when it isn't
@@ -536,6 +620,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
             <PencilWord className="text-[18px] text-graphite">{showDone ? 'hide done' : `${hiddenDone} done`}</PencilWord>
           </TextAction>
         )}
+        <Branches goalId={goalId} base={`plan.linesOfOperation.${li}`} line={l} editable={editable} />
       </>
     );
   };

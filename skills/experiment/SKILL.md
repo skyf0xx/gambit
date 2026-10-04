@@ -4,6 +4,7 @@ description: Use when the plan rests on an unproven assumption that could be tes
 display: checklist
 writes: experiments
 requires: goal
+phase: run
 next: plan, systems, strategy, decide
 ---
 

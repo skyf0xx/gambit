@@ -4,6 +4,7 @@ description: Use before committing to a significant plan or an irreversible acti
 display: plain-card
 writes: riskNotes, log
 requires: goal
+phase: stress
 next: plan, decide, strategy
 ---
 

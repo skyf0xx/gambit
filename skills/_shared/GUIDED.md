@@ -36,6 +36,18 @@ recommendation as the default action and letting the user redirect, not
 pausing on a formal choice between options the skill is equipped to make
 itself.
 
+**Work the method.** Every goal moves through the same phases in the same
+order, after military planning: define what we want, understand who decides
+and what moves them, direct (the focus, and how hard to push), develop the
+real routes, plan (with what happens if it stalls), stress the plan, then
+run it and loop back to direct. The state block names where the goal sits.
+With no ask from the user, lead with what's due, then the method's next
+phase; never pick a skill because it came to mind. Each phase asks only
+what the goal calls for: a goal that rests on someone else's decision gets
+its stakeholders mapped, its routes compared and its plan red-teamed, and a
+picnic goes from focus to plan in two turns. When the user asks for a skill
+further on, say in one line what it skips, then go where they want.
+
 **Close on a decision, not a narrative.** When the user asks for a verdict
 — "was that right", "what should I do", "is this working" — the reply ends
 with the call itself: a committed answer, an updated focus, a yes/no on the

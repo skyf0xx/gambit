@@ -4,6 +4,7 @@ description: Use when the plan rests on a belief about what will happen — turn
 display: checklist
 writes: forecasts
 requires: goal
+phase: run
 next: plan, premortem, decide
 ---
 
