@@ -63,7 +63,7 @@ function statusAt(goal: Goal, path: LinePath): string | undefined {
   return (node as { status?: string } | undefined)?.status ?? undefined;
 }
 
-/** Flip a step, sub-item or next action's status, guarded by `allow` (the
+/** Flip a next action's status, guarded by `allow` (the
  * status it must have now, if any), and queue the flip for the advisor. */
 export async function setLineStatus(goalId: string, path: LinePath, status: string, allow?: string): Promise<OpResult> {
   let before: string | undefined;

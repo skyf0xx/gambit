@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { rendererForSection, isEditableLine, taskState, NEXT_ACTIONS_MAX } from '@gambit/core';
+import { rendererForSection, isEditableLine, taskState, milestoneReached, NEXT_ACTIONS_MAX } from '@gambit/core';
 import { setLineStatus, addMove, markTaskReplied, settleFork } from '../lib/edits';
 import { useSession } from '../lib/session';
 import { useLineMark, useMarksContext } from './marks/context';
@@ -11,6 +11,7 @@ import type { Goal } from '../lib/types';
 import { nextMove, isSelf } from '../lib/slips';
 import { TextAction, PencilWord } from './ui';
 import { PencilUnderline } from './paper/PencilUnderline';
+import { PencilRule } from './paper/PencilRule';
 import { pencilDate, byDate, withProseDates, daysUntil, today } from '../lib/dates';
 import { composeInChat } from '../lib/compose';
 
@@ -296,34 +297,44 @@ function StatusGroups<T>({ k, list, isOpen, due, labels, pinned, render }: {
   );
 }
 
-/** A milestone, at the end of the tasks that reach it: same level as a
- * task, marked with a flag instead of a box. Tapping the flag marks it
- * reached; its sub-items, if any, tick on their own. */
-function Milestone({ goalId, path, step, editable, current, onTick }: { goalId: string; path: string; step: Any; editable: boolean; current: boolean; onTick: (path: string) => void }) {
-  const reach = () => { onTick(path); void setLineStatus(goalId, path, 'done'); };
+/** A milestone: a line drawn under the tasks that reach it, with the
+ * milestone written beneath, the way a notebook draws a line under a column
+ * of figures and writes the total below. It sits at the tasks' level and
+ * has no box, because nobody ticks it: it is reached once those tasks are
+ * done, so unticking one un-reaches it. Passed, the line is gone over in
+ * ink with a tick in the tick column, and stays where it was. The one the
+ * line is heading to is drawn in pencil and carries the margin star; one
+ * further on is a faint broken line. */
+function MilestoneRule({ goalId, path, step, editable, stage }: {
+  goalId: string; path: string; step: Any; editable: boolean;
+  stage: 'passed' | 'current' | 'ahead';
+}) {
+  const tone = stage === 'passed' ? 'ink' : stage === 'current' ? 'pencil' : 'faint';
   return (
-    <li className="flex items-start text-[17px] leading-[27px]" title={step.detail}>
-      <TextAction
-        disabled={!editable}
-        title={editable ? 'Mark reached' : undefined}
-        className={`-my-2 w-11 shrink-0 justify-center text-[18px] ${current ? 'text-ink' : 'text-graphite'}`}
-        onClick={reach}
-      >
-        <span aria-hidden="true">⚑</span>
-        <span className="sr-only">Mark {step.label} reached</span>
-      </TextAction>
+    <li data-milestone={stage} className="mb-4 flex items-start text-[17px] leading-[27px]" title={step.detail}>
+      <span className="flex w-11 shrink-0 justify-center pt-3" aria-hidden="true">
+        {stage === 'passed' && <span className="box mt-[4.5px] shrink-0" data-box={path} data-bare="" data-checked="" />}
+      </span>
       <div className="min-w-0 flex-1">
-        <Line goalId={goalId} path={path} className="font-semibold" edit={editable && isEditableLine(path) ? { value: step.label } : undefined}><span>{step.label}</span></Line>
-        {step.items?.length > 0 && (
-          <ul className="mt-1 space-y-1 pl-1">
-            {step.items.map((it: Any, j: number) => (
-              <Toggle key={j} goalId={goalId} path={`${path}.items.${j}`} status={it.status} editable={editable}>
-                <Line goalId={goalId} path={`${path}.items.${j}`} className="text-[14px]" edit={editable && isEditableLine(`${path}.items.${j}`) ? { value: it.label } : undefined}><span>{it.label}</span></Line>
-              </Toggle>
-            ))}
-          </ul>
-        )}
+        {/* The line drawn under the tasks above. */}
+        <PencilRule seed={path} tone={tone} />
+        <div className={`pt-1 ${stage === 'ahead' ? 'text-graphite' : 'font-semibold text-ink'}`}>
+          <Line goalId={goalId} path={path} edit={editable && isEditableLine(path) ? { value: step.label } : undefined}><span>{step.label}</span></Line>
+          <span className="sr-only">{stage === 'passed' ? ' (milestone, reached)' : stage === 'current' ? ' (milestone, next)' : ' (milestone, further on)'}</span>
+        </div>
       </div>
+    </li>
+  );
+}
+
+/** "n done" in a passed stretch, where its folded tasks sit: above the
+ * milestone they reached. Opened, it reads "fold" under the tasks. */
+function DoneFold({ count, open, onFold }: { count: number; open: boolean; onFold: () => void }) {
+  return (
+    <li className="ml-11">
+      <TextAction className="-my-[8.5px]" onClick={onFold} aria-expanded={open}>
+        <PencilWord className="text-[17px] text-graphite">{open ? 'fold' : `${count} done`}</PencilWord>
+      </TextAction>
     </li>
   );
 }
@@ -422,10 +433,11 @@ export function planLineIndex(path: string | null | undefined): number | null {
   return m ? Number(m[1]) : null;
 }
 
-/** A line of operation's steps and next actions still in play (pending or
- * done — not proposed, not dropped), and how many of them are done. */
+/** A line of operation's next actions still in play (pending or done —
+ * not proposed, not dropped), and how many of them are done. Milestones
+ * aren't counted: they are passed, not done. */
 export function lineProgress(l: Any): { done: number; total: number } {
-  const live = [...l.criticalPath, ...l.nextActions].filter((x: Any) => x.status === 'pending' || x.status === 'done');
+  const live = l.nextActions.filter((x: Any) => x.status === 'pending' || x.status === 'done');
   return { done: live.filter((x: Any) => x.status === 'done').length, total: live.length };
 }
 
@@ -493,12 +505,18 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     if (gotoLine != null) setPicked(gotoLine);
   }
 
-  // Done rows fold away into one "n done" line at the foot of the open
-  // line, except one ticked here, which stays put (ticked) until the page
-  // is next opened so the tick isn't snatched away the moment it lands.
+  // A passed milestone folds its done tasks away behind "n done" on its
+  // rule, unless the user opened it, or a task in it was ticked here: that
+  // stretch stays open until the page is next opened, so the tick that
+  // passes the milestone isn't snatched away the moment it lands.
   const [justDone, setJustDone] = useState<Set<string>>(() => new Set());
-  const [showDone, setShowDone] = useState(false);
+  const [unfolded, setUnfolded] = useState<Set<string>>(() => new Set());
   const onTick = (path: string) => setJustDone((s) => new Set(s).add(path));
+  const toggleFold = (path: string) => setUnfolded((s) => {
+    const next = new Set(s);
+    if (!next.delete(path)) next.add(path);
+    return next;
+  });
 
   // The strip fades out at the right edge while there's more to scroll to.
   const stripRef = useRef<HTMLDivElement>(null);
@@ -559,21 +577,23 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     // An escalation still waiting shows only in its message's "if no reply"
     // line, so it gets no row of its own.
     const isChained = (a: Any) => stateOf(a) === 'waiting' && a.if && 'noReply' in a.if;
-    const steps = l.criticalPath.map((st: Any, i: number) => ({ st, path: `${base}.criticalPath.${i}` }));
-    const reached = steps.filter(({ st }: Any) => st.status === 'done');
-    const ahead = steps.filter(({ st }: Any) => st.status === 'pending');
-    // Each task sits before the first milestone that lists it in `after`;
-    // a task no milestone lists belongs to the current one.
-    const segmentOf = (a: Any) => Math.max(0, ahead.findIndex(({ st }: Any) => a.id && st.after?.includes(a.id)));
-    const isDone = (a: Any) => a.status === 'done' && !awaiting(a);
-    const shown = (path: string, a: Any) => !isDone(a) || showDone || justDone.has(path);
-    const rowsIn = (k: number) => visible.filter(({ a, path }) => path !== top && !isFork(a) && !isChained(a) && segmentOf(a) === k && shown(path, a));
+    // The line in stretches, one per milestone, each ending on its rule,
+    // plus a last stretch after the last rule. A task sits in the stretch
+    // of the first milestone that lists it in `after`; a task no milestone
+    // lists sits in the stretch the line is heading through.
+    const steps = l.criticalPath.map((st: Any, i: number) => ({ st, path: `${base}.criticalPath.${i}`, reached: milestoneReached(st, plan) }));
+    const current = steps.findIndex((m: Any) => !m.reached);
+    const heading = current >= 0 ? current : steps.length;
+    const stretchOf = (a: Any) => {
+      const k = a.id ? steps.findIndex(({ st }: Any) => st.after?.includes(a.id)) : -1;
+      return k >= 0 ? k : heading;
+    };
+    const isDone = (a: Any) => (a.status === 'done' && !awaiting(a)) || a.status === 'dropped';
+    const rowsIn = (k: number) => visible.filter(({ a, path }) => path !== top && !isFork(a) && !isChained(a) && stretchOf(a) === k);
     const forks = visible.filter(({ a }) => isFork(a));
-    const hiddenDone = visible.filter(({ a, path }) => isDone(a) && path !== top && !justDone.has(path)).length;
-    const detailFor = rowsIn(0).find(({ a }) => stateOf(a) === 'live' && a.status === 'pending')?.path ?? null;
+    const detailFor = rowsIn(heading).find(({ a }) => stateOf(a) === 'live' && a.status === 'pending')?.path ?? null;
     const unlocks = (a: Any) => (a.id ? tasks.filter((t: Any) => t.after?.includes(a.id) && t.status === 'pending').map((t: Any) => t.action) : []);
     const name = (id: string) => byId.get(id)?.action ?? l.criticalPath.find((st: Any) => st.id === id)?.label ?? id;
-    const segments = Math.max(ahead.length, 1);
 
     const row = ({ a, path }: { a: Any; path: string }) => {
       if (awaiting(a)) {
@@ -626,34 +646,26 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
 
     return (
       <>
-        {reached.length > 0 && (
-          <p className="ml-11 text-[14px] leading-5 text-graphite">{reached.map(({ st }: Any) => `✓ ${st.label}`).join(' → ')}</p>
-        )}
         {l.blocker && <p className="text-[14px] text-graphite">Blocked: {l.blocker}</p>}
-        {Array.from({ length: segments }, (_, k) => {
-          const flag = ahead[k];
-          const rows = rowsIn(k);
-          if (!rows.length && !flag) return null;
-          // A later milestone with nothing leading to it isn't a stretch
-          // yet: one quiet line, so flags never stack up.
-          if (k > 0 && !rows.length) {
-            return (
-              <div key={k} className="ml-11 text-[14px] leading-5 text-graphite">
-                <span aria-hidden="true">⚑ </span>
-                <span data-line={flag.path}>{flag.st.label}</span>
-                <span> · no moves toward this yet</span>
-              </div>
-            );
-          }
-          // The segment toward the current milestone is in full ink; the
-          // ones after it stay quiet until the line gets there.
-          return (
-            <ol key={k} className={`space-y-1.5 ${k > 0 ? 'text-graphite' : ''}`}>
-              {rows.map(row)}
-              {flag && <Milestone goalId={goalId} path={flag.path} step={flag.st} editable={editable} current={k === 0} onTick={onTick} />}
-            </ol>
-          );
-        })}
+        <ol className="space-y-1.5">
+          {Array.from({ length: steps.length + 1 }, (_, k) => {
+            const m = steps[k];
+            const rows = rowsIn(k);
+            if (!m) return rows.map(row);
+            const stage = m.reached ? 'passed' : k === current ? 'current' : 'ahead';
+            // A passed stretch keeps showing what still asks something of
+            // the user (a message waiting for a reply); its done tasks fold
+            // into "n done", in their place above the milestone.
+            const done = rows.filter(({ a }) => isDone(a));
+            const open = unfolded.has(m.path) || done.some(({ path }) => justDone.has(path) || goto?.path === path);
+            const shownRows = stage === 'passed' && !open ? rows.filter(({ a }) => !isDone(a)) : rows;
+            return [
+              ...shownRows.map(row),
+              stage === 'passed' && done.length > 0 && <DoneFold key={`${m.path}:fold`} count={done.length} open={open} onFold={() => toggleFold(m.path)} />,
+              <MilestoneRule key={m.path} goalId={goalId} path={m.path} step={m.st} editable={editable} stage={stage} />,
+            ];
+          })}
+        </ol>
         {editable && l.nextActions.length < NEXT_ACTIONS_MAX && <AddMove goalId={goalId} li={li} />}
         {forks.length > 0 && (
           <div className="space-y-1">
@@ -677,11 +689,6 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
               ))}
             </ul>
           </div>
-        )}
-        {hiddenDone > 0 && (
-          <TextAction className="-my-2 ml-11" onClick={() => setShowDone((v) => !v)} aria-expanded={showDone}>
-            <PencilWord className="text-[18px] text-graphite">{showDone ? 'hide done' : `${hiddenDone} done`}</PencilWord>
-          </TextAction>
         )}
       </>
     );
@@ -727,7 +734,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
               role="tab"
               aria-selected={selected}
               data-plan-sheet={li}
-              onClick={() => { setShowDone(false); setPicked(li); }}
+              onClick={() => setPicked(li)}
               className="anim-press relative flex min-h-[44px] shrink-0 items-center whitespace-nowrap px-3"
             >
               <span className={`hand relative text-[21px] leading-7 ${selected ? 'text-ink' : 'text-graphite'}`}>

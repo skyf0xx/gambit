@@ -10,7 +10,7 @@ function withPlan(goal: Goal, overrides: Partial<NonNullable<Goal['plan']>['line
       linesOfOperation: [
         {
           label: 'Line A',
-          criticalPath: [{ label: 'Step one', status: 'pending' as const }],
+          criticalPath: [{ label: 'Step one' }],
           nextActions: [{ action: 'Call Priya', who: 'me', when: '2026-10-09', status: 'pending' as const }],
           ...overrides,
         },

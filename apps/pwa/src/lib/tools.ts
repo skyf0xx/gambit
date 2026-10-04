@@ -165,7 +165,7 @@ export function makeTools(ctx: ToolContext) {
       execute: async ({ index }) => result(await applyOp(ctx.goalId, (g) => forget(g, index) as never)),
     }),
     set_status: tool({
-      description: 'Flip one step, sub-item or next action to pending, done or dropped without rewriting the section (a next action can also be set to proposed). A message (a task with to) set to done has gone out, which starts the wait of any escalation of it. path is dotted, e.g. "plan.linesOfOperation.0.nextActions.2".',
+      description: 'Flip one next action to pending, done or dropped without rewriting the section (it can also be set to proposed). A milestone has no status: it is reached once the tasks in its after are done, so flip those. A message (a task with to) set to done has gone out, which starts the wait of any escalation of it. path is dotted, e.g. "plan.linesOfOperation.0.nextActions.2".',
       inputSchema: z.object({ path: z.string(), status: z.enum(['proposed', 'pending', 'done', 'dropped']) }),
       execute: async ({ path, status }) => (await gate(ctx.session, path.split('.')[0], 'set_status')) ?? result(await applyOp(ctx.goalId, (g) => setStatus(g, path, status, today()) as never)),
     }),

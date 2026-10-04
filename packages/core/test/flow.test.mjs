@@ -270,25 +270,26 @@ test('taskState reads a task as blocked, waiting or live', () => {
   assert.equal(taskState(after, dropped, '2026-10-20'), 'live');
 });
 
-test('suggestSkills flags a milestone whose moves are all done', () => {
+test('suggestSkills flags a milestone whose every move was dropped', () => {
   const g = {
     ...defined,
     posture: { current: { level: 1, label: 'steady' }, levels: [{ level: 1, label: 'steady' }], triggers: [], lastReviewed: '2026-10-19' },
     capacity: { availableHrsPerWeek: 5, runway: '3 months', lastReviewed: '2026-10-19' },
     log: [{ date: '2026-10-19', focus: null, notes: [], source: 'eval' }],
     plan: { linesOfOperation: [{
-      label: 'L', criticalPath: [{ id: 'date', label: 'Clean-up date set', status: 'pending', after: ['a', 'b'] }],
+      label: 'L', criticalPath: [{ id: 'date', label: 'Clean-up date set', after: ['a', 'b'] }],
       nextActions: [
-        { id: 'a', action: 'a', who: 'me', status: 'done', doneOn: '2026-10-10' },
+        { id: 'a', action: 'a', who: 'me', status: 'dropped' },
         { id: 'b', action: 'b', who: 'me', status: 'dropped' },
         fork,
       ],
     }] },
   };
-  assert.deepEqual(suggestSkills(g, '2026-10-20'), [{ skill: 'plan', why: 'every move toward "Clean-up date set" is done', todo: 'Tick the milestone: Clean-up date set' }]);
-  const open = structuredClone(g);
-  open.plan.linesOfOperation[0].nextActions[1].status = 'pending';
-  assert.deepEqual(suggestSkills(open, '2026-10-20'), []);
+  assert.deepEqual(suggestSkills(g, '2026-10-20'), [{ skill: 'plan', why: 'every move toward "Clean-up date set" was dropped', todo: 'Find a new way to: Clean-up date set' }]);
+  // Reached needs no tick: a milestone whose moves are done asks nothing.
+  const reached = structuredClone(g);
+  reached.plan.linesOfOperation[0].nextActions[0].status = 'done';
+  assert.deepEqual(suggestSkills(reached, '2026-10-20'), []);
 });
 
 test('suggestSkills flags milestones not linked to their moves', () => {
@@ -297,7 +298,7 @@ test('suggestSkills flags milestones not linked to their moves', () => {
     posture: { current: { level: 1, label: 'steady' }, levels: [{ level: 1, label: 'steady' }], triggers: [], lastReviewed: '2026-10-19' },
     capacity: { availableHrsPerWeek: 5, runway: '3 months', lastReviewed: '2026-10-19' },
     log: [{ date: '2026-10-19', focus: null, notes: [], source: 'eval' }],
-    plan: { linesOfOperation: [{ label: 'L', criticalPath: [{ label: 'A', status: 'pending' }, { label: 'B', status: 'pending' }, { label: 'C', status: 'done' }], nextActions: [fork] }] },
+    plan: { linesOfOperation: [{ label: 'L', criticalPath: [{ label: 'A' }, { label: 'B' }], nextActions: [fork] }] },
   };
   assert.deepEqual(suggestSkills(g, '2026-10-20'), [{ skill: 'plan', why: '2 milestones not linked to the moves that reach them', todo: 'Link milestones to their moves' }]);
 });

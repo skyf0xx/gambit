@@ -36,7 +36,7 @@ function seededGoal(): Goal {
       linesOfOperation: [
         {
           label: 'Line A',
-          criticalPath: [{ label: 'Step one', status: 'pending' }],
+          criticalPath: [{ label: 'Step one' }],
           nextActions: [{ action: 'Ship it', who: 'me', when: '2026-10-09', status: 'pending' }],
         },
       ],

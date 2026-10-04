@@ -1,4 +1,4 @@
-import { currentFocusEntry } from '@gambit/core';
+import { currentFocusEntry, milestoneReached } from '@gambit/core';
 import type { Goal } from '../../lib/types';
 
 // The goal record as a plain tree for the Doodles mind map — no DOM, no
@@ -32,8 +32,7 @@ export function buildDoodleTree(goal: Goal): DoodleItem | null {
     const base = `plan.linesOfOperation.${li}`;
     const items: DoodleItem[] = [];
     line.criticalPath.forEach((s, si) => {
-      if (s.status === 'dropped') return;
-      items.push({ path: `${base}.criticalPath.${si}`, label: s.label, kind: 'item', done: s.status === 'done', focus: isFocus(s.label), children: [] });
+      items.push({ path: `${base}.criticalPath.${si}`, label: s.label, kind: 'item', done: milestoneReached(s, goal.plan), focus: isFocus(s.label), children: [] });
     });
     line.nextActions.forEach((a, ai) => {
       if (a.status === 'dropped') return;

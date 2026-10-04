@@ -340,10 +340,12 @@ export function forget(goal, index) {
 }
 
 const NEXT_ACTION_PATH = /^plan\.linesOfOperation\.\d+\.nextActions\.\d+$/;
+const MILESTONE_PATH = /^plan\.linesOfOperation\.\d+\.criticalPath\.\d+/;
 
 /**
- * Flip a single step, sub-item or next action to proposed/pending/done/dropped
+ * Flip a single next action or sub-item to proposed/pending/done/dropped
  * ('proposed' is valid on next actions only; the schema rejects it elsewhere).
+ * A milestone has no status to flip: it is reached when its tasks are done.
  * `path` is dotted, e.g. "plan.linesOfOperation.0.nextActions.2". A next
  * action flipped to done is stamped `doneOn: today`; any other status
  * clears the stamp. A message flipped to done has gone out, and its
@@ -353,6 +355,9 @@ const NEXT_ACTION_PATH = /^plan\.linesOfOperation\.\d+\.nextActions\.\d+$/;
 export function setStatus(goal, path, status, today = new Date().toISOString().slice(0, 10)) {
   if (!STATUSES.includes(status)) return { ok: false, errors: [{ path: 'status', message: `must be one of ${STATUSES.join(', ')}` }] };
   const parts = String(path).split('.').filter(Boolean);
+  if (MILESTONE_PATH.test(parts.join('.'))) {
+    return { ok: false, errors: [{ path, message: 'a milestone has no status of its own: it is reached once the tasks it lists in after are done, so flip those tasks instead' }] };
+  }
   const copy = structuredClone(goal);
   let node = copy;
   for (const p of parts) {
@@ -360,7 +365,7 @@ export function setStatus(goal, path, status, today = new Date().toISOString().s
     if (node === undefined) return { ok: false, errors: [{ path, message: `nothing at "${p}"` }] };
   }
   if (typeof node !== 'object' || node === null || !STATUSES.includes(node.status ?? 'pending')) {
-    return { ok: false, errors: [{ path, message: 'target is not a step, sub-item or next action with a proposed/pending/done/dropped status' }] };
+    return { ok: false, errors: [{ path, message: 'target is not a sub-item or next action with a proposed/pending/done/dropped status' }] };
   }
   node.status = status;
   if (NEXT_ACTION_PATH.test(parts.join('.'))) {
@@ -429,7 +434,6 @@ function taskStats(plan) {
   let tasks = 0;
   const statuses = [];
   for (const line of plan?.linesOfOperation ?? []) {
-    for (const s of line.criticalPath) { tasks++; statuses.push(s.status); }
     for (const a of line.nextActions) { tasks++; statuses.push(a.status); }
   }
   return { tasks, statuses };
@@ -472,7 +476,6 @@ const LINES = [
   { re: /^successCriteria\.\d+$/, field: 'text', edit: true },
   { re: /^plan\.linesOfOperation\.\d+\.nextActions\.\d+$/, field: 'action', edit: true },
   { re: /^plan\.linesOfOperation\.\d+\.criticalPath\.\d+$/, field: 'label', edit: true },
-  { re: /^plan\.linesOfOperation\.\d+\.criticalPath\.\d+\.items\.\d+$/, field: 'label', edit: true },
   { re: /^riskNotes\.\d+$/, field: 'item', edit: true },
   { re: /^people\.\d+$/, field: 'name', edit: false },
   { re: /^people\.\d+\.doing$/, edit: true },

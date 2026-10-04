@@ -66,7 +66,7 @@ const posture = z.object({
 //
 // 'proposed' is a move the advisor suggested that the user hasn't agreed to
 // yet — shown as a sticky note to keep (→ 'pending') or toss (→ 'dropped').
-// Only next actions can be proposed; steps and sub-items can't.
+// Only next actions can be proposed.
 // `when` is the date the move is due by, optional: a move the user adds on
 // the page carries no date until they or the advisor give it one. `doneOn`
 // is the date it was ticked done, stamped by setStatus and writeSection
@@ -106,13 +106,10 @@ const nextAction = z.object({
   reply: mediumLabel.optional(),
 });
 
-// items: an optional flat sub-list (e.g. "8 subs, one line each") a step or
+// items: an optional flat sub-list (e.g. "8 subs, one line each") a
 // finding needs to enumerate rather than pack into one run-on `detail`
-// sentence. Each entry carries its own status so a step's children can be
-// tracked individually rather than forcing the whole step to one atomic
-// done/pending/dropped value. Capped at 10 for the same reason criticalPath
-// itself is capped at 6 — a list that grows past this belongs in its own
-// plan step, not a sub-list.
+// sentence. Each entry carries its own status. Capped at 10: a list that
+// grows past this belongs in its own finding.
 const subItem = z.object({
   label: shortLabel,
   status: z.enum(['pending', 'done', 'dropped']).default('pending'),
@@ -120,16 +117,18 @@ const subItem = z.object({
 
 const items = z.array(subItem).max(10).optional();
 
-// A critical-path step is a milestone: a point the line reaches once the
-// tasks it lists in `after` are done. It shares the plan's ids with the
-// tasks, so a task can also wait on a milestone.
-const labeledStep = z.object({
+// A critical-path step is a milestone: a point the line passes, not a
+// thing to do. It has no status of its own: it is reached once every task
+// it lists in `after` is done or dropped, with at least one done
+// (milestoneReached). It shares the plan's ids with the tasks, so a task
+// can also wait on a milestone. The write path (writeRules.plan) requires
+// its id and at least one task in after; the read path doesn't, so a
+// record written before that still reads.
+const milestone = z.object({
   id: taskId.optional(),
   label: shortLabel,
   detail,
-  items,
   after: z.array(taskId).max(NEXT_ACTIONS_MAX).optional(),
-  status: z.enum(['pending', 'done', 'dropped']).default('pending'),
 });
 
 // focus: true marks the one line holding the Schwerpunkt. The index card
@@ -139,7 +138,7 @@ const labeledStep = z.object({
 const lineOfOperation = z.object({
   label: shortLabel,
   focus: z.literal(true).optional(),
-  criticalPath: z.array(labeledStep).max(6),
+  criticalPath: z.array(milestone).max(6),
   nextActions: z.array(nextAction).max(NEXT_ACTIONS_MAX),
   status: z.enum(['on_schedule', 'at_risk', 'blocked', 'done']).optional(),
   blocker: mediumLabel.optional(),
@@ -159,6 +158,18 @@ export const milestonesOf = (plan) => (plan?.linesOfOperation ?? []).flatMap((l,
 export const tasksOf = (plan) => (plan?.linesOfOperation ?? []).flatMap((l, li) =>
   l.nextActions.map((a, ai) => ({ task: a, line: l, li, ai, path: `plan.linesOfOperation.${li}.nextActions.${ai}` })));
 
+/**
+ * Whether a milestone is reached: every task it lists in `after` is done
+ * or dropped, and at least one is done. One whose tasks were all dropped
+ * has lost its route, so it isn't reached. Derived, never stored: unticking
+ * a task un-reaches the milestones it leads to.
+ */
+export function milestoneReached(step, plan) {
+  const tasks = new Map(tasksOf(plan).filter((t) => t.task.id).map((t) => [t.task.id, t.task]));
+  const toward = (step?.after ?? []).map((id) => tasks.get(id)).filter(Boolean);
+  return toward.some((t) => t.status === 'done') && toward.every((t) => t.status === 'done' || t.status === 'dropped');
+}
+
 const DAY_MS = 86_400_000;
 const daysBetween = (from, to) => Math.round((Date.parse(to) - Date.parse(from)) / DAY_MS);
 
@@ -172,8 +183,10 @@ const daysBetween = (from, to) => Math.round((Date.parse(to) - Date.parse(from))
  */
 export function taskState(task, plan, today) {
   if (task.status !== 'pending') return task.status;
-  const byId = new Map([...tasksOf(plan).map((t) => t.task), ...milestonesOf(plan).map((m) => m.step)].filter((x) => x.id).map((x) => [x.id, x]));
-  if ((task.after ?? []).some((id) => ['pending', 'proposed'].includes(byId.get(id)?.status))) return 'blocked';
+  const byId = new Map(tasksOf(plan).map((t) => t.task).filter((x) => x.id).map((x) => [x.id, x]));
+  const steps = new Map(milestonesOf(plan).map((m) => m.step).filter((x) => x.id).map((x) => [x.id, x]));
+  const holds = (id) => (steps.has(id) ? !milestoneReached(steps.get(id), plan) : ['pending', 'proposed'].includes(byId.get(id)?.status));
+  if ((task.after ?? []).some(holds)) return 'blocked';
   const cond = task.if;
   if (cond && 'noReply' in cond) {
     const sent = byId.get(cond.noReply);
@@ -478,7 +491,10 @@ export const writeRules = {
       else byId.set(id, m);
     }
     for (const m of milestones) {
-      if (m.step.status === 'pending' && !m.step.after?.length) {
+      if (!m.step.id) {
+        ctx.addIssue({ code: 'custom', path: atStep(m, 'id'), message: `"${m.step.label}" needs an id, so the plan keeps track of it` });
+      }
+      if (!m.step.after?.length) {
         ctx.addIssue({ code: 'custom', path: atStep(m, 'after'), message: `"${m.step.label}" lists no tasks; a milestone comes after the tasks that reach it, so give those tasks ids and list them in after` });
       }
       (m.step.after ?? []).forEach((id, k) => {
@@ -579,8 +595,8 @@ export function parseGoalJson(raw) {
 
 // Soft reconciliation lint, run after schema validation — not a .refine()
 // on the schema itself, since this checks content correctness (does a
-// parent's status agree with its children's) rather than shape. A line or
-// step whose children are all done but whose own status lags behind is a
+// parent's status agree with its children's) rather than shape. A line
+// whose milestones are all reached but whose own status lags behind is a
 // strong hint, not proof (something in nextActions could still be
 // blocking) — so this returns warnings for a skill to weigh, not a hard
 // failure.
@@ -604,13 +620,8 @@ export function reconcileGoal(data) {
     for (const a of line.nextActions) {
       if (a.to && !names.has(a.to)) warnings.push(`task "${a.action}": to "${a.to}" matches no people or stakeholders name`);
     }
-    if (line.criticalPath.length > 0 && line.criticalPath.every((s) => s.status === 'done') && line.status !== 'done') {
-      warnings.push(`lineOfOperation "${line.label}": all criticalPath steps done but status is "${line.status ?? 'unset'}"`);
-    }
-    for (const step of line.criticalPath) {
-      if (step.items && step.items.length > 0 && step.items.every((i) => i.status === 'done') && step.status !== 'done') {
-        warnings.push(`labeledStep "${step.label}": all items done but status is "${step.status}"`);
-      }
+    if (line.criticalPath.length > 0 && line.criticalPath.every((s) => milestoneReached(s, data.plan)) && line.status !== 'done') {
+      warnings.push(`lineOfOperation "${line.label}": every milestone reached but status is "${line.status ?? 'unset'}"`);
     }
   }
   return warnings;

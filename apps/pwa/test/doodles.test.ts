@@ -18,9 +18,9 @@ function richGoal(): Goal {
       linesOfOperation: [
         {
           label: 'Line A',
-          criticalPath: [{ label: 'Step one', status: 'done' }, { label: 'Dropped step', status: 'dropped' }],
+          criticalPath: [{ id: 'one', label: 'Step one', after: ['ship'] }],
           nextActions: [
-            { action: 'Ship it', who: 'me', when: '2026-10-09', status: 'pending' },
+            { id: 'ship', action: 'Ship it', who: 'me', when: '2026-10-09', status: 'pending' },
             { action: 'Maybe this', who: 'me', when: '2026-10-09', status: 'proposed' },
           ],
         },
@@ -44,7 +44,7 @@ describe('buildDoodleTree', () => {
   it('keeps pending, done and proposed items, and leaves dropped ones out', () => {
     const line = buildDoodleTree(richGoal())!.children[0];
     expect(line.children.map((c) => c.label)).toEqual(['Step one', 'Ship it', 'Maybe this']);
-    expect(line.children[0].done).toBe(true);
+    expect(line.children[0].done).toBe(false);
     expect(line.children[1].focus).toBe(true);
     expect(line.children[2].proposed).toBe(true);
     expect(line.children[1].path).toBe('plan.linesOfOperation.0.nextActions.0');
@@ -66,8 +66,12 @@ describe('toMarkmap', () => {
     expect(risk).toContain('data-goto="riskNotes.0"');
   });
 
-  it('prefixes a done item with a tick', () => {
-    const line = toMarkmap(buildDoodleTree(richGoal())!).children[0];
+  it('prefixes a done item, and a milestone its tasks reached, with a tick', () => {
+    expect(toMarkmap(buildDoodleTree(richGoal())!).children[0].children[0].content).not.toContain('✓');
+    const g = richGoal();
+    g.plan!.linesOfOperation[0].nextActions[0].status = 'done';
+    const line = toMarkmap(buildDoodleTree(g)!).children[0];
     expect(line.children[0].content).toContain('✓ Step one');
+    expect(line.children[1].content).toContain('✓ Ship it');
   });
 });

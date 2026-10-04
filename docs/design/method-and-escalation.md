@@ -106,17 +106,29 @@ carries the one every plan has: no measurable progress by a date, then rethink t
 approach. A worry about being sidetracked by a token gesture is a `threat` risk, not a
 fork. The user's own routine is a plain dated move.
 
-**Milestones.** A line's critical-path steps are its milestones: points it reaches,
-not things to do. A milestone lists in `after` the tasks that reach it and shares the
-plan's ids with them, so a task can also wait on a milestone. The due list flags a
-milestone whose tasks are all done.
+**Milestones.** A line's critical-path steps are its milestones: points it passes, not
+things to do. A milestone lists in `after` the tasks that reach it and shares the plan's
+ids with them, so a task can also wait on a milestone. It has no status and no
+sub-items. In project planning a milestone is a zero-duration event, reached when its
+predecessors finish; here too it is reached once every task it lists is done or dropped,
+with at least one done, and un-reached the moment one is ticked back. Nothing is stored,
+so the page, the star and the due list can't disagree with the tasks. The due list flags
+a milestone whose every task was dropped: its route is gone, so it needs a new one.
 
-**Page.** A milestone comes after the tasks that reach it, at the same level, marked
-with a flag. Each row's marker says where it stands, so no group labels are needed
-except for forks:
+**Page.** A notebook draws a line under a column of figures and writes the total
+beneath it; "drawing a line under" something also means it is finished. A milestone is
+drawn that way: a line under the tasks that reach it, at their level, with the milestone
+written beneath, so it can only read as what those tasks add up to, never as a heading
+for what follows. It has no box, since nobody ticks it. The line's material says where it
+stands, the way the rest of the page does: ink once passed, pencil for the one the plan
+is heading to, a faint broken pencil line for one further on. Each task row's marker
+says where that task stands, so no group labels are needed except for forks:
 
 ```
-   ✓ Owner on record
+   2 done
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓  Owner on record
+
 ☐  Collect signatures from neighbours        Mon 12 Oct
       → Print the flyers
 ✉  Report the graffiti · to Sydney Trains · sent Mon 28 Sep
@@ -124,20 +136,26 @@ except for forks:
       if no reply: Formal complaint to TfNSW complaints, then State MP,
       then Local paper (public)                            they replied
 •  Collect signatures from neighbours → Print the flyers
-⚑  Clean-up date set                          (bold; tap the flag to mark it reached)
-•  Clean-up date set → Walk the site with the crew          (grey: the next stretch)
-⚑  Tunnel cleaned
+   ─────────────────────────────────────────────
+★  Clean-up date set                             (★ in the margin)
+
+•  Clean-up date set → Walk the site with the crew
+   - - - - - - - - - - - - - - - - - - - - - - -
+   Tunnel cleaned
+
 if things change
 ◇  if under 10 sign-ups · check Sun 1 Nov
       then Door-knock the street first            it happened  it didn't
 ```
 
-A milestone still ahead must list at least one task, so milestones never stack up
-with nothing between them; a later one with no moves toward it shows as one quiet grey
-line until it's linked. Reached milestones sit on one quiet "✓" line. The stretch toward the current milestone
-is in full ink and carries the star; later stretches are grey. A task no milestone lists
-sits in the current stretch. The arrow always means "then"; "to" names who a message
-goes to. ☐, ✉, • and ⚑ share one column, so every row's text starts at one edge.
+A passed milestone stays where it was, its line gone over in ink and a tick in the tick
+column. Its done tasks fold into an "n done" row in their place above the line, which
+opens them there; a message in that stretch still waiting for a reply stays in view. The
+milestone the plan is heading to carries the star, and done tasks toward it stay ticked
+above its line, so progress toward it shows. A task no milestone lists sits before the
+milestone the plan is heading to. The arrow always means "then"; "to" names who a
+message goes to. ☐, ✉, • and a passed milestone's tick share one column, so every row's
+text starts at one edge.
 
 A sent message stays in view, marked ✉, until it's answered, rather than folding into
 done. An escalation still waiting shows only in its message's "if no reply" line, and

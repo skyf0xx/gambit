@@ -37,7 +37,6 @@ function linePaths(goal: Goal): { bucket: Bucket; path: LinePath; node: unknown 
   (goal.plan?.linesOfOperation ?? []).forEach((line, li) => {
     line.criticalPath.forEach((step, si) => {
       out.push({ bucket: 'step', path: `plan.linesOfOperation.${li}.criticalPath.${si}`, node: step });
-      (step.items ?? []).forEach((it, ii) => out.push({ bucket: 'step', path: `plan.linesOfOperation.${li}.criticalPath.${si}.items.${ii}`, node: it }));
     });
     line.nextActions.forEach((a, ai) => out.push({ bucket: 'nextAction', path: `plan.linesOfOperation.${li}.nextActions.${ai}`, node: a }));
   });

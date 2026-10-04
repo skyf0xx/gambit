@@ -14,7 +14,7 @@ function withPlan(goal: Goal, overrides: Partial<NonNullable<Goal['plan']>['line
       linesOfOperation: [
         {
           label: 'Line A',
-          criticalPath: [{ label: 'Step one', status: 'pending' as const }],
+          criticalPath: [{ label: 'Step one' }],
           nextActions: [{ action: 'Call Priya', who: 'me', when: '2026-10-09', status: 'pending' as const }],
           ...overrides,
         },
@@ -32,12 +32,14 @@ describe('deriveMarks — tick', () => {
     expect(byPath.get('plan.linesOfOperation.0.nextActions.0')).toEqual({ kind: 'tick', sr: 'done' });
   });
 
-  it('marks a done critical-path step', () => {
+  it('ticks a milestone once its tasks reach it, and takes the tick off when one is unticked', () => {
     const goal = withPlan(stubGoal('Goal') as Goal, {
-      criticalPath: [{ label: 'Step one', status: 'done' as const }],
+      criticalPath: [{ id: 'one', label: 'Step one', after: ['call'] }],
+      nextActions: [{ id: 'call', action: 'Call Priya', who: 'me', when: '2026-10-09', status: 'done' as const }],
     });
-    const { byPath } = deriveMarks(goal, 'g1', emptySession);
-    expect(byPath.get('plan.linesOfOperation.0.criticalPath.0')).toEqual({ kind: 'tick', sr: 'done' });
+    expect(deriveMarks(goal, 'g1', emptySession).byPath.get('plan.linesOfOperation.0.criticalPath.0')).toEqual({ kind: 'tick', sr: 'done' });
+    goal.plan!.linesOfOperation[0].nextActions[0].status = 'pending';
+    expect(deriveMarks(goal, 'g1', emptySession).byPath.get('plan.linesOfOperation.0.criticalPath.0')).not.toEqual({ kind: 'tick', sr: 'done' });
   });
 
   it('marks a criterion scored met', () => {
@@ -100,11 +102,15 @@ describe('deriveMarks — highlight', () => {
 });
 
 describe('deriveMarks — star', () => {
-  it('marks the first open step on the top move\'s line', () => {
+  it('marks the first milestone not yet reached on the top move\'s line', () => {
     const goal = withPlan(stubGoal('Goal') as Goal, {
       criticalPath: [
-        { label: 'Step one', status: 'done' as const },
-        { label: 'Step two', status: 'pending' as const },
+        { id: 'one', label: 'Step one', after: ['done'] },
+        { id: 'two', label: 'Step two', after: ['call'] },
+      ],
+      nextActions: [
+        { id: 'done', action: 'Book the room', who: 'me', status: 'done' as const },
+        { id: 'call', action: 'Call Priya', who: 'me', when: '2026-10-09', status: 'pending' as const },
       ],
     });
     const { byPath } = deriveMarks(goal, 'g1', emptySession);
@@ -116,8 +122,8 @@ describe('deriveMarks — star', () => {
       ...stubGoal('Goal') as Goal,
       plan: {
         linesOfOperation: [
-          { label: 'A', criticalPath: [{ label: 'A step', status: 'pending' }], nextActions: [] },
-          { label: 'B', focus: true, criticalPath: [{ label: 'B step', status: 'pending' }], nextActions: [{ action: 'Do B', who: 'me', when: '2026-10-09', status: 'pending' }] },
+          { label: 'A', criticalPath: [{ label: 'A step' }], nextActions: [] },
+          { label: 'B', focus: true, criticalPath: [{ label: 'B step' }], nextActions: [{ action: 'Do B', who: 'me', when: '2026-10-09', status: 'pending' }] },
         ],
       },
       log: [{ date: '2026-01-01', focus: 'f', focusLine: 'A step', notes: [] }],

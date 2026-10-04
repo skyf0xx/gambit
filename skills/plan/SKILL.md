@@ -19,16 +19,16 @@ next: strategy, systems, threat, decide, comms, stakeholders, exposure
 
 ## Mode 0: Quick Status Update
 
-The fast path for a casually reported completion. Use it instead of the full sequence whenever the user reports a `nextActions` item **or a `criticalPath` step** done, blocked, or dropped and isn't asking for a replan.
+The fast path for a casually reported completion. Use it instead of the full sequence whenever the user reports a `nextActions` item done, blocked, or dropped and isn't asking for a replan. A milestone (`criticalPath`) has no status of its own: it is reached once the tasks in its `after` are done, so when the user says they reached one, flip those tasks; `set_status` on a milestone is refused.
 
-1. **Load** the goal and scan every line's `nextActions` *and* `criticalPath` for the entry the user described. Match on meaning, not exact string: "finished the ATS audit" matches "run ATS keyword/format audit". If nothing plausible matches, say so and stop rather than guessing; the update belongs under a different line, or the plan is stale enough for Mode 1.
+1. **Load** the goal and scan every line's `nextActions` for the entry the user described (for a reached milestone, the tasks it lists). Match on meaning, not exact string: "finished the ATS audit" matches "run ATS keyword/format audit". If nothing plausible matches, say so and stop rather than guessing; the update belongs under a different line, or the plan is stale enough for Mode 1.
 2. **Confirm in one line**, not a full checkpoint, since this is a status flip and not a decision:
    ```
    Marking "[label/action]" done in [line label]. Right?
    ```
    On a correction, use the corrected target.
 3. **Call `set_status`** with the dotted path to that one entry (e.g. `plan.linesOfOperation.0.nextActions.2`) and the new status: `done`, `dropped`, or back to `pending`. A `proposed` action the user keeps goes to `pending`; one they toss goes to `dropped`. It touches only that field and never rebuilds the graph. The code stamps `doneOn` itself. Don't leave a finished step's story in `detail` ("Done, see log") while `status` stays `pending`; the page reads `status`.
-4. **Check whether the line just closed**: every `nextActions` entry and every `criticalPath` step is `done` or `dropped`. If so, call `set_status` again to set the line's own `status` to `"done"`; it doesn't follow step completion by itself. Say the closure plainly and flag `strategy` as the next step. A closed line is a reason to reassess, not a focus. Don't run `strategy` yourself.
+4. **Check whether the line just closed**: every `nextActions` entry is `done` or `dropped`, so every milestone is reached. If so, call `set_status` again to set the line's own `status` to `"done"`; it doesn't follow task completion by itself. Say the closure plainly and flag `strategy` as the next step. A closed line is a reason to reassess, not a focus. Don't run `strategy` yourself.
 5. If any `set_status` returns `{ ok: false, errors }`, fix and retry before ending the turn.
 6. **Name the next step**: the next `pending` item in that line, or `strategy` if the line closed. If the flipped action was the focus line's last `pending` one, the "Your top move" card reads "nothing due yet"; say so and offer a replan of that line or `strategy`.
 
@@ -89,12 +89,16 @@ Call out the one longest dependency chain per line, the one that delays the line
 outcome most if it slips. Its nodes are the line's milestones: points the line reaches,
 not things to do ("Clean-up date set", not "Get a clean-up date"). Keep each a short
 label. A milestone comes after the tasks that reach it: give it an `id` and list those
-tasks in its `after`, and the page shows each milestone at the end of its tasks with a
-flag. A task that can only start once a milestone is reached lists the milestone's `id`
-in its own `after`. Every milestone still ahead lists at least one task, or the write is
-refused: a milestone with nothing leading to it is a wish, not a point on the path. Every
-live task should lead to a milestone; one that leads to none is shown before the current
-milestone. Give the duration estimate, the
+tasks in its `after`; the page draws a line under them with the milestone written
+beneath, like the total under a column of figures. It has no status and no sub-items: it is reached once every
+task it lists is done or dropped (at least one done), and un-reached if one is ticked
+back. Detail it needs goes in `detail`; work toward it goes in its tasks. A task that
+can only start once a milestone is reached lists the milestone's `id` in its own
+`after`. Every milestone lists at least one task, or the write is refused: a milestone
+with nothing leading to it is a wish, not a point on the path. If every task toward one
+was dropped, give it a new route or take it out. Every live task should lead to a
+milestone; one that leads to none is shown before the milestone the line is heading to.
+Give the duration estimate, the
 line's status (`on_schedule`, `at_risk`, `blocked`, `done`) and any blocker. Read with
 read_skill_file('plan', 'graph.md') for the graph and critical-path templates when
 building a graph from scratch.
@@ -196,13 +200,12 @@ If something in an existing line has failed or stalled, name it, name the altern
 
 ### 8. Update the Goal
 
-Call `write_section` on `plan` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are milestones, `{id?, label, detail?, items?, after?, status}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `status` is one of `pending` (default), `done`, `dropped` — same enum and meaning as a `nextAction`'s, so a step that's finished or abandoned shows that in the visual layer instead of relying on prose in `detail`); `nextActions` is capped at 10 entries, waiting ones included, each `{id?, action, who, when, status, doneOn?, detail?, after?, if?, to?, level?, replied?, reply?}` (the links as step 6a sets them) where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `when` is a date (YYYY-MM-DD) on every live next action (an escalation or fork still waiting may leave it out); `doneOn` is stamped by code when a move is done, so never write it by hand, and keep it as it is when you carry a done move forward. `status` is one of `pending` (default), `proposed`, `done`, `dropped`. Keep each task's `id` the same across rewrites, so the links and the waits keep pointing at the right task. Set that line's own `status` to `on_schedule`, `at_risk`, `blocked`, or `done` — `done` means every `criticalPath` step and every `nextActions` entry on that line is itself `done` or `dropped`; don't set the line to `done` while any step or action is still `pending`. Set `blocker` only when `status` is `blocked`.
+Call `write_section` on `plan` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are milestones, `{id, label, detail?, after}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `after` lists at least one task id; no `status`, since reaching a milestone follows from its tasks); `nextActions` is capped at 10 entries, waiting ones included, each `{id?, action, who, when, status, doneOn?, detail?, after?, if?, to?, level?, replied?, reply?}` (the links as step 6a sets them) where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `when` is a date (YYYY-MM-DD) on every live next action (an escalation or fork still waiting may leave it out); `doneOn` is stamped by code when a move is done, so never write it by hand, and keep it as it is when you carry a done move forward. `status` is one of `pending` (default), `proposed`, `done`, `dropped`. Keep each task's `id` the same across rewrites, so the links and the waits keep pointing at the right task. Set that line's own `status` to `on_schedule`, `at_risk`, `blocked`, or `done` — `done` means every `nextActions` entry on that line is itself `done` or `dropped`, so every milestone is reached; don't set the line to `done` while any action is still `pending`. Set `blocker` only when `status` is `blocked`.
 
 `detail` (280 characters or less) is one plain sentence on why this move, why now; a
-`proposed` action must carry it. `items` on a step is a real list to tick off, never a
-comma-spliced `detail`, and the step's `status` agrees with its items. Read with
-read_skill_file('plan', 'fields.md') for the full rules before writing a step with
-items or a proposed move.
+`proposed` action must carry it. A list of things to do toward a milestone is that
+many tasks, never a comma-spliced `detail`. Read with read_skill_file('plan',
+'fields.md') for the full rules before writing a proposed move.
 
 ```json
 {
@@ -211,15 +214,16 @@ items or a proposed move.
       {
         "label": "Main",
         "criticalPath": [
-          { "label": "A", "detail": "...", "status": "done" },
-          { "id": "b", "label": "B", "after": ["photos", "letter"], "status": "pending" },
-          { "label": "C", "items": [{ "label": "Sub 1: angle", "status": "done" }, { "label": "Sub 2: angle", "status": "pending" }], "status": "pending" },
-          { "label": "D", "status": "pending" }
+          { "id": "a", "label": "A", "detail": "...", "after": ["found"] },
+          { "id": "b", "label": "B", "after": ["photos", "letter"] },
+          { "id": "c", "label": "C", "after": ["pitch"] }
         ],
         "nextActions": [
+          { "id": "found", "action": "...", "who": "you", "status": "done", "doneOn": "YYYY-MM-DD" },
           { "id": "photos", "action": "...", "who": "you | name", "when": "YYYY-MM-DD", "status": "pending" },
           { "id": "letter", "action": "...", "who": "you", "to": "a stakeholders name", "level": "interests", "after": ["photos"], "when": "YYYY-MM-DD", "status": "pending" },
           { "action": "...", "who": "you", "to": "...", "level": "rights", "if": { "noReply": "letter", "days": 21 }, "detail": "brings the reference number", "status": "pending" },
+          { "id": "pitch", "action": "...", "who": "you", "after": ["b"], "status": "pending" },
           { "action": "...", "who": "you", "if": { "event": "...", "by": "YYYY-MM-DD" }, "status": "pending" }
         ],
         "status": "on_schedule",

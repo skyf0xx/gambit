@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { goalSchema, stubGoal, safeParseGoalJson, parseGoalJson, reconcileGoal } from '../src/schema.mjs';
 import { rendererForSection, groupForSection, GROUP_ORDER, SECTION_GROUPS } from '../src/registry.mjs';
 
-const step = (status) => ({ label: 's', status });
+const step = () => ({ label: 's' });
 const goalWithPlan = (line) => ({ ...stubGoal('g'), plan: { linesOfOperation: [{ label: 'L', criticalPath: [], nextActions: [], ...line }] } });
 
 test('stubGoal is valid and seeded from title', () => {
@@ -33,7 +33,7 @@ test('subGoals: optional, capped at 5 entries, each at most 12 words / 100 chars
   assert.equal(ok({ subGoals: [''] }), false, 'no empty entries');
 });
 
-test('caps: 6 critical-path steps, 5 next actions', () => {
+test('caps: 6 milestones, 5 next actions', () => {
   const six = Array.from({ length: 6 }, () => step('pending'));
   assert.equal(goalSchema.safeParse(goalWithPlan({ criticalPath: six })).success, true);
   assert.equal(goalSchema.safeParse(goalWithPlan({ criticalPath: [...six, step('pending')] })).success, false);
@@ -44,12 +44,12 @@ test('safeParseGoalJson reports invalid JSON; parseGoalJson throws', () => {
   assert.throws(() => parseGoalJson({}));
 });
 
-test('reconcileGoal warns when children are all done but parent lags', () => {
-  const done = [step('done'), step('done')];
-  assert.equal(reconcileGoal(goalWithPlan({ criticalPath: done, status: 'done' })).length, 0);
-  assert.equal(reconcileGoal(goalWithPlan({ criticalPath: done, status: 'at_risk' })).length, 1);
-  const items = [{ label: 'a', status: 'done' }];
-  assert.equal(reconcileGoal(goalWithPlan({ criticalPath: [{ label: 's', status: 'pending', items }] })).length, 1);
+test('reconcileGoal warns when every milestone is reached but the line lags', () => {
+  const reached = { criticalPath: [{ id: 'm', label: 's', after: ['a'] }], nextActions: [{ id: 'a', action: 'a', who: 'me', status: 'done' }] };
+  assert.equal(reconcileGoal(goalWithPlan({ ...reached, status: 'done' })).length, 0);
+  assert.equal(reconcileGoal(goalWithPlan({ ...reached, status: 'at_risk' })).length, 1);
+  const open = { ...reached, nextActions: [{ id: 'a', action: 'a', who: 'me', status: 'pending' }] };
+  assert.equal(reconcileGoal(goalWithPlan({ ...open, status: 'at_risk' })).length, 0);
 });
 
 test('registry: every schema key maps to a group in GROUP_ORDER', () => {
@@ -148,7 +148,9 @@ test('v2: proposed next actions, met criteria, focusLine', () => {
   const ok = (patch) => goalSchema.safeParse({ ...stubGoal('g'), ...patch }).success;
   const na = (status) => goalWithPlan({ nextActions: [{ action: 'get two quotes', who: 'me', when: '2026-10-09', status }] });
   assert.equal(goalSchema.safeParse(na('proposed')).success, true);
-  assert.equal(goalSchema.safeParse(goalWithPlan({ criticalPath: [step('proposed')] })).success, false);
+  // A milestone stores no status or sub-items: reaching it is derived.
+  const m = goalSchema.parse(goalWithPlan({ criticalPath: [{ label: 's', status: 'done', items: [{ label: 'i', status: 'done' }] }] })).plan.linesOfOperation[0].criticalPath[0];
+  assert.deepEqual(m, { label: 's' });
   assert.equal(ok({ criteriaStatus: [{ text: 't', kind: 'control', status: 'met' }] }), true);
   assert.equal(ok({ log: [{ date: '2026-09-30', assessment: 'met', focus: null, notes: [] }] }), false);
   assert.equal(ok({ log: [{ date: '2026-09-30', focus: 'f', focusLine: 'Know the real hours', notes: [] }] }), true);

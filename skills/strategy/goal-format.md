@@ -35,11 +35,9 @@ the two ever disagree, the schema wins.
       {
         "label": "[short name, matches a successCriteria[].lineOfOperation]",
         "criticalPath": [
-          { "label": "A", "detail": "[optional — why this step exists, hover-only]" },
-          { "label": "B" },
-          { "label": "D" }
+          { "id": "a", "label": "[a milestone: a point the line passes]", "detail": "[optional, hover-only]", "after": ["first"] }
         ],
-        "nextActions": [{ "action": "...", "who": "...", "when": "YYYY-MM-DD", "status": "pending | done | dropped", "detail": "[optional, hover-only]" }],
+        "nextActions": [{ "id": "first", "action": "...", "who": "...", "when": "YYYY-MM-DD", "status": "pending | done | dropped", "detail": "[optional, hover-only]" }],
         "status": "on_schedule",
         "blocker": "[optional, only when status is blocked]"
       }
@@ -99,10 +97,10 @@ progress against them is measured differently — see `eval`.
 `log` is the only append-only array. Only include `people` entries and a non-null
 `posture` if they're actually relevant to this goal.
 
-Write validation also runs a soft reconciliation lint after the schema check: it warns
-(doesn't fail the write) when a `lineOfOperation` has a non-empty `criticalPath` that's
-entirely `done` but the line's own `status` isn't `done`, and likewise when a
-`criticalPath` step's `items` are all `done` but the step's own `status` lags behind.
-Treat that warning as a prompt to update the parent status, not something to silently
-accept — but it's a hint, not proof, since a line can still be genuinely blocked on
-something in `nextActions` despite a finished `criticalPath`.
+A milestone has no status of its own: it is reached once every task in its `after` is
+done or dropped, with at least one done. Write validation also runs a soft
+reconciliation lint after the schema check: it warns (doesn't fail the write) when every
+milestone on a `lineOfOperation` is reached but the line's own `status` isn't `done`.
+Treat that warning as a prompt to update the line's status, not something to silently
+accept. It's a hint, not proof, since a line can still be genuinely blocked on something
+in `nextActions` that leads to no milestone.

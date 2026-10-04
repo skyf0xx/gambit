@@ -211,7 +211,8 @@ the state block and the page show). Dated items come first: forecasts to
 score, experiments past their date, live moves past their `when`, an
 escalation come due (its message went out with no reply for its `days`), a
 reply with nothing recorded of what they said, a fork past its `by` with
-its event unsettled, open `intel` questions due, a `prep` talk
+its event unsettled, a milestone whose every task was dropped, open
+`intel` questions due, a `prep` talk
 past its date with no outcome, decisions to review, a deadline within 14
 days with no premortem risk. Then the method's next phase. Then the reviews
 that keep a running goal honest: a stale focus, an overdue `eval`,
@@ -370,16 +371,27 @@ no measurable progress by a date, then rethink the approach (back to
 `strategy`). A line holds up to 10 tasks (`NEXT_ACTIONS_MAX`), waiting ones
 included.
 
-The line's `criticalPath` steps are its milestones: points it reaches, not
-things to do. A milestone shares the plan's ids with the tasks: it lists in
+The line's `criticalPath` steps are its milestones: points it passes, not
+things to do: `{id, label, detail?, after}`, with no status and no
+sub-items. A milestone shares the plan's ids with the tasks: it lists in
 `after` the tasks that reach it, and a task may list a milestone in its own
-`after`, staying `blocked` until the milestone is reached. A milestone
-still ahead must list at least one task, or the `plan` write is refused,
-and the due list flags any that don't ("Link milestones to their moves").
-The page shows each milestone at the end of its tasks, marked with a
-flag; a later one with no moves toward it is one quiet grey line, so flags
-never stack. The due list flags a milestone whose tasks are all done
-("Tick the milestone").
+`after`, staying `blocked` until the milestone is reached. Reaching is
+derived, never stored: `milestoneReached` (`schema.mjs`) holds once every
+task it lists is done or dropped, with at least one done, so unticking a
+task un-reaches it, and `set_status` on a milestone is refused. Every
+milestone has an id and lists at least one task, or the `plan` write is
+refused; the due list flags an older one that lists none ("Link milestones
+to their moves") and one whose every task was dropped ("Find a new way
+to").
+
+The page draws a milestone the way a notebook draws a line under a column
+of figures and writes the total beneath: a line under the tasks that reach
+it, at their level, with the milestone written under it and no box, since
+nobody ticks it. The line the plan is heading to is drawn in pencil and its
+milestone carries the star; one further on is a faint broken line; a passed
+one stays in place, gone over in ink with a tick in the tick column, its
+done tasks folded into an "n done" row in their place above the line. A
+task no milestone lists sits before the one the line is heading to.
 
 A next action's `when` is the date it is due by (YYYY-MM-DD), optional.
 `doneOn` is the date it was done: `setStatus` stamps it with today when the
@@ -395,7 +407,7 @@ routes to `plan`'s lightweight status-update mode rather than sitting
 unrecorded. No other skill writes that field.
 
 The user can also edit the page directly, outside the skill flow. They can
-reword a move, step, sub-item, success criterion, sub-goal, the goal
+reword a move, milestone, success criterion, sub-goal, the goal
 sentence, a risk, what a person is doing, or an open decision's question.
 They can also add a `pending` move, and tick, keep or toss one, mark a sent
 message replied (`markReplied`), and settle a waiting fork as happened or

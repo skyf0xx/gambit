@@ -5,7 +5,7 @@ import * as core from '../src/index.mjs';
 
 const plan = {
   linesOfOperation: [{
-    label: 'L', criticalPath: [{ label: 'a', status: 'pending', after: ['x'] }],
+    label: 'L', criticalPath: [{ id: 'm', label: 'a', after: ['x'] }],
     nextActions: [{ id: 'x', action: 'do x', who: 'me', when: '2026-10-09' }, { action: 'do y', who: 'me', when: '2026-10-12', if: { event: 'no word by Friday' } }],
   }],
 };
@@ -48,7 +48,9 @@ test('setStatus flips one node and surfaces reconcile warnings', () => {
   const g = writeSection(stubGoal('g'), 'plan', plan).goal;
   const r = setStatus(g, 'plan.linesOfOperation.0.nextActions.1', 'done');
   assert.equal(r.goal.plan.linesOfOperation[0].nextActions[1].status, 'done');
-  const w = setStatus(g, 'plan.linesOfOperation.0.criticalPath.0', 'done');
+  // Ticking the one task toward the milestone reaches it, and the line's
+  // own status lags behind.
+  const w = setStatus(g, 'plan.linesOfOperation.0.nextActions.0', 'done');
   assert.equal(w.warnings.length, 1);
   assert.equal(setStatus(g, 'plan.linesOfOperation.9', 'done').ok, false);
   assert.equal(setStatus(g, 'goal', 'done').ok, false);
@@ -63,8 +65,8 @@ test('setStatus stamps doneOn on a next action done, and clears it on any other 
   // Done again keeps the first date.
   assert.equal(setStatus(done, path, 'done', '2026-10-05').goal.plan.linesOfOperation[0].nextActions[0].doneOn, '2026-10-03');
   assert.equal(setStatus(done, path, 'pending', '2026-10-05').goal.plan.linesOfOperation[0].nextActions[0].doneOn, undefined);
-  // Steps carry no stamp.
-  assert.equal(setStatus(g, 'plan.linesOfOperation.0.criticalPath.0', 'done', '2026-10-03').goal.plan.linesOfOperation[0].criticalPath[0].doneOn, undefined);
+  // A milestone has no status to flip: its tasks reach it.
+  assert.match(setStatus(g, 'plan.linesOfOperation.0.criticalPath.0', 'done').errors[0].message, /reached once the tasks it lists in after are done/);
 });
 
 test('writeSection keeps doneOn true across a plan rewrite', () => {
@@ -240,7 +242,7 @@ test('appendLog keeps an old focusLine entry alive past the cap', () => {
 test('summarizeChange', () => {
   const a = stubGoal('g');
   const b = writeSection(a, 'plan', plan).goal;
-  assert.deepEqual(summarizeChange(a, b), ['+3 tasks']);
+  assert.deepEqual(summarizeChange(a, b), ['+2 tasks']);
   const c = writeSection(b, 'riskNotes', [{ item: 'x', source: 'threat', accepted: false }]).goal;
   assert.deepEqual(summarizeChange(b, c), ['+1 risk']);
   const d = setStatus(c, 'plan.linesOfOperation.0.nextActions.0', 'done').goal;
@@ -400,7 +402,7 @@ const line = (nextActions, over) => ({ linesOfOperation: [{ label: 'L', critical
 const errs = (r) => (r.ok ? [] : r.errors.map((e) => `${e.path}: ${e.message}`));
 
 test('a plan written by a skill carries a conditional task on its focus line; a page edit is let through', () => {
-  const flat = { linesOfOperation: [{ label: 'A', criticalPath: [{ label: 'a', status: 'done' }], nextActions: [] }, { label: 'B', criticalPath: [], nextActions: [letter, escalate()] }] };
+  const flat = { linesOfOperation: [{ label: 'A', criticalPath: [{ id: 'a', label: 'a', after: ['letter'] }], nextActions: [] }, { label: 'B', criticalPath: [], nextActions: [letter, escalate()] }] };
   const r = writeSection(mapped, 'plan', flat);
   assert.equal(r.ok, false);
   assert.equal(r.errors[0].path, 'plan.linesOfOperation.0');
@@ -473,8 +475,33 @@ test('a milestone comes after the tasks that reach it, sharing their ids', () =>
   assert.match(errs(writeSection(mapped, 'plan', steps([{ id: 'date', label: 'Date set', after: ['sign'] }], [{ ...sign, after: ['date'] }]))).join(), /waits on itself/);
 });
 
-test('a milestone still ahead must list the tasks that reach it', () => {
-  const r = writeSection(mapped, 'plan', line([letter, escalate()], { criticalPath: [{ label: 'Date set', status: 'pending' }, { label: 'Reached', status: 'done' }] }));
-  assert.deepEqual(r.errors.map((e) => e.path), ['plan.linesOfOperation.0.criticalPath.0.after']);
-  assert.match(r.errors[0].message, /"Date set" lists no tasks/);
+test('every milestone has an id and lists the tasks that reach it', () => {
+  const r = writeSection(mapped, 'plan', line([letter, escalate()], { criticalPath: [{ label: 'Date set' }, { id: 'heard', label: 'Council heard it', after: ['letter'] }] }));
+  assert.deepEqual(r.errors.map((e) => e.path), ['plan.linesOfOperation.0.criticalPath.0.id', 'plan.linesOfOperation.0.criticalPath.0.after']);
+  assert.match(r.errors[1].message, /"Date set" lists no tasks/);
+});
+
+test('a milestone is reached when its tasks are done, and unticking a task un-reaches it', () => {
+  const two = line([letter, escalate(), { id: 'photos', action: 'Photograph the tunnel', who: 'me' }, { id: 'pitch', action: 'Pitch the story', who: 'me', after: ['heard'] }], {
+    criticalPath: [{ id: 'heard', label: 'Council heard it', after: ['letter', 'photos'] }],
+  });
+  const g = writeSection(mapped, 'plan', two).goal;
+  const at = (goal) => goal.plan.linesOfOperation[0];
+  const reached = (goal) => core.milestoneReached(at(goal).criticalPath[0], goal.plan);
+  const pitch = (goal) => core.taskState(at(goal).nextActions[3], goal.plan, '2026-10-20');
+  const task = (i) => `plan.linesOfOperation.0.nextActions.${i}`;
+  assert.equal(reached(g), false);
+  assert.equal(pitch(g), 'blocked');
+  const half = setStatus(g, task(0), 'done', '2026-10-01').goal;
+  assert.equal(reached(half), false, 'one of two tasks done');
+  const both = setStatus(half, task(2), 'done', '2026-10-02').goal;
+  assert.equal(reached(both), true);
+  assert.equal(pitch(both), 'live', 'a task waiting on the milestone goes live once it is reached');
+  const unticked = setStatus(both, task(2), 'pending').goal;
+  assert.equal(reached(unticked), false, 'unticking a task un-reaches the milestone');
+  assert.equal(pitch(unticked), 'blocked');
+  // A dropped task no longer holds it, but a route that is all dropped
+  // reaches nothing.
+  assert.equal(reached(setStatus(half, task(2), 'dropped').goal), true);
+  assert.equal(reached(setStatus(setStatus(g, task(0), 'dropped').goal, task(2), 'dropped').goal), false);
 });
