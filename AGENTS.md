@@ -373,9 +373,13 @@ included.
 The line's `criticalPath` steps are its milestones: points it reaches, not
 things to do. A milestone shares the plan's ids with the tasks: it lists in
 `after` the tasks that reach it, and a task may list a milestone in its own
-`after`, staying `blocked` until the milestone is reached. The page shows
-each milestone at the end of its tasks, marked with a flag, and the due
-list flags one whose tasks are all done ("Tick the milestone").
+`after`, staying `blocked` until the milestone is reached. A milestone
+still ahead must list at least one task, or the `plan` write is refused,
+and the due list flags any that don't ("Link milestones to their moves").
+The page shows each milestone at the end of its tasks, marked with a
+flag; a later one with no moves toward it is one quiet grey line, so flags
+never stack. The due list flags a milestone whose tasks are all done
+("Tick the milestone").
 
 A next action's `when` is the date it is due by (YYYY-MM-DD), optional.
 `doneOn` is the date it was done: `setStatus` stamps it with today when the

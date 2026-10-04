@@ -634,6 +634,17 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
           const flag = ahead[k];
           const rows = rowsIn(k);
           if (!rows.length && !flag) return null;
+          // A later milestone with nothing leading to it isn't a stretch
+          // yet: one quiet line, so flags never stack up.
+          if (k > 0 && !rows.length) {
+            return (
+              <div key={k} className="ml-11 text-[14px] leading-5 text-graphite">
+                <span aria-hidden="true">⚑ </span>
+                <span data-line={flag.path}>{flag.st.label}</span>
+                <span> · no moves toward this yet</span>
+              </div>
+            );
+          }
           // The segment toward the current milestone is in full ink; the
           // ones after it stay quiet until the line gets there.
           return (

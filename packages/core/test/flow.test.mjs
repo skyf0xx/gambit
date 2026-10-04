@@ -290,3 +290,14 @@ test('suggestSkills flags a milestone whose moves are all done', () => {
   open.plan.linesOfOperation[0].nextActions[1].status = 'pending';
   assert.deepEqual(suggestSkills(open, '2026-10-20'), []);
 });
+
+test('suggestSkills flags milestones not linked to their moves', () => {
+  const g = {
+    ...defined,
+    posture: { current: { level: 1, label: 'steady' }, levels: [{ level: 1, label: 'steady' }], triggers: [], lastReviewed: '2026-10-19' },
+    capacity: { availableHrsPerWeek: 5, runway: '3 months', lastReviewed: '2026-10-19' },
+    log: [{ date: '2026-10-19', focus: null, notes: [], source: 'eval' }],
+    plan: { linesOfOperation: [{ label: 'L', criticalPath: [{ label: 'A', status: 'pending' }, { label: 'B', status: 'pending' }, { label: 'C', status: 'done' }], nextActions: [fork] }] },
+  };
+  assert.deepEqual(suggestSkills(g, '2026-10-20'), [{ skill: 'plan', why: '2 milestones not linked to the moves that reach them', todo: 'Link milestones to their moves' }]);
+});

@@ -132,7 +132,9 @@ if things change
       then Door-knock the street first            it happened  it didn't
 ```
 
-Reached milestones sit on one quiet "✓" line. The stretch toward the current milestone
+A milestone still ahead must list at least one task, so milestones never stack up
+with nothing between them; a later one with no moves toward it shows as one quiet grey
+line until it's linked. Reached milestones sit on one quiet "✓" line. The stretch toward the current milestone
 is in full ink and carries the star; later stretches are grey. A task no milestone lists
 sits in the current stretch. The arrow always means "then"; "to" names who a message
 goes to. ☐, ✉, • and ⚑ share one column, so every row's text starts at one edge.

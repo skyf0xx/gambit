@@ -5,8 +5,8 @@ import * as core from '../src/index.mjs';
 
 const plan = {
   linesOfOperation: [{
-    label: 'L', criticalPath: [{ label: 'a', status: 'pending' }],
-    nextActions: [{ action: 'do x', who: 'me', when: '2026-10-09' }, { action: 'do y', who: 'me', when: '2026-10-12', if: { event: 'no word by Friday' } }],
+    label: 'L', criticalPath: [{ label: 'a', status: 'pending', after: ['x'] }],
+    nextActions: [{ id: 'x', action: 'do x', who: 'me', when: '2026-10-09' }, { action: 'do y', who: 'me', when: '2026-10-12', if: { event: 'no word by Friday' } }],
   }],
 };
 
@@ -71,7 +71,7 @@ test('writeSection keeps doneOn true across a plan rewrite', () => {
   const g = setStatus(writeSection(stubGoal('g'), 'plan', plan).goal, 'plan.linesOfOperation.0.nextActions.0', 'done', '2026-10-01').goal;
   const actions = (p) => p.linesOfOperation[0].nextActions;
   const fork = { action: 'call them', who: 'me', if: { event: 'no word by Friday' } };
-  const rewrite = (nextActions) => ({ linesOfOperation: [{ ...plan.linesOfOperation[0], nextActions: [...nextActions, fork] }] });
+  const rewrite = (nextActions) => ({ linesOfOperation: [{ ...plan.linesOfOperation[0], criticalPath: [], nextActions: [...nextActions, fork] }] });
   const next = writeSection(g, 'plan', rewrite([
     { action: 'do x', who: 'me', status: 'done' },
     { action: 'do y', who: 'me', status: 'done' },
@@ -124,7 +124,7 @@ test('only one line of the plan can carry focus', () => {
 test('a proposed move needs its detail on write, but an older one without it still reads and can be kept', () => {
   const g = stubGoal('g');
   const withProposal = (detail) => ({
-    linesOfOperation: [{ ...plan.linesOfOperation[0], nextActions: [{ action: 'call the landlord', who: 'me', when: '2026-10-09', status: 'proposed', detail }, plan.linesOfOperation[0].nextActions[1]] }],
+    linesOfOperation: [{ ...plan.linesOfOperation[0], criticalPath: [], nextActions: [{ action: 'call the landlord', who: 'me', when: '2026-10-09', status: 'proposed', detail }, plan.linesOfOperation[0].nextActions[1]] }],
   });
   const bare = writeSection(g, 'plan', withProposal(undefined));
   assert.equal(bare.ok, false);
@@ -400,7 +400,7 @@ const line = (nextActions, over) => ({ linesOfOperation: [{ label: 'L', critical
 const errs = (r) => (r.ok ? [] : r.errors.map((e) => `${e.path}: ${e.message}`));
 
 test('a plan written by a skill carries a conditional task on its focus line; a page edit is let through', () => {
-  const flat = { linesOfOperation: [{ label: 'A', criticalPath: [{ label: 'a', status: 'pending' }], nextActions: [] }, { label: 'B', criticalPath: [], nextActions: [letter, escalate()] }] };
+  const flat = { linesOfOperation: [{ label: 'A', criticalPath: [{ label: 'a', status: 'done' }], nextActions: [] }, { label: 'B', criticalPath: [], nextActions: [letter, escalate()] }] };
   const r = writeSection(mapped, 'plan', flat);
   assert.equal(r.ok, false);
   assert.equal(r.errors[0].path, 'plan.linesOfOperation.0');
@@ -471,4 +471,10 @@ test('a milestone comes after the tasks that reach it, sharing their ids', () =>
   assert.match(errs(writeSection(mapped, 'plan', steps([{ id: 'date', label: 'Date set', after: ['nope'] }], [sign]))).join(), /no task has id "nope"/);
   assert.match(errs(writeSection(mapped, 'plan', steps([{ id: 'sign', label: 'Date set' }], [sign]))).join(), /id "sign" is already used/);
   assert.match(errs(writeSection(mapped, 'plan', steps([{ id: 'date', label: 'Date set', after: ['sign'] }], [{ ...sign, after: ['date'] }]))).join(), /waits on itself/);
+});
+
+test('a milestone still ahead must list the tasks that reach it', () => {
+  const r = writeSection(mapped, 'plan', line([letter, escalate()], { criticalPath: [{ label: 'Date set', status: 'pending' }, { label: 'Reached', status: 'done' }] }));
+  assert.deepEqual(r.errors.map((e) => e.path), ['plan.linesOfOperation.0.criticalPath.0.after']);
+  assert.match(r.errors[0].message, /"Date set" lists no tasks/);
 });

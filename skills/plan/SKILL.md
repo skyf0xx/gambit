@@ -91,8 +91,10 @@ not things to do ("Clean-up date set", not "Get a clean-up date"). Keep each a s
 label. A milestone comes after the tasks that reach it: give it an `id` and list those
 tasks in its `after`, and the page shows each milestone at the end of its tasks with a
 flag. A task that can only start once a milestone is reached lists the milestone's `id`
-in its own `after`. Every live task should lead to a milestone; one that leads to none is
-shown before the current milestone. Give the duration estimate, the
+in its own `after`. Every milestone still ahead lists at least one task, or the write is
+refused: a milestone with nothing leading to it is a wish, not a point on the path. Every
+live task should lead to a milestone; one that leads to none is shown before the current
+milestone. Give the duration estimate, the
 line's status (`on_schedule`, `at_risk`, `blocked`, `done`) and any blocker. Read with
 read_skill_file('plan', 'graph.md') for the graph and critical-path templates when
 building a graph from scratch.

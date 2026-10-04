@@ -478,6 +478,9 @@ export const writeRules = {
       else byId.set(id, m);
     }
     for (const m of milestones) {
+      if (m.step.status === 'pending' && !m.step.after?.length) {
+        ctx.addIssue({ code: 'custom', path: atStep(m, 'after'), message: `"${m.step.label}" lists no tasks; a milestone comes after the tasks that reach it, so give those tasks ids and list them in after` });
+      }
       (m.step.after ?? []).forEach((id, k) => {
         if (!byId.get(id)?.task) ctx.addIssue({ code: 'custom', path: atStep(m, 'after', k), message: `no task has id "${id}"; a milestone comes after the tasks that reach it` });
       });

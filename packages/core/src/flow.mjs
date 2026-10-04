@@ -308,6 +308,8 @@ export function suggestSkills(goal, today, skills = []) {
   for (const { task } of tasks.filter((t) => t.task.status === 'pending' && t.task.if && 'event' in t.task.if && !t.task.if.happened && due(t.task.if.by))) {
     out.push({ skill: 'plan', why: `time to check whether ${task.if.event}`, todo: `Check: ${task.if.event}` });
   }
+  const unlinked = milestonesOf(goal.plan).filter(({ step }) => step.status === 'pending' && !step.after?.length).length;
+  if (unlinked) out.push({ skill: 'plan', why: `${n(unlinked, 'milestone')} not linked to the moves that reach ${unlinked === 1 ? 'it' : 'them'}`, todo: 'Link milestones to their moves' });
   for (const { step } of milestonesOf(goal.plan)) {
     const toward = (step.after ?? []).map((id) => byId.get(id)).filter(Boolean);
     if (step.status === 'pending' && toward.some((t) => t.status === 'done') && toward.every((t) => t.status === 'done' || t.status === 'dropped')) {

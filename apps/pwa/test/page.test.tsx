@@ -143,6 +143,20 @@ describe('notebook page markup', () => {
     for (const mark of ['✉', '◇', '•']) expect(html).toContain(`<span class="w-11 shrink-0 text-center text-graphite" aria-hidden="true">${mark}</span>`);
   });
 
+  it('never stacks flags: a later milestone with no moves toward it is one quiet line', () => {
+    const html = renderSection('plan', { linesOfOperation: [{ label: 'Paper trail', criticalPath: [
+      { label: 'Cr Blackmore asks in the minutes', status: 'pending' },
+      { label: 'Sydney Trains asked in writing', status: 'pending' },
+      { label: 'Mayor and the paper have the trail', status: 'pending' },
+    ], nextActions: [
+      { action: 'Photograph the whole walk', who: 'me', status: 'pending' },
+      { action: 'Collect ten backing letters', who: 'me', status: 'pending' },
+    ] }] });
+    expect((html.match(/>⚑</g) ?? []).length).toBe(1);
+    expect(html).toContain('Sydney Trains asked in writing</span><span> · no moves toward this yet</span>');
+    expect(html).toContain('Mayor and the paper have the trail</span><span> · no moves toward this yet</span>');
+  });
+
   it('labels no groups when a line has only moves to make', () => {
     const html = renderSection('plan', { linesOfOperation: [{ label: 'Picnic', criticalPath: [], nextActions: [
       { action: 'Book the spot', who: 'me', status: 'pending' },
