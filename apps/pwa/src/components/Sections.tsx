@@ -588,13 +588,49 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
       const k = a.id ? steps.findIndex(({ st }: Any) => st.after?.includes(a.id)) : -1;
       return k >= 0 ? k : heading;
     };
-    const rowsIn = (k: number) => visible.filter(({ a }) => !isFork(a) && !isChained(a) && stretchOf(a) === k);
-    const forks = visible.filter(({ a }) => isFork(a));
+    // A task a milestone lists stays in that milestone's stretch whatever
+    // kind it is, so no milestone loses the moves that reach it: a fork
+    // there is an "if … then …" row, and a waiting escalation whose message
+    // sits elsewhere is one too. A waiting escalation beside its message
+    // shows only in the message's "if no reply" line, and a fork no
+    // milestone lists goes under "if things change".
+    const linked = (a: Any) => Boolean(a.id && steps.some(({ st }: Any) => st.after?.includes(a.id)));
+    const messageOf = (a: Any) => tasks.find((t: Any) => t.id === a.if.noReply);
+    const besideMessage = (a: Any) => { const msg = messageOf(a); return Boolean(msg) && stretchOf(msg) === stretchOf(a); };
+    const inStretch = (a: Any) => (isFork(a) ? linked(a) : isChained(a) ? !besideMessage(a) : true);
+    const rowsIn = (k: number) => visible.filter(({ a }) => inStretch(a) && stretchOf(a) === k);
+    const forks = visible.filter(({ a }) => isFork(a) && !linked(a));
     const detailFor = rowsIn(heading).find(({ a, path }) => path !== top && stateOf(a) === 'live' && a.status === 'pending')?.path ?? null;
     const unlocks = (a: Any) => (a.id ? tasks.filter((t: Any) => t.after?.includes(a.id) && t.status === 'pending').map((t: Any) => t.action) : []);
     const name = (id: string) => byId.get(id)?.action ?? l.criticalPath.find((st: Any) => st.id === id)?.label ?? id;
 
+    const conditional = ({ a, path }: { a: Any; path: string }) => {
+      const fork = 'event' in a.if;
+      const msg = fork ? undefined : messageOf(a);
+      return (
+        <MarkedRow key={path} mark="↳">
+          <Line goalId={goalId} path={path}>
+            <span className="text-graphite">if </span>
+            {fork
+              ? <span>{a.if.event}</span>
+              : <span>{msg?.to ?? 'they'} {msg?.to ? "doesn't" : "don't"} reply in {a.if.days} days</span>}
+            {fork && a.if.by && <span className="text-[14px] text-graphite"> · check {byDate(a.if.by)}</span>}
+            <br />
+            <span className="text-graphite">then </span><span>{a.action}</span>
+            {a.to && <span className="text-[14px] text-graphite"> · to {a.to}</span>}
+          </Line>
+          {editable && fork && (
+            <div className="flex gap-x-4 text-[14px]">
+              <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, true)}>it happened</TextAction>
+              <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, false)}>it didn’t</TextAction>
+            </div>
+          )}
+        </MarkedRow>
+      );
+    };
+
     const row = ({ a, path }: { a: Any; path: string }) => {
+      if (isFork(a) || isChained(a)) return conditional({ a, path });
       if (awaiting(a)) {
         const chain = chainAfter(a, tasks);
         const wait = chain[0]?.if?.days;
@@ -665,22 +701,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
           <div className="space-y-1">
             <GroupLabel>if things change</GroupLabel>
             <ul className="space-y-2">
-              {forks.map(({ a, path }) => (
-                <MarkedRow key={path} mark="↳">
-                  <Line goalId={goalId} path={path}>
-                    <span className="text-graphite">if </span><span>{a.if.event}</span>
-                    {a.if.by && <span className="text-[14px] text-graphite"> · check {byDate(a.if.by)}</span>}
-                    <br />
-                    <span className="text-graphite">then </span><span>{a.action}</span>
-                  </Line>
-                  {editable && (
-                    <div className="flex gap-x-4 text-[14px]">
-                      <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, true)}>it happened</TextAction>
-                      <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, false)}>it didn’t</TextAction>
-                    </div>
-                  )}
-                </MarkedRow>
-              ))}
+              {forks.map(conditional)}
             </ul>
           </div>
         )}

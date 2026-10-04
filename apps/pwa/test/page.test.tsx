@@ -189,6 +189,27 @@ describe('notebook page markup', () => {
     expect(unticked).toContain('Sydney Trains has heard it → </span><span>Lodge the TfNSW complaint');
   });
 
+  it('keeps a fork or escalation in the stretch of the milestone it reaches', () => {
+    const html = renderSection('plan', { linesOfOperation: [{ label: 'Paper trail', criticalPath: [
+      { id: 'minutes', label: 'Cr Blackmore asks in the minutes', after: ['blackmore'] },
+      { id: 'writing', label: 'Sydney Trains asked in writing', after: ['formal'] },
+    ], nextActions: [
+      { id: 'letters', action: 'Collect ten backing letters', who: 'me', status: 'done', doneOn: '2099-10-01' },
+      { id: 'blackmore', action: 'Ask Cr Blackmore to raise it in public', who: 'me', status: 'pending', if: { event: 'council has not asked Sydney Trains', by: '2099-10-20' } },
+      { id: 'ask', action: 'Write to Sydney Trains', who: 'me', to: 'Sydney Trains', level: 'interests', status: 'pending' },
+      { id: 'formal', action: 'Formal complaint to TfNSW', who: 'me', to: 'TfNSW complaints', level: 'rights', status: 'pending', if: { noReply: 'ask', days: 14 } },
+      { action: 'Rethink the approach', who: 'me', status: 'pending', if: { event: 'no works date set', by: '2099-12-09' } },
+    ] }] });
+    // Each milestone has its move above it, even when that move is conditional.
+    // (The escalation also shows in its message's "if no reply" line, earlier on.)
+    const order = ['Ask Cr Blackmore to raise it in public', 'Cr Blackmore asks in the minutes', 'Formal complaint to TfNSW', 'Sydney Trains asked in writing', '>if things change<', 'Rethink the approach'].map((t) => html.lastIndexOf(t));
+    expect(order.every((n) => n >= 0)).toBe(true);
+    expect([...order].sort((x, y) => x - y)).toEqual(order);
+    expect(html).toContain('Sydney Trains doesn&#x27;t reply in 14 days');
+    // A fork that reaches no milestone stays under "if things change", once.
+    expect(html.match(/Ask Cr Blackmore to raise it in public/g)).toHaveLength(1);
+  });
+
   it('labels no groups when a line has only moves to make', () => {
     const html = renderSection('plan', { linesOfOperation: [{ label: 'Picnic', criticalPath: [], nextActions: [
       { action: 'Book the spot', who: 'me', status: 'pending' },

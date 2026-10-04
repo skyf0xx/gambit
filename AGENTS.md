@@ -398,7 +398,12 @@ only the diamond tells a passed one from one still to come, and no
 milestone outweighs the moves. A passed milestone stays in place. Done tasks never
 fold away: they stay where they were, ticked and grey, so a passed
 milestone keeps the moves that reached it above its line. A task no
-milestone lists sits before the one the line is heading to. The top move,
+milestone lists sits before the one the line is heading to. A task a
+milestone lists stays in that milestone's stretch whatever kind it is, so
+no milestone shows without the moves that reach it: a fork there, or a
+waiting escalation whose message sits in another stretch, is an "↳ if … /
+then …" row. Only a fork no milestone lists goes under "if things
+change". The top move,
 on the index card, is listed in its place too, so its milestone always
 has the move toward it above its line.
 

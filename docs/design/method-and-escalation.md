@@ -151,6 +151,12 @@ if things change
       then Door-knock the street first            it happened  it didn't
 ```
 
+A task a milestone lists stays in that milestone's stretch, whatever kind it is, so no
+milestone shows without the moves that reach it. A fork there is an "↳ if … / then …" row
+in the stretch, and so is a waiting escalation whose message sits in another stretch (one
+beside its message shows only in the message's "if no reply" line). "If things change"
+holds only the forks no milestone lists.
+
 A passed milestone stays where it was, its diamond filled, and the day it
 was reached (the last day a task toward it was done) pencilled under its name. Done tasks
 never fold away: they stay where they were, ticked and grey, so a passed milestone keeps
