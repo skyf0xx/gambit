@@ -301,14 +301,24 @@ function StatusGroups<T>({ k, list, isOpen, due, labels, pinned, render }: {
  * detail sits under it — every other row keeps its detail as a hover note. */
 type SheetRows = { shown: (path: string, status: string) => boolean; detailFor: string | null; onTick: (path: string) => void };
 
+/** A line's milestones, a level above its moves: the ones reached sit on a
+ * small "✓" route line, the current one (the first still to reach) reads as
+ * the line's heading, and the ones after it stay quiet in grey. A dropped
+ * milestone isn't shown. */
 function Steps({ goalId, base, steps, editable, rows }: { goalId: string; base: string; steps: Any[]; editable: boolean; rows: SheetRows }) {
-  const list = steps.map((s, i) => ({ s, i, path: `${base}.${i}` })).filter(({ s, path }) => rows.shown(path, s.status));
-  if (list.length === 0) return null;
+  const reached = steps.filter((s) => s.status === 'done');
+  const list = steps.map((s, i) => ({ s, i, path: `${base}.${i}` })).filter(({ s }) => s.status === 'pending');
+  const current = steps.findIndex((s) => s.status === 'pending');
+  if (list.length === 0 && reached.length === 0) return null;
   return (
+    <div className="space-y-1">
+      {reached.length > 0 && (
+        <p className="ml-11 text-[14px] leading-5 text-graphite">{reached.map((s) => `✓ ${s.label}`).join(' → ')}</p>
+      )}
     <ol className="space-y-1.5">
       {list.map(({ s, i, path }) => (
         <Toggle key={i} goalId={goalId} path={path} status={s.status} editable={editable} onTick={rows.onTick} title={path === rows.detailFor ? undefined : s.detail}>
-          <Line goalId={goalId} path={path} edit={editable && isEditableLine(path) ? { value: s.label } : undefined}><span>{s.label}</span></Line>
+          <Line goalId={goalId} path={path} className={i === current ? 'text-[20px] font-semibold' : 'text-graphite'} edit={editable && isEditableLine(path) ? { value: s.label } : undefined}><span>{s.label}</span></Line>
           {path === rows.detailFor && <Detail>{s.detail}</Detail>}
           {s.items?.length > 0 && (
             <ul className="mt-1 space-y-1 pl-1">
@@ -322,6 +332,7 @@ function Steps({ goalId, base, steps, editable, rows }: { goalId: string; base: 
         </Toggle>
       ))}
     </ol>
+    </div>
   );
 }
 
@@ -390,6 +401,18 @@ function ChainLine({ chain }: { chain: Any[] }) {
       <span className="text-ink">if no reply: </span>
       {chain.map((t, i) => <span key={i}>{i ? ', ' : ''}{step(t, i)}</span>)}
     </div>
+  );
+}
+
+/** A row whose marker sits in the same 44px column as the tick boxes, so
+ * every row's text starts at one edge: ✉ a message waiting for a reply,
+ * ◇ a fork, • a move waiting on another. */
+function MarkedRow({ mark, children }: { mark: string; children: ReactNode }) {
+  return (
+    <li className="flex items-start text-[15px] leading-[22px]">
+      <span className="w-11 shrink-0 text-center text-graphite" aria-hidden="true">{mark}</span>
+      <div className="min-w-0 flex-1">{children}</div>
+    </li>
   );
 }
 
@@ -547,10 +570,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     const waitingReply = visible.filter(awaiting);
     const forks = visible.filter(isFork);
     const later = visible.filter((x) => stateOf(x.a) === 'blocked');
-    const donePaths = [
-      ...l.criticalPath.flatMap((x: Any, i: number) => (x.status === 'done' ? [`${stepBase}.${i}`] : [])),
-      ...now.filter(({ a }) => a.status === 'done').map(({ path }) => path),
-    ];
+    const donePaths = now.filter(({ a }) => a.status === 'done').map(({ path }) => path);
     const hiddenDone = donePaths.filter((p) => !justDone.has(p)).length;
     const shown = (path: string, status: string) => status !== 'done' || showDone || justDone.has(path);
     // The one row that keeps its "why" on show: the first thing still to do.
@@ -558,13 +578,11 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     const detailFor = firstStep >= 0 ? `${stepBase}.${firstStep}` : (now.find(({ a }) => a.status === 'pending')?.path ?? null);
     const rows: SheetRows = { shown, detailFor, onTick };
     const nowShown = now.filter(({ a, path }) => shown(path, a.status));
-    const stepsShown = l.criticalPath.filter((x: Any, i: number) => shown(`${stepBase}.${i}`, x.status)).length;
     const labelled = [nowShown, waitingReply, forks, later].filter((g) => g.length).length > 1;
     const unlocks = (a: Any) => (a.id ? tasks.filter((t: Any) => t.after?.includes(a.id) && t.status === 'pending').map((t: Any) => t.action) : []);
     const name = (id: string) => byId.get(id)?.action ?? id;
     return (
       <>
-        {stepsShown > 0 && <GroupLabel show={labelled}>milestones</GroupLabel>}
         <Steps goalId={goalId} base={stepBase} steps={l.criticalPath} editable={editable} rows={rows} />
         {l.blocker && <p className="text-[14px] text-graphite">Blocked: {l.blocker}</p>}
         {nowShown.length > 0 && (
@@ -596,17 +614,16 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
         {waitingReply.length > 0 && (
           <div className="space-y-1">
             <GroupLabel show={labelled}>waiting for a reply</GroupLabel>
-            <ul className="ml-11 space-y-2 text-[15px] leading-[22px]">
+            <ul className="space-y-2">
               {waitingReply.map(({ a, path }) => {
                 const chain = chainAfter(a, tasks);
                 const wait = chain[0]?.if?.days;
                 const waited = a.doneOn ? Math.max(0, -(daysUntil(a.doneOn) ?? 0)) : 0;
                 return (
-                  <li key={path}>
+                  <MarkedRow key={path} mark="✉">
                     {/* Not a Line: the marks layer would tick it as done, and
                      * it isn't finished until they answer. */}
                     <div>
-                      <span aria-hidden="true">✉ </span>
                       <span>{a.action}</span>
                       <span className="text-[14px] text-graphite"> · to {a.to}{a.doneOn ? ` · sent ${pencilDate(a.doneOn)}` : ''} · day {waited}{wait ? ` of ${wait}` : ''}</span>
                     </div>
@@ -614,7 +631,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
                     {editable && (
                       <TextAction className="-my-2 text-[14px] underline" onClick={() => void markTaskReplied(goalId, path)}>they replied</TextAction>
                     )}
-                  </li>
+                  </MarkedRow>
                 );
               })}
             </ul>
@@ -623,11 +640,10 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
         {forks.length > 0 && (
           <div className="space-y-1">
             <GroupLabel show={labelled}>if things change</GroupLabel>
-            <ul className="ml-11 space-y-2 text-[15px] leading-[22px]">
+            <ul className="space-y-2">
               {forks.map(({ a, path }) => (
-                <li key={path}>
+                <MarkedRow key={path} mark="◇">
                   <Line goalId={goalId} path={path}>
-                    <span aria-hidden="true">◇ </span>
                     <span className="text-graphite">if </span><span>{a.if.event}</span>
                     {a.if.by && <span className="text-[14px] text-graphite"> · check {byDate(a.if.by)}</span>}
                     <br />
@@ -639,7 +655,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
                       <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, false)}>it didn’t</TextAction>
                     </div>
                   )}
-                </li>
+                </MarkedRow>
               ))}
             </ul>
           </div>
@@ -647,14 +663,14 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
         {later.length > 0 && (
           <div className="space-y-1">
             <GroupLabel show={labelled}>later</GroupLabel>
-            <ul className="ml-11 space-y-1 text-[15px] leading-[22px] text-graphite">
+            <ul className="space-y-1">
               {later.map(({ a, path }) => (
-                <li key={path}>
+                <MarkedRow key={path} mark="•">
                   <Line goalId={goalId} path={path}>
-                    <span className="text-[14px]">{(a.after ?? []).map(name).join(', ')} → </span>
+                    <span className="text-[14px] text-graphite">{(a.after ?? []).map(name).join(', ')} → </span>
                     <span>{a.action}</span>
                   </Line>
-                </li>
+                </MarkedRow>
               ))}
             </ul>
           </div>

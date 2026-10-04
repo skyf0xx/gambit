@@ -110,8 +110,8 @@ fork. The user's own routine is a plain dated move.
 than one group has something, so a picnic reads as a plain list:
 
 ```
-milestones
-☐ Clean-up date set
+   ✓ Owner on record
+☐ Clean-up date set                           (the current milestone, bold)
 now
 ☐ Collect signatures from neighbours        Mon 12 Oct
      → Print the flyers
@@ -123,11 +123,14 @@ if things change
 ◇ if under 10 sign-ups · check Sun 1 Nov
    then Door-knock the street first               it happened  it didn't
 later
-   Collect signatures from neighbours → Print the flyers
+•  Collect signatures from neighbours → Print the flyers
 ```
 
 The arrow always means "then"; "to" names who a message goes to. A line's
-critical-path steps, the milestones its moves work toward, sit above the groups.
+critical-path steps are its milestones, a level above the moves: the ones reached
+sit on a small "✓" route line, the current one is the line's bold heading, and later
+ones are grey. ✉, ◇ and • sit in the tick-box column, so every row's text starts at
+one edge.
 
 A sent message stays under "waiting for a reply" until it's answered, rather than
 folding into done. An escalation still waiting shows only in its message's "if no

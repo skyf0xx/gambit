@@ -111,7 +111,9 @@ describe('notebook page markup', () => {
       }],
     };
     const html = renderSection('plan', plan);
-    const order = ['>milestones<', '>now<', '>waiting for a reply<', '>if things change<', '>later<'].map((l) => html.indexOf(l));
+    // The current milestone heads the line, a level above the moves.
+    expect(html).toMatch(/text-\[20px\] font-semibold"[^>]*>[\s\S]{0,200}Clean-up date set/);
+    const order = ['Clean-up date set', '>now<', '>waiting for a reply<', '>if things change<', '>later<'].map((l) => html.indexOf(l));
     expect(order.every((n) => n >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     // The top move is on the card; the rest of now shows what it unlocks.
@@ -130,6 +132,8 @@ describe('notebook page markup', () => {
     expect(html).toContain('check Sun 1 Nov 2099');
     expect(html).toContain('it didn’t');
     expect(html).toContain('Book the hall → </span><span>Print the flyers');
+    // Waiting, fork and later rows put their marker in the tick-box column.
+    for (const mark of ['✉', '◇', '•']) expect(html).toContain(`<span class="w-11 shrink-0 text-center text-graphite" aria-hidden="true">${mark}</span>`);
   });
 
   it('labels no groups when a line has only moves to make', () => {
@@ -254,7 +258,8 @@ describe('plan as a strip of lines', () => {
   it('lists every line as a pill and shows only one of them', () => {
     const html = renderSection('plan', { linesOfOperation: lines });
     expect(html).not.toContain('B action');
-    expect(html).not.toContain('B step');
+    expect(html).toContain('✓ B step');
+    expect(html).not.toContain('B dropped step');
     expect(html).not.toContain('A step');
     expect(html).not.toContain('C step');
     expect((html.match(/data-plan-sheet/g) ?? []).length).toBe(3);
