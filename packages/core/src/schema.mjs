@@ -120,10 +120,15 @@ const subItem = z.object({
 
 const items = z.array(subItem).max(10).optional();
 
+// A critical-path step is a milestone: a point the line reaches once the
+// tasks it lists in `after` are done. It shares the plan's ids with the
+// tasks, so a task can also wait on a milestone.
 const labeledStep = z.object({
+  id: taskId.optional(),
   label: shortLabel,
   detail,
   items,
+  after: z.array(taskId).max(NEXT_ACTIONS_MAX).optional(),
   status: z.enum(['pending', 'done', 'dropped']).default('pending'),
 });
 
@@ -146,6 +151,10 @@ export const focusLineOf = (plan) => plan?.linesOfOperation.find((l) => l.focus)
 /** Whether a line says what happens if it stalls: a conditional task. */
 export const hasBranch = (line) => Boolean(line?.nextActions.some((a) => a.if));
 
+/** Every milestone (critical-path step) in the plan, with its path. */
+export const milestonesOf = (plan) => (plan?.linesOfOperation ?? []).flatMap((l, li) =>
+  l.criticalPath.map((step, si) => ({ step, line: l, li, si, path: `plan.linesOfOperation.${li}.criticalPath.${si}` })));
+
 /** Every task in the plan, with its path. */
 export const tasksOf = (plan) => (plan?.linesOfOperation ?? []).flatMap((l, li) =>
   l.nextActions.map((a, ai) => ({ task: a, line: l, li, ai, path: `plan.linesOfOperation.${li}.nextActions.${ai}` })));
@@ -163,7 +172,7 @@ const daysBetween = (from, to) => Math.round((Date.parse(to) - Date.parse(from))
  */
 export function taskState(task, plan, today) {
   if (task.status !== 'pending') return task.status;
-  const byId = new Map(tasksOf(plan).filter((t) => t.task.id).map((t) => [t.task.id, t.task]));
+  const byId = new Map([...tasksOf(plan).map((t) => t.task), ...milestonesOf(plan).map((m) => m.step)].filter((x) => x.id).map((x) => [x.id, x]));
   if ((task.after ?? []).some((id) => ['pending', 'proposed'].includes(byId.get(id)?.status))) return 'blocked';
   const cond = task.if;
   if (cond && 'noReply' in cond) {
@@ -450,7 +459,11 @@ export const writeRules = {
       ctx.addIssue({ code: 'custom', path: ['linesOfOperation'], message: 'only one line can carry focus: true' });
     }
     const tasks = tasksOf(p);
+    const milestones = milestonesOf(p);
     const at = (t, ...rest) => ['linesOfOperation', t.li, 'nextActions', t.ai, ...rest];
+    const atStep = (m, ...rest) => ['linesOfOperation', m.li, 'criticalPath', m.si, ...rest];
+    // Tasks and milestones share one set of ids. byId holds { task } for a
+    // task and { step } for a milestone.
     const byId = new Map();
     for (const t of tasks) {
       const id = t.task.id;
@@ -458,14 +471,25 @@ export const writeRules = {
       if (byId.has(id)) ctx.addIssue({ code: 'custom', path: at(t, 'id'), message: `id "${id}" is already used; each task's id is its own` });
       else byId.set(id, t);
     }
-    const links = (a) => [...(a.after ?? []), ...(a.if && 'noReply' in a.if ? [a.if.noReply] : [])];
+    for (const m of milestones) {
+      const id = m.step.id;
+      if (!id) continue;
+      if (byId.has(id)) ctx.addIssue({ code: 'custom', path: atStep(m, 'id'), message: `id "${id}" is already used; each milestone's id is its own` });
+      else byId.set(id, m);
+    }
+    for (const m of milestones) {
+      (m.step.after ?? []).forEach((id, k) => {
+        if (!byId.get(id)?.task) ctx.addIssue({ code: 'custom', path: atStep(m, 'after', k), message: `no task has id "${id}"; a milestone comes after the tasks that reach it` });
+      });
+    }
+    const links = (a) => [...(a.after ?? []), ...(a?.if && 'noReply' in a.if ? [a.if.noReply] : [])];
     for (const t of tasks) {
       const a = t.task;
       if (a.status === 'proposed' && !a.detail?.trim()) {
         ctx.addIssue({ code: 'custom', path: at(t, 'detail'), message: 'a proposed move needs its detail: one sentence on why this, why now' });
       }
       (a.after ?? []).forEach((id, k) => {
-        if (!byId.has(id) || id === a.id) ctx.addIssue({ code: 'custom', path: at(t, 'after', k), message: `no other task has id "${id}"` });
+        if (!byId.has(id) || id === a.id) ctx.addIssue({ code: 'custom', path: at(t, 'after', k), message: `no other task or milestone has id "${id}"` });
       });
       if (a.to && isSelfName(a.to)) {
         ctx.addIssue({ code: 'custom', path: at(t, 'to'), message: 'a message goes to someone else, never the user; the user\'s own work is a plain task' });
@@ -481,7 +505,7 @@ export const writeRules = {
       if (a.if && 'event' in a.if) eventText(a.if.event, ctx, at(t, 'if', 'event'));
       if (a.if && 'noReply' in a.if) {
         const sent = byId.get(a.if.noReply);
-        if (!sent || a.if.noReply === a.id) {
+        if (!sent?.task || a.if.noReply === a.id) {
           ctx.addIssue({ code: 'custom', path: at(t, 'if', 'noReply'), message: `no other task has id "${a.if.noReply}"` });
         } else {
           if (!sent.task.to) ctx.addIssue({ code: 'custom', path: at(t, 'if', 'noReply'), message: `"${sent.task.action}" goes to no one, so it can't get a reply; give it a to` });
@@ -499,12 +523,12 @@ export const writeRules = {
       if (state.get(id) === 'open') return true;
       state.set(id, 'open');
       const t = byId.get(id);
-      const found = t ? links(t.task).some((n) => byId.has(n) && loops(n)) : false;
+      const found = t ? links(t.task ?? t.step).some((n) => byId.has(n) && loops(n)) : false;
       state.set(id, 'done');
       return found;
     };
     for (const [id, t] of byId) {
-      if (!state.has(id) && loops(id)) ctx.addIssue({ code: 'custom', path: at(t, 'after'), message: `"${id}" waits on itself through its links; break the loop` });
+      if (!state.has(id) && loops(id)) ctx.addIssue({ code: 'custom', path: t.task ? at(t, 'after') : atStep(t, 'after'), message: `"${id}" waits on itself through its links; break the loop` });
     }
   }),
 };

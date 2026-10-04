@@ -33,7 +33,7 @@
 // loads (FlowSession.cleared), so the whole batch lands in that one turn.
 
 import { WRITABLE_KEYS, currentFocusEntry } from './ops.mjs';
-import { STUB_CRITERION, focusLineOf, hasBranch, tasksOf, taskState } from './schema.mjs';
+import { STUB_CRITERION, focusLineOf, hasBranch, tasksOf, taskState, milestonesOf } from './schema.mjs';
 
 export const FLOW_KEYS = [...WRITABLE_KEYS, 'log'];
 const REQUIRES = ['goal', 'any'];
@@ -307,6 +307,12 @@ export function suggestSkills(goal, today, skills = []) {
   }
   for (const { task } of tasks.filter((t) => t.task.status === 'pending' && t.task.if && 'event' in t.task.if && !t.task.if.happened && due(t.task.if.by))) {
     out.push({ skill: 'plan', why: `time to check whether ${task.if.event}`, todo: `Check: ${task.if.event}` });
+  }
+  for (const { step } of milestonesOf(goal.plan)) {
+    const toward = (step.after ?? []).map((id) => byId.get(id)).filter(Boolean);
+    if (step.status === 'pending' && toward.some((t) => t.status === 'done') && toward.every((t) => t.status === 'done' || t.status === 'dropped')) {
+      out.push({ skill: 'plan', why: `every move toward "${step.label}" is done`, todo: `Tick the milestone: ${step.label}` });
+    }
   }
   const questions = (goal.intel ?? []).filter((q) => q.status === 'open' && due(q.by)).length;
   if (questions) out.push({ skill: 'recon', why: `${n(questions, 'open question')} due`, todo: `Answer ${some(questions, 'open question')}` });

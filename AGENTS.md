@@ -370,6 +370,13 @@ no measurable progress by a date, then rethink the approach (back to
 `strategy`). A line holds up to 10 tasks (`NEXT_ACTIONS_MAX`), waiting ones
 included.
 
+The line's `criticalPath` steps are its milestones: points it reaches, not
+things to do. A milestone shares the plan's ids with the tasks: it lists in
+`after` the tasks that reach it, and a task may list a milestone in its own
+`after`, staying `blocked` until the milestone is reached. The page shows
+each milestone at the end of its tasks, marked with a flag, and the due
+list flags one whose tasks are all done ("Tick the milestone").
+
 A next action's `when` is the date it is due by (YYYY-MM-DD), optional.
 `doneOn` is the date it was done: `setStatus` stamps it with today when the
 action flips to `done` and removes it on any other status. A `plan`

@@ -106,35 +106,40 @@ carries the one every plan has: no measurable progress by a date, then rethink t
 approach. A worry about being sidetracked by a token gesture is a `threat` risk, not a
 fork. The user's own routine is a plain dated move.
 
-**Page.** A line's tasks are grouped by how they stand, with group labels only when more
-than one group has something, so a picnic reads as a plain list:
+**Milestones.** A line's critical-path steps are its milestones: points it reaches,
+not things to do. A milestone lists in `after` the tasks that reach it and shares the
+plan's ids with them, so a task can also wait on a milestone. The due list flags a
+milestone whose tasks are all done.
+
+**Page.** A milestone comes after the tasks that reach it, at the same level, marked
+with a flag. Each row's marker says where it stands, so no group labels are needed
+except for forks:
 
 ```
    ✓ Owner on record
-☐ Clean-up date set                           (the current milestone, bold)
-now
-☐ Collect signatures from neighbours        Mon 12 Oct
-     → Print the flyers
-waiting for a reply
-✉ Report the graffiti · to Sydney Trains · sent Mon 28 Sep · day 6 of 14
-   if no reply: Formal complaint to TfNSW complaints, then State MP,
-   then Local paper (public)                               they replied
-if things change
-◇ if under 10 sign-ups · check Sun 1 Nov
-   then Door-knock the street first               it happened  it didn't
-later
+☐  Collect signatures from neighbours        Mon 12 Oct
+      → Print the flyers
+✉  Report the graffiti · to Sydney Trains · sent Mon 28 Sep
+      · waiting for a reply, day 6 of 14
+      if no reply: Formal complaint to TfNSW complaints, then State MP,
+      then Local paper (public)                            they replied
 •  Collect signatures from neighbours → Print the flyers
+⚑  Clean-up date set                          (bold; tap the flag to mark it reached)
+•  Clean-up date set → Walk the site with the crew          (grey: the next stretch)
+⚑  Tunnel cleaned
+if things change
+◇  if under 10 sign-ups · check Sun 1 Nov
+      then Door-knock the street first            it happened  it didn't
 ```
 
-The arrow always means "then"; "to" names who a message goes to. A line's
-critical-path steps are its milestones, a level above the moves: the ones reached
-sit on a small "✓" route line, the current one is the line's bold heading, and later
-ones are grey. ✉, ◇ and • sit in the tick-box column, so every row's text starts at
-one edge.
+Reached milestones sit on one quiet "✓" line. The stretch toward the current milestone
+is in full ink and carries the star; later stretches are grey. A task no milestone lists
+sits in the current stretch. The arrow always means "then"; "to" names who a message
+goes to. ☐, ✉, • and ⚑ share one column, so every row's text starts at one edge.
 
-A sent message stays under "waiting for a reply" until it's answered, rather than
-folding into done. An escalation still waiting shows only in its message's "if no
-reply" line, and moves up into "now" when its wait runs out.
+A sent message stays in view, marked ✉, until it's answered, rather than folding into
+done. An escalation still waiting shows only in its message's "if no reply" line, and
+becomes a row of its own when its wait runs out.
 
 How the skills share the work:
 

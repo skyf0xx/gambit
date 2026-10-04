@@ -86,7 +86,13 @@ confident-looking graph.
 ### 4. Identify Each Line's Critical Path
 
 Call out the one longest dependency chain per line, the one that delays the line's
-outcome most if it slips. Keep each node a short label. Give the duration estimate, the
+outcome most if it slips. Its nodes are the line's milestones: points the line reaches,
+not things to do ("Clean-up date set", not "Get a clean-up date"). Keep each a short
+label. A milestone comes after the tasks that reach it: give it an `id` and list those
+tasks in its `after`, and the page shows each milestone at the end of its tasks with a
+flag. A task that can only start once a milestone is reached lists the milestone's `id`
+in its own `after`. Every live task should lead to a milestone; one that leads to none is
+shown before the current milestone. Give the duration estimate, the
 line's status (`on_schedule`, `at_risk`, `blocked`, `done`) and any blocker. Read with
 read_skill_file('plan', 'graph.md') for the graph and critical-path templates when
 building a graph from scratch.
@@ -188,7 +194,7 @@ If something in an existing line has failed or stalled, name it, name the altern
 
 ### 8. Update the Goal
 
-Call `write_section` on `plan` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?, items?, status}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `status` is one of `pending` (default), `done`, `dropped` — same enum and meaning as a `nextAction`'s, so a step that's finished or abandoned shows that in the visual layer instead of relying on prose in `detail`); `nextActions` is capped at 10 entries, waiting ones included, each `{id?, action, who, when, status, doneOn?, detail?, after?, if?, to?, level?, replied?, reply?}` (the links as step 6a sets them) where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `when` is a date (YYYY-MM-DD) on every live next action (an escalation or fork still waiting may leave it out); `doneOn` is stamped by code when a move is done, so never write it by hand, and keep it as it is when you carry a done move forward. `status` is one of `pending` (default), `proposed`, `done`, `dropped`. Keep each task's `id` the same across rewrites, so the links and the waits keep pointing at the right task. Set that line's own `status` to `on_schedule`, `at_risk`, `blocked`, or `done` — `done` means every `criticalPath` step and every `nextActions` entry on that line is itself `done` or `dropped`; don't set the line to `done` while any step or action is still `pending`. Set `blocker` only when `status` is `blocked`.
+Call `write_section` on `plan` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are milestones, `{id?, label, detail?, items?, after?, status}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `status` is one of `pending` (default), `done`, `dropped` — same enum and meaning as a `nextAction`'s, so a step that's finished or abandoned shows that in the visual layer instead of relying on prose in `detail`); `nextActions` is capped at 10 entries, waiting ones included, each `{id?, action, who, when, status, doneOn?, detail?, after?, if?, to?, level?, replied?, reply?}` (the links as step 6a sets them) where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `when` is a date (YYYY-MM-DD) on every live next action (an escalation or fork still waiting may leave it out); `doneOn` is stamped by code when a move is done, so never write it by hand, and keep it as it is when you carry a done move forward. `status` is one of `pending` (default), `proposed`, `done`, `dropped`. Keep each task's `id` the same across rewrites, so the links and the waits keep pointing at the right task. Set that line's own `status` to `on_schedule`, `at_risk`, `blocked`, or `done` — `done` means every `criticalPath` step and every `nextActions` entry on that line is itself `done` or `dropped`; don't set the line to `done` while any step or action is still `pending`. Set `blocker` only when `status` is `blocked`.
 
 `detail` (280 characters or less) is one plain sentence on why this move, why now; a
 `proposed` action must carry it. `items` on a step is a real list to tick off, never a
@@ -204,7 +210,7 @@ items or a proposed move.
         "label": "Main",
         "criticalPath": [
           { "label": "A", "detail": "...", "status": "done" },
-          { "label": "B", "status": "pending" },
+          { "id": "b", "label": "B", "after": ["photos", "letter"], "status": "pending" },
           { "label": "C", "items": [{ "label": "Sub 1: angle", "status": "done" }, { "label": "Sub 2: angle", "status": "pending" }], "status": "pending" },
           { "label": "D", "status": "pending" }
         ],

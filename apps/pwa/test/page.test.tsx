@@ -96,10 +96,15 @@ describe('notebook page markup', () => {
     expect(html).not.toContain('Dropped action');
   });
 
-  it('groups linked tasks: now, waiting for a reply with the climb, if things change, later', () => {
+  it('lays a line out as tasks then the milestone they reach, with forks after', () => {
     const plan = {
       linesOfOperation: [{
-        label: 'Tunnel', criticalPath: [{ label: 'Clean-up date set', status: 'pending' }], nextActions: [
+        label: 'Tunnel', criticalPath: [
+          { label: 'Owner on record', status: 'done' },
+          { id: 'date', label: 'Clean-up date set', status: 'pending', after: ['hall', 'report'] },
+          { label: 'Tunnel cleaned', status: 'pending', after: ['walk'] },
+        ], nextActions: [
+          { id: 'walk', action: 'Walk the site with the crew', who: 'me', status: 'pending', after: ['date'] },
           { id: 'photos', action: 'Take the weekly photos', who: 'me', status: 'pending' },
           { id: 'hall', action: 'Book the hall', who: 'me', status: 'pending' },
           { id: 'report', action: 'Report it', who: 'me', to: 'Sydney Trains', level: 'interests', status: 'done', doneOn: '2099-10-01' },
@@ -111,23 +116,25 @@ describe('notebook page markup', () => {
       }],
     };
     const html = renderSection('plan', plan);
-    // The current milestone heads the line, a level above the moves.
-    expect(html).toMatch(/text-\[20px\] font-semibold"[^>]*>[\s\S]{0,200}Clean-up date set/);
-    const order = ['Clean-up date set', '>now<', '>waiting for a reply<', '>if things change<', '>later<'].map((l) => html.indexOf(l));
+    // Reached milestones on one quiet line; then each milestone's tasks,
+    // then its flag; the next segment in grey; forks at the end.
+    const order = ['✓ Owner on record', 'Book the hall', 'Report it', '⚑', 'Clean-up date set', 'Walk the site with the crew', 'Tunnel cleaned', '>if things change<'].map((l) => html.indexOf(l));
     expect(order.every((n) => n >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(html).toContain('<ol class="space-y-1.5 text-graphite">');
+    expect(html).toContain('Clean-up date set → </span><span>Walk the site with the crew');
     // The top move is on the card; the rest of now shows what it unlocks.
     expect(html).not.toContain('Take the weekly photos');
     expect(html).toContain('→ Print the flyers');
     // A sent message waits for a reply, with its climb on one line.
-    expect(html).toContain(' · to Sydney Trains · sent Thu 1 Oct 2099 · day 0 of 14');
+    expect(html).toContain(' · to Sydney Trains · sent Thu 1 Oct 2099 · waiting for a reply, day 0 of 14');
     expect(html).toContain('if no reply: ');
-    expect(html).not.toContain('data-line="plan.linesOfOperation.0.nextActions.2"');
+    expect(html).not.toContain('data-line="plan.linesOfOperation.0.nextActions.3"');
     expect(html).toContain('Formal complaint quoting the reference to TfNSW complaints');
     expect(html).toContain(', then Local paper (public)');
     expect(html).toContain('they replied');
     // Waiting escalations appear only in the climb, not as rows of their own.
-    expect(html).not.toContain('data-line="plan.linesOfOperation.0.nextActions.3"');
+    expect(html).not.toContain('data-line="plan.linesOfOperation.0.nextActions.4"');
     expect(html).toContain('under 10 sign-ups');
     expect(html).toContain('check Sun 1 Nov 2099');
     expect(html).toContain('it didn’t');
@@ -158,14 +165,15 @@ describe('notebook page markup', () => {
       criticalPath: [{ label: 'First', status: 'pending', detail: 'why first' }, { label: 'Second', status: 'pending', detail: 'why second' }],
       nextActions: [
         { action: 'Top', who: 'me', status: 'pending' },
-        { action: 'Mine', who: 'me', status: 'pending' },
-        { action: 'Theirs', who: 'Priya', status: 'pending' },
+        { action: 'Mine', who: 'me', status: 'pending', detail: 'why mine' },
+        { action: 'Theirs', who: 'Priya', status: 'pending', detail: 'why theirs' },
       ],
     };
     const html = renderSection('plan', { linesOfOperation: [line] });
-    expect(html).toContain('>why first<');
-    expect(html).not.toContain('>why second<');
-    expect(html).toContain('title="why second"');
+    expect(html).toContain('>why mine<');
+    expect(html).not.toContain('>why theirs<');
+    expect(html).toContain('title="why theirs"');
+    expect(html).toContain('title="why first"');
     expect(html).toContain('Priya');
     expect(html).not.toMatch(/>me</);
     expect(html).not.toContain('on schedule');
@@ -175,9 +183,10 @@ describe('notebook page markup', () => {
     expect(crit).toContain('stalled');
   });
 
-  it('gives steps a hand-drawn box hook, and progress only a tick once met', () => {
+  it('gives a milestone a flag, not a box, and progress only a tick once met', () => {
     const planHtml = renderSection('plan', g.plan);
-    expect(planHtml).toContain('data-box');
+    expect(planHtml).toContain('⚑');
+    expect(planHtml).toContain('Mark Step one reached');
     // Progress isn't the user's to tick: an open ring until met, then a
     // bare tick slot — never an outlined box.
     const open = renderSection('criteriaStatus', g.criteriaStatus.map((c) => ({ ...c, status: 'on_track' })));
@@ -218,9 +227,9 @@ describe('notebook page markup', () => {
 
   it('gives each row still to do one box, none of them checked', () => {
     const planHtml = renderSection('plan', g.plan);
-    // the critical-path step only: the top move is on the index card and
-    // the done action is folded away
-    expect((planHtml.match(/data-box/g) ?? []).length).toBe(1);
+    // none: the top move is on the index card, the done action is folded
+    // away, and the milestone carries a flag
+    expect((planHtml.match(/data-box/g) ?? []).length).toBe(0);
     expect(planHtml).not.toContain('data-checked');
   });
 });

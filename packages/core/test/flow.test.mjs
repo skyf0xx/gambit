@@ -269,3 +269,24 @@ test('taskState reads a task as blocked, waiting or live', () => {
   const dropped = p([{ ...letter, status: 'dropped' }, after]);
   assert.equal(taskState(after, dropped, '2026-10-20'), 'live');
 });
+
+test('suggestSkills flags a milestone whose moves are all done', () => {
+  const g = {
+    ...defined,
+    posture: { current: { level: 1, label: 'steady' }, levels: [{ level: 1, label: 'steady' }], triggers: [], lastReviewed: '2026-10-19' },
+    capacity: { availableHrsPerWeek: 5, runway: '3 months', lastReviewed: '2026-10-19' },
+    log: [{ date: '2026-10-19', focus: null, notes: [], source: 'eval' }],
+    plan: { linesOfOperation: [{
+      label: 'L', criticalPath: [{ id: 'date', label: 'Clean-up date set', status: 'pending', after: ['a', 'b'] }],
+      nextActions: [
+        { id: 'a', action: 'a', who: 'me', status: 'done', doneOn: '2026-10-10' },
+        { id: 'b', action: 'b', who: 'me', status: 'dropped' },
+        fork,
+      ],
+    }] },
+  };
+  assert.deepEqual(suggestSkills(g, '2026-10-20'), [{ skill: 'plan', why: 'every move toward "Clean-up date set" is done', todo: 'Tick the milestone: Clean-up date set' }]);
+  const open = structuredClone(g);
+  open.plan.linesOfOperation[0].nextActions[1].status = 'pending';
+  assert.deepEqual(suggestSkills(open, '2026-10-20'), []);
+});

@@ -415,7 +415,7 @@ test('a plan written by a skill carries a conditional task on its focus line; a 
 test('task links point at real tasks, never loop, and ids are unique', () => {
   assert.deepEqual(errs(writeSection(mapped, 'plan', line([letter, escalate()]))), []);
   assert.match(errs(writeSection(mapped, 'plan', line([letter, escalate({ if: { noReply: 'nope', days: 14 } })])))[0], /noReply: no other task has id "nope"/);
-  assert.match(errs(writeSection(mapped, 'plan', line([letter, escalate(), { action: 'x', who: 'me', after: ['gone'] }])))[0], /after\.0: no other task has id "gone"/);
+  assert.match(errs(writeSection(mapped, 'plan', line([letter, escalate(), { action: 'x', who: 'me', after: ['gone'] }])))[0], /after\.0: no other task or milestone has id "gone"/);
   assert.match(errs(writeSection(mapped, 'plan', line([letter, escalate({ id: 'letter' })])))[0], /id "letter" is already used/);
   assert.match(errs(writeSection(mapped, 'plan', line([{ ...letter, after: ['ombuds'] }, escalate()]))).join(), /waits on itself/);
   assert.equal(writeSection(mapped, 'plan', line([letter, escalate({ id: 'Bad Id' })])).ok, false);
@@ -458,4 +458,17 @@ test('a message to someone the goal no longer holds is flagged', () => {
   const g = writeSection(mapped, 'plan', line([letter, escalate()])).goal;
   const r = writeSection(g, 'stakeholders', []);
   assert.ok(r.warnings.some((w) => /to "Council" matches no people or stakeholders name/.test(w)));
+});
+
+test('a milestone comes after the tasks that reach it, sharing their ids', () => {
+  const steps = (criticalPath, nextActions) => ({ linesOfOperation: [{ label: 'L', criticalPath, nextActions: [...nextActions, { action: 'Rethink the approach', who: 'me', if: { event: 'no date by December' } }] }] });
+  const sign = { id: 'sign', action: 'Collect signatures', who: 'me' };
+  const ok = writeSection(mapped, 'plan', steps([{ id: 'date', label: 'Clean-up date set', after: ['sign'] }], [sign, { action: 'Book the walk-through', who: 'me', after: ['date'] }]));
+  assert.deepEqual(errs(ok), []);
+  // A task waiting on a milestone is blocked until the milestone is reached.
+  const plan = ok.goal.plan;
+  assert.equal(core.taskState(plan.linesOfOperation[0].nextActions[1], plan, '2026-10-20'), 'blocked');
+  assert.match(errs(writeSection(mapped, 'plan', steps([{ id: 'date', label: 'Date set', after: ['nope'] }], [sign]))).join(), /no task has id "nope"/);
+  assert.match(errs(writeSection(mapped, 'plan', steps([{ id: 'sign', label: 'Date set' }], [sign]))).join(), /id "sign" is already used/);
+  assert.match(errs(writeSection(mapped, 'plan', steps([{ id: 'date', label: 'Date set', after: ['sign'] }], [{ ...sign, after: ['date'] }]))).join(), /waits on itself/);
 });

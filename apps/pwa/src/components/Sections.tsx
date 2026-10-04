@@ -296,43 +296,35 @@ function StatusGroups<T>({ k, list, isOpen, due, labels, pinned, render }: {
   );
 }
 
-/** A sheet's rows show only what's left, plus one grey "why" at a time.
- * `shown` filters out the folded done rows; `detailFor` is the one row whose
- * detail sits under it — every other row keeps its detail as a hover note. */
-type SheetRows = { shown: (path: string, status: string) => boolean; detailFor: string | null; onTick: (path: string) => void };
-
-/** A line's milestones, a level above its moves: the ones reached sit on a
- * small "✓" route line, the current one (the first still to reach) reads as
- * the line's heading, and the ones after it stay quiet in grey. A dropped
- * milestone isn't shown. */
-function Steps({ goalId, base, steps, editable, rows }: { goalId: string; base: string; steps: Any[]; editable: boolean; rows: SheetRows }) {
-  const reached = steps.filter((s) => s.status === 'done');
-  const list = steps.map((s, i) => ({ s, i, path: `${base}.${i}` })).filter(({ s }) => s.status === 'pending');
-  const current = steps.findIndex((s) => s.status === 'pending');
-  if (list.length === 0 && reached.length === 0) return null;
+/** A milestone, at the end of the tasks that reach it: same level as a
+ * task, marked with a flag instead of a box. Tapping the flag marks it
+ * reached; its sub-items, if any, tick on their own. */
+function Milestone({ goalId, path, step, editable, current, onTick }: { goalId: string; path: string; step: Any; editable: boolean; current: boolean; onTick: (path: string) => void }) {
+  const reach = () => { onTick(path); void setLineStatus(goalId, path, 'done'); };
   return (
-    <div className="space-y-1">
-      {reached.length > 0 && (
-        <p className="ml-11 text-[14px] leading-5 text-graphite">{reached.map((s) => `✓ ${s.label}`).join(' → ')}</p>
-      )}
-    <ol className="space-y-1.5">
-      {list.map(({ s, i, path }) => (
-        <Toggle key={i} goalId={goalId} path={path} status={s.status} editable={editable} onTick={rows.onTick} title={path === rows.detailFor ? undefined : s.detail}>
-          <Line goalId={goalId} path={path} className={i === current ? 'text-[20px] font-semibold' : 'text-graphite'} edit={editable && isEditableLine(path) ? { value: s.label } : undefined}><span>{s.label}</span></Line>
-          {path === rows.detailFor && <Detail>{s.detail}</Detail>}
-          {s.items?.length > 0 && (
-            <ul className="mt-1 space-y-1 pl-1">
-              {s.items.map((it: Any, j: number) => (
-                <Toggle key={j} goalId={goalId} path={`${base}.${i}.items.${j}`} status={it.status} editable={editable}>
-                  <Line goalId={goalId} path={`${base}.${i}.items.${j}`} className="text-[14px]" edit={editable && isEditableLine(`${base}.${i}.items.${j}`) ? { value: it.label } : undefined}><span>{it.label}</span></Line>
-                </Toggle>
-              ))}
-            </ul>
-          )}
-        </Toggle>
-      ))}
-    </ol>
-    </div>
+    <li className="flex items-start text-[17px] leading-[27px]" title={step.detail}>
+      <TextAction
+        disabled={!editable}
+        title={editable ? 'Mark reached' : undefined}
+        className={`-my-2 w-11 shrink-0 justify-center text-[18px] ${current ? 'text-ink' : 'text-graphite'}`}
+        onClick={reach}
+      >
+        <span aria-hidden="true">⚑</span>
+        <span className="sr-only">Mark {step.label} reached</span>
+      </TextAction>
+      <div className="min-w-0 flex-1">
+        <Line goalId={goalId} path={path} className="font-semibold" edit={editable && isEditableLine(path) ? { value: step.label } : undefined}><span>{step.label}</span></Line>
+        {step.items?.length > 0 && (
+          <ul className="mt-1 space-y-1 pl-1">
+            {step.items.map((it: Any, j: number) => (
+              <Toggle key={j} goalId={goalId} path={`${path}.items.${j}`} status={it.status} editable={editable}>
+                <Line goalId={goalId} path={`${path}.items.${j}`} className="text-[14px]" edit={editable && isEditableLine(`${path}.items.${j}`) ? { value: it.label } : undefined}><span>{it.label}</span></Line>
+              </Toggle>
+            ))}
+          </ul>
+        )}
+      </div>
+    </li>
   );
 }
 
@@ -416,9 +408,9 @@ function MarkedRow({ mark, children }: { mark: string; children: ReactNode }) {
   );
 }
 
-/** A group's pencilled label, shown only when the line has more than one. */
-function GroupLabel({ show, children }: { show: boolean; children: ReactNode }) {
-  return show ? <h4><PencilWord className="text-[19px] text-graphite">{children}</PencilWord></h4> : null;
+/** A pencilled label over a part of the line, e.g. "if things change". */
+function GroupLabel({ children }: { children: ReactNode }) {
+  return <h4><PencilWord className="text-[19px] text-graphite">{children}</PencilWord></h4>;
 }
 
 const PLAN_LINE_PATH = /^plan\.linesOfOperation\.(\d+)(?:\.|$)/;
@@ -555,91 +547,106 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
 
   const body = (li: number) => {
     const l = lines[li];
-    const stepBase = `plan.linesOfOperation.${li}.criticalPath`;
+    const base = `plan.linesOfOperation.${li}`;
     const day = today();
-    const visible = visibleActions(l.nextActions, goalId, `plan.linesOfOperation.${li}.nextActions`, dropped);
+    const visible = visibleActions(l.nextActions, goalId, `${base}.nextActions`, dropped);
     const tasks = l.nextActions.filter((a: Any) => a.status !== 'dropped');
     const stateOf = (a: Any) => taskState(a, plan, day);
     // A message that went out and hasn't been answered is still in play: it
     // waits for a reply, not in the done fold.
-    const awaiting = ({ a }: { a: Any }) => a.status === 'done' && a.to && !a.replied;
+    const awaiting = (a: Any) => a.status === 'done' && a.to && !a.replied;
+    const isFork = (a: Any) => stateOf(a) === 'waiting' && a.if && 'event' in a.if;
     // An escalation still waiting shows only in its message's "if no reply"
-    // line, so it appears in no group of its own.
-    const isFork = ({ a }: { a: Any }) => stateOf(a) === 'waiting' && a.if && 'event' in a.if;
-    const now = visible.filter((x) => (stateOf(x.a) === 'live' || x.a.status === 'done' || x.a.status === 'dropped') && !awaiting(x) && x.path !== top);
-    const waitingReply = visible.filter(awaiting);
-    const forks = visible.filter(isFork);
-    const later = visible.filter((x) => stateOf(x.a) === 'blocked');
-    const donePaths = now.filter(({ a }) => a.status === 'done').map(({ path }) => path);
-    const hiddenDone = donePaths.filter((p) => !justDone.has(p)).length;
-    const shown = (path: string, status: string) => status !== 'done' || showDone || justDone.has(path);
-    // The one row that keeps its "why" on show: the first thing still to do.
-    const firstStep = l.criticalPath.findIndex((x: Any) => x.status === 'pending');
-    const detailFor = firstStep >= 0 ? `${stepBase}.${firstStep}` : (now.find(({ a }) => a.status === 'pending')?.path ?? null);
-    const rows: SheetRows = { shown, detailFor, onTick };
-    const nowShown = now.filter(({ a, path }) => shown(path, a.status));
-    const labelled = [nowShown, waitingReply, forks, later].filter((g) => g.length).length > 1;
+    // line, so it gets no row of its own.
+    const isChained = (a: Any) => stateOf(a) === 'waiting' && a.if && 'noReply' in a.if;
+    const steps = l.criticalPath.map((st: Any, i: number) => ({ st, path: `${base}.criticalPath.${i}` }));
+    const reached = steps.filter(({ st }: Any) => st.status === 'done');
+    const ahead = steps.filter(({ st }: Any) => st.status === 'pending');
+    // Each task sits before the first milestone that lists it in `after`;
+    // a task no milestone lists belongs to the current one.
+    const segmentOf = (a: Any) => Math.max(0, ahead.findIndex(({ st }: Any) => a.id && st.after?.includes(a.id)));
+    const isDone = (a: Any) => a.status === 'done' && !awaiting(a);
+    const shown = (path: string, a: Any) => !isDone(a) || showDone || justDone.has(path);
+    const rowsIn = (k: number) => visible.filter(({ a, path }) => path !== top && !isFork(a) && !isChained(a) && segmentOf(a) === k && shown(path, a));
+    const forks = visible.filter(({ a }) => isFork(a));
+    const hiddenDone = visible.filter(({ a, path }) => isDone(a) && path !== top && !justDone.has(path)).length;
+    const detailFor = rowsIn(0).find(({ a }) => stateOf(a) === 'live' && a.status === 'pending')?.path ?? null;
     const unlocks = (a: Any) => (a.id ? tasks.filter((t: Any) => t.after?.includes(a.id) && t.status === 'pending').map((t: Any) => t.action) : []);
-    const name = (id: string) => byId.get(id)?.action ?? id;
+    const name = (id: string) => byId.get(id)?.action ?? l.criticalPath.find((st: Any) => st.id === id)?.label ?? id;
+    const segments = Math.max(ahead.length, 1);
+
+    const row = ({ a, path }: { a: Any; path: string }) => {
+      if (awaiting(a)) {
+        const chain = chainAfter(a, tasks);
+        const wait = chain[0]?.if?.days;
+        const waited = a.doneOn ? Math.max(0, -(daysUntil(a.doneOn) ?? 0)) : 0;
+        return (
+          <MarkedRow key={path} mark="✉">
+            {/* Not a Line: the marks layer would tick it as done, and it
+             * isn't finished until they answer. */}
+            <div>
+              <span>{a.action}</span>
+              <span className="text-[14px] text-graphite"> · to {a.to}{a.doneOn ? ` · sent ${pencilDate(a.doneOn)}` : ''} · waiting for a reply, day {waited}{wait ? ` of ${wait}` : ''}</span>
+            </div>
+            <ChainLine chain={chain} />
+            {editable && (
+              <TextAction className="-my-2 text-[14px] underline" onClick={() => void markTaskReplied(goalId, path)}>they replied</TextAction>
+            )}
+          </MarkedRow>
+        );
+      }
+      if (stateOf(a) === 'blocked') {
+        return (
+          <MarkedRow key={path} mark="•">
+            <Line goalId={goalId} path={path}>
+              <span className="text-[14px] text-graphite">{(a.after ?? []).map(name).join(', ')} → </span>
+              <span>{a.action}</span>
+            </Line>
+          </MarkedRow>
+        );
+      }
+      const meta = [!isSelf(a.who) && a.who, a.to && `to ${a.to}`, a.when && byDate(a.when)].filter(Boolean).join(' · ');
+      const opens = unlocks(a);
+      return (
+        <Toggle key={path} goalId={goalId} path={path} status={a.status} editable={editable} onTick={onTick} title={path === detailFor ? undefined : a.detail}>
+          <Line goalId={goalId} path={path}>
+            {/* Only the action is editable; who/when stays outside it. */}
+            {editable && isEditableLine(path)
+              ? <EditableText goalId={goalId} path={path} value={a.action}><span>{a.action}</span></EditableText>
+              : <span>{a.action}</span>}
+            {meta && <span className="ml-2 text-[14px] text-graphite">{meta}</span>}
+          </Line>
+          {a.status !== 'done' && <ChainLine chain={chainAfter(a, tasks)} />}
+          {opens.length > 0 && <div className="text-[14px] leading-5 text-graphite">→ {opens.join(', ')}</div>}
+          {a.replied && <div className="text-[14px] leading-5 text-graphite">replied {pencilDate(a.replied)}{a.reply ? `: “${a.reply}”` : ''}</div>}
+          {path === detailFor && <Detail>{a.detail}</Detail>}
+        </Toggle>
+      );
+    };
+
     return (
       <>
-        <Steps goalId={goalId} base={stepBase} steps={l.criticalPath} editable={editable} rows={rows} />
+        {reached.length > 0 && (
+          <p className="ml-11 text-[14px] leading-5 text-graphite">{reached.map(({ st }: Any) => `✓ ${st.label}`).join(' → ')}</p>
+        )}
         {l.blocker && <p className="text-[14px] text-graphite">Blocked: {l.blocker}</p>}
-        {nowShown.length > 0 && (
-          <div className="space-y-1">
-            <GroupLabel show={labelled}>now</GroupLabel>
-            <ol className="space-y-1.5">
-              {nowShown.map(({ a, path }) => {
-                const meta = [!isSelf(a.who) && a.who, a.to && `to ${a.to}`, a.when && byDate(a.when)].filter(Boolean).join(' · ');
-                const opens = unlocks(a);
-                return (
-                  <Toggle key={path} goalId={goalId} path={path} status={a.status} editable={editable} onTick={onTick} title={path === detailFor ? undefined : a.detail}>
-                    <Line goalId={goalId} path={path}>
-                      {/* Only the action is editable; who/when stays outside it. */}
-                      {editable && isEditableLine(path)
-                        ? <EditableText goalId={goalId} path={path} value={a.action}><span>{a.action}</span></EditableText>
-                        : <span>{a.action}</span>}
-                      {meta && <span className="ml-2 text-[14px] text-graphite">{meta}</span>}
-                    </Line>
-                    {a.status !== 'done' && <ChainLine chain={chainAfter(a, tasks)} />}
-                    {opens.length > 0 && <div className="text-[14px] leading-5 text-graphite">→ {opens.join(', ')}</div>}
-                    {a.replied && <div className="text-[14px] leading-5 text-graphite">replied {pencilDate(a.replied)}{a.reply ? `: “${a.reply}”` : ''}</div>}
-                    {path === detailFor && <Detail>{a.detail}</Detail>}
-                  </Toggle>
-                );
-              })}
+        {Array.from({ length: segments }, (_, k) => {
+          const flag = ahead[k];
+          const rows = rowsIn(k);
+          if (!rows.length && !flag) return null;
+          // The segment toward the current milestone is in full ink; the
+          // ones after it stay quiet until the line gets there.
+          return (
+            <ol key={k} className={`space-y-1.5 ${k > 0 ? 'text-graphite' : ''}`}>
+              {rows.map(row)}
+              {flag && <Milestone goalId={goalId} path={flag.path} step={flag.st} editable={editable} current={k === 0} onTick={onTick} />}
             </ol>
-          </div>
-        )}
-        {waitingReply.length > 0 && (
-          <div className="space-y-1">
-            <GroupLabel show={labelled}>waiting for a reply</GroupLabel>
-            <ul className="space-y-2">
-              {waitingReply.map(({ a, path }) => {
-                const chain = chainAfter(a, tasks);
-                const wait = chain[0]?.if?.days;
-                const waited = a.doneOn ? Math.max(0, -(daysUntil(a.doneOn) ?? 0)) : 0;
-                return (
-                  <MarkedRow key={path} mark="✉">
-                    {/* Not a Line: the marks layer would tick it as done, and
-                     * it isn't finished until they answer. */}
-                    <div>
-                      <span>{a.action}</span>
-                      <span className="text-[14px] text-graphite"> · to {a.to}{a.doneOn ? ` · sent ${pencilDate(a.doneOn)}` : ''} · day {waited}{wait ? ` of ${wait}` : ''}</span>
-                    </div>
-                    <ChainLine chain={chain} />
-                    {editable && (
-                      <TextAction className="-my-2 text-[14px] underline" onClick={() => void markTaskReplied(goalId, path)}>they replied</TextAction>
-                    )}
-                  </MarkedRow>
-                );
-              })}
-            </ul>
-          </div>
-        )}
+          );
+        })}
+        {editable && l.nextActions.length < NEXT_ACTIONS_MAX && <AddMove goalId={goalId} li={li} />}
         {forks.length > 0 && (
           <div className="space-y-1">
-            <GroupLabel show={labelled}>if things change</GroupLabel>
+            <GroupLabel>if things change</GroupLabel>
             <ul className="space-y-2">
               {forks.map(({ a, path }) => (
                 <MarkedRow key={path} mark="◇">
@@ -660,22 +667,6 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
             </ul>
           </div>
         )}
-        {later.length > 0 && (
-          <div className="space-y-1">
-            <GroupLabel show={labelled}>later</GroupLabel>
-            <ul className="space-y-1">
-              {later.map(({ a, path }) => (
-                <MarkedRow key={path} mark="•">
-                  <Line goalId={goalId} path={path}>
-                    <span className="text-[14px] text-graphite">{(a.after ?? []).map(name).join(', ')} → </span>
-                    <span>{a.action}</span>
-                  </Line>
-                </MarkedRow>
-              ))}
-            </ul>
-          </div>
-        )}
-        {editable && l.nextActions.length < NEXT_ACTIONS_MAX && <AddMove goalId={goalId} li={li} />}
         {hiddenDone > 0 && (
           <TextAction className="-my-2 ml-11" onClick={() => setShowDone((v) => !v)} aria-expanded={showDone}>
             <PencilWord className="text-[18px] text-graphite">{showDone ? 'hide done' : `${hiddenDone} done`}</PencilWord>
