@@ -110,19 +110,24 @@ fork. The user's own routine is a plain dated move.
 than one group has something, so a picnic reads as a plain list:
 
 ```
+milestones
+☐ Clean-up date set
 now
 ☐ Collect signatures from neighbours        Mon 12 Oct
-     unlocks: Print the flyers
+     → Print the flyers
 waiting for a reply
 ✉ Report the graffiti · to Sydney Trains · sent Mon 28 Sep · day 6 of 14
-   if no reply: Formal complaint → TfNSW complaints, then State MP,
+   if no reply: Formal complaint to TfNSW complaints, then State MP,
    then Local paper (public)                               they replied
 if things change
 ◇ if under 10 sign-ups · check Sun 1 Nov
    then Door-knock the street first               it happened  it didn't
 later
-   Print the flyers · after: Collect signatures from neighbours
+   Collect signatures from neighbours → Print the flyers
 ```
+
+The arrow always means "then"; "to" names who a message goes to. A line's
+critical-path steps, the milestones its moves work toward, sit above the groups.
 
 A sent message stays under "waiting for a reply" until it's answered, rather than
 folding into done. An escalation still waiting shows only in its message's "if no

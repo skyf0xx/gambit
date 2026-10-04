@@ -379,11 +379,12 @@ function chainAfter(msg: Any, tasks: Any[]): Any[] {
   return out;
 }
 
-/** "if no reply: Formal complaint → TfNSW, then State MP, then Local paper
- * (public)": the rest of a message's climb on one line. */
+/** "if no reply: Formal complaint to TfNSW, then State MP, then Local paper
+ * (public)": the rest of a message's climb on one line. The arrow on the
+ * page means "then", so "to" names who a message goes to. */
 function ChainLine({ chain }: { chain: Any[] }) {
   if (!chain.length) return null;
-  const step = (t: Any, i: number) => `${i ? `then ${t.to}` : `${t.action} → ${t.to}`}${t.level === 'power' ? ' (public)' : ''}`;
+  const step = (t: Any, i: number) => `${i ? `then ${t.to}` : `${t.action} to ${t.to}`}${t.level === 'power' ? ' (public)' : ''}`;
   return (
     <div className="text-[14px] leading-5 text-graphite">
       <span className="text-ink">if no reply: </span>
@@ -557,11 +558,13 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     const detailFor = firstStep >= 0 ? `${stepBase}.${firstStep}` : (now.find(({ a }) => a.status === 'pending')?.path ?? null);
     const rows: SheetRows = { shown, detailFor, onTick };
     const nowShown = now.filter(({ a, path }) => shown(path, a.status));
+    const stepsShown = l.criticalPath.filter((x: Any, i: number) => shown(`${stepBase}.${i}`, x.status)).length;
     const labelled = [nowShown, waitingReply, forks, later].filter((g) => g.length).length > 1;
     const unlocks = (a: Any) => (a.id ? tasks.filter((t: Any) => t.after?.includes(a.id) && t.status === 'pending').map((t: Any) => t.action) : []);
     const name = (id: string) => byId.get(id)?.action ?? id;
     return (
       <>
+        {stepsShown > 0 && <GroupLabel show={labelled}>milestones</GroupLabel>}
         <Steps goalId={goalId} base={stepBase} steps={l.criticalPath} editable={editable} rows={rows} />
         {l.blocker && <p className="text-[14px] text-graphite">Blocked: {l.blocker}</p>}
         {nowShown.length > 0 && (
@@ -581,7 +584,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
                       {meta && <span className="ml-2 text-[14px] text-graphite">{meta}</span>}
                     </Line>
                     {a.status !== 'done' && <ChainLine chain={chainAfter(a, tasks)} />}
-                    {opens.length > 0 && <div className="text-[14px] leading-5 text-graphite">unlocks: {opens.join(', ')}</div>}
+                    {opens.length > 0 && <div className="text-[14px] leading-5 text-graphite">→ {opens.join(', ')}</div>}
                     {a.replied && <div className="text-[14px] leading-5 text-graphite">replied {pencilDate(a.replied)}{a.reply ? `: “${a.reply}”` : ''}</div>}
                     {path === detailFor && <Detail>{a.detail}</Detail>}
                   </Toggle>
@@ -648,8 +651,8 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
               {later.map(({ a, path }) => (
                 <li key={path}>
                   <Line goalId={goalId} path={path}>
+                    <span className="text-[14px]">{(a.after ?? []).map(name).join(', ')} → </span>
                     <span>{a.action}</span>
-                    <span className="text-[14px]"> · after: {(a.after ?? []).map(name).join(', ')}</span>
                   </Line>
                 </li>
               ))}

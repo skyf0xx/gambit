@@ -99,7 +99,7 @@ describe('notebook page markup', () => {
   it('groups linked tasks: now, waiting for a reply with the climb, if things change, later', () => {
     const plan = {
       linesOfOperation: [{
-        label: 'Tunnel', criticalPath: [], nextActions: [
+        label: 'Tunnel', criticalPath: [{ label: 'Clean-up date set', status: 'pending' }], nextActions: [
           { id: 'photos', action: 'Take the weekly photos', who: 'me', status: 'pending' },
           { id: 'hall', action: 'Book the hall', who: 'me', status: 'pending' },
           { id: 'report', action: 'Report it', who: 'me', to: 'Sydney Trains', level: 'interests', status: 'done', doneOn: '2099-10-01' },
@@ -111,17 +111,17 @@ describe('notebook page markup', () => {
       }],
     };
     const html = renderSection('plan', plan);
-    const order = ['>now<', '>waiting for a reply<', '>if things change<', '>later<'].map((l) => html.indexOf(l));
+    const order = ['>milestones<', '>now<', '>waiting for a reply<', '>if things change<', '>later<'].map((l) => html.indexOf(l));
     expect(order.every((n) => n >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     // The top move is on the card; the rest of now shows what it unlocks.
     expect(html).not.toContain('Take the weekly photos');
-    expect(html).toContain('unlocks: Print the flyers');
+    expect(html).toContain('→ Print the flyers');
     // A sent message waits for a reply, with its climb on one line.
     expect(html).toContain(' · to Sydney Trains · sent Thu 1 Oct 2099 · day 0 of 14');
     expect(html).toContain('if no reply: ');
     expect(html).not.toContain('data-line="plan.linesOfOperation.0.nextActions.2"');
-    expect(html).toContain('Formal complaint quoting the reference → TfNSW complaints');
+    expect(html).toContain('Formal complaint quoting the reference to TfNSW complaints');
     expect(html).toContain(', then Local paper (public)');
     expect(html).toContain('they replied');
     // Waiting escalations appear only in the climb, not as rows of their own.
@@ -129,7 +129,7 @@ describe('notebook page markup', () => {
     expect(html).toContain('under 10 sign-ups');
     expect(html).toContain('check Sun 1 Nov 2099');
     expect(html).toContain('it didn’t');
-    expect(html).toContain(' · after: Book the hall');
+    expect(html).toContain('Book the hall → </span><span>Print the flyers');
   });
 
   it('labels no groups when a line has only moves to make', () => {
