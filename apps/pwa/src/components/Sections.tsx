@@ -369,10 +369,18 @@ const addDays = (iso: string, days: number) => new Date(Date.parse(iso) + days *
  * channel, then going public. */
 const RUNG_LEVEL: Record<string, string> = { interests: 'ask', rights: 'formal channels', power: 'go public' };
 
+/** Decision points as the page lists them: open ones first, soonest
+ * check first (undated last), then the settled ones. Each keeps its
+ * stored index for its path. */
+function checkpoints(points: Any[]) {
+  const rank = (d: Any) => `${d.status === 'open' ? 0 : 1}${d.by ?? '9999'}`;
+  return points.map((d, i) => ({ d, i })).sort((a, b) => rank(a.d).localeCompare(rank(b.d)));
+}
+
 /** Where a rung stands, in a few pencilled words. */
 function rungState(r: Any): string {
   switch (r.status) {
-    case 'sent': return `sent ${pencilDate(r.sentOn)} · next rung ${byDate(addDays(r.sentOn, r.waitDays))}`;
+    case 'sent': return `sent ${pencilDate(r.sentOn)} · next step ${byDate(addDays(r.sentOn, r.waitDays))}`;
     case 'answered': return 'answered';
     case 'unanswered': return 'no reply';
     case 'skipped': return 'skipped';
@@ -394,15 +402,14 @@ function Branches({ goalId, base, line, editable }: { goalId: string; base: stri
     <div className="space-y-3 pt-1">
       {points.length > 0 && (
         <div className="space-y-1">
-          <h4><PencilWord className="text-[19px] text-graphite">if it stalls</PencilWord></h4>
-          <ul className="ml-11 space-y-1 text-[15px] leading-[22px]">
-            {points.map((d, i) => (
-              <li key={i} className={d.status === 'open' ? 'text-ink' : 'text-graphite'}>
+          <h4><PencilWord className="text-[19px] text-graphite">checkpoints</PencilWord></h4>
+          <ul className="ml-11 space-y-2 text-[15px] leading-[22px]">
+            {checkpoints(points).map(({ d, i }) => (
+              <li key={i} className={`grid grid-cols-[6.5rem_1fr] gap-x-3 ${d.status === 'open' ? 'text-ink' : 'text-graphite'}`}>
+                <span className="text-[14px] text-graphite">{d.status === 'open' ? (d.by ? pencilDate(d.by) : 'any time') : d.status === 'taken' ? 'happened' : 'didn’t happen'}</span>
                 <Line goalId={goalId} path={`${base}.decisionPoints.${i}`}>
-                  <span>If {d.if} → {d.then}</span>
-                  {d.status === 'open'
-                    ? d.by && <span className="ml-2 text-[14px] text-graphite">check {byDate(d.by)}</span>
-                    : <span className="ml-2 text-[14px] text-graphite">{d.status === 'taken' ? 'taken' : 'not needed'}</span>}
+                  <span className="block"><span className="text-graphite">if </span>{d.if}</span>
+                  <span className="block"><span className="text-graphite">then </span>{d.then}</span>
                 </Line>
               </li>
             ))}
@@ -424,8 +431,9 @@ function Branches({ goalId, base, line, editable }: { goalId: string; base: stri
                 <li key={i} className={r.status === 'pending' || r.status === 'sent' ? 'text-ink' : 'text-graphite'}>
                   {level && <div className="text-[13px] uppercase tracking-wide text-graphite">{level}</div>}
                   <Line goalId={goalId} path={path}>
-                    <span>{r.action} → {r.to}</span>
-                    {r.carries && <span className="ml-2 text-[14px] text-graphite">with {r.carries}</span>}
+                    <span>{r.action}</span>
+                    <span className="text-graphite"> · to {r.to}</span>
+                    {r.carries && <span className="text-[14px] text-graphite"> · with {r.carries}</span>}
                   </Line>
                   <div className="flex flex-wrap items-center gap-x-4 text-[14px] text-graphite">
                     <span>{rungState(r)}</span>

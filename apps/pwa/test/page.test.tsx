@@ -100,7 +100,10 @@ describe('notebook page markup', () => {
     const plan = {
       linesOfOperation: [{
         label: 'Tunnel', criticalPath: [], nextActions: [],
-        decisionPoints: [{ if: 'no clean-up date by 1 Dec', then: 'start the petition', by: '2099-12-01', status: 'open' }],
+        decisionPoints: [
+          { if: 'no clean-up date by 1 Dec', then: 'start the petition', by: '2099-12-01', status: 'open' },
+          { if: 'council offers a one-off clean', then: 'take it, keep chasing', by: '2099-10-19', status: 'open' },
+        ],
         ladder: [
           { level: 'interests', action: 'Report it', to: 'Sydney Trains', waitDays: 14, status: 'sent', sentOn: '2099-10-01' },
           { level: 'rights', action: 'Formal complaint', to: 'TfNSW complaints', carries: 'reference number', waitDays: 21, status: 'pending' },
@@ -109,12 +112,14 @@ describe('notebook page markup', () => {
       }],
     };
     const html = renderSection('plan', plan);
-    expect(html).toContain('if it stalls');
-    expect(html).toContain('If no clean-up date by 1 Dec → start the petition');
+    expect(html).toContain('checkpoints');
+    // Soonest check first, the date in a column of its own, then if and then on lines of their own.
+    expect(html.indexOf('council offers')).toBeLessThan(html.indexOf('no clean-up date'));
+    expect(html).toMatch(/Mon 19 Oct 2099<\/span>[\s\S]*?<span class="text-graphite">if <\/span>council offers a one-off clean<\/span><span class="block"><span class="text-graphite">then <\/span>take it, keep chasing/);
     expect(html).toContain('if they don&#x27;t answer');
     expect(html).toMatch(/ask<\/div>[\s\S]*formal channels<\/div>[\s\S]*go public<\/div>/);
-    expect(html).toContain('Formal complaint → TfNSW complaints');
-    expect(html).toContain('with reference number');
+    expect(html).toContain('Formal complaint</span><span class="text-graphite"> · to TfNSW complaints</span>');
+    expect(html).toContain(' · with reference number');
     expect(html).toContain('they answered');
     expect(html.match(/mark sent/g)).toHaveLength(1);
     expect(html).toContain('data-line="plan.linesOfOperation.0.ladder.1"');

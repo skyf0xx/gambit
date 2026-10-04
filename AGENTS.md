@@ -335,7 +335,12 @@ line's text, not the plan's shape).
 
 - `decisionPoints`: up to 4 `{if, by?, then, status: open | taken | passed}`.
   A condition set in advance, the date it is checked, and the move it
-  triggers.
+  triggers. The page labels each half itself, so `if` and `then` (and a
+  rung's `action`) are each one phrase of at most 8 words
+  (`BRANCH_MAX_WORDS`), with no leading "if" or "then", no colon,
+  semicolon or second sentence. The reading-grade check can't catch a
+  run-on line of short words, so this is a rule of its own, on the write
+  path only.
 - `ladder`: up to 6 rungs `{level, action, to, carries?, waitDays, status,
   sentOn?, outcome?}`, for an ask someone else can ignore. `level` climbs
   `interests` → `rights` → `power` and never steps back down. `to` names a

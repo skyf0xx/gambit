@@ -394,12 +394,35 @@ export const GOAL_MAX_WORDS = 10;
 // or toss it, and the why is what makes that an informed choice. At most one
 // line carries `focus` — the Schwerpunkt is one thing, not a ranking. A
 // ladder climbs and never steps back down, with one rung out at a time.
+// An if-then is read at a glance, so each half is one short phrase: the
+// condition a fact you could check on the date, the move a verb phrase.
+// The page adds "if" and "then" itself. Reading grade (readability.mjs)
+// can't catch this: a line of short words runs on just as easily.
+export const BRANCH_MAX_WORDS = 8;
+
+const branchText = (text, lead, ctx, path) => {
+  if (wordCount(text) > BRANCH_MAX_WORDS) {
+    ctx.addIssue({ code: 'custom', path, message: `${wordCount(text)} words; keep it to ${BRANCH_MAX_WORDS} or fewer: one short phrase, no second clause` });
+  }
+  if (lead && new RegExp(`^${lead}\\b`, 'i').test(text.trim())) {
+    ctx.addIssue({ code: 'custom', path, message: `drop the leading "${lead}"; the page adds it` });
+  }
+  if (/[;:]|\.\s/.test(text)) {
+    ctx.addIssue({ code: 'custom', path, message: 'one phrase only: no colon, semicolon or second sentence' });
+  }
+};
+
 export const writeRules = {
   plan: plan.superRefine((p, ctx) => {
     if (p.linesOfOperation.filter((l) => l.focus).length > 1) {
       ctx.addIssue({ code: 'custom', path: ['linesOfOperation'], message: 'only one line can carry focus: true' });
     }
     p.linesOfOperation.forEach((l, li) => {
+      (l.decisionPoints ?? []).forEach((d, di) => {
+        branchText(d.if, 'if', ctx, ['linesOfOperation', li, 'decisionPoints', di, 'if']);
+        branchText(d.then, 'then', ctx, ['linesOfOperation', li, 'decisionPoints', di, 'then']);
+      });
+      (l.ladder ?? []).forEach((r, ri) => branchText(r.action, null, ctx, ['linesOfOperation', li, 'ladder', ri, 'action']));
       const ladder = l.ladder ?? [];
       ladder.forEach((r, ri) => {
         if (ri && RUNG_LEVELS.indexOf(r.level) < RUNG_LEVELS.indexOf(ladder[ri - 1].level)) {

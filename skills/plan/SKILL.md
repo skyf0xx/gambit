@@ -118,10 +118,21 @@ them; the focus line (else the first) must, and a write without one is refused. 
 kinds, from planning doctrine's branches and decision points:
 
 **Decision points**, for any goal: a condition set now, the date it is checked, and the
-move it triggers. `{if, by?, then, status: "open"}`, at most 4 per line. Make the
-condition checkable on the date: "under 10 sign-ups by 1 Nov → door-knock the street",
-"rain over 50% on Friday's forecast → move to the church hall", "missed 2 runs in a week →
-cut the target to 3 days". A condition nobody could check isn't a decision point.
+move it triggers. `{if, by?, then, status: "open"}`, at most 4 per line. The page shows
+them as checkpoints, date first, then "if …" and "then …" on lines of their own, so each
+half is one short phrase of 8 words or fewer, with no leading "if" or "then", no colon
+and no second clause; a longer one is refused. `if` is a fact you could check on the
+date; `then` is a verb phrase.
+
+| `if` | `then` |
+|---|---|
+| under 10 sign-ups | door-knock the street |
+| rain over 50% on Friday | move to the church hall |
+| 2 runs missed in a week | cut the target to 3 days |
+| council offers a one-off clean | take it, keep chasing |
+
+A condition nobody could check isn't a decision point. A move that needs more than 8
+words is more than one move: put the rest in the plan's steps.
 
 **An escalation ladder**, when the line needs someone else to act and they can ignore
 the user: a council, a landlord, a supplier, an employer. The same ask, put to a harder
@@ -135,6 +146,8 @@ Goldberg), and never step back down:
    relationship.
 
 Each rung is `{level, action, to, carries?, waitDays, status: "pending"}`, at most 6.
+`action` is 8 words or fewer ("Formal complaint quoting the reference"); the page adds
+who it goes to and what it carries.
 `to` is a name from `people` or `stakeholders`, verbatim, and a rung naming anyone else is
 refused. The first job is finding who actually holds the authority (a tunnel may belong to
 the rail operator, not the council). If they aren't mapped, load `stakeholders` before

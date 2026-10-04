@@ -469,3 +469,17 @@ test('a ladder rung naming someone the goal no longer holds is flagged', () => {
   assert.equal(r.ok, true);
   assert.ok(r.warnings.some((w) => /to "Council" matches no people or stakeholders name/.test(w)));
 });
+
+test('an if-then is two short phrases the page can label', () => {
+  const write = (decisionPoints, ladder) => writeSection(mapped, 'plan', { linesOfOperation: [{ label: 'L', criticalPath: [], nextActions: [], decisionPoints, ...(ladder ? { ladder } : {}) }] });
+  assert.equal(write([{ if: 'under 5 residents signed', then: 'send the chase anyway' }]).ok, true);
+  const long = write([{ if: 'Council offers another one-off clean-up of the tunnel this month', then: 'Take the clean, keep the chase and the signs and bins ask on the record' }]);
+  assert.equal(long.ok, false);
+  assert.deepEqual(long.errors.map((e) => e.path), ['plan.linesOfOperation.0.decisionPoints.0.if', 'plan.linesOfOperation.0.decisionPoints.0.then']);
+  assert.match(long.errors[1].message, /15 words; keep it to 8 or fewer/);
+  const led = write([{ if: 'If two photos are missed', then: 'then restart the baseline' }]);
+  assert.deepEqual(led.errors.map((e) => e.message), ['drop the leading "if"; the page adds it', 'drop the leading "then"; the page adds it']);
+  assert.match(write([{ if: 'photos missed', then: 'restart: new week one' }]).errors[0].message, /no colon/);
+  assert.equal(write([{ if: 'iffy weather', then: 'thence onward' }]).ok, true);
+  assert.equal(write([{ if: 'x', then: 'y' }], [rung({ action: 'Send the letter of complaint with photos and the reference number' })]).ok, false);
+});

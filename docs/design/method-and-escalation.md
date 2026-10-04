@@ -68,7 +68,20 @@ red-teamed. A goal without one goes from focus to plan in two turns.
 Both live on a plan line, owned by `plan`.
 
 **Decision point**: `{if, by?, then, status: open | taken | passed}`, at most 4 per
-line. It becomes due once `by` passes while still open.
+line. It becomes due once `by` passes while still open. The page lists them as
+checkpoints, open ones soonest first, each with its date in a column of its own:
+
+```
+Sun 18 Oct   if   2 weekly photos missed
+             then restart the baseline
+Mon 19 Oct   if   council offers a one-off clean
+             then take it, keep chasing
+```
+
+Each half is one phrase of at most 8 words, with no leading "if" or "then" and no
+second clause, so it reads at a glance. Flesch-Kincaid already runs on every goal write,
+but it measures word and sentence length, so a run-on line of short words passes it.
+The word cap is what keeps each half to one idea.
 
 **Ladder**: at most 6 rungs per line, one ladder per line, so a campaign can push on
 two authorities in parallel.
