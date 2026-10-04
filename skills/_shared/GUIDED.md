@@ -89,20 +89,33 @@ history, by design), but each individual entry states what's true as of
 that entry, not a replay of the discussion that produced it — a decision
 gets its outcome and rationale, not the back-and-forth.
 
-**Write goal fields like a plan, not an essay.** This governs every
-write to the goal only — your own replies to the user in conversation
-stay normal prose. Inside the goal: signal-dense, verbosity-light string
-fields. Max ~5 words per short-label field. Few sentences, not one long
-one, where a field allows longer text. Short labels and arrow chains over
-paragraphs — a human planning by hand writes a mind map, not an essay,
-and every owned key (`plan`, `systemsNotes`, `riskNotes`, `decisions`,
-`stakeholders`, `exposure`, `capacity`, `forecasts`, `experiments`,
-`criteriaStatus`) follows that, including each individual `log` entry a
-skill appends. Cut the field down to the fact; drop the clause explaining
-it unless the fact is unreadable without it. Field shape (type, enum,
-length cap) is enforced automatically on write — it does not enforce that
-the content is actually terse or actually a real label rather than a lazy
-placeholder; that's still this rule's job, in prose, on every write.
+**Write goal fields short, in plain words you'd say out loud.** This
+governs every write to the goal — your own replies to the user in
+conversation stay normal prose. Inside the goal, every owned key (`plan`,
+`systemsNotes`, `riskNotes`, `decisions`, `stakeholders`, `exposure`,
+`capacity`, `forecasts`, `experiments`, `criteriaStatus`) and each `log`
+entry is short: max ~5 words per short-label field, and a few short
+sentences, not one long one, where a field allows more. Cut the field to
+the fact; drop the clause explaining it unless the fact is unreadable
+without it.
+
+Short is not headline-speak. Keep the verb and the small words ("the",
+"has", "to"): "the council hasn't set a date", not "council: no date". The
+test: would the user understand the line read aloud, cold, a week from
+now? Three habits fail it:
+
+- **Private shorthand.** Use the user's own words or plain English, never
+  a label coined during the conversation ("the chase", "the trail", "on
+  the record"). Name what it is: "the follow-up letter", "the copies of
+  every letter".
+- **Bare names.** A person gets their role the first time a section
+  names them: "Cr Blackmore", "Priya, the landlord".
+- **Absences.** Say what happened, not what's missing: "the council
+  hasn't asked Sydney Trains to act", not "reply names no chase to rail".
+
+Field shape (type, enum, length cap) is enforced automatically on write —
+it does not enforce that the content is plain, or a real label rather
+than a lazy placeholder; that's still this rule's job, on every write.
 
 Write at a grade-7 reading level. Any goal field of 12 or more words is
 scored with Flesch-Kincaid on write and rejected above grade 7 (names and

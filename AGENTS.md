@@ -342,9 +342,10 @@ line's text, not the plan's shape).
   by a date, then rethink the approach (back to `strategy`). The page labels each half itself, so `if` and `then` (and a
   rung's `action`) are each one phrase of at most 8 words
   (`BRANCH_MAX_WORDS`), with no leading "if" or "then", no colon,
-  semicolon or second sentence. The reading-grade check can't catch a
-  run-on line of short words, so this is a rule of its own, on the write
-  path only. `writeSection` saves each half starting in lower case unless
+  semicolon or second sentence, and no absence in headline form ("names
+  no", "sets no": say "hasn't set" instead). The reading-grade check
+  can't catch a run-on or headline-speak line of short words, so these
+  are rules of their own, on the write path only. `writeSection` saves each half starting in lower case unless
   its first word is a `people` or `stakeholders` name, a day or month, "I",
   or has capitals inside it. A checkpoint whose `then` names a rung's `to`
   on the same line is refused: the ladder's wait already says that.

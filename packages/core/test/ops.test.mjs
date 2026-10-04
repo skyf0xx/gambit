@@ -528,3 +528,14 @@ test('a checkpoint forks: a move that happens either way is refused', () => {
   assert.equal(write('door-knock the street first').ok, true);
   assert.equal(write('rethink the approach').ok, true);
 });
+
+test('a checkpoint says what happened, not what is missing', () => {
+  const write = (cond) => writeSection(mapped, 'plan', { linesOfOperation: [{ label: 'L', criticalPath: [], nextActions: [], decisionPoints: [{ if: cond, then: 'ask Cr Blackmore to raise it' }] }] });
+  for (const cond of ["council's reply names no chase to rail", 'council sets no date', 'the reply has no date']) {
+    const r = write(cond);
+    assert.equal(r.ok, false, cond);
+    assert.match(r.errors[0].message, /names something missing/);
+  }
+  assert.equal(write("the council hasn't asked Sydney Trains to act").ok, true);
+  assert.equal(write('no reply to the letter in 3 weeks').ok, true);
+});

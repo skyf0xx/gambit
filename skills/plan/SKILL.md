@@ -143,6 +143,12 @@ clean-up date set by 1 Dec" then "rethink the approach". A worry about being sid
 ("they offer a one-off clean to make us stop") is a risk, not a fork: it belongs to
 `threat`, or to a walk-away line in `negotiate`.
 
+Write both halves as plain words you'd say out loud, per GUIDED.md: verbs kept, no
+shorthand coined in the conversation, a person's role with their name, and the
+condition as something that happened. "the council hasn't asked Sydney Trains to act"
+then "ask Cr Blackmore to raise it publicly", not "council's reply names no chase to
+rail" then "ask Blackmore on the record".
+
 A condition nobody could check isn't a decision point. A move that needs more than 8
 words is more than one move: put the rest in the plan's steps. The code saves each half
 starting in lower case unless it starts with a name.

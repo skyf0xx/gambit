@@ -400,12 +400,20 @@ export const GOAL_MAX_WORDS = 10;
 // can't catch this: a line of short words runs on just as easily.
 export const BRANCH_MAX_WORDS = 8;
 
+// Headline-speak for an absence ("reply names no chase"): short, but hard
+// to read cold. "Hasn't …" says the same thing as something that happened.
+const ABSENCE = /\b(names|shows|lists|mentions|gives|sets|includes|has)\s+no\b/i;
+
 const branchText = (text, lead, ctx, path) => {
   if (wordCount(text) > BRANCH_MAX_WORDS) {
     ctx.addIssue({ code: 'custom', path, message: `${wordCount(text)} words; keep it to ${BRANCH_MAX_WORDS} or fewer: one short phrase, no second clause` });
   }
   if (lead && new RegExp(`^${lead}\\b`, 'i').test(text.trim())) {
     ctx.addIssue({ code: 'custom', path, message: `drop the leading "${lead}"; the page adds it` });
+  }
+  const absent = text.match(ABSENCE);
+  if (absent) {
+    ctx.addIssue({ code: 'custom', path, message: `"${absent[0]}" names something missing; say what happened instead ("hasn't set a date", not "sets no date")` });
   }
   if (/[;:]|\.\s/.test(text)) {
     ctx.addIssue({ code: 'custom', path, message: 'one phrase only: no colon, semicolon or second sentence' });
