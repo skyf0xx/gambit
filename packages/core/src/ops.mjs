@@ -2,7 +2,7 @@
 // document and returns a result object instead of throwing, so an agent tool
 // can hand structured errors straight back to the model.
 
-import { goalSchema, reconcileGoal, writeRules, focusLineOf, hasBranch, GOAL_MAX_WORDS, MEMORY_CAP, NEXT_ACTIONS_MAX, RUNG_STATUSES, DECISION_POINT_STATUSES, wordCount } from './schema.mjs';
+import { goalSchema, reconcileGoal, writeRules, focusLineOf, hasBranch, tasksOf, GOAL_MAX_WORDS, MEMORY_CAP, NEXT_ACTIONS_MAX, wordCount } from './schema.mjs';
 import { plainLanguage } from './readability.mjs';
 
 /** @typedef {import('zod').infer<typeof goalSchema>} Goal */
@@ -17,8 +17,6 @@ export const WRITABLE_KEYS = Object.keys(goalSchema.shape).filter((k) => !UNWRIT
 const logEntrySchema = goalSchema.shape.log.element;
 const memoryEntrySchema = goalSchema.shape.memory.element;
 const STATUSES = ['proposed', 'pending', 'done', 'dropped'];
-/** Every status set_status takes; which ones a target accepts depends on what it is. */
-export const ALL_STATUSES = [...new Set([...STATUSES, ...RUNG_STATUSES, ...DECISION_POINT_STATUSES])];
 
 // `log` is append-only but bounded: the page only needs recent history plus
 // whichever entry currently drives the focus highlight.
@@ -88,8 +86,8 @@ const toIssues = (error, prefix = []) =>
  * whole document. Each key whose value changes is stamped with `now` in
  * `updated`, so a section built on it can tell it has moved since.
  * @param {string} [now] ISO timestamp, defaults to the current time
- * @param {string} [day] YYYY-MM-DD, the date a next action newly done or a
- *   rung newly sent in this write is stamped with; defaults to the date of `now`
+ * @param {string} [day] YYYY-MM-DD, the date a next action newly done in
+ *   this write is stamped with; defaults to the date of `now`
  * @param {{ page?: boolean }} [opts] page: the user's own edit on the page,
  *   which changes one line's text and so skips the rules on the plan's shape
  * @returns {{ ok: true, goal: Goal, warnings: string[] } | { ok: false, errors: Issue[] }}
@@ -123,8 +121,7 @@ export function writeSection(goal, key, value, now = new Date().toISOString(), d
   // and a people write takes them off the stakeholder list.
   if (key === 'plan') {
     stampDone(part.data, goal.plan, day);
-    stampSent(part.data, goal.plan, day);
-    lowerCheckpoints(part.data, goal);
+    lowerEvents(part.data, goal);
     if (!opts.page) {
       const errors = planShape(part.data, goal);
       if (errors.length) return { ok: false, errors };
@@ -165,9 +162,10 @@ const personKey = (name) => name.trim().toLowerCase();
 
 /**
  * Rules on a plan written by a skill. The focus line (else the first) says
- * what happens if it stalls: a decision point or a ladder. Each rung goes
- * to someone already in `people` or `stakeholders`, so the ladder names
- * who actually holds the authority at each step.
+ * what happens if it stalls: at least one conditional task. A message goes
+ * to someone already in `people` or `stakeholders`, so an escalation names
+ * who actually holds the authority. A fork leads to a move that isn't
+ * already in the plan unconditionally, or it forks nothing.
  */
 function planShape(plan, goal) {
   const errors = [];
@@ -176,28 +174,40 @@ function planShape(plan, goal) {
     const li = plan.linesOfOperation.indexOf(focus);
     errors.push({
       path: `plan.linesOfOperation.${li}`,
-      message: `"${focus.label}" needs an if-then: at least one decision point (if, then, by) or an escalation ladder, so the plan says what happens if it stalls`,
+      message: `"${focus.label}" needs a conditional task (if): an escalation if a message gets no reply, or a fork if something happens, so the plan says what happens if it stalls. If nothing forks, use the event "no [progress] by [date]" with the move "rethink the approach"`,
     });
   }
   const names = new Set([...goal.people, ...goal.stakeholders].map((p) => personKey(p.name)));
-  plan.linesOfOperation.forEach((l, li) => (l.ladder ?? []).forEach((r, ri) => {
-    if (!names.has(personKey(r.to))) {
+  const tasks = tasksOf(plan);
+  for (const { task, path } of tasks) {
+    if (task.to && !names.has(personKey(task.to))) {
       errors.push({
-        path: `plan.linesOfOperation.${li}.ladder.${ri}.to`,
-        message: `"${r.to}" is not in people or stakeholders; map who holds the authority first (stakeholders), then name them here verbatim`,
+        path: `${path}.to`,
+        message: `"${task.to}" is not in people or stakeholders; map who holds the authority first (stakeholders), then name them here verbatim`,
       });
     }
-  }));
+    if (task.if) {
+      const twin = tasks.find((o) => !o.task.if && o.task.status !== 'dropped' && (plainKey(o.task.action) === plainKey(task.action) || sameLine(o.task.action, task.action)));
+      if (twin) {
+        errors.push({
+          path: `${path}.action`,
+          message: `"${twin.task.action}" already happens whatever the condition, so this conditional task forks nothing; make it a move you'd only make if the condition comes true`,
+        });
+      }
+    }
+  }
   return errors;
 }
+
+const plainKey = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 const PROPER = new Set('monday tuesday wednesday thursday friday saturday sunday january february march april may june july august september october november december'.split(' '));
 
 /**
- * A checkpoint reads "if under five residents signed / then send the chase",
- * the page supplying "if" and "then", so each half starts in lower case,
- * unless its first word is a name: someone in `people` or `stakeholders`,
- * a day or month, "I", or a word with capitals inside it (TfNSW).
+ * A fork's event reads after the page's "if" ("if under five residents
+ * signed"), so it starts in lower case unless its first word is a name:
+ * someone in `people` or `stakeholders`, a day or month, "I", or a word
+ * with capitals inside it (TfNSW).
  */
 function lowerLead(text, names) {
   const first = text.match(/^[\p{L}'’]+/u)?.[0];
@@ -207,29 +217,10 @@ function lowerLead(text, names) {
   return first[0].toLowerCase() + text.slice(1);
 }
 
-function lowerCheckpoints(plan, goal) {
+function lowerEvents(plan, goal) {
   const names = new Set([...goal.people, ...goal.stakeholders].map((p) => personKey(p.name).split(/\s+/)[0]));
-  for (const l of plan.linesOfOperation) {
-    for (const d of l.decisionPoints ?? []) {
-      d.if = lowerLead(d.if, names);
-      d.then = lowerLead(d.then, names);
-    }
-  }
-}
-
-const rungsOf = (plan) => (plan?.linesOfOperation ?? []).flatMap((l) => l.ladder ?? []);
-
-/**
- * Keep `sentOn` true to each rung in a rewritten plan, as stampDone does
- * for next actions: a rung that went out (sent, answered, unanswered)
- * keeps the date it went out, matched by its text; one newly sent is
- * stamped `day`; a pending or skipped rung carries none.
- */
-function stampSent(plan, before, day) {
-  const wasSent = new Map(rungsOf(before).filter((r) => r.sentOn).map((r) => [r.action, r.sentOn]));
-  for (const r of rungsOf(plan)) {
-    if (r.status === 'pending' || r.status === 'skipped') delete r.sentOn;
-    else r.sentOn ??= wasSent.get(r.action) ?? day;
+  for (const { task } of tasksOf(plan)) {
+    if (task.if && 'event' in task.if) task.if.event = lowerLead(task.if.event, names);
   }
 }
 
@@ -349,54 +340,32 @@ export function forget(goal, index) {
 }
 
 const NEXT_ACTION_PATH = /^plan\.linesOfOperation\.\d+\.nextActions\.\d+$/;
-const RUNG_PATH = /^plan\.linesOfOperation\.\d+\.ladder\.\d+$/;
-const DECISION_POINT_PATH = /^plan\.linesOfOperation\.\d+\.decisionPoints\.\d+$/;
-
-/** The statuses the node at `path` takes, and what to call it in an error. */
-function statusTarget(path) {
-  if (RUNG_PATH.test(path)) return { statuses: RUNG_STATUSES, what: 'a ladder rung' };
-  if (DECISION_POINT_PATH.test(path)) return { statuses: DECISION_POINT_STATUSES, what: 'a decision point' };
-  return { statuses: STATUSES, what: 'a step, sub-item or next action' };
-}
 
 /**
- * Flip a single status without rewriting the section: a step, sub-item or
- * next action to proposed/pending/done/dropped ('proposed' is valid on next
- * actions only; the schema rejects it elsewhere), a ladder rung to
- * pending/sent/answered/unanswered/skipped, or a decision point to
- * open/taken/passed. `path` is dotted, e.g.
- * "plan.linesOfOperation.0.nextActions.2". A next action flipped to done is
- * stamped `doneOn: today`, and any other status clears the stamp. A rung
- * flipped to sent is stamped `sentOn: today`, and the rung sent before it,
- * still waiting, becomes unanswered: the climb is the answer to its silence.
+ * Flip a single step, sub-item or next action to proposed/pending/done/dropped
+ * ('proposed' is valid on next actions only; the schema rejects it elsewhere).
+ * `path` is dotted, e.g. "plan.linesOfOperation.0.nextActions.2". A next
+ * action flipped to done is stamped `doneOn: today`; any other status
+ * clears the stamp. A message flipped to done has gone out, and its
+ * `doneOn` starts the wait an escalation of it counts.
  * @param {string} [today] YYYY-MM-DD
  */
 export function setStatus(goal, path, status, today = new Date().toISOString().slice(0, 10)) {
+  if (!STATUSES.includes(status)) return { ok: false, errors: [{ path: 'status', message: `must be one of ${STATUSES.join(', ')}` }] };
   const parts = String(path).split('.').filter(Boolean);
-  const { statuses, what } = statusTarget(parts.join('.'));
-  if (!statuses.includes(status)) return { ok: false, errors: [{ path: 'status', message: `${what} takes one of ${statuses.join(', ')}` }] };
   const copy = structuredClone(goal);
   let node = copy;
   for (const p of parts) {
     node = node?.[p];
     if (node === undefined) return { ok: false, errors: [{ path, message: `nothing at "${p}"` }] };
   }
-  if (typeof node !== 'object' || node === null || !statuses.includes(node.status ?? statuses[0])) {
-    return { ok: false, errors: [{ path, message: `target is not ${what} with a ${statuses.join('/')} status` }] };
+  if (typeof node !== 'object' || node === null || !STATUSES.includes(node.status ?? 'pending')) {
+    return { ok: false, errors: [{ path, message: 'target is not a step, sub-item or next action with a proposed/pending/done/dropped status' }] };
   }
   node.status = status;
-  const at = parts.join('.');
-  if (NEXT_ACTION_PATH.test(at)) {
+  if (NEXT_ACTION_PATH.test(parts.join('.'))) {
     if (status === 'done') node.doneOn ??= today;
     else delete node.doneOn;
-  }
-  if (RUNG_PATH.test(at)) {
-    if (status === 'pending' || status === 'skipped') delete node.sentOn;
-    else node.sentOn ??= today;
-    if (status === 'sent') {
-      const ladder = copy.plan.linesOfOperation[Number(parts[2])].ladder;
-      for (const r of ladder) if (r !== node && r.status === 'sent') r.status = 'unanswered';
-    }
   }
   // Turning a move into a proposal is a write of that proposal, so it meets
   // the same rule as write_section (writeRules.plan). Keeping or tossing a
@@ -408,6 +377,49 @@ export function setStatus(goal, path, status, today = new Date().toISOString().s
   const next = goalSchema.safeParse(copy);
   if (!next.success) return { ok: false, errors: toIssues(next.error) };
   return { ok: true, goal: next.data, warnings: reconcileGoal(next.data) };
+}
+
+/** The task at a next-action path, or an error. */
+function taskAt(goal, path) {
+  if (!NEXT_ACTION_PATH.test(String(path))) return { error: { path, message: 'not a task in the plan' } };
+  const task = nodeAt(goal, path);
+  return task ? { task } : { error: { path, message: 'this task is no longer there' } };
+}
+
+/** Write one changed task back through writeSection, as a page edit. */
+function writeTask(goal, path, change) {
+  const plan = structuredClone(goal.plan);
+  const [, , li, , ai] = String(path).split('.');
+  change(plan.linesOfOperation[Number(li)].nextActions[Number(ai)]);
+  return writeSection(goal, 'plan', plan, undefined, undefined, { page: true });
+}
+
+/**
+ * They answered a message: stamp `replied` with today, which stops any
+ * escalation of it from coming due. What they said goes in `reply`
+ * through `plan`.
+ * @param {string} [today] YYYY-MM-DD
+ */
+export function markReplied(goal, path, today = new Date().toISOString().slice(0, 10)) {
+  const { task, error } = taskAt(goal, path);
+  if (error) return { ok: false, errors: [error] };
+  if (!task.to) return { ok: false, errors: [{ path, message: 'this task goes to no one, so no reply can come' }] };
+  if (task.status !== 'done') return { ok: false, errors: [{ path, message: 'this message has not gone out yet' }] };
+  return writeTask(goal, path, (t) => { t.replied = today; });
+}
+
+/**
+ * Settle a fork: its event happened (the task goes live) or it didn't (the
+ * task is dropped).
+ */
+export function resolveFork(goal, path, happened) {
+  const { task, error } = taskAt(goal, path);
+  if (error) return { ok: false, errors: [error] };
+  if (!task.if || !('event' in task.if)) return { ok: false, errors: [{ path, message: 'this task waits on no event' }] };
+  return writeTask(goal, path, (t) => {
+    if (happened) t.if.happened = true;
+    else t.status = 'dropped';
+  });
 }
 
 const LABELS = { riskNotes: 'risk', criteriaStatus: 'criteria', successCriteria: 'criteria', stakeholders: 'stakeholder', systemsNotes: 'systems notes' };
@@ -453,8 +465,7 @@ export function summarizeChange(before, after) {
 // that path holds its text (none: the node is the string itself; a
 // function: it depends on the node), and whether the user may edit it in
 // place. Names stay chat-only (they keep people and stakeholders apart),
-// a decided decision changes only through `decide`, and decision points
-// and ladder rungs, set in advance, change only through `plan`.
+// and a decided decision changes only through `decide`.
 const LINES = [
   { re: /^goal$/, edit: true },
   { re: /^subGoals\.\d+$/, edit: true },
@@ -462,8 +473,6 @@ const LINES = [
   { re: /^plan\.linesOfOperation\.\d+\.nextActions\.\d+$/, field: 'action', edit: true },
   { re: /^plan\.linesOfOperation\.\d+\.criticalPath\.\d+$/, field: 'label', edit: true },
   { re: /^plan\.linesOfOperation\.\d+\.criticalPath\.\d+\.items\.\d+$/, field: 'label', edit: true },
-  { re: /^plan\.linesOfOperation\.\d+\.decisionPoints\.\d+$/, field: 'if', edit: false },
-  { re: /^plan\.linesOfOperation\.\d+\.ladder\.\d+$/, field: 'action', edit: false },
   { re: /^riskNotes\.\d+$/, field: 'item', edit: true },
   { re: /^people\.\d+$/, field: 'name', edit: false },
   { re: /^people\.\d+\.doing$/, edit: true },

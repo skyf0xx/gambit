@@ -1,4 +1,6 @@
 import type { Goal } from './types';
+import { taskState } from '@gambit/core';
+import { today } from './dates';
 
 // The goal's dates as an iCalendar file (RFC 5545): one all-day event per
 // date that still asks something of the user. Pure: no clock, no storage.
@@ -25,7 +27,10 @@ export function goalDates(goal: Goal): CalendarDate[] {
   add('deadline', goal.deadline, `Deadline: ${goal.goal}`);
   goal.plan?.linesOfOperation?.forEach((l, li) =>
     l.nextActions?.forEach((a, ai) => {
-      if (a.status === 'pending') add(`plan.linesOfOperation.${li}.nextActions.${ai}`, a.when, a.action);
+      const path = `plan.linesOfOperation.${li}.nextActions.${ai}`;
+      if (a.status !== 'pending') return;
+      if (a.if && 'event' in a.if && !a.if.happened) add(path, a.if.by, `Check: ${a.if.event}`);
+      else if (taskState(a, goal.plan, today()) !== 'waiting') add(path, a.when, a.action);
     }),
   );
   goal.forecasts?.forEach((f, i) => { if (!f.resolved) add(`forecasts.${i}`, f.resolvesBy, `Check: ${f.statement}`); });

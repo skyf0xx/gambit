@@ -1,3 +1,4 @@
+import { NEXT_ACTIONS_MAX } from '@gambit/core';
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { stubGoal } from '@gambit/core';
@@ -33,8 +34,8 @@ describe('inline edits', () => {
   });
 
   it('offers "+ add a move" below the cap and not at it', () => {
-    expect(render(planWith(4))).toContain('+ add a move');
-    expect(render(planWith(5))).not.toContain('+ add a move');
+    expect(render(planWith(NEXT_ACTIONS_MAX - 1))).toContain('+ add a move');
+    expect(render(planWith(NEXT_ACTIONS_MAX))).not.toContain('+ add a move');
   });
 
   it('shows neither when the page is read-only', () => {

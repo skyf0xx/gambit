@@ -19,8 +19,8 @@ export const dateString = z
     return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
   }, 'not a real calendar date');
 
-/** Most next actions one line of the plan holds. */
-export const NEXT_ACTIONS_MAX = 5;
+/** Most tasks one line of the plan holds, waiting ones included. */
+export const NEXT_ACTIONS_MAX = 10;
 
 const shortLabel = z.string().min(1).max(40);
 const mediumLabel = z.string().min(1).max(120);
@@ -60,6 +60,10 @@ const posture = z.object({
   lastReviewed: dateString,
 });
 
+// A plan line's moves are tasks that can point at each other, so the order,
+// the escalations and the forks are links the page draws rather than words
+// the model has to write.
+//
 // 'proposed' is a move the advisor suggested that the user hasn't agreed to
 // yet — shown as a sticky note to keep (→ 'pending') or toss (→ 'dropped').
 // Only next actions can be proposed; steps and sub-items can't.
@@ -67,13 +71,39 @@ const posture = z.object({
 // the page carries no date until they or the advisor give it one. `doneOn`
 // is the date it was ticked done, stamped by setStatus and writeSection
 // (ops.mjs) and present only while the status is 'done'.
+//
+// `id` names a task so others can point at it. `after` lists the tasks it
+// waits on. `if` makes it conditional: `noReply` is an escalation, taken
+// when the task it names went out (done) and got no reply in `days`;
+// `event` is a fork, taken once the event happens (`happened`). A task
+// with `to` is a message to someone in `people` or `stakeholders`;
+// `level` places an escalation on the ladder (interests → rights →
+// power: ask, formal channels, go public). `replied` is the date they
+// answered, `reply` what they said.
+export const TASK_ID = /^[a-z0-9][a-z0-9-]{0,23}$/;
+export const ESCALATION_LEVELS = ['interests', 'rights', 'power'];
+
+const taskId = z.string().regex(TASK_ID, 'a short id: lower-case letters, digits and dashes, up to 24');
+
+const trigger = z.union([
+  z.object({ noReply: taskId, days: z.number().int().min(1).max(90) }).strict(),
+  z.object({ event: mediumLabel, by: dateString.optional(), happened: z.literal(true).optional() }).strict(),
+]);
+
 const nextAction = z.object({
+  id: taskId.optional(),
   action: mediumLabel,
   who: shortLabel,
   when: dateString.optional(),
   status: z.enum(['proposed', 'pending', 'done', 'dropped']).default('pending'),
   doneOn: dateString.optional(),
   detail,
+  after: z.array(taskId).max(3).optional(),
+  if: trigger.optional(),
+  to: shortLabel.optional(),
+  level: z.enum(ESCALATION_LEVELS).optional(),
+  replied: dateString.optional(),
+  reply: mediumLabel.optional(),
 });
 
 // items: an optional flat sub-list (e.g. "8 subs, one line each") a step or
@@ -97,53 +127,15 @@ const labeledStep = z.object({
   status: z.enum(['pending', 'done', 'dropped']).default('pending'),
 });
 
-// A decision point (planning doctrine's branch): a condition set in
-// advance, the date it is checked, and the move it triggers. `taken` means
-// the condition came true and the branch ran; `passed` means it didn't.
-export const DECISION_POINTS_MAX = 4;
-export const DECISION_POINT_STATUSES = ['open', 'taken', 'passed'];
-
-const decisionPoint = z.object({
-  if: mediumLabel,
-  by: dateString.optional(),
-  then: mediumLabel,
-  status: z.enum(DECISION_POINT_STATUSES).default('open'),
-});
-
-// An escalation ladder: the same ask, put to a harder audience at each rung,
-// cheapest first. Rungs climb interests → rights → power (Ury, Brett &
-// Goldberg): ask the one who can fix it, then use formal channels, then go
-// public. `to` names a `people` or `stakeholders` entry, verbatim.
-// `waitDays` is how long a sent rung gets before the next one is due.
-// `sentOn` is stamped by setStatus and writeSection (ops.mjs) when a rung
-// is sent; a sent rung that got no reply becomes `unanswered` when the
-// next one goes out, so the ladder keeps the paper trail.
-export const LADDER_MAX = 6;
-export const RUNG_LEVELS = ['interests', 'rights', 'power'];
-export const RUNG_STATUSES = ['pending', 'sent', 'answered', 'unanswered', 'skipped'];
-
-const rung = z.object({
-  level: z.enum(RUNG_LEVELS),
-  action: mediumLabel,
-  to: shortLabel,
-  carries: shortLabel.optional(),
-  waitDays: z.number().int().min(1).max(90),
-  status: z.enum(RUNG_STATUSES).default('pending'),
-  sentOn: dateString.optional(),
-  outcome: mediumLabel.optional(),
-});
-
 // focus: true marks the one line holding the Schwerpunkt. The index card
-// takes its first pending next action before any other line's.
-// decisionPoints and ladder are the line's if-thens: what happens when it
-// stalls. The focus line carries at least one (writeRules.plan).
+// takes its first pending next action before any other line's. The focus
+// line carries at least one conditional task (ops.mjs): what happens if
+// it stalls.
 const lineOfOperation = z.object({
   label: shortLabel,
   focus: z.literal(true).optional(),
   criticalPath: z.array(labeledStep).max(6),
   nextActions: z.array(nextAction).max(NEXT_ACTIONS_MAX),
-  decisionPoints: z.array(decisionPoint).max(DECISION_POINTS_MAX).optional(),
-  ladder: z.array(rung).max(LADDER_MAX).optional(),
   status: z.enum(['on_schedule', 'at_risk', 'blocked', 'done']).optional(),
   blocker: mediumLabel.optional(),
 });
@@ -151,8 +143,37 @@ const lineOfOperation = z.object({
 /** The line the plan concentrates on: the focus line, else the first. */
 export const focusLineOf = (plan) => plan?.linesOfOperation.find((l) => l.focus) ?? plan?.linesOfOperation[0];
 
-/** Whether a line says what happens if it stalls. */
-export const hasBranch = (line) => Boolean(line?.decisionPoints?.length || line?.ladder?.length);
+/** Whether a line says what happens if it stalls: a conditional task. */
+export const hasBranch = (line) => Boolean(line?.nextActions.some((a) => a.if));
+
+/** Every task in the plan, with its path. */
+export const tasksOf = (plan) => (plan?.linesOfOperation ?? []).flatMap((l, li) =>
+  l.nextActions.map((a, ai) => ({ task: a, line: l, li, ai, path: `plan.linesOfOperation.${li}.nextActions.${ai}` })));
+
+const DAY_MS = 86_400_000;
+const daysBetween = (from, to) => Math.round((Date.parse(to) - Date.parse(from)) / DAY_MS);
+
+/**
+ * Where a task stands today. done, dropped and proposed are its status;
+ * otherwise 'blocked' while a task it waits on isn't done (a dropped one no
+ * longer holds it), 'waiting' while its condition hasn't come true, and
+ * 'live' when it is a move to make now. An escalation's condition comes
+ * true once the task it follows went out, got no reply, and `days` passed.
+ * @returns {'done'|'dropped'|'proposed'|'blocked'|'waiting'|'live'}
+ */
+export function taskState(task, plan, today) {
+  if (task.status !== 'pending') return task.status;
+  const byId = new Map(tasksOf(plan).filter((t) => t.task.id).map((t) => [t.task.id, t.task]));
+  if ((task.after ?? []).some((id) => ['pending', 'proposed'].includes(byId.get(id)?.status))) return 'blocked';
+  const cond = task.if;
+  if (cond && 'noReply' in cond) {
+    const sent = byId.get(cond.noReply);
+    if (sent?.status !== 'done' || sent.replied || !sent.doneOn) return 'waiting';
+    return daysBetween(sent.doneOn, today) >= cond.days ? 'live' : 'waiting';
+  }
+  if (cond && 'event' in cond && !cond.happened) return 'waiting';
+  return 'live';
+}
 
 const plan = z.object({
   linesOfOperation: z.array(lineOfOperation).min(1),
@@ -392,108 +413,99 @@ export const GOAL_MAX_WORDS = 10;
 //
 // A proposed move needs its `detail`: the sticky note asks the user to keep
 // or toss it, and the why is what makes that an informed choice. At most one
-// line carries `focus` — the Schwerpunkt is one thing, not a ranking. A
-// ladder climbs and never steps back down, with one rung out at a time.
-// An if-then is read at a glance, so each half is one short phrase: the
-// condition a fact you could check on the date, the move a verb phrase.
-// The page adds "if" and "then" itself. Reading grade (readability.mjs)
-// can't catch this: a line of short words runs on just as easily.
+// line carries `focus` — the Schwerpunkt is one thing, not a ranking. Task
+// links point at real tasks and never loop. An escalation goes to someone
+// else and climbs the ladder, never down it. A fork's event is read at a
+// glance under the task it hangs on: one short phrase, a fact that
+// happened. Reading grade (readability.mjs) can't catch a run-on or
+// headline-speak line of short words, so these are rules of their own.
 export const BRANCH_MAX_WORDS = 8;
 
 // Headline-speak for an absence ("reply names no chase"): short, but hard
 // to read cold. "Hasn't …" says the same thing as something that happened.
 const ABSENCE = /\b(names|shows|lists|mentions|gives|sets|includes|has)\s+no\b/i;
 
-const branchText = (text, lead, ctx, path) => {
+const eventText = (text, ctx, path) => {
   if (wordCount(text) > BRANCH_MAX_WORDS) {
     ctx.addIssue({ code: 'custom', path, message: `${wordCount(text)} words; keep it to ${BRANCH_MAX_WORDS} or fewer: one short phrase, no second clause` });
   }
-  if (lead && new RegExp(`^${lead}\\b`, 'i').test(text.trim())) {
-    ctx.addIssue({ code: 'custom', path, message: `drop the leading "${lead}"; the page adds it` });
-  }
+  if (/^if\b/i.test(text.trim())) ctx.addIssue({ code: 'custom', path, message: 'drop the leading "if"; the page adds it' });
   const absent = text.match(ABSENCE);
   if (absent) {
     ctx.addIssue({ code: 'custom', path, message: `"${absent[0]}" names something missing; say what happened instead ("hasn't set a date", not "sets no date")` });
   }
-  if (/[;:]|\.\s/.test(text)) {
-    ctx.addIssue({ code: 'custom', path, message: 'one phrase only: no colon, semicolon or second sentence' });
-  }
+  if (/[;:]|\.\s/.test(text)) ctx.addIssue({ code: 'custom', path, message: 'one phrase only: no colon, semicolon or second sentence' });
 };
 
-/** Whether a name means the user: a ladder climbs toward someone else. */
+/** Whether a name means the user: an escalation goes to someone else. */
 export const isSelfName = (name) => /^(me|you|i|myself|yourself|self|user|the user)$/i.test(String(name ?? '').trim());
 
-// A checkpoint is a fork: its move is one the user wouldn't make if the
-// condition stayed false. These words say the plan carries on unchanged,
-// so the "checkpoint" changes nothing.
+// A conditional task is a fork: a move the user wouldn't make otherwise.
+// These words say the plan carries on unchanged, so it forks nothing.
 const NO_FORK = /\b(anyway|anyhow|regardless|still|carry on|keep (going|chasing|pushing|at it)|continue|as planned|no change)\b/i;
-
-const mentions = (text, name) => new RegExp(`\\b${name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(text);
 
 export const writeRules = {
   plan: plan.superRefine((p, ctx) => {
     if (p.linesOfOperation.filter((l) => l.focus).length > 1) {
       ctx.addIssue({ code: 'custom', path: ['linesOfOperation'], message: 'only one line can carry focus: true' });
     }
-    p.linesOfOperation.forEach((l, li) => {
-      (l.decisionPoints ?? []).forEach((d, di) => {
-        branchText(d.if, 'if', ctx, ['linesOfOperation', li, 'decisionPoints', di, 'if']);
-        branchText(d.then, 'then', ctx, ['linesOfOperation', li, 'decisionPoints', di, 'then']);
-        const same = d.then.match(NO_FORK);
-        if (same) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['linesOfOperation', li, 'decisionPoints', di, 'then'],
-            message: `"${same[0]}" means the plan goes on unchanged, so this checkpoint forks nothing. Its move must be one you wouldn't make otherwise. If nothing forks here, use "no [progress] by [date]" then "rethink the approach"; a worry about being sidetracked is a threat risk`,
-          });
-        }
-      });
-      (l.ladder ?? []).forEach((r, ri) => {
-        branchText(r.action, null, ctx, ['linesOfOperation', li, 'ladder', ri, 'action']);
-        if (isSelfName(r.to)) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['linesOfOperation', li, 'ladder', ri, 'to'],
-            message: 'a rung goes to someone else, never the user; the user\'s own work is a dated next action',
-          });
-        }
-      });
-      // A ladder already says what happens when a rung gets no reply: a
-      // decision point that hands the matter to one of its rungs says it
-      // twice, and the two drift apart.
-      (l.decisionPoints ?? []).forEach((d, di) => {
-        const rung = (l.ladder ?? []).find((r) => !isSelfName(r.to) && mentions(d.then, r.to));
-        if (rung) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['linesOfOperation', li, 'decisionPoints', di, 'then'],
-            message: `the ladder already takes this to ${rung.to}; let that rung's wait handle it and drop this checkpoint`,
-          });
-        }
-      });
-      const ladder = l.ladder ?? [];
-      ladder.forEach((r, ri) => {
-        if (ri && RUNG_LEVELS.indexOf(r.level) < RUNG_LEVELS.indexOf(ladder[ri - 1].level)) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['linesOfOperation', li, 'ladder', ri, 'level'],
-            message: `rungs climb ${RUNG_LEVELS.join(' → ')}; a ${r.level} rung can't follow a ${ladder[ri - 1].level} one`,
-          });
-        }
-      });
-      if (ladder.filter((r) => r.status === 'sent').length > 1) {
-        ctx.addIssue({ code: 'custom', path: ['linesOfOperation', li, 'ladder'], message: 'only one rung can be sent at a time; mark the earlier one answered or unanswered' });
-      }
-    });
-    p.linesOfOperation.forEach((l, li) => l.nextActions.forEach((a, ai) => {
+    const tasks = tasksOf(p);
+    const at = (t, ...rest) => ['linesOfOperation', t.li, 'nextActions', t.ai, ...rest];
+    const byId = new Map();
+    for (const t of tasks) {
+      const id = t.task.id;
+      if (!id) continue;
+      if (byId.has(id)) ctx.addIssue({ code: 'custom', path: at(t, 'id'), message: `id "${id}" is already used; each task's id is its own` });
+      else byId.set(id, t);
+    }
+    const links = (a) => [...(a.after ?? []), ...(a.if && 'noReply' in a.if ? [a.if.noReply] : [])];
+    for (const t of tasks) {
+      const a = t.task;
       if (a.status === 'proposed' && !a.detail?.trim()) {
+        ctx.addIssue({ code: 'custom', path: at(t, 'detail'), message: 'a proposed move needs its detail: one sentence on why this, why now' });
+      }
+      (a.after ?? []).forEach((id, k) => {
+        if (!byId.has(id) || id === a.id) ctx.addIssue({ code: 'custom', path: at(t, 'after', k), message: `no other task has id "${id}"` });
+      });
+      if (a.to && isSelfName(a.to)) {
+        ctx.addIssue({ code: 'custom', path: at(t, 'to'), message: 'a message goes to someone else, never the user; the user\'s own work is a plain task' });
+      }
+      if (a.level && !a.to) ctx.addIssue({ code: 'custom', path: at(t, 'to'), message: 'a task on the ladder (level) is a message: say who it goes to' });
+      if (a.if && NO_FORK.test(a.action)) {
         ctx.addIssue({
           code: 'custom',
-          path: ['linesOfOperation', li, 'nextActions', ai, 'detail'],
-          message: 'a proposed move needs its detail: one sentence on why this, why now',
+          path: at(t, 'action'),
+          message: `"${a.action.match(NO_FORK)[0]}" means the plan goes on unchanged, so this conditional task forks nothing. Make it a move you wouldn't make otherwise; a worry about being sidetracked is a threat risk`,
         });
       }
-    }));
+      if (a.if && 'event' in a.if) eventText(a.if.event, ctx, at(t, 'if', 'event'));
+      if (a.if && 'noReply' in a.if) {
+        const sent = byId.get(a.if.noReply);
+        if (!sent || a.if.noReply === a.id) {
+          ctx.addIssue({ code: 'custom', path: at(t, 'if', 'noReply'), message: `no other task has id "${a.if.noReply}"` });
+        } else {
+          if (!sent.task.to) ctx.addIssue({ code: 'custom', path: at(t, 'if', 'noReply'), message: `"${sent.task.action}" goes to no one, so it can't get a reply; give it a to` });
+          if (!a.to || !a.level) ctx.addIssue({ code: 'custom', path: at(t, 'level'), message: 'an escalation says who it goes to (to) and how hard it pushes (level)' });
+          if (a.level && sent.task.level && ESCALATION_LEVELS.indexOf(a.level) < ESCALATION_LEVELS.indexOf(sent.task.level)) {
+            ctx.addIssue({ code: 'custom', path: at(t, 'level'), message: `escalations climb ${ESCALATION_LEVELS.join(' → ')}; one at "${a.level}" can't follow one at "${sent.task.level}"` });
+          }
+        }
+      }
+    }
+    // Links never loop: a task can't wait, however indirectly, on itself.
+    const state = new Map();
+    const loops = (id) => {
+      if (state.get(id) === 'done') return false;
+      if (state.get(id) === 'open') return true;
+      state.set(id, 'open');
+      const t = byId.get(id);
+      const found = t ? links(t.task).some((n) => byId.has(n) && loops(n)) : false;
+      state.set(id, 'done');
+      return found;
+    };
+    for (const [id, t] of byId) {
+      if (!state.has(id) && loops(id)) ctx.addIssue({ code: 'custom', path: at(t, 'after'), message: `"${id}" waits on itself through its links; break the loop` });
+    }
   }),
 };
 
@@ -562,8 +574,8 @@ export function reconcileGoal(data) {
     }
   }
   for (const line of data.plan?.linesOfOperation ?? []) {
-    for (const r of line.ladder ?? []) {
-      if (!names.has(r.to)) warnings.push(`ladder rung "${r.action}": to "${r.to}" matches no people or stakeholders name`);
+    for (const a of line.nextActions) {
+      if (a.to && !names.has(a.to)) warnings.push(`task "${a.action}": to "${a.to}" matches no people or stakeholders name`);
     }
     if (line.criticalPath.length > 0 && line.criticalPath.every((s) => s.status === 'done') && line.status !== 'done') {
       warnings.push(`lineOfOperation "${line.label}": all criticalPath steps done but status is "${line.status ?? 'unset'}"`);

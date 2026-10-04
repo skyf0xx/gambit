@@ -49,7 +49,7 @@ State this plainly. Do not soften a stall.
 If the `posture` key is set, read the current level. Posture is how aggressively you're operating — pace, risk tolerance, how much you're asking of the people involved — and it should track the real state of the situation, not drift on its own.
 
 Assess whether current conditions justify a change:
-- Escalate if: a deadline compressed, a trigger condition in the posture table was met, a ladder on the plan climbed to a new level (formal channels, or going public), or the situation on the ground has intensified (e.g. opposition organizing, a cleanup deadline moved up, a legal risk increased)
+- Escalate if: a deadline compressed, a trigger condition in the posture table was met, an escalation on the plan went out at a new level (formal channels, or going public), or the situation on the ground has intensified (e.g. opposition organizing, a cleanup deadline moved up, a legal risk increased)
 - De-escalate if: the acute phase has passed, or sustained high posture is producing burnout or exposure without matching payoff
 
 ```
@@ -64,7 +64,7 @@ sustain is a decision to burn reserves, and it should be made knowingly — if c
 hasn't been assessed recently, or the effort has been at elevated posture for weeks,
 load `capacity` before committing the change.
 
-A decision point taken or a ladder spent (its last rung out with no reply) means the plan's
+A fork taken or a chain of escalations spent (its last step out with no reply) means the plan's
 premise failed. Reassess the focus from there, not from the old plan.
 
 ### 4. Set the Schwerpunkt

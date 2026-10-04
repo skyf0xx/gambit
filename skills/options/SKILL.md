@@ -45,7 +45,7 @@ Up to three. Distinct means a different line of attack, a different bet about wh
 the leverage is, or a different party moved first. Not the same idea at another speed
 or budget. Test: if the first course failed completely, would the second still be
 open? The same ask at three volumes (ask, complain, go public) is one course with an
-escalation ladder, which `plan` builds, not three courses.
+chain of escalations, which `plan` links, not three courses.
 
 For each:
 

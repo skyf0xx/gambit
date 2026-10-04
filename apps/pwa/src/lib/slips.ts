@@ -1,4 +1,6 @@
 import type { LinePath } from './changes';
+import { taskState } from '@gambit/core';
+import { today } from './dates';
 import type { Goal } from './types';
 import { setLineStatus } from './edits';
 import { session } from './session';
@@ -49,8 +51,9 @@ export function isSelf(who?: string): boolean {
   return !who?.trim() || /^(me|you|i|myself|yourself|self|user|the user)$/i.test(who.trim());
 }
 
-/** The taped index card: the first `pending` next action on the focus line,
- * else the first in plan order, if any. */
+/** The taped index card: the first live next action on the focus line,
+ * else the first in plan order, if any. A task still waiting on another
+ * or on its condition isn't a move yet. */
 export function nextMove(goal: Goal): SlipItem | null {
   const lines = goal.plan?.linesOfOperation ?? [];
   const order = lines.map((_, li) => li);
@@ -60,7 +63,7 @@ export function nextMove(goal: Goal): SlipItem | null {
     const line = lines[li];
     for (let ai = 0; ai < line.nextActions.length; ai++) {
       const a = line.nextActions[ai];
-      if (a.status === 'pending') {
+      if (taskState(a, goal.plan, today()) === 'live') {
         return { path: `plan.linesOfOperation.${li}.nextActions.${ai}`, action: a.action, who: a.who, when: a.when, detail: a.detail };
       }
     }

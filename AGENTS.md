@@ -54,7 +54,7 @@ execution sequence, grouped by what kind of move it makes.
 |---|---|
 | `strategy` | assess progress, set posture, set focus (Schwerpunkt) |
 | `systems` | CoG / PMESII / ASCOPE analysis, find the leverage point |
-| `plan` | sequence the goal into a dependency-aware plan, with what happens if it stalls: decision points and escalation ladders |
+| `plan` | sequence the goal into a dependency-aware plan of linked tasks: what waits on what, what escalates if a message gets no reply, what happens only if something occurs |
 | `options` | develop and wargame up to three distinct courses of action, recommend one |
 | `decide` | work an open choice to a recorded decision with a reverse-if condition; also a quit check with kill criteria |
 
@@ -140,8 +140,8 @@ loop. Each skill declares its phase in its frontmatter (`phase:`).
 | 2 | `understand` | Who decides, what moves them, what can we spend? | `stakeholders`, `systems`, `capacity`, `recon` | `stakeholders` mapped, if any criterion is `influence` |
 | 3 | `direct` | Where do we push, and how hard? | `strategy` | a focus is set (`posture`, or a `strategy` log entry with a focus) |
 | 4 | `develop` | What are the real routes? | `options`, `decide` | a course is `chosen`; needed only for an `influence` goal with no plan yet, or courses with none chosen |
-| 5 | `plan` | What happens, in what order, and what if it stalls? | `plan` | a plan whose focus line carries a decision point or a ladder |
-| 6 | `stress` | How does it fail, and what does it cost the user? | `threat`, `premortem`, `exposure` | a `threat` risk, if the goal rests on others or has a ladder; an `exposure` entry, if a ladder has a `power` rung still to go |
+| 5 | `plan` | What happens, in what order, and what if it stalls? | `plan` | a plan whose focus line carries a conditional task (an escalation or a fork) |
+| 6 | `stress` | How does it fail, and what does it cost the user? | `threat`, `premortem`, `exposure` | a `threat` risk, if the goal rests on others or the plan escalates; an `exposure` entry, if a `power` escalation is still to go |
 | 7 | `run` | What happened, what now? | `sitrep`, `comms`, `negotiate`, `forecast`, `experiment`, `review`, `eval` | never: it loops back to `direct` on a review, a stale focus, or a branch taken |
 
 `onboard`, `brief` and `elicit` sit outside the cycle (`phase: any`).
@@ -151,12 +151,12 @@ rather than a size the user picks. A goal that rests on other people's
 decisions (an `influence` criterion) needs its stakeholders mapped, its
 routes compared and its plan red-teamed. A picnic or a running habit goes
 from focus to plan in two turns. The one requirement every goal shares is
-the phase order and an if-then on the plan's focus line.
+the phase order and a conditional task on the plan's focus line.
 
 `methodStep` (`packages/core/src/flow.mjs`) derives the first phase not yet
 done from the goal; nothing about the method is stored. Escalation follows
-the same sources: a plan's decision points and branches come from the same
-doctrine, and its escalation ladder climbs interests → rights → power (Ury,
+the same sources: a plan's forks are that doctrine's branches at decision
+points, and its escalations climb interests → rights → power (Ury,
 Brett & Goldberg, *Getting Disputes Resolved*): ask whoever can fix it, then
 use formal channels, then go public.
 
@@ -208,9 +208,10 @@ in the same turn. Each turn's state block also names the active skill,
 where the goal sits in the method (`methodText`), and what the goal says is
 due now, most pressing first (`suggestSkills`; `dueNow` gives the top three
 the state block and the page show). Dated items come first: forecasts to
-score, experiments past their date, pending moves past their `when`, a
-sent ladder rung past its `waitDays`, an answered rung with no `outcome`, a
-decision point past its `by`, open `intel` questions due, a `prep` talk
+score, experiments past their date, live moves past their `when`, an
+escalation come due (its message went out with no reply for its `days`), a
+reply with nothing recorded of what they said, a fork past its `by` with
+its event unsettled, open `intel` questions due, a `prep` talk
 past its date with no outcome, decisions to review, a deadline within 14
 days with no premortem risk. Then the method's next phase. Then the reviews
 that keep a running goal honest: a stale focus, an overdue `eval`,
@@ -328,38 +329,46 @@ courses of action, compared side by side, with at most one `chosen`.
 BATNA, the walk-away line, up to 5 concessions, and `done` plus `outcome`
 once it has happened.
 
-Each plan line can carry its if-thens: what happens when it stalls. The
-focus line (else the first) must carry at least one, and a `plan` write
-without one is refused (page edits are let through, since they change one
-line's text, not the plan's shape).
+A plan line's next actions are tasks that can point at each other, so
+ordering, escalation and forks are links the page draws, not words the
+model writes into a move (`packages/core/src/schema.mjs`). A task is a
+plain todo plus, optionally:
 
-- `decisionPoints`: up to 4 `{if, by?, then, status: open | taken | passed}`.
-  A condition set in advance, the date it is checked, and the move it
-  triggers. It is a fork: the move is one the user wouldn't make if the
-  condition stayed false, so a `then` saying the plan carries on
-  ("anyway", "still", "keep chasing", "continue") is refused. A line with
-  no natural fork carries the one every plan has: no measurable progress
-  by a date, then rethink the approach (back to `strategy`). The page labels each half itself, so `if` and `then` (and a
-  rung's `action`) are each one phrase of at most 8 words
-  (`BRANCH_MAX_WORDS`), with no leading "if" or "then", no colon,
-  semicolon or second sentence, and no absence in headline form ("names
-  no", "sets no": say "hasn't set" instead). The reading-grade check
-  can't catch a run-on or headline-speak line of short words, so these
-  are rules of their own, on the write path only. `writeSection` saves each half starting in lower case unless
-  its first word is a `people` or `stakeholders` name, a day or month, "I",
-  or has capitals inside it. A checkpoint whose `then` names a rung's `to`
-  on the same line is refused: the ladder's wait already says that.
-- `ladder`: up to 6 rungs `{level, action, to, carries?, waitDays, status,
-  sentOn?, outcome?}`, for an ask someone else can ignore. `level` climbs
-  `interests` → `rights` → `power` and never steps back down. `to` names a
-  `people` or `stakeholders` entry, verbatim, never the user ("me", "you"),
-  and a skill write naming anyone else is refused, so the ladder goes to
-  whoever actually holds the authority; `reconcileGoal` warns when a later write drops that name.
-  `status` is `pending | sent | answered | unanswered | skipped`, with one
-  rung `sent` at a time. `sentOn` is stamped like `doneOn`: `setStatus`
-  stamps today when a rung flips to `sent` and marks the rung out before it
-  `unanswered`; a `plan` rewrite carries it over by the rung's text and
-  stamps today on one newly sent.
+- `id`: a short slug, unique in the plan, for a task others point at.
+- `after: [ids]`: the tasks it waits on. It is `blocked` until they are
+  done (a dropped one no longer holds it).
+- `to`: a message's recipient, a `people` or `stakeholders` name, verbatim,
+  never the user ("me", "you"); a skill write naming anyone else is
+  refused, and `reconcileGoal` warns when a later write drops that name.
+  Done means it went out, and `doneOn` starts the wait of any escalation
+  of it. `replied` is the date they answered and `reply` what they said.
+- `if: {noReply: id, days}`: an escalation of that message. It needs `to`
+  and a `level` (`interests` → `rights` → `power`, never lower than the
+  message it follows), and is `waiting` until the message went out, got no
+  reply, and `days` passed.
+- `if: {event, by?, happened?}`: a fork, a move made only if the event
+  happens. `waiting` until `happened`; a fork that didn't happen is
+  dropped. The event is one phrase of at most 8 words (`BRANCH_MAX_WORDS`),
+  with no leading "if", no colon, semicolon or second sentence, and no
+  absence in headline form ("names no", "sets no": say "hasn't set"
+  instead); `writeSection` saves it starting in lower case unless its first
+  word is a name. The reading-grade check can't catch a run-on or
+  headline-speak line of short words, so these are rules of their own, on
+  the write path only.
+
+`taskState` reads a task as `blocked`, `waiting` or `live`; only a live
+task is a move to make now, so only a live one can be the top move, count
+as overdue, or go on the calendar. Links point at real tasks and never loop.
+A conditional task is a fork: its move is one the user wouldn't make
+otherwise, so one saying the plan carries on ("anyway", "still", "keep
+chasing", "continue"), or matching a move already in the plan
+unconditionally, is refused. The focus line (else the first) must carry at
+least one conditional task, and a `plan` write without one is refused
+(page edits are let through, since they change one line's text, not the
+plan's shape). A line with no natural fork carries the one every plan has:
+no measurable progress by a date, then rethink the approach (back to
+`strategy`). A line holds up to 10 tasks (`NEXT_ACTIONS_MAX`), waiting ones
+included.
 
 A next action's `when` is the date it is due by (YYYY-MM-DD), optional.
 `doneOn` is the date it was done: `setStatus` stamps it with today when the
@@ -377,11 +386,11 @@ unrecorded. No other skill writes that field.
 The user can also edit the page directly, outside the skill flow. They can
 reword a move, step, sub-item, success criterion, sub-goal, the goal
 sentence, a risk, what a person is doing, or an open decision's question.
-They can also add a `pending` move, and tick, keep or toss one, and mark a
-ladder's next rung sent or the rung that's out answered. Names stay
-chat-only, because they keep `people` and `stakeholders` apart. A decided
-decision changes only through `decide`, and decision points and rungs,
-set in advance, only through `plan`. Forecasts and experiments aren't
+They can also add a `pending` move, and tick, keep or toss one, mark a sent
+message replied (`markReplied`), and settle a waiting fork as happened or
+not (`resolveFork`). Names stay chat-only, because they keep `people` and
+`stakeholders` apart. A decided decision changes only through `decide`,
+and the links between tasks only through `plan`. Forecasts and experiments aren't
 editable at all, because their worth is being fixed in advance; nor are
 `intel`, `courses` and `prep`, which change through their skills. Text edits go
 through `editLine` and `addNextAction` (`packages/core/src/ops.mjs`), which

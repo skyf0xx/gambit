@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { rendererForSection, isEditableLine, NEXT_ACTIONS_MAX } from '@gambit/core';
-import { setLineStatus, addMove } from '../lib/edits';
+import { rendererForSection, isEditableLine, taskState, NEXT_ACTIONS_MAX } from '@gambit/core';
+import { setLineStatus, addMove, markTaskReplied, settleFork } from '../lib/edits';
 import { useSession } from '../lib/session';
 import { useLineMark, useMarksContext } from './marks/context';
 import { FreshTag } from './paper/FreshTag';
@@ -11,7 +11,7 @@ import type { Goal } from '../lib/types';
 import { nextMove, isSelf } from '../lib/slips';
 import { TextAction, PencilWord } from './ui';
 import { PencilUnderline } from './paper/PencilUnderline';
-import { pencilDate, byDate, withProseDates, daysUntil } from '../lib/dates';
+import { pencilDate, byDate, withProseDates, daysUntil, today } from '../lib/dates';
 import { composeInChat } from '../lib/compose';
 
 /** Pencilled long-date form ("Friday 3 Oct"), never ISO — used for the log
@@ -362,97 +362,17 @@ function visibleActions(actions: Any[], goalId: string, base: string, dropped: M
     });
 }
 
-/** The date `days` after an ISO date, as an ISO date. */
-const addDays = (iso: string, days: number) => new Date(Date.parse(iso) + days * 86_400_000).toISOString().slice(0, 10);
-
-/** Each rung level in the page's words: the cheap ask, the formal
- * channel, then going public. */
-const RUNG_LEVEL: Record<string, string> = { interests: 'ask', rights: 'formal channels', power: 'go public' };
-
-/** Decision points as the page lists them: open ones first, soonest
- * check first (undated last), then the settled ones. Each keeps its
- * stored index for its path. */
-function checkpoints(points: Any[]) {
-  const rank = (d: Any) => `${d.status === 'open' ? 0 : 1}${d.by ?? '9999'}`;
-  return points.map((d, i) => ({ d, i })).sort((a, b) => rank(a.d).localeCompare(rank(b.d)));
-}
-
-/** Where a rung stands, in a few pencilled words. */
-function rungState(r: Any): string {
-  switch (r.status) {
-    case 'sent': return `sent ${pencilDate(r.sentOn)} · next step ${byDate(addDays(r.sentOn, r.waitDays))}`;
-    case 'answered': return 'answered';
-    case 'unanswered': return 'no reply';
-    case 'skipped': return 'skipped';
-    default: return `give it ${r.waitDays} day${r.waitDays === 1 ? '' : 's'}`;
-  }
-}
-
-/** A line's if-thens: its decision points ("if this, then that"), and its
- * escalation ladder, rung by rung, grouped under its level as it climbs.
- * The user can mark the next rung sent, or the rung that's out answered;
- * everything else changes through the chat. */
-function Branches({ goalId, base, line, editable }: { goalId: string; base: string; line: Any; editable: boolean }) {
-  const points: Any[] = line.decisionPoints ?? [];
-  const ladder: Any[] = line.ladder ?? [];
-  if (!points.length && !ladder.length) return null;
-  const out = ladder.findIndex((r) => r.status === 'sent');
-  const next = ladder.findIndex((r, i) => r.status === 'pending' && i > out);
-  return (
-    <div className="space-y-3 pt-1">
-      {points.length > 0 && (
-        <div className="space-y-1">
-          <h4><PencilWord className="text-[19px] text-graphite">checkpoints</PencilWord></h4>
-          <ul className="ml-11 space-y-2 text-[15px] leading-[22px]">
-            {checkpoints(points).map(({ d, i }) => (
-              <li key={i} className={`grid grid-cols-[6.5rem_1fr] gap-x-3 ${d.status === 'open' ? 'text-ink' : 'text-graphite'}`}>
-                <span className="text-[14px] text-graphite">{d.status === 'open' ? (d.by ? pencilDate(d.by) : 'any time') : d.status === 'taken' ? 'happened' : 'didn’t happen'}</span>
-                <Line goalId={goalId} path={`${base}.decisionPoints.${i}`}>
-                  <span><span className="text-graphite">if </span>{d.if}</span>
-                  <br />
-                  <span><span className="text-graphite">then </span>{d.then}</span>
-                </Line>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {ladder.length > 0 && (
-        <div className="space-y-1">
-          <h4><PencilWord className="text-[19px] text-graphite">if they don't answer</PencilWord></h4>
-          <ol className="ml-11 space-y-1.5 text-[15px] leading-[22px]">
-            {ladder.map((r, i) => {
-              const path = `${base}.ladder.${i}`;
-              const level = i === 0 || ladder[i - 1].level !== r.level ? RUNG_LEVEL[r.level] : undefined;
-              const act = !editable ? undefined
-                : i === out ? { label: 'they answered', status: 'answered' }
-                : i === next ? { label: 'mark sent', status: 'sent' }
-                : undefined;
-              return (
-                <li key={i} className={r.status === 'pending' || r.status === 'sent' ? 'text-ink' : 'text-graphite'}>
-                  {level && <div className="text-[13px] uppercase tracking-wide text-graphite">{level}</div>}
-                  <Line goalId={goalId} path={path}>
-                    <span>{r.action}</span>
-                    <span className="text-graphite"> · to {r.to}</span>
-                    {r.carries && <span className="text-[14px] text-graphite"> · with {r.carries}</span>}
-                  </Line>
-                  <div className="flex flex-wrap items-center gap-x-4 text-[14px] text-graphite">
-                    <span>{rungState(r)}</span>
-                    {r.outcome && <span>“{r.outcome}”</span>}
-                    {act && (
-                      <TextAction className="-my-2 underline" onClick={() => void setLineStatus(goalId, path, act.status)}>
-                        {act.label}
-                      </TextAction>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
-      )}
-    </div>
-  );
+/** What a task waits on, in a few plain words, or '' for a plain move:
+ * the tasks it comes after, the message whose silence it escalates, or the
+ * event its fork turns on. */
+function taskCondition(a: Any, byId: Map<string, Any>): string {
+  const names = (ids: string[]) => ids.map((id) => byId.get(id)?.action ?? id).join(', ');
+  const after = a.after?.length ? `after: ${names(a.after)}` : '';
+  const cond = !a.if ? ''
+    : 'noReply' in a.if ? `if ${byId.get(a.if.noReply)?.to ?? 'they'} don't reply in ${a.if.days} days`
+    : a.if.happened ? `${a.if.event}: it happened`
+    : `if ${a.if.event}${a.if.by ? `, check ${byDate(a.if.by)}` : ''}`;
+  return [after, cond].filter(Boolean).join(' · ');
 }
 
 const PLAN_LINE_PATH = /^plan\.linesOfOperation\.(\d+)(?:\.|$)/;
@@ -583,7 +503,9 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
   const changedLine = turn?.goalId === goalId ? planLineIndex(turn.lines[0]?.path) : null;
   // The top move is already on the index card above; the list doesn't
   // repeat it.
-  const top = nextMove({ plan: { linesOfOperation: lines } } as Goal)?.path;
+  const plan = { linesOfOperation: lines } as NonNullable<Goal['plan']>;
+  const top = nextMove({ plan } as Goal)?.path;
+  const byId = new Map(lines.flatMap((l: Any) => l.nextActions).filter((a: Any) => a.id).map((a: Any) => [a.id, a]));
 
   const body = (li: number) => {
     const l = lines[li];
@@ -607,7 +529,10 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
         {liveActions.length > 0 && (
           <ol className="space-y-1.5">
             {liveActions.map(({ a, path }) => {
-              const meta = [!isSelf(a.who) && a.who, a.when && byDate(a.when)].filter(Boolean).join(' · ');
+              const meta = [!isSelf(a.who) && a.who, a.to && `to ${a.to}`, a.when && byDate(a.when)].filter(Boolean).join(' · ');
+              const state = taskState(a, plan, today());
+              const condition = taskCondition(a, byId);
+              const waits = state === 'waiting' || state === 'blocked';
               return (
                 <Toggle key={path} goalId={goalId} path={path} status={a.status} editable={editable} onTick={onTick} title={path === detailFor ? undefined : a.detail}>
                   <Line goalId={goalId} path={path}>
@@ -617,6 +542,17 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
                       : <span>{a.action}</span>}
                     {meta && <span className="ml-2 text-[14px] text-graphite">{meta}</span>}
                   </Line>
+                  {condition && <div className={`text-[14px] leading-5 ${waits ? 'text-graphite' : 'text-ink'}`}>↳ {condition}</div>}
+                  {a.replied && <div className="text-[14px] leading-5 text-graphite">replied {pencilDate(a.replied)}{a.reply ? `: “${a.reply}”` : ''}</div>}
+                  {editable && a.to && a.status === 'done' && !a.replied && (
+                    <TextAction className="-my-2 text-[14px] underline" onClick={() => void markTaskReplied(goalId, path)}>they replied</TextAction>
+                  )}
+                  {editable && state === 'waiting' && a.if && 'event' in a.if && (
+                    <div className="flex gap-x-4 text-[14px]">
+                      <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, true)}>it happened</TextAction>
+                      <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, false)}>it didn’t</TextAction>
+                    </div>
+                  )}
                   {path === detailFor && <Detail>{a.detail}</Detail>}
                 </Toggle>
               );
@@ -629,7 +565,6 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
             <PencilWord className="text-[18px] text-graphite">{showDone ? 'hide done' : `${hiddenDone} done`}</PencilWord>
           </TextAction>
         )}
-        <Branches goalId={goalId} base={`plan.linesOfOperation.${li}`} line={l} editable={editable} />
       </>
     );
   };

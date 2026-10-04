@@ -64,9 +64,9 @@ IS THE USER PERSONALLY NAMED / PUBLIC: yes | no | partly
 If the user isn't currently public and the action would make them so, flag that as a
 threshold decision in its own right — it's reversible only in the weakest sense.
 
-A `power` rung on a plan's escalation ladder (press, petition, public posts) is that
-threshold: assess it before it goes out. The method holds the ladder in its stress phase
-until this skill has checked it.
+An escalation at `power` in the plan (press, petition, public posts) is that threshold:
+assess it before it goes out. The method holds the plan in its stress phase until this
+skill has checked it.
 
 ### 3. Work the Categories
 

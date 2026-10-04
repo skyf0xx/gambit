@@ -45,8 +45,8 @@ most common failure, and it's expensive.
 
 Read the goal — the goal statement, the `plan` key, the `people` key, the `stakeholders` array if non-empty. If the
 counterparty appears in the `stakeholders` array, pull their recorded interest rather than
-re-deriving it. If this talk is a rung of a plan's escalation ladder, the next rung up is
-part of the user's BATNA: name it, and use it as leverage only if the user is ready to
+re-deriving it. If this talk is a message the plan escalates from, the escalation that
+follows it is part of the user's BATNA: name it, and use it as leverage only if the user is ready to
 climb.
 
 ### 2. Define What You Actually Need

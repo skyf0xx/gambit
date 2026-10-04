@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stubGoal, isStub, skillFlow, canLoad, canWrite, canRoute, routedText, writersOf, suggestSkills, dueNow, staleSections, methodStep, methodText, PHASES } from '../src/index.mjs';
+import { stubGoal, isStub, skillFlow, canLoad, canWrite, canRoute, routedText, writersOf, suggestSkills, dueNow, staleSections, methodStep, methodText, PHASES, taskState } from '../src/index.mjs';
 
 const skills = [
   skillFlow('intake', { writes: 'goal, successCriteria, log', requires: 'any', phase: 'define' }),
@@ -12,8 +12,8 @@ const skills = [
   skillFlow('capacity', { writes: 'capacity, log', phase: 'understand' }),
 ];
 const defined = { ...stubGoal('g'), successCriteria: [{ text: 'ship it', kind: 'control' }] };
-const branch = { decisionPoints: [{ if: 'no word by Friday', then: 'call them', status: 'open' }] };
-const plan = { linesOfOperation: [{ label: 'L', criticalPath: [], nextActions: [], ...branch }] };
+const fork = { action: 'call them', who: 'me', status: 'pending', if: { event: 'no word by Friday' } };
+const plan = { linesOfOperation: [{ label: 'L', criticalPath: [], nextActions: [fork] }] };
 
 test('skillFlow parses lists and flags bad keys and requires', () => {
   assert.deepEqual(skills[1].writes, ['plan', 'log']);
@@ -97,7 +97,8 @@ test('suggestSkills flags overdue moves, due questions, talks with no outcome, a
     deadline: '2026-10-12',
     posture: { current: { level: 1, label: 'steady' }, levels: [{ level: 1, label: 'steady' }], triggers: [], lastReviewed: '2026-10-01' },
     capacity: { availableHrsPerWeek: 5, runway: '3 months', lastReviewed: '2026-09-30' },
-    plan: { linesOfOperation: [{ label: 'L', criticalPath: [], ...branch, nextActions: [
+    plan: { linesOfOperation: [{ label: 'L', criticalPath: [], nextActions: [
+      fork,
       { action: 'a', who: 'me', when: '2026-10-01', status: 'pending' },
       { action: 'b', who: 'me', when: '2026-09-20', status: 'pending' },
       { action: 'c', who: 'me', when: '2026-10-02', status: 'pending' },
@@ -194,11 +195,11 @@ test('methodStep walks the method, asking only what the goal calls for', () => {
   assert.equal(step(chosen), 'plan:plan');
   const flat = { ...chosen, plan: { linesOfOperation: [{ label: 'Council', criticalPath: [], nextActions: [] }] } };
   assert.deepEqual(methodStep(flat), { phase: 'plan', skill: 'plan', why: '"Council" has no if-then yet', todo: 'Decide what happens if it stalls' });
-  const rungs = [
-    { level: 'interests', action: 'send letter', to: 'Council', waitDays: 14, status: 'pending' },
-    { level: 'power', action: 'go to the paper', to: 'Council', waitDays: 14, status: 'pending' },
+  const tasks = [
+    { id: 'letter', action: 'send letter', who: 'me', to: 'Council', level: 'interests', status: 'pending' },
+    { action: 'go to the paper', who: 'me', to: 'Council', level: 'power', status: 'pending', if: { noReply: 'letter', days: 14 } },
   ];
-  const laddered = { ...flat, plan: { linesOfOperation: [{ ...flat.plan.linesOfOperation[0], ladder: rungs }] } };
+  const laddered = { ...flat, plan: { linesOfOperation: [{ ...flat.plan.linesOfOperation[0], nextActions: tasks }] } };
   assert.equal(step(laddered), 'stress:threat');
   const redTeamed = { ...laddered, riskNotes: [{ item: 'they stall', source: 'threat', accepted: false }] };
   assert.equal(step(redTeamed), 'stress:exposure');
@@ -223,7 +224,7 @@ test('canLoad warns when a skill skips ahead of the method, and still loads it',
   assert.equal(canLoad(skills[1], { ...defined, log: [{ date: '2026-10-01', focus: 'x', notes: [], source: 'strategy' }] }).warning, undefined);
 });
 
-test('suggestSkills flags a rung with no reply, an answer not recorded, and a decision point due', () => {
+test('suggestSkills flags an escalation come due, a reply not recorded, and a fork to check', () => {
   const day = '2026-10-20';
   const g = {
     ...defined,
@@ -232,24 +233,39 @@ test('suggestSkills flags a rung with no reply, an answer not recorded, and a de
     log: [{ date: '2026-10-19', focus: null, notes: [], source: 'eval' }],
     riskNotes: [{ item: 'they stall', source: 'threat', accepted: false }],
     plan: { linesOfOperation: [{
-      label: 'L', criticalPath: [], nextActions: [],
-      decisionPoints: [{ if: 'under 10 names by 20 Oct', by: '2026-10-20', then: 'door-knock', status: 'open' }],
-      ladder: [
-        { level: 'interests', action: 'send letter', to: 'Council', waitDays: 14, status: 'sent', sentOn: '2026-10-01' },
-        { level: 'rights', action: 'send the ref number', to: 'Head of council', waitDays: 14, status: 'pending' },
+      label: 'L', criticalPath: [], nextActions: [
+        { id: 'letter', action: 'send letter', who: 'me', to: 'Council', level: 'interests', status: 'done', doneOn: '2026-10-01' },
+        { id: 'ref', action: 'send the reference number', who: 'me', to: 'Head of council', level: 'rights', status: 'pending', when: '2026-10-02', if: { noReply: 'letter', days: 14 } },
+        { action: 'door-knock the street', who: 'me', status: 'pending', if: { event: 'under 10 names', by: '2026-10-20' } },
+        { action: 'print the flyers', who: 'me', status: 'pending', when: '2026-10-05', after: ['ref'] },
       ],
     }] },
   };
   assert.deepEqual(suggestSkills(g, day), [
-    { skill: 'plan', why: 'no reply from Council in 19 days; next rung: Head of council', todo: 'Take it to Head of council' },
-    { skill: 'plan', why: 'decision point due: under 10 names by 20 Oct', todo: 'Check: under 10 names by 20 Oct' },
+    { skill: 'plan', why: '1 move overdue', todo: 'Catch up on an overdue move' },
+    { skill: 'plan', why: 'no reply from Council in 19 days; next: send the reference number', todo: 'Take it to Head of council' },
+    { skill: 'plan', why: 'time to check whether under 10 names', todo: 'Check: under 10 names' },
   ]);
-  assert.equal(suggestSkills(g, '2026-10-14').length, 0);
-  const answered = structuredClone(g);
-  answered.plan.linesOfOperation[0].ladder[0].status = 'answered';
-  answered.plan.linesOfOperation[0].decisionPoints[0].status = 'passed';
-  assert.deepEqual(suggestSkills(answered, day), [{ skill: 'plan', why: "Council answered; what they said isn't recorded", todo: 'Record what Council said' }]);
-  const last = structuredClone(g);
-  last.plan.linesOfOperation[0].ladder[1].status = 'skipped';
-  assert.equal(suggestSkills(last, day)[0].why, 'no reply from Council in 19 days; no rung left');
+  // Before the wait runs out, the escalation is waiting: neither due nor overdue.
+  assert.deepEqual(suggestSkills(g, '2026-10-14'), []);
+  const replied = structuredClone(g);
+  replied.plan.linesOfOperation[0].nextActions[0].replied = '2026-10-10';
+  replied.plan.linesOfOperation[0].nextActions[2].if.happened = true;
+  assert.deepEqual(suggestSkills(replied, day), [{ skill: 'plan', why: "Council replied; what they said isn't recorded", todo: 'Record what Council said' }]);
+});
+
+test('taskState reads a task as blocked, waiting or live', () => {
+  const p = (nextActions) => ({ linesOfOperation: [{ label: 'L', criticalPath: [], nextActions }] });
+  const letter = { id: 'letter', action: 'send letter', who: 'me', to: 'Council', status: 'pending' };
+  const esc = { action: 'complain', who: 'me', to: 'Ombudsman', level: 'rights', status: 'pending', if: { noReply: 'letter', days: 14 } };
+  const after = { action: 'print flyers', who: 'me', status: 'pending', after: ['letter'] };
+  const plan1 = p([letter, esc, after]);
+  assert.deepEqual(plan1.linesOfOperation[0].nextActions.map((a) => taskState(a, plan1, '2026-10-20')), ['live', 'waiting', 'blocked']);
+  const sent = p([{ ...letter, status: 'done', doneOn: '2026-10-01' }, esc, after]);
+  assert.deepEqual(sent.linesOfOperation[0].nextActions.map((a) => taskState(a, sent, '2026-10-20')), ['done', 'live', 'live']);
+  assert.equal(taskState(esc, sent, '2026-10-10'), 'waiting');
+  const answered = p([{ ...letter, status: 'done', doneOn: '2026-10-01', replied: '2026-10-05' }, esc]);
+  assert.equal(taskState(esc, answered, '2026-10-20'), 'waiting');
+  const dropped = p([{ ...letter, status: 'dropped' }, after]);
+  assert.equal(taskState(after, dropped, '2026-10-20'), 'live');
 });

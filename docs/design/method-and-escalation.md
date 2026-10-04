@@ -1,4 +1,4 @@
-# Design: the method, decision points and escalation ladders
+# Design: the method and linked tasks
 
 Gambit works every goal through one fixed method, and every plan says what
 happens if it stalls. This page explains why it's built that way. `AGENTS.md`
@@ -16,10 +16,10 @@ holds the contract the code enforces.
 - **Interests, rights, power** (Ury, Brett & Goldberg, *Getting Disputes Resolved*,
   1988). Disputes are settled by reconciling interests (cheap), by appeal to rights or
   formal authority (dearer), or by power (costliest, burns the relationship). Good
-  systems climb in that order and keep a **loop-back** open: every rung offers the
+  systems climb in that order and keep a **loop-back** open: every step offers the
   other side an easy way back to the cheaper level.
-- **Escalation ladder** (Herman Kahn, *On Escalation*, 1965): the rung metaphor, each
-  rung a deliberate, visible step up in pressure.
+- **Escalation ladder** (Herman Kahn, *On Escalation*, 1965): each step a deliberate,
+  visible move up in pressure.
 
 ## The method
 
@@ -40,7 +40,7 @@ holds the contract the code enforces.
 The order of phases is the same for every goal. How much each phase asks depends on
 the goal, read from the goal itself rather than a size the user picks:
 
-| Goal | Understand | Develop | Decision point | Ladder |
+| Goal | Understand | Develop | Fork | Escalations |
 |---|---|---|---|---|
 | Political campaign | stakeholders, systems, recon | several real routes | many | several |
 | Business | stakeholders, capacity | often | yes | sometimes (supplier, landlord) |
@@ -56,73 +56,59 @@ red-teamed. A goal without one goes from focus to plan in two turns.
 - **Soft order.** `load_skill` loads a skill further on than the goal has reached, with
   a warning naming the skipped phase. The model says so in one line and offers the
   skipped phase first. A hard refusal would stop a user who only wants one thing.
-- **One hard rule.** A `plan` write is refused unless its focus line carries a decision
-  point or a ladder. This is the one requirement that fits every goal, and it's what
-  makes a plan more than a to-do list. Other lines may carry if-thens too, but don't
-  have to.
+- **One hard rule.** A `plan` write is refused unless its focus line carries a
+  conditional task: an escalation or a fork. This is the one requirement that fits every
+  goal, and it's what makes a plan more than a to-do list. Other lines may carry them
+  too, but don't have to.
 - **Due list.** Dated items first, then the method's next phase, then the reviews that
   keep a running goal honest, then stale sections.
 
-## Decision points and escalation ladders
+## Linked tasks
 
-Both live on a plan line, owned by `plan`.
-
-**Decision point**: `{if, by?, then, status: open | taken | passed}`, at most 4 per
-line. It becomes due once `by` passes while still open. The page lists them as
-checkpoints, open ones soonest first, each with its date in a column of its own:
-
-```
-Mon 19 Oct   if   under 10 sign-ups
-             then door-knock the street first
-Tue 1 Dec    if   no clean-up date set
-             then rethink the approach
-```
-
-Each half is one phrase of at most 8 words, with no leading "if" or "then" and no
-second clause, so it reads at a glance. Flesch-Kincaid already runs on every goal write,
-but it measures word and sentence length, so a run-on line of short words passes it.
-The word cap is what keeps each half to one idea.
-
-A checkpoint is a fork: if its condition comes true, the user does something they
-wouldn't do otherwise. "Under five signed → send the follow-up anyway" forks nothing,
-since the follow-up goes out either way, and a `then` saying the plan carries on
-("anyway", "still", "keep chasing") is refused. Requiring an if-then on every plan
-would otherwise push the model to invent one, so a line with no natural fork carries the
-fork every plan has: no measurable progress by a date, then rethink the approach. A
-worry about being sidetracked by a token gesture is a `threat` risk, not a checkpoint.
-
-A checkpoint watches what the user doesn't control: someone else's reply, the weather, a
-count. The user's own routine is a dated next action instead, and slips show in the due
-list. A checkpoint never hands the matter to one of the ladder's rungs; the rung's wait
-already does that. Each half is saved starting in lower case unless it opens with a name,
-so it reads after the page's "if" and "then".
-
-**Ladder**: at most 6 rungs per line, one ladder per line, so a campaign can push on
-two authorities in parallel.
+A plan line's moves are tasks that point at each other. Ordering, escalation and forks
+are links the page draws under a task, not words the model writes into it, so each
+move stays a plain todo and the hard-to-read compressed sentences ("if council's reply
+names no chase to rail") have nowhere to come from.
 
 ```js
-rung = {
-  level: 'interests' | 'rights' | 'power',
-  action, to,      // `to`: a people or stakeholders name, verbatim
-  carries?,        // what it brings forward: reference number, paper trail
-  waitDays,        // 1–90: how long before the next rung is due
-  status: 'pending' | 'sent' | 'answered' | 'unanswered' | 'skipped',
-  sentOn?,         // stamped when sent
-  outcome?,        // what they said
+task = {
+  id: 'letter',                          // short, stable; for tasks others point at
+  action: 'Send the complaint letter',   // a plain todo
+  who, when?, status, detail?,
+  after?: ['photos'],                    // waits until these are done
+  to?: 'Sydney Trains',                  // a message: a people or stakeholders name
+  level?: 'interests',                   // on an escalation: interests | rights | power
+  if?: { noReply: 'letter', days: 14 }   // an escalation of that message
+     | { event: 'under 10 sign-ups', by?, happened? }, // a fork
+  replied?, reply?,                      // they answered: when, and what they said
 }
 ```
 
-- Rungs climb `interests` → `rights` → `power`, never back down, with one rung sent at
-  a time.
-- `to` must already be in `people` or `stakeholders`, and is never the user, which
-  forces the question of who actually holds the authority.
-- Sending the next rung marks the silent one before it `unanswered`, so the ladder
-  keeps the paper trail.
-- An answer stops the climb until `plan` decides whether it settles the ask.
-- The page lets the user mark the next rung sent, or the rung that's out answered.
-- Due items: a sent rung past its wait, and an answered rung with no outcome recorded.
-- A `power` rung still to go holds the method in its stress phase until `exposure` has
-  checked it.
+`taskState` reads each task as `blocked` (waiting on `after`), `waiting` (its condition
+hasn't come true) or `live`. Only a live task can be the top move, count as overdue, or
+go on the calendar.
+
+**Escalations.** A message is a task with `to`; done means it went out. An escalation
+is a message with `if: {noReply}`, live once the message it follows went out, got no
+reply, and its `days` passed. A reply stops the climb until `plan` decides whether it
+settles the ask. Escalations climb `interests` → `rights` → `power` and never step down,
+and `to` must already be in `people` or `stakeholders` and is never the user, which
+forces the question of who actually holds the authority. A `power` escalation still to
+go holds the method in its stress phase until `exposure` has checked it.
+
+**Forks.** A task with `if: {event}` is a move made only if the event happens. The test:
+if the event never happened, would the user still make this move? If yes, it forks
+nothing, so a fork saying the plan carries on ("anyway", "still", "keep chasing"), or
+matching a move already in the plan unconditionally, is refused. The event is one plain
+phrase of at most 8 words, a fact outside the user's control, saved in lower case unless
+it opens with a name, so it reads after the page's "if". A line with no natural fork
+carries the one every plan has: no measurable progress by a date, then rethink the
+approach. A worry about being sidetracked by a token gesture is a `threat` risk, not a
+fork. The user's own routine is a plain dated move.
+
+**Page.** Each linked task carries a grey "↳" note: "after: …", "if [someone] don't reply
+in 14 days", "if [event], check [date]". It reads grey until it is live. A sent message
+offers "they replied"; a waiting fork offers "it happened" and "it didn't".
 
 How the skills share the work:
 
@@ -130,25 +116,27 @@ How the skills share the work:
 |---|---|
 | `stakeholders` | finds who owns the problem and who sits above them |
 | `recon` | the formal channels: complaint process, response times |
-| `options` | treats one ask at three volumes as one course with a ladder, not three courses |
-| `plan` | builds the ladder and decision points, and climbs it |
+| `options` | treats one ask at three volumes as one course with escalations, not three courses |
+| `plan` | links the tasks, and records sends, replies and forks |
 | `threat` | red-teams the climb |
-| `exposure` | checks the user's own risk before any public rung |
-| `comms` / `negotiate` | draft each rung's message, naming what would settle it |
-| `strategy` | moving up a level can mean a posture change; a spent ladder or a taken decision point reopens the focus |
-| `review` | runs once a ladder resolves |
+| `exposure` | checks the user's own risk before any public step |
+| `comms` / `negotiate` | draft each message, naming what would settle it |
+| `strategy` | a step up a level can mean a posture change; a spent climb or a taken fork reopens the focus |
+| `review` | runs once a climb resolves |
 
 ## Example: Sydney train tunnel cleanup
 
 `stakeholders` finds that the tunnel belongs to Sydney Trains (Transport for NSW), not
-the council. The ladder:
+the council. The plan's tasks:
 
-| # | Level | Action | To | Carries | Wait |
-|---|---|---|---|---|---|
-| 1 | interests | Report it, ask for a clean-up date | Sydney Trains | photos | 14 days |
-| 2 | rights | Formal complaint quoting the reference | TfNSW complaints | reference number | 21 days |
-| 3 | rights | Ask the state MP to raise it | State MP | paper trail | 21 days |
-| 4 | rights | Complaint to the NSW Ombudsman | NSW Ombudsman | paper trail | 30 days |
-| 5 | power | Story pitch with photos and petition | Local paper | photos, signatures | 14 days |
+| id | Action | To | Level | Link |
+|---|---|---|---|---|
+| `report` | Report it and ask for a clean-up date | Sydney Trains | interests | |
+| `complaint` | Formal complaint quoting the reference | TfNSW complaints | rights | if no reply to `report` in 14 days |
+| `mp` | Ask the state MP to raise it | State MP | rights | if no reply to `complaint` in 21 days |
+| `ombudsman` | Complain to the NSW Ombudsman | NSW Ombudsman | rights | if no reply to `mp` in 21 days |
+| `paper` | Pitch the story with photos and signatures | Local paper | power | if no reply to `ombudsman` in 30 days |
+| | Door-knock the street first | | | if under 10 sign-ups, check 1 Nov |
+| | Rethink the approach | | | if no clean-up date set, check 1 Dec |
 
-Rung 5 makes `exposure` due before it goes out.
+The `paper` step makes `exposure` due before it goes out.

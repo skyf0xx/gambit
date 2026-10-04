@@ -33,7 +33,7 @@
 // loads (FlowSession.cleared), so the whole batch lands in that one turn.
 
 import { WRITABLE_KEYS, currentFocusEntry } from './ops.mjs';
-import { STUB_CRITERION, focusLineOf, hasBranch } from './schema.mjs';
+import { STUB_CRITERION, focusLineOf, hasBranch, tasksOf, taskState } from './schema.mjs';
 
 export const FLOW_KEYS = [...WRITABLE_KEYS, 'log'];
 const REQUIRES = ['goal', 'any'];
@@ -141,12 +141,12 @@ export function methodStep(goal) {
   if (!goal.plan) return { phase: 'plan', skill: 'plan', why: 'no plan yet', todo: 'Make a plan' };
   const focus = focusLineOf(goal.plan);
   if (!hasBranch(focus)) return { phase: 'plan', skill: 'plan', why: `"${focus.label}" has no if-then yet`, todo: 'Decide what happens if it stalls' };
-  const rungs = goal.plan.linesOfOperation.flatMap((l) => l.ladder ?? []);
-  if ((influenced || goal.stakeholders.length || rungs.length) && !goal.riskNotes.some((r) => r.source === 'threat')) {
+  const escalations = tasksOf(goal.plan).map((t) => t.task).filter((a) => a.level);
+  if ((influenced || goal.stakeholders.length || escalations.length) && !goal.riskNotes.some((r) => r.source === 'threat')) {
     return { phase: 'stress', skill: 'threat', why: 'plan not red-teamed yet', todo: 'Find weak spots in the plan' };
   }
-  if (rungs.some((r) => r.level === 'power' && (r.status === 'pending' || r.status === 'sent')) && !goal.exposure.length) {
-    return { phase: 'stress', skill: 'exposure', why: 'the ladder ends in public; your own risk not checked', todo: 'Check your own risk before going public' };
+  if (escalations.some((a) => a.level === 'power' && a.status === 'pending') && !goal.exposure.length) {
+    return { phase: 'stress', skill: 'exposure', why: 'an escalation goes public; your own risk not checked', todo: 'Check your own risk before going public' };
   }
   return { phase: 'run' };
 }
@@ -284,32 +284,29 @@ export function suggestSkills(goal, today, skills = []) {
   const out = [];
   const due = (d) => d && d <= today;
   const past = (d) => d && d < today;
-  const lines = goal.plan?.linesOfOperation ?? [];
 
   const forecasts = goal.forecasts.filter((f) => !f.resolved && due(f.resolvesBy)).length;
   if (forecasts) out.push({ skill: 'forecast', why: `${n(forecasts, 'forecast')} ready to score`, todo: `Score ${some(forecasts, 'forecast')}` });
   const experiments = goal.experiments.filter((e) => !e.done && due(e.by)).length;
   if (experiments) out.push({ skill: 'experiment', why: `${n(experiments, 'experiment')} past ${experiments === 1 ? 'its' : 'their'} date`, todo: `Record ${experiments === 1 ? 'an experiment result' : `${experiments} experiment results`}` });
-  const overdue = lines.flatMap((l) => l.nextActions).filter((a) => a.status === 'pending' && past(a.when)).length;
+  const tasks = tasksOf(goal.plan);
+  const live = tasks.filter((t) => taskState(t.task, goal.plan, today) === 'live');
+  const overdue = live.filter((t) => past(t.task.when)).length;
   if (overdue) out.push({ skill: 'plan', why: `${n(overdue, 'move')} overdue`, todo: `Catch up on ${some(overdue, 'overdue move')}` });
-  for (const l of lines) {
-    const ladder = l.ladder ?? [];
-    const at = ladder.findIndex((r) => r.status === 'sent');
-    const sent = ladder[at];
-    if (sent?.sentOn && days(sent.sentOn, today) >= sent.waitDays) {
-      const next = ladder.slice(at + 1).find((r) => r.status === 'pending');
-      out.push({
-        skill: 'plan',
-        why: `no reply from ${sent.to} in ${n(days(sent.sentOn, today), 'day')}; ${next ? `next rung: ${next.to}` : 'no rung left'}`,
-        todo: next ? `Take it to ${next.to}` : `Rethink the ask to ${sent.to}`,
-      });
-    }
-    for (const r of ladder.filter((x) => x.status === 'answered' && !x.outcome)) {
-      out.push({ skill: 'plan', why: `${r.to} answered; what they said isn't recorded`, todo: `Record what ${r.to} said` });
-    }
-    for (const d of (l.decisionPoints ?? []).filter((x) => x.status === 'open' && due(x.by))) {
-      out.push({ skill: 'plan', why: `decision point due: ${d.if}`, todo: `Check: ${d.if}` });
-    }
+  const byId = new Map(tasks.filter((t) => t.task.id).map((t) => [t.task.id, t.task]));
+  for (const { task } of live.filter((t) => t.task.if && 'noReply' in t.task.if)) {
+    const sent = byId.get(task.if.noReply);
+    out.push({
+      skill: 'plan',
+      why: `no reply from ${sent.to} in ${n(days(sent.doneOn, today), 'day')}; next: ${task.action}`,
+      todo: `Take it to ${task.to}`,
+    });
+  }
+  for (const { task } of tasks.filter((t) => t.task.replied && !t.task.reply)) {
+    out.push({ skill: 'plan', why: `${task.to} replied; what they said isn't recorded`, todo: `Record what ${task.to} said` });
+  }
+  for (const { task } of tasks.filter((t) => t.task.status === 'pending' && t.task.if && 'event' in t.task.if && !t.task.if.happened && due(t.task.if.by))) {
+    out.push({ skill: 'plan', why: `time to check whether ${task.if.event}`, todo: `Check: ${task.if.event}` });
   }
   const questions = (goal.intel ?? []).filter((q) => q.status === 'open' && due(q.by)).length;
   if (questions) out.push({ skill: 'recon', why: `${n(questions, 'open question')} due`, todo: `Answer ${some(questions, 'open question')}` });

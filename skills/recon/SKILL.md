@@ -48,7 +48,7 @@ List what the focus and the plan rest on that nobody has checked. Take each next
 action and ask what has to be true for it to work. Take each stakeholder whose stance
 is a guess.
 
-Before `plan` builds an escalation ladder, the usual unknowns are who owns the problem
+Before `plan` links a chain of escalations, the usual unknowns are who owns the problem
 and how its formal channels work: the complaint process, how long the body has to
 answer, who sits above it.
 

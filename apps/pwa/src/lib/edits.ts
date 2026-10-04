@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { editLine as coreEditLine, addNextAction, setStatus, lineText } from '@gambit/core';
+import { editLine as coreEditLine, addNextAction, setStatus, lineText, markReplied, resolveFork } from '@gambit/core';
 import { db, type ChatRecord } from './db';
 import { applyOp, type OpResult } from './goals';
 import type { LinePath } from './changes';
@@ -73,6 +73,20 @@ export async function setLineStatus(goalId: string, path: LinePath, status: stri
     return setStatus(g, path, status, today()) as never;
   });
   if (res.ok) await recordEdit(goalId, { path, kind: 'status', label: lineText(res.goal, path), before, after: status });
+  return res;
+}
+
+/** They answered a message: stamp it replied today, and queue it. */
+export async function markTaskReplied(goalId: string, path: LinePath): Promise<OpResult> {
+  const res = await applyOp(goalId, (g) => markReplied(g, path, today()) as never);
+  if (res.ok) await recordEdit(goalId, { path, kind: 'status', label: lineText(res.goal, path), before: 'no reply', after: 'replied' });
+  return res;
+}
+
+/** Settle a fork: its event happened (the task goes live) or didn't (dropped). */
+export async function settleFork(goalId: string, path: LinePath, happened: boolean): Promise<OpResult> {
+  const res = await applyOp(goalId, (g) => resolveFork(g, path, happened) as never);
+  if (res.ok) await recordEdit(goalId, { path, kind: 'status', label: lineText(res.goal, path), before: 'waiting on its event', after: happened ? 'event happened' : 'event did not happen, dropped' });
   return res;
 }
 

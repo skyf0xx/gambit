@@ -38,7 +38,7 @@ describe('flow gates on the tools', () => {
   });
 
   it('refuses writes without the right active skill, and a write_section in the loading turn', async () => {
-    const plan = { linesOfOperation: [{ label: 'L', criticalPath: [], nextActions: [], decisionPoints: [{ if: 'no word by Friday', then: 'call them' }] }] };
+    const plan = { linesOfOperation: [{ label: 'L', criticalPath: [], nextActions: [{ action: 'call them', who: 'me', if: { event: 'no word by Friday' } }] }] };
     expect(await run(tools.write_section, { key: 'plan', value: plan })).toMatchObject({ ok: false });
     await run(tools.load_skill, { name: 'plan' });
     expect(await run(tools.write_section, { key: 'plan', value: plan })).toMatchObject({ ok: false, errors: [{ message: expect.stringContaining('confirm') }] });

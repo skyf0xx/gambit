@@ -66,7 +66,7 @@ Prompts to work through:
 - Who actually owns the problem? The body with the authority to fix it is often not the
   obvious one: a rail tunnel belongs to the rail operator, not the council. Name it, and
   who sits above it (a complaints unit, an ombudsman, a regulator, an elected member).
-  A plan's escalation ladder can only go to names on this map.
+  A plan's messages and escalations can only go to names on this map.
 - Who has to say yes? Permits, venues, funding, platform access.
 - Who can say no, or slow it down? Not the same list.
 - Who is affected but has no seat — residents, workers, users, neighbours?
@@ -185,7 +185,7 @@ Next: [the single highest-value stakeholder move]
 Or:
   - Prep the conversation with them → negotiate
   - Draft what you'd say → comms
-  - Build the escalation ladder to the one who owns it → plan
+  - Plan the escalations to the one who owns it → plan
   - Confirm an interest you're guessing at → web search
   - This changes where the leverage is → strategy or systems
 ```

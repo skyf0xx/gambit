@@ -123,13 +123,13 @@ POSTURE EXPOSURE:
   Mitigation: {what closes this, if anything}
 ```
 
-If a line carries an escalation ladder, red-team the climb too. How does the other side
-read each rung: a cheap ask they can ignore, or a signal the user will go further? Which
-rung could they turn against the user (a complaint answered on a technicality, a press
-rung met with a counter-story)? Do the waits, added up, fit the deadline? Each finding
-goes in `riskNotes` like any other.
+If the plan escalates (tasks with `level`), red-team the climb too. How does the other
+side read each step: a cheap ask they can ignore, or a signal the user will go further?
+Which step could they turn against the user (a complaint answered on a technicality, a
+press story met with a counter-story)? Do the waits, added up, fit the deadline? Each
+finding goes in `riskNotes` like any other.
 
-Skip the posture part if `posture` is null, and the ladder part if no line has a ladder.
+Skip the posture part if `posture` is null, and the escalation part if nothing escalates.
 
 ---
 

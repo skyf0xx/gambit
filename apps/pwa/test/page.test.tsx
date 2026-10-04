@@ -96,33 +96,26 @@ describe('notebook page markup', () => {
     expect(html).not.toContain('Dropped action');
   });
 
-  it('shows a line\'s if-thens: decision points, and the ladder by level with the next step to mark', () => {
+  it('notes what a linked task waits on, greys it until it is live, and offers replied and fork buttons', () => {
     const plan = {
       linesOfOperation: [{
-        label: 'Tunnel', criticalPath: [], nextActions: [],
-        decisionPoints: [
-          { if: 'no clean-up date by 1 Dec', then: 'start the petition', by: '2099-12-01', status: 'open' },
-          { if: 'council offers a one-off clean', then: 'ask for the date in writing', by: '2099-10-19', status: 'open' },
-        ],
-        ladder: [
-          { level: 'interests', action: 'Report it', to: 'Sydney Trains', waitDays: 14, status: 'sent', sentOn: '2099-10-01' },
-          { level: 'rights', action: 'Formal complaint', to: 'TfNSW complaints', carries: 'reference number', waitDays: 21, status: 'pending' },
-          { level: 'power', action: 'Story pitch', to: 'Local paper', waitDays: 14, status: 'pending' },
+        label: 'Tunnel', criticalPath: [], nextActions: [
+          { id: 'photos', action: 'Take the weekly photos', who: 'me', status: 'pending' },
+          { id: 'report', action: 'Report it', who: 'me', to: 'Sydney Trains', level: 'interests', status: 'done', doneOn: '2099-10-01' },
+          { action: 'Formal complaint quoting the reference', who: 'me', to: 'TfNSW complaints', level: 'rights', status: 'pending', if: { noReply: 'report', days: 14 } },
+          { action: 'Door-knock the street first', who: 'me', status: 'pending', if: { event: 'under 10 sign-ups', by: '2099-11-01' } },
+          { action: 'Print the flyers', who: 'me', status: 'pending', after: ['photos'] },
         ],
       }],
     };
     const html = renderSection('plan', plan);
-    expect(html).toContain('checkpoints');
-    // Soonest check first, the date in a column of its own, then if and then on lines of their own.
-    expect(html.indexOf('council offers')).toBeLessThan(html.indexOf('no clean-up date'));
-    expect(html).toMatch(/Mon 19 Oct 2099<\/span>[\s\S]*?<span class="text-graphite">if <\/span>council offers a one-off clean<\/span><br\/><span><span class="text-graphite">then <\/span>ask for the date in writing/);
-    expect(html).toContain('if they don&#x27;t answer');
-    expect(html).toMatch(/ask<\/div>[\s\S]*formal channels<\/div>[\s\S]*go public<\/div>/);
-    expect(html).toContain('Formal complaint</span><span class="text-graphite"> · to TfNSW complaints</span>');
-    expect(html).toContain(' · with reference number');
-    expect(html).toContain('they answered');
-    expect(html.match(/mark sent/g)).toHaveLength(1);
-    expect(html).toContain('data-line="plan.linesOfOperation.0.ladder.1"');
+    expect(html).toContain('Formal complaint quoting the reference');
+    expect(html).toContain('to TfNSW complaints');
+    expect(html).toContain('↳ if Sydney Trains don&#x27;t reply in 14 days');
+    expect(html).toContain('↳ if under 10 sign-ups, check Sun 1 Nov 2099');
+    expect(html).toContain('↳ after: Take the weekly photos');
+    expect(html).toContain('it happened');
+    expect(html).toContain('it didn’t');
   });
 
   it('leaves the top move to the index card and folds done moves away', () => {

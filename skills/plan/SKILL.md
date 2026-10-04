@@ -13,7 +13,7 @@ next: strategy, systems, threat, decide, comms, stakeholders, exposure
 
 **Trigger**: You need to break the goal (or the current focus from `strategy`) into concrete, ordered steps — starting a new push, replanning after something failed, or the existing plan feels stale. Also triggers, in its lightweight mode, whenever the user reports progress on a `nextActions` item in passing — "I finished X," "Y is done," "we're blocked on Z" — even though nothing about the message sounds like a planning request.
 
-**Purpose**: Turn a goal or focus into one or more sequenced, dependency-aware lines of operation. If the goal involves other people, sequence what they do too. Identify each line's critical path and what can run in parallel within it. Say in advance what happens if a line stalls: decision points, and, for an ask someone else can ignore, an escalation ladder. Scale pace to current posture. Replan on failure without dwelling on it. Any `nextActions[].status` change, however small, is this skill's job even when nothing else about the moment looks like "planning."
+**Purpose**: Turn a goal or focus into one or more sequenced, dependency-aware lines of operation. If the goal involves other people, sequence what they do too. Identify each line's critical path and what can run in parallel within it. Link the moves: what waits on what, what escalates if a message gets no reply, and what happens only if something occurs, so the plan says in advance what happens if a line stalls. Scale pace to current posture. Replan on failure without dwelling on it. Any `nextActions[].status` change, however small, is this skill's job even when nothing else about the moment looks like "planning."
 
 ---
 
@@ -36,12 +36,12 @@ A routine flip needs no log entry; `nextActions[].status` carries the state. A r
 
 **Overdue moves.** When the state block lists moves past their `when` date, don't replan. Ask about each in one line: "[move], due [date]. Done, a new date, or drop it?" Done and dropped go through `set_status`. A new date is a `plan` write that changes only that move's `when` (YYYY-MM-DD). With three or more overdue on one line, or one move slipped twice, the plan is stale: say so and use Mode 1.
 
-**Ladder rungs and decision points.** The same quick path covers the if-thens:
+**Messages, escalations and forks.** The same quick path covers linked tasks:
 
-- "I sent the letter": `set_status` on that rung (`plan.linesOfOperation.N.ladder.M`) to `sent`. The code stamps `sentOn`, and marks the rung out before it `unanswered`.
-- "They replied": `set_status` to `answered`, then ask what they said and write it as that rung's `outcome` in a `plan` write. An answer stops the climb. Decide with the user whether it settles the ask (the line moves on) or falls short (the next rung stays live). Offer them the way back down: a reply that meets the ask ends the ladder, however high it got.
-- The state block lists a rung with no reply past its `waitDays`: name the next rung and who it goes to, and offer `comms` to draft it. Once the user sends it, `set_status` it to `sent`. No rung left means the ladder is spent: say so and flag `strategy`.
-- A decision point past its `by` date: ask whether its condition came true. `taken` when it did, and its `then` becomes a next action; `passed` when it didn't.
+- "I sent the letter": `set_status` that task to `done`. Its `doneOn` is the day it went out, and starts the wait of any escalation of it.
+- "They replied": write the task's `replied` (today) and `reply` (what they said) in a `plan` write. A reply stops its escalations from coming due. Decide with the user whether it settles the ask: if it does, drop the escalations; if it falls short, keep them and say which comes next. A reply that meets the ask ends the climb, however high it got.
+- The state block lists an escalation come due: name it and who it goes to, and offer `comms` to draft it. Once the user sends it, `set_status` it `done`.
+- The state block lists a fork to check: ask whether its event happened. If it did, set `if.happened: true` and the task is a live move; if not, drop the task.
 
 If the user's report actually describes several changes at once, or implies the rest of the plan needs rethinking (a blocker with no workaround, a dependency that turned out wrong), stop and use Mode 1 (the full sequence below) instead — this mode is for a clean, isolated status change only.
 
@@ -111,59 +111,25 @@ For each line, list its next 3-5 actions in priority order — Schwerpunkt align
 
 If an action depends on someone who hasn't confirmed, flag that explicitly — don't plan around a person as if their involvement is settled when `people` marks them `tentative`.
 
-### 6a. Set the If-Thens
+### 6a. Link the Moves
 
-A plan isn't finished until it says what happens if it stalls. Every line may carry
-them; the focus line (else the first) must, and a write without one is refused. Two
-kinds, from planning doctrine's branches and decision points:
+A plan isn't a list of chores: moves wait on each other, some only happen if a message
+goes unanswered, and some only if something occurs. Say that with links, never in the
+wording of a move. Each move stays a plain todo ("Send the complaint letter"), and the
+page draws the links under it. Give a task an `id` (short: `letter`, `ombudsman`) when
+another task points at it.
 
-**Decision points**, for any goal: a condition set now, the date it is checked, and the
-move it triggers. A decision point is a fork: if the condition comes true, the user does
-something they would not do otherwise. Test each one: if the condition stayed false,
-would they still do the `then`? If yes, it forks nothing, so it isn't a decision point.
-"Under five signed → send the follow-up anyway" fails: the follow-up goes out either
-way. A `then` saying the plan carries on ("anyway", "still", "keep chasing", "continue")
-is refused for that reason. `{if, by?, then, status: "open"}`, at most 4 per line. The page shows
-them as checkpoints, date first, then "if …" and "then …" on lines of their own, so each
-half is one short phrase of 8 words or fewer, with no leading "if" or "then", no colon
-and no second clause; a longer one is refused. `if` is a fact you could check on the
-date; `then` is a verb phrase.
+**After.** `after: [ids]` holds a move until the tasks it waits on are done. "Print the
+flyers" after "take the photos", not "Print the flyers once the photos are in".
 
-| `if` | `then` |
-|---|---|
-| under 10 sign-ups by the date | door-knock the street first |
-| rain over 50% on Friday | move to the church hall |
-| 2 runs missed in a week | cut the target to 3 days |
-| no reply to the letter in 3 weeks | ask the local MP instead |
-
-**When nothing on a line forks**, don't invent a checkpoint to satisfy the rule. Every
-plan has one honest fork: the date by which, if the line isn't working, the approach
-changes. Write it with a measurable `if` and send the `then` back to `strategy`: "no
-clean-up date set by 1 Dec" then "rethink the approach". A worry about being sidetracked
-("they offer a one-off clean to make us stop") is a risk, not a fork: it belongs to
-`threat`, or to a walk-away line in `negotiate`.
-
-Write both halves as plain words you'd say out loud, per GUIDED.md: verbs kept, no
-shorthand coined in the conversation, a person's role with their name, and the
-condition as something that happened. "the council hasn't asked Sydney Trains to act"
-then "ask Cr Blackmore to raise it publicly", not "council's reply names no chase to
-rail" then "ask Blackmore on the record".
-
-A condition nobody could check isn't a decision point. A move that needs more than 8
-words is more than one move: put the rest in the plan's steps. The code saves each half
-starting in lower case unless it starts with a name.
-
-A checkpoint watches something outside the user's control: another person's response,
-the weather, a count of sign-ups. The user's own routine ("take the weekly photo") is a
-dated next action, which the due list already flags when it slips. And a checkpoint never
-repeats the ladder: "rail stays silent six weeks → the mayor gets the trail" is what a
-rung's wait and the next rung already say, so a checkpoint handing the matter to a rung's
-`to` is refused.
-
-**An escalation ladder**, when the line needs someone else to act and they can ignore
-the user: a council, a landlord, a supplier, an employer. The same ask, put to a harder
-audience at each rung, cheapest first. Rungs climb in three levels (Ury, Brett &
-Goldberg), and never step back down:
+**Escalations**, when the line needs someone else to act and they can ignore the user: a
+council, a landlord, a supplier, an employer. A message is a task with `to`, a name from
+`people` or `stakeholders`, verbatim, never the user; a name not mapped is refused, so
+find who actually holds the authority first (a tunnel may belong to the rail operator,
+not the council) and load `stakeholders` if they aren't there. An escalation is a message
+with `if: {noReply: <id>, days}`: it comes due once the message it follows went out and
+got no reply in `days`. Each carries a `level`, climbing in three steps (Ury, Brett &
+Goldberg) and never back down:
 
 1. `interests`: ask whoever can fix it, directly. Cheap, and keeps the relationship.
 2. `rights`: formal channels with authority behind them: a complaint with a reference
@@ -171,32 +137,45 @@ Goldberg), and never step back down:
 3. `power`: pressure from outside: press, petition, public posts. Costly, and burns the
    relationship.
 
-Each rung is `{level, action, to, carries?, waitDays, status: "pending"}`, at most 6.
-`action` is 8 words or fewer ("Formal complaint quoting the reference"); the page adds
-who it goes to and what it carries.
-`to` is a name from `people` or `stakeholders`, verbatim, and a rung naming anyone else is
-refused. A rung never goes to the user: the ladder is what others are asked, and the
-user's own work is a next action. The first job is finding who actually holds the authority (a tunnel may belong to
-the rail operator, not the council). If they aren't mapped, load `stakeholders` before
-building the ladder. `carries` is what the rung brings forward from the ones before: the
-reference number, the paper trail, photos. `waitDays` is how long the rung gets before the
-next is due: long enough for a real reply (14 days for a formal body is usual), short
-enough that the deadline survives the whole climb. Add the waits up and check them against
-`deadline`.
+Set `days` long enough for a real reply (14 for a formal body is usual), short enough
+that the deadline survives the whole climb. Add the waits up and check them against
+`deadline`. What a message brings forward (the reference number, copies of every
+letter, photos) goes in its `detail`. Keep the way back open: each message says what
+would settle it, so the other side can stop the climb by meeting the ask. A `power` step
+puts the user's name in public, so `exposure` runs before it goes out.
 
-Keep the way back open on every rung: each message says what would settle it, so the
-other side can stop the climb by meeting the ask. A `power` rung puts the user's name in
-public, so `exposure` runs before it goes out.
+**Forks**, for any goal: a move made only if something happens. `if: {event, by?}`: the
+event is a fact outside the user's control, checkable on the `by` date, in one short
+phrase of 8 words or fewer with no leading "if" ("under 10 sign-ups", "rain over 50% on
+Friday", "council offers a one-off clean"). The move is one the user would not make
+otherwise. Test it: if the event never happened, would they still do this move? If yes,
+it forks nothing. "Under five signed → send the follow-up anyway" fails, and a fork
+whose move already sits in the plan unconditionally, or says "anyway", "still" or "keep
+chasing", is refused. The user's own routine ("take the weekly photo") is a plain dated
+move, never a fork; the due list flags it when it slips.
 
-Skip the ladder when nobody else's decision is involved. A picnic or a running habit gets
-a decision point, not a ladder.
+Skip escalations when nobody else's decision is involved: a picnic or a running habit
+gets a fork, not escalations.
+
+The focus line needs at least one conditional task (an escalation or a fork); a plan
+without one is refused. **When nothing on a line forks**, don't invent one to satisfy
+the rule. Every plan has one honest fork: the date by which, if the line isn't working,
+the approach changes. Write it with a measurable event and a move that sends it back to
+`strategy`: event "no clean-up date set", `by` the date, action "Rethink the approach". A
+worry about being sidetracked ("they offer a one-off clean to make us stop") is a risk,
+not a fork: it belongs to `threat`, or to a walk-away line in `negotiate`.
+
+Write each move and event in plain words you'd say out loud, per GUIDED.md: verbs kept,
+no shorthand coined in the conversation, a person's role with their name, and an event
+as something that happened. "the council hasn't asked Sydney Trains to act", not
+"council's reply names no chase to rail".
 
 ### 6b. Reality-Check the Sequence
 
 You know the dependencies. The user knows what's feasible for them this week. Ask before
 committing the plan, as a `confirm` reply: is #1 doable by its date, is anything here
-they already know won't happen, and do the if-thens fit (the waits, who each rung goes
-to)?
+they already know won't happen, and do the links fit (the waits, who each escalation
+goes to, what each fork turns on)?
 
 A plan the user privately knows they won't execute is worse than a shorter one they
 will. If they flag an action as unrealistic, resequence around it rather than logging it
@@ -209,7 +188,7 @@ If something in an existing line has failed or stalled, name it, name the altern
 
 ### 8. Update the Goal
 
-Call `write_section` on `plan` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?, items?, status}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `status` is one of `pending` (default), `done`, `dropped` — same enum and meaning as a `nextAction`'s, so a step that's finished or abandoned shows that in the visual layer instead of relying on prose in `detail`); `nextActions` is capped at 5 entries, each `{action, who, when, status, doneOn?, detail?}` where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `when` is a date (YYYY-MM-DD) on every next action; `doneOn` is stamped by code when a move is done, so never write it by hand, and keep it as it is when you carry a done move forward. `status` is one of `pending` (default), `proposed`, `done`, `dropped`. `decisionPoints` and `ladder` are the line's if-thens, as step 6a sets them; `sentOn` on a rung is stamped by code when it goes out, so never write it by hand, and keep it as it is when you carry a rung forward. Set that line's own `status` to `on_schedule`, `at_risk`, `blocked`, or `done` — `done` means every `criticalPath` step and every `nextActions` entry on that line is itself `done` or `dropped`; don't set the line to `done` while any step or action is still `pending`. Set `blocker` only when `status` is `blocked`.
+Call `write_section` on `plan` with `linesOfOperation` — the current lines, each with its own critical path and next actions — rather than accumulating old ones. `plan.linesOfOperation` is min 1 (a single-thread goal still writes one line, not a bare flat shape). Each line is `{label, criticalPath, nextActions, status?, blocker?}`: `label` is `shortLabel` (40-char hard cap) matching the `lineOfOperation` value used on the `successCriteria` entries it serves; `criticalPath` entries are `{label, detail?, items?, status}` objects (max 6 entries, `label` is `shortLabel`, 40-char hard cap, `status` is one of `pending` (default), `done`, `dropped` — same enum and meaning as a `nextAction`'s, so a step that's finished or abandoned shows that in the visual layer instead of relying on prose in `detail`); `nextActions` is capped at 10 entries, waiting ones included, each `{id?, action, who, when, status, doneOn?, detail?, after?, if?, to?, level?, replied?, reply?}` (the links as step 6a sets them) where `action` is `mediumLabel` (120-char hard cap — a short label, not a full sentence; put elaboration in `detail` instead of lengthening `action`) and `when` is a date (YYYY-MM-DD) on every live next action (an escalation or fork still waiting may leave it out); `doneOn` is stamped by code when a move is done, so never write it by hand, and keep it as it is when you carry a done move forward. `status` is one of `pending` (default), `proposed`, `done`, `dropped`. Keep each task's `id` the same across rewrites, so the links and the waits keep pointing at the right task. Set that line's own `status` to `on_schedule`, `at_risk`, `blocked`, or `done` — `done` means every `criticalPath` step and every `nextActions` entry on that line is itself `done` or `dropped`; don't set the line to `done` while any step or action is still `pending`. Set `blocker` only when `status` is `blocked`.
 
 `detail` (280 characters or less) is one plain sentence on why this move, why now; a
 `proposed` action must carry it. `items` on a step is a real list to tick off, never a
@@ -230,14 +209,10 @@ items or a proposed move.
           { "label": "D", "status": "pending" }
         ],
         "nextActions": [
-          { "action": "...", "who": "you | name", "when": "YYYY-MM-DD", "status": "pending" }
-        ],
-        "decisionPoints": [
-          { "if": "...", "by": "YYYY-MM-DD", "then": "...", "status": "open" }
-        ],
-        "ladder": [
-          { "level": "interests", "action": "...", "to": "a stakeholders name", "waitDays": 14, "status": "pending" },
-          { "level": "rights", "action": "...", "to": "...", "carries": "reference number", "waitDays": 21, "status": "pending" }
+          { "id": "photos", "action": "...", "who": "you | name", "when": "YYYY-MM-DD", "status": "pending" },
+          { "id": "letter", "action": "...", "who": "you", "to": "a stakeholders name", "level": "interests", "after": ["photos"], "when": "YYYY-MM-DD", "status": "pending" },
+          { "action": "...", "who": "you", "to": "...", "level": "rights", "if": { "noReply": "letter", "days": 21 }, "detail": "brings the reference number", "status": "pending" },
+          { "action": "...", "who": "you", "if": { "event": "...", "by": "YYYY-MM-DD" }, "status": "pending" }
         ],
         "status": "on_schedule",
         "blocker": "..."
@@ -267,5 +242,5 @@ Or:
   - Check a fact the plan rests on → web search, or say it's unverified
   - Resolve a fork the plan exposed → decide
   - Draft something the plan requires you to send → comms
-  - Check your own risk before a rung goes public → exposure
+  - Check your own risk before an escalation goes public → exposure
 ```

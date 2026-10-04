@@ -11,7 +11,7 @@ next: plan, strategy, eval
 # Skill: review
 
 **Trigger**: Something finished. A rally, a launch, a meeting, a submission, a negotiation,
-a phase of work, an escalation ladder that got its answer or ran out of rungs. It went well, badly, or ambiguously — all three are worth reviewing, and
+a phase of work, a chain of escalations that got its answer or ran out of steps. It went well, badly, or ambiguously — all three are worth reviewing, and
 the successful ones are the most commonly skipped.
 
 Run it while memory is fresh. A review a week later loses most of the detail that makes

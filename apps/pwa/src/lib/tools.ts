@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { writeSection, appendLog, setStatus, remember, forget, canLoad, canWrite, canRoute, WRITABLE_KEYS, MEMORY_KINDS, LOG_NOTES_MAX, LOG_RECENT, ROUTED_MAX, ROUTER_SKILL, ALL_STATUSES, type FlowSession } from '@gambit/core';
+import { writeSection, appendLog, setStatus, remember, forget, canLoad, canWrite, canRoute, WRITABLE_KEYS, MEMORY_KINDS, LOG_NOTES_MAX, LOG_RECENT, ROUTED_MAX, ROUTER_SKILL, type FlowSession } from '@gambit/core';
 import { applyOp, readRecord } from './goals';
 import { db } from './db';
 import { today } from './dates';
@@ -165,8 +165,8 @@ export function makeTools(ctx: ToolContext) {
       execute: async ({ index }) => result(await applyOp(ctx.goalId, (g) => forget(g, index) as never)),
     }),
     set_status: tool({
-      description: 'Flip one status without rewriting the section. A step, sub-item or next action takes pending, done or dropped (a next action can also be proposed); a ladder rung takes pending, sent, answered, unanswered or skipped (sent stamps sentOn and marks the rung out before it unanswered); a decision point takes open, taken or passed. path is dotted, e.g. "plan.linesOfOperation.0.nextActions.2" or "plan.linesOfOperation.0.ladder.1".',
-      inputSchema: z.object({ path: z.string(), status: z.enum(ALL_STATUSES as [string, ...string[]]) }),
+      description: 'Flip one step, sub-item or next action to pending, done or dropped without rewriting the section (a next action can also be set to proposed). A message (a task with to) set to done has gone out, which starts the wait of any escalation of it. path is dotted, e.g. "plan.linesOfOperation.0.nextActions.2".',
+      inputSchema: z.object({ path: z.string(), status: z.enum(['proposed', 'pending', 'done', 'dropped']) }),
       execute: async ({ path, status }) => (await gate(ctx.session, path.split('.')[0], 'set_status')) ?? result(await applyOp(ctx.goalId, (g) => setStatus(g, path, status, today()) as never)),
     }),
     route_updates: tool({
