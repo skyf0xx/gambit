@@ -6,8 +6,9 @@ import { composeInChat } from '../lib/compose';
 import { getSkillStore, skillFlows, type SkillStore } from '../lib/skills';
 import { TextAction, PencilWord } from './ui';
 
-/** "Set up focus and posture" → "Help me set up focus and posture". */
-const starter = (todo: string) => `Help me ${todo.charAt(0).toLowerCase()}${todo.slice(1)}`;
+/** "Check your own risk" → "Help me check my own risk": the todo speaks to the
+ * user, the starter speaks as the user. */
+const starter = (todo: string) => `Help me ${todo.charAt(0).toLowerCase()}${todo.slice(1)}`.replace(/\byour\b/g, 'my');
 
 /** What the goal says is due now, as pencilled links under the sticky
  * notes. Tapping one puts a starter in the chat composer; it never sends.
