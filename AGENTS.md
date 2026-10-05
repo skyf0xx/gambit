@@ -507,7 +507,9 @@ every goal write — same treatment, read them rather than duplicating them.
   elicitation checkpoint if it writes to the goal, and — if it writes a new
   key — a declared entry in `goalSchema` plus a matching entry in
   `packages/core/src/registry.mjs`.
-- Usage counts go to Umami Cloud through `track()` in
+- Anonymous usage tracking is allowed, and new features may add events.
+  Tracking stays anonymous: no cookies, no user or device id, and no
+  third-party analytics script or SDK. Counts go to Umami Cloud through `track()` in
   `apps/pwa/src/lib/analytics.ts`, which posts to `/u/api/send` (a
   `vercel.json` rewrite), so no third-party script runs in the page and the
   CSP stays `'self'`. An event carries only names and fixed words (a

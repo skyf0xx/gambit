@@ -13,7 +13,7 @@ The single entry point for the UX rethink: what Gambit is, where each decision l
 
 **Fixed constraints**
 - No backend, no accounts. Data stays in the browser.
-- Usage counts are anonymous and cookie-free (Umami Cloud, through a same-origin rewrite): event names and fixed words like a provider kind or skill name, never goal text, chat or the key. No third-party script runs in the page (`apps/pwa/src/lib/analytics.ts`).
+- Anonymous usage tracking is allowed: cookie-free counts in Umami Cloud, through a same-origin rewrite. An event carries its name and fixed words like a provider kind or skill name, never goal text, chat, a person's name or the key, and nothing that identifies a user. No third-party script runs in the page (`apps/pwa/src/lib/analytics.ts`).
 - A strict CSP. Network calls go only to the configured provider and the app's own origin, and fonts and assets are self-hosted.
 - A PWA that works mobile-first.
 - Skills and the goal schema change only as far as the user experience needs them to.

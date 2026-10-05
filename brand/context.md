@@ -13,7 +13,7 @@
 - **Their Language**: "I don't know where to start." "I keep going in circles." "I need someone to tell me if this is a bad idea." "What should I actually do this week?" "I have too many ideas and no plan."
 
 ## Positioning
-- **Differentiation**: Gambit writes things down and pushes back. Every conversation updates one living record of the goal: plan, risks, decisions, people and progress. It uses proven planning methods (premortems, red-teaming, negotiation prep, forecasting) without making the user learn them. It's private by construction: no account, no server, and data stays on the device.
+- **Differentiation**: Gambit writes things down and pushes back. Every conversation updates one living record of the goal: plan, risks, decisions, people and progress. It uses proven planning methods (premortems, red-teaming, negotiation prep, forecasting) without making the user learn them. It's private by construction: no account, no server, and data stays on the device. Usage is counted anonymously, with no cookies and never the content.
 - **Competitors**: ChatGPT and Claude used as general chat (the real default). Coaching apps and AI life coaches. Goal trackers and planners (Notion templates, habit apps).
 - **Market Position**: Niche. Free, open source, serious about thinking, modest in presentation.
 

@@ -42,7 +42,7 @@ Axes: **Forgets ← → Keeps a record** and **Agreeable ← → Candid**
 - **Methods, not vibes:** premortems, red-teaming, stakeholder mapping, negotiation prep, dated forecasts and after-action reviews. Each is a published skill in the repo.
 - **It keeps the page:** every session writes to one living page of the plan, risks, decisions and progress, and the page is the first thing you see.
 - **It pushes back:** the guided-session rules require pressure-testing before anything gets committed.
-- **Private by construction:** no account, no server, and data stays in the browser. The build locks down network calls, and the code is there to read.
+- **Private by construction:** no account, no server, and data stays in the browser. The build locks down network calls, and the code is there to read. Usage is counted anonymously (event names only, no cookies), never what anyone writes.
 - **Free:** open source. You pay your model provider directly, often a few dollars a month.
 
 ## 06 — What Gambit refuses to be
