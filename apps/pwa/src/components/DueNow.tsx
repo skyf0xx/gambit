@@ -2,16 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { dueNow } from '@gambit/core';
 import type { Goal } from '../lib/types';
 import { today } from '../lib/dates';
-import { composeInChat } from '../lib/compose';
+import { composeInChat, defineStarter } from '../lib/compose';
+import { RedRing } from './marks/RedRing';
 import { getSkillStore, skillFlows, type SkillStore } from '../lib/skills';
 import { TextAction, PencilWord } from './ui';
 
 /** "Check your own risk" → "Help me check my own risk": the todo speaks to the
  * user, the starter speaks as the user. */
-const starter = (todo: string) => `Help me ${lower(todo)}`.replace(/\byour\b/g, 'my');
-
-/** Lower-cases the first letter unless the word is an acronym ("NDA"). */
-const lower = (s: string) => (/^[A-Z][A-Z]/.test(s) ? s : `${s.charAt(0).toLowerCase()}${s.slice(1)}`);
+const starter = (todo: string) => `Help me ${todo.charAt(0).toLowerCase()}${todo.slice(1)}`.replace(/\byour\b/g, 'my');
 
 /** What the goal says is due now, as pencilled links under the sticky
  * notes. Tapping one puts a starter in the chat composer; it never sends.
@@ -34,10 +32,13 @@ export function DueNow({ goal }: { goal: Goal }) {
               <TextAction
                 className="text-left underline decoration-graphite/60 decoration-1"
                 circle={!define}
-                data-ring={define ? '' : undefined}
-                onClick={() => composeInChat(define && goal.goal.trim() ? `Help me ${lower(goal.goal.trim())}` : starter(d.todo))}
+                onClick={() => composeInChat(define ? defineStarter(goal.goal) : starter(d.todo))}
               >
-                <PencilWord className="text-[19px] text-ink">{d.todo}</PencilWord>
+                {define ? (
+                  <RedRing seed="define"><PencilWord className="text-[19px] text-ink">{d.todo}</PencilWord></RedRing>
+                ) : (
+                  <PencilWord className="text-[19px] text-ink">{d.todo}</PencilWord>
+                )}
               </TextAction>
             </li>
           );

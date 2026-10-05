@@ -4,7 +4,8 @@ import { db } from '../lib/db';
 import { runTurn, undoTurn } from '../lib/agent';
 import { TextAction } from './ui';
 import { useTornEdge } from './marks/torn';
-import { COMPOSE_EVENT } from '../lib/compose';
+import { COMPOSE_EVENT, composeInChat, defineStarter } from '../lib/compose';
+import { RedRing } from './marks/RedRing';
 import { takePendingSend } from '../lib/onboarding';
 import { Md } from './Md';
 import { ReplyView, Reasoning } from './Reply';
@@ -202,6 +203,7 @@ function Fleeting({ ms = 10000, onGone, children }: { ms?: number; onGone?: () =
 
 export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: ChatProps) {
   const chat = useLiveQuery(() => db.chats.get(goalId), [goalId]);
+  const goalText = useLiveQuery(async () => (stub ? (await db.goals.get(goalId))?.title ?? '' : ''), [goalId, stub]);
   const [input, setInputState] = useState(() => loadDraft(goalId));
   const setInput = (v: string) => { setInputState(v); saveDraft(goalId, v); };
   const [canDictate] = useState(dictationSupported);
@@ -551,9 +553,16 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
         </p>
       )}
       {display.length === 0 && !busy && (
-        <p className="mx-auto mt-10 max-w-sm text-center text-[14px] text-graphite">
-          {stub ? 'What do you want to achieve?' : 'Ask anything.'}
-        </p>
+        <div className="mx-auto mt-10 max-w-sm space-y-4 text-center">
+          <p className="text-[14px] text-graphite">{stub ? 'What do you want to achieve?' : 'Ask anything.'}</p>
+          {/* A new goal's first move, the same red-ringed suggestion the
+             Moves page shows, so it's in sight before the page is. */}
+          {stub && (
+            <TextAction circle={false} className="underline decoration-graphite/60 decoration-1" onClick={() => composeInChat(defineStarter(goalText ?? ''))}>
+              <RedRing seed="define"><span className="hand text-[19px] text-ink">Define the goal</span></RedRing>
+            </TextAction>
+          )}
+        </div>
       )}
       {display.map((m) =>
         m.role === 'user' ? (

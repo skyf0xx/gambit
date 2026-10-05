@@ -1,3 +1,4 @@
+import { isStub } from '@gambit/core';
 import type { Goal } from '../../lib/types';
 import { IndexCard } from '../IndexCard';
 import { PostureLine } from '../PostureLine';
@@ -12,6 +13,9 @@ const DEFAULT_SECTIONS = ['plan'] as const;
  * deadline and "what done looks like" live on the Goal tab, and the log
  * on the Logs tab — Moves is about doing, not defining. */
 export function MovesTab({ g, goalId }: { g: Goal; goalId: string }) {
+  // A new goal has one move to make: defining it. Everything else here is
+  // empty until it is, so only that suggestion shows.
+  if (isStub(g)) return <DueNow goal={g} />;
   const showPlan = !isEmptySection(g.plan) || DEFAULT_SECTIONS.includes('plan');
   return (
     <>
