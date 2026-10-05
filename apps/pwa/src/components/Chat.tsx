@@ -663,7 +663,7 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
   // height is reserved as bottom padding on the page (App.tsx) so it never
   // covers the page's last content.
   if (!open && !closing) {
-    return <div ref={collapsedRef} tabIndex={-1} className="fixed inset-x-0 bottom-0 z-20 outline-none" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>{composer}</div>;
+    return <div ref={collapsedRef} tabIndex={-1} data-bottom-dock="" className="fixed inset-x-0 bottom-0 z-20 outline-none" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>{composer}</div>;
   }
 
   return (

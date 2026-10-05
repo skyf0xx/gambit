@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { TAB_LABELS, type TabId } from './tabDefs';
 
 // The tab strip itself: paper folder-dividers sticking out of the page's
@@ -59,6 +59,42 @@ export function DividerTabs({
   changedTabs: Set<TabId>;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Caps the strip at what's actually visible: from the top of the page's
+  // scroller to its bottom, or to the top of a bottom dock fixed over it
+  // (the mobile composer, `data-bottom-dock`), whichever is higher. A
+  // plain 100dvh runs past both, leaving the last tabs out of reach.
+  useEffect(() => {
+    const strip = scrollRef.current;
+    if (!strip) return;
+    let scroller = strip.parentElement;
+    while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) scroller = scroller.parentElement;
+    if (!scroller) return;
+    const fit = () => {
+      const box = scroller.getBoundingClientRect();
+      let bottom = box.bottom;
+      document.querySelectorAll('[data-bottom-dock]').forEach((dock) => {
+        const r = dock.getBoundingClientRect();
+        if (r.height > 0 && r.top < bottom) bottom = r.top;
+      });
+      strip.style.maxHeight = `${Math.max(bottom - box.top, TAB_SIZE * 2)}px`;
+    };
+    const ro = new ResizeObserver(fit);
+    const watch = () => {
+      ro.disconnect();
+      ro.observe(scroller);
+      document.querySelectorAll('[data-bottom-dock]').forEach((dock) => ro.observe(dock));
+      fit();
+    };
+    watch();
+    // The dock mounts and unmounts as the chat opens, closes or steps aside.
+    let frame = 0;
+    const mo = new MutationObserver(() => { cancelAnimationFrame(frame); frame = requestAnimationFrame(watch); });
+    mo.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('resize', fit);
+    return () => { ro.disconnect(); mo.disconnect(); cancelAnimationFrame(frame); window.removeEventListener('resize', fit); };
+  }, []);
 
   const move = (delta: number) => {
     const i = tabs.indexOf(active);
@@ -83,7 +119,7 @@ export function DividerTabs({
        * compute the other axis as non-visible too (CSS overflow spec),
        * which would otherwise clip each tab's own negative margin-left
        * (how they tuck behind one another and behind the page edge). */}
-      <div className="tab-strip-scroll flex flex-col">
+      <div ref={scrollRef} className="tab-strip-scroll flex flex-col">
         <div ref={listRef} role="tablist" aria-label="Notebook sections" aria-orientation="vertical" onKeyDown={onKeyDown} className="flex flex-col">
           {tabs.map((t, i) => {
             const isActive = t === active;
@@ -161,7 +197,8 @@ export function DividerTabs({
           /* The full stack at 102px a tab can exceed a short viewport's
              height once the top padding and safe areas are subtracted, so
              it scrolls vertically within itself instead of overflowing the
-             screen or forcing page scroll. */
+             screen or forcing page scroll. The script above narrows this
+             to the visible area, above the mobile composer. */
           overflow-y: auto;
           max-height: 100dvh;
           scrollbar-width: none;
