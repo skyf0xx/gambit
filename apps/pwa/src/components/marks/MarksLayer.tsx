@@ -403,6 +403,14 @@ export function MarksLayer() {
       drawStroke(ellipsePoints(unionBox(lines), hashSeed(`selected:${i}`), 1.05, [9, 5]), over, { size: 1.6, thinning: 0.5 });
     });
 
+    // A suggestion that must not be missed (defining a new goal) stays
+    // circled in the accent: any [data-ring] gets a resting red ring.
+    host.querySelectorAll('[data-ring]').forEach((el, i) => {
+      const lines = lineRects(el, origin);
+      if (!lines.length) return;
+      drawStroke(ellipsePoints(unionBox(lines), hashSeed(`ring:${i}`), 1.05, [9, 5]), over, { color: accent, size: 2, thinning: 0.5 });
+    });
+
     // Hover circles: delegated pointerenter/focusin on [data-circle].
     const circles = new Map<Element, { g: SVGGElement; fadeTimer?: ReturnType<typeof setTimeout> }>();
     const onEnter = (e: Event) => {
