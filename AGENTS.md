@@ -352,7 +352,7 @@ plain todo plus, optionally:
   dropped. The event is one phrase of at most 8 words (`BRANCH_MAX_WORDS`),
   with no leading "if", no colon, semicolon or second sentence, and no
   absence in headline form ("names no", "sets no": say "hasn't set"
-  instead); `writeSection` saves it starting in lower case unless its first
+  instead), and no "by then" (the date goes in `by`); `writeSection` saves it starting in lower case unless its first
   word is a name. The reading-grade check can't catch a run-on or
   headline-speak line of short words, so these are rules of their own, on
   the write path only.
@@ -363,7 +363,9 @@ as overdue, or go on the calendar. Links point at real tasks and never loop.
 A conditional task is a fork: its move is one the user wouldn't make
 otherwise, so one saying the plan carries on ("anyway", "still", "keep
 chasing", "continue"), or matching a move already in the plan
-unconditionally, is refused. The focus line (else the first) must carry at
+unconditionally, is refused, and so is one whose move restates its
+condition ("if nothing lands", "by then", "unless", "otherwise"): the page
+already shows it as "if … then …". The focus line (else the first) must carry at
 least one conditional task, and a `plan` write without one is refused
 (page edits are let through, since they change one line's text, not the
 plan's shape). A line with no natural fork carries the one every plan has:
@@ -425,7 +427,7 @@ reword a move, milestone, success criterion, sub-goal, the goal
 sentence, a risk, what a person is doing, or an open decision's question.
 They can also add a `pending` move, and tick, keep or toss one, mark a sent
 message replied (`markReplied`), and settle a waiting fork as happened or
-not (`resolveFork`). Names stay chat-only, because they keep `people` and
+not (`resolveFork`: "do this now" or "not needed" on the page, each with an undo that sets it waiting again). Names stay chat-only, because they keep `people` and
 `stakeholders` apart. A decided decision changes only through `decide`,
 and the links between tasks only through `plan`. Forecasts and experiments aren't
 editable at all, because their worth is being fixed in advance; nor are

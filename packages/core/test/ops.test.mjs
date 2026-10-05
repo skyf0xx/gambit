@@ -441,6 +441,10 @@ test('a fork is a move made only if its event happens, said plainly', () => {
   assert.match(errs(writeSection(mapped, 'plan', line([{ action: 'Send the follow-up letter', who: 'me' }, fork({ action: 'Send the follow-up letter' })]))).join(), /already happens whatever the condition/);
   assert.match(errs(writeSection(mapped, 'plan', line([fork({ if: { event: "council's reply names no chase to rail" } })]))).join(), /names something missing/);
   assert.match(errs(writeSection(mapped, 'plan', line([fork({ if: { event: 'if the council offers a one-off clean-up of the tunnel this month' } })]))).join(), /words; keep it to 8.*drop the leading "if"/);
+  assert.match(errs(writeSection(mapped, 'plan', line([fork({ action: 'Take a floor job if nothing lands by then' })]))).join(), /"if nothing" restates the condition/);
+  assert.match(errs(writeSection(mapped, 'plan', line([fork({ action: 'Rethink the approach unless sign-ups pick up' })]))).join(), /"unless" restates the condition/);
+  assert.match(errs(writeSection(mapped, 'plan', line([fork({ if: { event: 'no live staff role by then' } })]))).join(), /"by then" points at nothing/);
+  assert.deepEqual(errs(writeSection(mapped, 'plan', line([fork({ action: 'Ask if the hall is free' })]))), []);
 });
 
 test('markReplied and resolveFork settle a message and a fork from the page', () => {
@@ -454,6 +458,20 @@ test('markReplied and resolveFork settle a message and a fork from the page', ()
   assert.equal(core.resolveFork(g, path(2), true).goal.plan.linesOfOperation[0].nextActions[2].if.happened, true);
   assert.equal(core.resolveFork(g, path(2), false).goal.plan.linesOfOperation[0].nextActions[2].status, 'dropped');
   assert.match(core.resolveFork(g, path(1), true).errors[0].message, /waits on no event/);
+  // Either settle can be taken back: the task waits on its event again.
+  const live = core.resolveFork(g, path(2), true).goal;
+  const unlive = core.resolveFork(live, path(2), null).goal.plan.linesOfOperation[0].nextActions[2];
+  assert.equal(unlive.if.happened, undefined);
+  assert.equal(unlive.status, 'pending');
+  const back = core.resolveFork(core.resolveFork(g, path(2), false).goal, path(2), null).goal.plan.linesOfOperation[0].nextActions[2];
+  assert.equal(back.status, 'pending');
+  assert.match(core.resolveFork(setStatus(live, path(2), 'done').goal, path(2), null).errors[0].message, /untick it first/);
+});
+
+test('a move reads in lower case after the page\'s "then", names kept', () => {
+  assert.equal(core.afterThen(mapped, 'Take a floor job'), 'take a floor job');
+  assert.equal(core.afterThen({ people: [{ name: 'Sarah Lee' }], stakeholders: [] }, 'Sarah signs it off'), 'Sarah signs it off');
+  assert.equal(core.afterThen(mapped, 'TfNSW reviews it'), 'TfNSW reviews it');
 });
 
 test('a message to someone the goal no longer holds is flagged', () => {

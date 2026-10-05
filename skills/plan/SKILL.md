@@ -163,7 +163,10 @@ Friday", "council offers a one-off clean"). The move is one the user would not m
 otherwise. Test it: if the event never happened, would they still do this move? If yes,
 it forks nothing. "Under five signed → send the follow-up anyway" fails, and a fork
 whose move already sits in the plan unconditionally, or says "anyway", "still" or "keep
-chasing", is refused. The user's own routine ("take the weekly photo") is a plain dated
+chasing", is refused. The page shows a fork as "if [event] / then [move]", so the move
+never restates its condition: "Take a floor job", not "Take a floor job if nothing lands
+by then". The event names its own date or leaves it to `by`: "no staff offer by
+mid-December", never "no live staff role by then". The user's own routine ("take the weekly photo") is a plain dated
 move, never a fork; the due list flags it when it slips.
 
 Skip escalations when nobody else's decision is involved: a picnic or a running habit

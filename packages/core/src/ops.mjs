@@ -167,6 +167,14 @@ const personKey = (name) => name.trim().toLowerCase();
  * who actually holds the authority. A fork leads to a move that isn't
  * already in the plan unconditionally, or it forks nothing.
  */
+// The page writes a conditional task as "if [event] / then [move]", so a
+// move that restates its condition ("take a floor job if nothing lands by
+// then") says it twice, and an event's "by then" points at nothing above it.
+// Skill writes only, like the rest of planShape: a page tap on a plan
+// written before these rules still goes through.
+const RESTATED = /\b(by then|unless|otherwise|if (nothing|no|not|none)\b)/i;
+const VAGUE_WHEN = /\bby (then|that point|that time|that date|that stage)\b/i;
+
 function planShape(plan, goal) {
   const errors = [];
   const focus = focusLineOf(plan);
@@ -187,6 +195,20 @@ function planShape(plan, goal) {
       });
     }
     if (task.if) {
+      const restated = task.action.match(RESTATED);
+      if (restated) {
+        errors.push({
+          path: `${path}.action`,
+          message: `"${restated[0]}" restates the condition; the page shows it above the move as "if … then …", so write only the move`,
+        });
+      }
+      const vague = 'event' in task.if && task.if.event.match(VAGUE_WHEN);
+      if (vague) {
+        errors.push({
+          path: `${path}.if.event`,
+          message: `"${vague[0]}" points at nothing on the page; put the date in by, or name it ("no offer by mid-December")`,
+        });
+      }
       const twin = tasks.find((o) => !o.task.if && o.task.status !== 'dropped' && (plainKey(o.task.action) === plainKey(task.action) || sameLine(o.task.action, task.action)));
       if (twin) {
         errors.push({
@@ -217,8 +239,18 @@ function lowerLead(text, names) {
   return first[0].toLowerCase() + text.slice(1);
 }
 
+const firstNames = (goal) => new Set([...(goal.people ?? []), ...(goal.stakeholders ?? [])].map((p) => personKey(p.name).split(/\s+/)[0]));
+
+/**
+ * A move as it reads after the page's "then" ("then take a floor job"):
+ * lower case unless its first word is a name, as with a fork's event.
+ */
+export function afterThen(goal, action) {
+  return lowerLead(action, firstNames(goal));
+}
+
 function lowerEvents(plan, goal) {
-  const names = new Set([...goal.people, ...goal.stakeholders].map((p) => personKey(p.name).split(/\s+/)[0]));
+  const names = firstNames(goal);
   for (const { task } of tasksOf(plan)) {
     if (task.if && 'event' in task.if) task.if.event = lowerLead(task.if.event, names);
   }
@@ -415,14 +447,20 @@ export function markReplied(goal, path, today = new Date().toISOString().slice(0
 
 /**
  * Settle a fork: its event happened (the task goes live) or it didn't (the
- * task is dropped).
+ * task is dropped). `null` unsettles it, so a mis-tap can be taken back: the
+ * task waits on its event again.
+ * @param {boolean | null} happened
  */
 export function resolveFork(goal, path, happened) {
   const { task, error } = taskAt(goal, path);
   if (error) return { ok: false, errors: [error] };
   if (!task.if || !('event' in task.if)) return { ok: false, errors: [{ path, message: 'this task waits on no event' }] };
+  if (happened === null && task.status === 'done') return { ok: false, errors: [{ path, message: 'this move is done; untick it first' }] };
   return writeTask(goal, path, (t) => {
-    if (happened) t.if.happened = true;
+    if (happened === null) {
+      delete t.if.happened;
+      if (t.status === 'dropped') t.status = 'pending';
+    } else if (happened) t.if.happened = true;
     else t.status = 'dropped';
   });
 }

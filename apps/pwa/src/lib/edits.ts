@@ -4,6 +4,7 @@ import { db, type ChatRecord } from './db';
 import { applyOp, type OpResult } from './goals';
 import type { LinePath } from './changes';
 import { today } from './dates';
+import { session } from './session';
 import type { Goal } from './types';
 
 // Edits the user makes on the page itself, outside the chat. Each one is
@@ -83,11 +84,25 @@ export async function markTaskReplied(goalId: string, path: LinePath): Promise<O
   return res;
 }
 
-/** Settle a fork: its event happened (the task goes live) or didn't (dropped). */
-export async function settleFork(goalId: string, path: LinePath, happened: boolean): Promise<OpResult> {
-  const res = await applyOp(goalId, (g) => resolveFork(g, path, happened) as never);
-  if (res.ok) await recordEdit(goalId, { path, kind: 'status', label: lineText(res.goal, path), before: 'waiting on its event', after: happened ? 'event happened' : 'event did not happen, dropped' });
+/** Settle a fork: its event happened (the task goes live) or didn't
+ * (dropped, and erased on the page for this session, where its undo sits).
+ * `null` takes a settle back: the task waits on its event again. */
+export async function settleFork(goalId: string, path: LinePath, happened: boolean | null): Promise<OpResult> {
+  let before = 'waiting on its event';
+  const res = await applyOp(goalId, (g) => {
+    const task = lineTask(g, path);
+    if (happened === null) before = task?.status === 'dropped' ? 'not needed, dropped' : 'event happened';
+    return resolveFork(g, path, happened) as never;
+  });
+  if (!res.ok) return res;
+  if (happened === false) session.markDropped(goalId, path);
+  const after = happened === null ? 'waiting on its event again (undone)' : happened ? 'event happened, move is live' : 'not needed, dropped';
+  await recordEdit(goalId, { path, kind: 'status', label: lineText(res.goal, path), before, after });
   return res;
+}
+
+function lineTask(goal: Goal, path: LinePath): { status?: string } | undefined {
+  return path.split('.').reduce<unknown>((n, p) => (n && typeof n === 'object' ? (n as Record<string, unknown>)[p] : undefined), goal) as { status?: string } | undefined;
 }
 
 /** The queued edits as the lines of the turn's state block, or ''. */

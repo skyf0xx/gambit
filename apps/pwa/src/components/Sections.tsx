@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { rendererForSection, isEditableLine, taskState, milestoneReached, NEXT_ACTIONS_MAX } from '@gambit/core';
+import { rendererForSection, isEditableLine, taskState, milestoneReached, afterThen, NEXT_ACTIONS_MAX } from '@gambit/core';
 import { setLineStatus, addMove, markTaskReplied, settleFork } from '../lib/edits';
 import { useSession } from '../lib/session';
 import { useLineMark, useMarksContext } from './marks/context';
@@ -240,6 +240,7 @@ function ItemFooter({ when, late, action }: { when?: string; late?: boolean; act
 }
 
 const isDue = (d?: string) => { const n = d ? daysUntil(d) : null; return n !== null && n <= 0; };
+const early = (d?: string) => { const n = d ? daysUntil(d) : null; return n !== null && n > 0; };
 const isLate = (d?: string) => { const n = d ? daysUntil(d) : null; return n !== null && n < 0; };
 
 /** A Bets section split in two under pencilled status labels — the
@@ -560,6 +561,8 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
   // too, so the milestone it works toward isn't left with nothing above it.
   // Its detail shows on the card only.
   const byId = new Map(lines.flatMap((l: Any) => l.nextActions).filter((a: Any) => a.id).map((a: Any) => [a.id, a]));
+  // People and stakeholders, so a move after "then" keeps a name's capital.
+  const goal = marks?.goal ?? ({ people: [], stakeholders: [] } as unknown as Goal);
 
   const body = (li: number) => {
     const l = lines[li];
@@ -571,7 +574,9 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     // A message that went out and hasn't been answered is still in play: it
     // waits for a reply, marked ✉, rather than ticked done.
     const awaiting = (a: Any) => a.status === 'done' && a.to && !a.replied;
-    const isFork = (a: Any) => stateOf(a) === 'waiting' && a.if && 'event' in a.if;
+    // A fork set aside as not needed stays in its place for this session,
+    // struck through, with its undo.
+    const isFork = (a: Any) => (stateOf(a) === 'waiting' || a.status === 'dropped') && a.if && 'event' in a.if;
     // An escalation still waiting shows only in its message's "if no reply"
     // line, so it gets no row of its own.
     const isChained = (a: Any) => stateOf(a) === 'waiting' && a.if && 'noReply' in a.if;
@@ -616,15 +621,24 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
               : <span>{msg?.to ?? 'they'} {msg?.to ? "doesn't" : "don't"} reply in {a.if.days} days</span>}
             {fork && a.if.by && <span className="text-[14px] text-graphite"> · check {byDate(a.if.by)}</span>}
             <br />
-            <span className="text-graphite">then </span><span>{a.action}</span>
+            <span className="text-graphite">then </span><span>{afterThen(goal, a.action)}</span>
             {a.to && <span className="text-[14px] text-graphite"> · to {a.to}</span>}
           </Line>
-          {editable && fork && (
-            <div className="flex gap-x-4 text-[14px]">
-              <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, true)}>it happened</TextAction>
-              <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, false)}>it didn’t</TextAction>
+          {editable && fork && (a.status === 'dropped' ? (
+            <div className="flex gap-x-4 text-[14px] text-graphite">
+              <span>not needed</span>
+              <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, null)}>undo</TextAction>
             </div>
-          )}
+          ) : (
+            // Named by what each does to the move, not by the event, so a
+            // negative event ("no offer by mid-December") never makes a
+            // double negative. Before the check date, "not needed" is the
+            // quieter one: an absence can't be known until then.
+            <div className="flex gap-x-4 text-[14px]">
+              <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, true)}>do this now</TextAction>
+              <TextAction className={`-my-2 underline ${early(a.if.by) ? 'text-graphite' : ''}`} onClick={() => void settleFork(goalId, path, false)}>not needed</TextAction>
+            </div>
+          ))}
         </MarkedRow>
       );
     };
@@ -674,6 +688,12 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
           {a.status !== 'done' && <ChainLine chain={chainAfter(a, tasks)} />}
           {opens.length > 0 && <div className="text-[14px] leading-5 text-graphite">→ {opens.join(', ')}</div>}
           {a.replied && <div className="text-[14px] leading-5 text-graphite">replied {pencilDate(a.replied)}{a.reply ? `: “${a.reply}”` : ''}</div>}
+          {a.if?.happened && a.status !== 'done' && (
+            <div className="text-[14px] leading-5 text-graphite">
+              because {a.if.event}
+              {editable && <> · <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, null)}>undo</TextAction></>}
+            </div>
+          )}
           {path === detailFor && <Detail>{a.detail}</Detail>}
         </Toggle>
       );

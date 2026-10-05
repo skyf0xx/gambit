@@ -152,7 +152,9 @@ describe('notebook page markup', () => {
     expect(html).not.toContain('data-line="plan.linesOfOperation.0.nextActions.5"');
     expect(html).toContain('under 10 sign-ups');
     expect(html).toContain('check Sun 1 Nov 2099');
-    expect(html).toContain('it didn’t');
+    expect(html).toContain('>do this now<');
+    expect(html).toContain('>not needed<');
+    expect(html).not.toContain('it didn’t');
     expect(html).toContain('Book the hall → </span><span>Print the flyers');
     // Waiting, fork and later rows put their marker in the tick-box column.
     for (const mark of ['✉', '↳', '•']) expect(html).toContain(`<span class="w-11 shrink-0 text-center text-graphite" aria-hidden="true">${mark}</span>`);
@@ -202,12 +204,13 @@ describe('notebook page markup', () => {
     ] }] });
     // Each milestone has its move above it, even when that move is conditional.
     // (The escalation also shows in its message's "if no reply" line, earlier on.)
-    const order = ['Ask Cr Blackmore to raise it in public', 'Cr Blackmore asks in the minutes', 'Formal complaint to TfNSW', 'Sydney Trains asked in writing', '>if things change<', 'Rethink the approach'].map((t) => html.lastIndexOf(t));
+    // A move after "then" starts in lower case.
+    const order = ['ask Cr Blackmore to raise it in public', 'Cr Blackmore asks in the minutes', 'formal complaint to TfNSW', 'Sydney Trains asked in writing', '>if things change<', 'then </span><span>rethink the approach'].map((t) => html.lastIndexOf(t));
     expect(order.every((n) => n >= 0)).toBe(true);
     expect([...order].sort((x, y) => x - y)).toEqual(order);
     expect(html).toContain('Sydney Trains doesn&#x27;t reply in 14 days');
     // A fork that reaches no milestone stays under "if things change", once.
-    expect(html.match(/Ask Cr Blackmore to raise it in public/g)).toHaveLength(1);
+    expect(html.match(/ask Cr Blackmore to raise it in public/gi)).toHaveLength(1);
   });
 
   it('labels no groups when a line has only moves to make', () => {

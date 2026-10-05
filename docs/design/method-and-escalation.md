@@ -148,7 +148,7 @@ needed except for forks:
 
 if things change
 ↳  if under 10 sign-ups · check Sun 1 Nov
-      then Door-knock the street first            it happened  it didn't
+      then Door-knock the street first            do this now  not needed
 ```
 
 A task a milestone lists stays in that milestone's stretch, whatever kind it is, so no
