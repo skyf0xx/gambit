@@ -135,7 +135,9 @@ describe('notebook page markup', () => {
     expect((html.match(/<path d="M6 0\.9[^"]*" fill="currentColor"/g) ?? []).length).toBe(1);
     expect((html.match(/<path d="M6 0\.9[^"]*" fill="none"/g) ?? []).length).toBe(2);
     expect(html).not.toContain('⚑');
-    expect(html).toContain('Clean-up date set → </span><span>Walk the site with the crew');
+    // A task waiting on the milestone ruled directly above it points up
+    // rather than naming it twice.
+    expect(html).toContain('↑ then </span><span>Walk the site with the crew');
     // The top move is on the card and in its place in the list, unlabelled;
     // it shows what it unlocks.
     expect(html.indexOf('Take the weekly photos')).toBeLessThan(html.indexOf('data-milestone="current"'));
@@ -152,9 +154,9 @@ describe('notebook page markup', () => {
     expect(html).not.toContain('data-line="plan.linesOfOperation.0.nextActions.5"');
     expect(html).toContain('under 10 sign-ups');
     expect(html).toContain('check Sun 1 Nov 2099');
-    expect(html).toContain('>do this now<');
-    expect(html).toContain('>not needed<');
-    expect(html).not.toContain('it didn’t');
+    // Weeks before its check date, a fork's settle buttons wait behind a tap.
+    expect(html).toContain('>know already?<');
+    expect(html).not.toContain('>do this now<');
     expect(html).toContain('Book the hall → </span><span>Print the flyers');
     // Waiting, fork and later rows put their marker in the tick-box column.
     for (const mark of ['✉', '↳', '•']) expect(html).toContain(`<span class="w-11 shrink-0 text-center text-graphite" aria-hidden="true">${mark}</span>`);
@@ -188,7 +190,7 @@ describe('notebook page markup', () => {
     expect(order.every((n) => n >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     expect(unticked).toMatch(/data-box="plan\.linesOfOperation\.0\.nextActions\.0"[^>]*data-checked/);
-    expect(unticked).toContain('Sydney Trains has heard it → </span><span>Lodge the TfNSW complaint');
+    expect(unticked).toContain('↑ then </span><span>Lodge the TfNSW complaint');
   });
 
   it('keeps a fork or escalation in the stretch of the milestone it reaches', () => {

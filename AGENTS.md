@@ -365,7 +365,9 @@ otherwise, so one saying the plan carries on ("anyway", "still", "keep
 chasing", "continue"), or matching a move already in the plan
 unconditionally, is refused, and so is one whose move restates its
 condition ("if nothing lands", "by then", "unless", "otherwise"): the page
-already shows it as "if … then …". The focus line (else the first) must carry at
+already shows it as "if … then …". A line holds one fork per question:
+a second fork whose event repeats another's, or a second one waiting on
+something not happening ("no offer by …", "hasn't set …"), is refused. The focus line (else the first) must carry at
 least one conditional task, and a `plan` write without one is refused
 (page edits are let through, since they change one line's text, not the
 plan's shape). A line with no natural fork carries the one every plan has:

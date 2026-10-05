@@ -130,15 +130,19 @@ function EditedTag() {
  * normally reads (it may carry dates or marks). The edit starts from, and is
  * checked against, the stored text: the page shows ISO dates as prose, so
  * the displayed `value` is only the fallback outside a goal's page. */
-export function EditableText({ goalId, path, value, children, className = '', maxWords }: {
+export function EditableText({ goalId, path, value, children, className = '', maxWords, quiet = false }: {
   goalId: string;
   path: string;
   value: string;
   children: ReactNode;
   className?: string;
   maxWords?: number;
+  /** On a touch screen, keep the pencil hidden until the text is tapped,
+   * for lines drawn quieter than the rest (a milestone). */
+  quiet?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
+  const [shown, setShown] = useState(false);
   const [pressed, setPressed] = useState(false);
   const edited = useEditedPaths(goalId).has(path);
   const goal = useMarksContext()?.goal;
@@ -162,6 +166,7 @@ export function EditableText({ goalId, path, value, children, className = '', ma
   return (
     <span className={`group/edit ${className}`}>
       <span
+        onClick={quiet ? () => setShown((v) => !v) : undefined}
         // Reuses the press keyframe (styles.css) as the "saved" settle;
         // reduced motion collapses it through the catch-all there.
         style={pressed ? { animation: 'press-scale var(--dur-press) ease-out', display: 'inline-block' } : undefined}
@@ -174,7 +179,7 @@ export function EditableText({ goalId, path, value, children, className = '', ma
         type="button"
         aria-label={`Edit: ${value}`}
         onClick={(e) => { e.stopPropagation(); setEditing(true); }}
-        className="relative -my-2 -mr-2 ml-0 inline-flex cursor-pointer items-center bg-transparent p-2 align-middle text-graphite opacity-50 transition-opacity duration-150 focus-visible:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/edit:opacity-100"
+        className={`${quiet && !shown ? '[@media(hover:none)]:hidden ' : ''}relative -my-2 -mr-2 ml-0 inline-flex cursor-pointer items-center bg-transparent p-2 align-middle text-graphite opacity-50 transition-opacity duration-150 focus-visible:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/edit:opacity-100`}
       >
         <Pencil />
       </button>

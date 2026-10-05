@@ -166,7 +166,9 @@ whose move already sits in the plan unconditionally, or says "anyway", "still" o
 chasing", is refused. The page shows a fork as "if [event] / then [move]", so the move
 never restates its condition: "Take a floor job", not "Take a floor job if nothing lands
 by then". The event names its own date or leaves it to `by`: "no staff offer by
-mid-December", never "no live staff role by then". The user's own routine ("take the weekly photo") is a plain dated
+mid-December", never "no live staff role by then". One fork per question on a line: two
+forks waiting on something not happening ("no offer by December", "no role yet") are
+refused; keep the one with the earlier date. The user's own routine ("take the weekly photo") is a plain dated
 move, never a fork; the due list flags it when it slips.
 
 Skip escalations when nobody else's decision is involved: a picnic or a running habit

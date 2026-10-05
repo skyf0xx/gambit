@@ -445,6 +445,9 @@ test('a fork is a move made only if its event happens, said plainly', () => {
   assert.match(errs(writeSection(mapped, 'plan', line([fork({ action: 'Rethink the approach unless sign-ups pick up' })]))).join(), /"unless" restates the condition/);
   assert.match(errs(writeSection(mapped, 'plan', line([fork({ if: { event: 'no live staff role by then' } })]))).join(), /"by then" points at nothing/);
   assert.deepEqual(errs(writeSection(mapped, 'plan', line([fork({ action: 'Ask if the hall is free' })]))), []);
+  // One question, one fork per line.
+  assert.match(errs(writeSection(mapped, 'plan', line([fork({ action: 'Take a floor job', if: { event: 'no staff offer by mid-December' } }), fork({ action: 'Rethink the approach', if: { event: 'no live staff role yet', by: '2026-12-01' } })]))).join(), /asks the same question as "no staff offer by mid-December"/);
+  assert.match(errs(writeSection(mapped, 'plan', line([fork(), fork({ action: 'Ask for the date in writing' })]))).join(), /asks the same question/);
 });
 
 test('markReplied and resolveFork settle a message and a fork from the page', () => {

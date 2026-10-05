@@ -218,8 +218,29 @@ function planShape(plan, goal) {
       }
     }
   }
+  // Two forks on one line that wait on the same thing, or on two versions
+  // of nothing happening ("no staff offer by mid-December", "no live staff
+  // role by then"), leave the user two checks for one question.
+  const forks = tasks.filter((t) => t.task.status !== 'dropped' && t.task.if && 'event' in t.task.if);
+  forks.forEach((t, i) => {
+    const twin = forks.slice(0, i).find((o) => o.li === t.li && (
+      plainKey(o.task.if.event) === plainKey(t.task.if.event)
+      || sameLine(o.task.if.event, t.task.if.event)
+      || (ABSENCE_EVENT.test(o.task.if.event) && ABSENCE_EVENT.test(t.task.if.event))
+    ));
+    if (twin) {
+      errors.push({
+        path: `${t.path}.if.event`,
+        message: `"${t.task.if.event}" asks the same question as "${twin.task.if.event}" on this line; keep one fork, with the earlier date, or name a different event`,
+      });
+    }
+  });
   return errors;
 }
+
+// An event that is something not happening: "no offer by …", "nothing
+// signed", "hasn't set a date".
+const ABSENCE_EVENT = /^(no|nothing|not|none|hasn['’]t|haven['’]t|isn['’]t|aren['’]t|didn['’]t|doesn['’]t)\b/i;
 
 const plainKey = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 

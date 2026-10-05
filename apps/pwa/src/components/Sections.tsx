@@ -106,12 +106,12 @@ function ChangeNote({ goalId, path }: { goalId: string; path: string }) {
 
 /** A single markable line: text with its data-line hook, sr mark text, an
  * optional "→ Name" pencilled after it, and the change note beneath. */
-function Line({ goalId, path, alias, className = '', edit, children }: { goalId: string; path: string; alias?: string; className?: string; edit?: { value: string }; children: ReactNode }) {
+function Line({ goalId, path, alias, className = '', edit, children }: { goalId: string; path: string; alias?: string; className?: string; edit?: { value: string; quiet?: boolean }; children: ReactNode }) {
   const mark = useLineMark(path);
   return (
     <div>
       <span data-line={path} data-alias={alias} className={`${mark.pencil ? 'pencil' : ''} ${className}`}>
-        {edit ? <EditableText goalId={goalId} path={path} value={edit.value}>{children}</EditableText> : children}
+        {edit ? <EditableText goalId={goalId} path={path} value={edit.value} quiet={edit.quiet}>{children}</EditableText> : children}
         <FreshTag path={path} />
         <MarkSr path={path} />
         {mark.kind === 'arrow-text' && mark.toName && <PencilWord className="ml-1">{`→ ${mark.toName}`}</PencilWord>}
@@ -241,6 +241,8 @@ function ItemFooter({ when, late, action }: { when?: string; late?: boolean; act
 
 const isDue = (d?: string) => { const n = d ? daysUntil(d) : null; return n !== null && n <= 0; };
 const early = (d?: string) => { const n = d ? daysUntil(d) : null; return n !== null && n > 0; };
+/** How many days before its check date a fork's settle buttons show. */
+const FORK_CHECK_DAYS = 7;
 const isLate = (d?: string) => { const n = d ? daysUntil(d) : null; return n !== null && n < 0; };
 
 /** A Bets section split in two under pencilled status labels — the
@@ -341,7 +343,7 @@ function MilestoneRule({ goalId, path, step, editable, stage, reachedOn }: {
         <span className="ml-[3px] flex h-[22px] items-center"><Diamond filled={stage === 'passed'} /></span>
       </span>
       <div className="min-w-0 shrink pr-2">
-        <Line goalId={goalId} path={path} className="font-medium" edit={editable && isEditableLine(path) ? { value: step.label } : undefined}><span>{step.label}</span></Line>
+        <Line goalId={goalId} path={path} className="font-medium" edit={editable && isEditableLine(path) ? { value: step.label, quiet: true } : undefined}><span>{step.label}</span></Line>
         {stage === 'passed' && reachedOn && <span className="text-[14px] text-graphite">reached {pencilDate(reachedOn)}</span>}
         <span className="sr-only">{stage === 'passed' ? ' (milestone, reached)' : stage === 'current' ? ' (milestone, next)' : ' (milestone, further on)'}</span>
       </div>
@@ -506,6 +508,8 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
   // The line the user picked, or null when nothing has been picked yet and
   // the default applies.
   const [picked, setPicked] = useState<number | null>(gotoLine);
+  // Forks whose settle buttons the user opened before their check week.
+  const [unfolded, setUnfolded] = useState<ReadonlySet<string>>(() => new Set());
 
   // A goto into a closed line opens it — adjusted during render, not in an
   // effect, so its rows are already in the DOM when Tabs.tsx looks for the
@@ -607,8 +611,15 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     const forks = visible.filter(({ a }) => isFork(a) && !linked(a));
     const detailFor = rowsIn(heading).find(({ a, path }) => path !== top && stateOf(a) === 'live' && a.status === 'pending')?.path ?? null;
     const unlocks = (a: Any) => (a.id ? tasks.filter((t: Any) => t.after?.includes(a.id) && t.status === 'pending').map((t: Any) => t.action) : []);
+    // What a blocked task waits on. The one drawn directly above it is
+    // "↑", so the page doesn't print the same move twice in a row.
+    const waitsOn = (after: string[], prev?: string) => {
+      const names = after.map((id) => (id === prev ? '↑' : name(id)));
+      return names.length === 1 && names[0] === '↑' ? '↑ then ' : `${names.join(', ')} → `;
+    };
     const name = (id: string) => byId.get(id)?.action ?? l.criticalPath.find((st: Any) => st.id === id)?.label ?? id;
 
+    const folded = (a: Any, path: string) => (daysUntil(a.if.by ?? '') ?? 0) > FORK_CHECK_DAYS && !unfolded.has(path);
     const conditional = ({ a, path }: { a: Any; path: string }) => {
       const fork = 'event' in a.if;
       const msg = fork ? undefined : messageOf(a);
@@ -629,6 +640,10 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
               <span>not needed</span>
               <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, null)}>undo</TextAction>
             </div>
+          ) : folded(a, path) ? (
+            // Weeks before its check date the fork is a reminder, not a
+            // question; the buttons wait a tap away for news that comes early.
+            <TextAction className="-my-2 text-[14px] text-graphite underline" onClick={() => setUnfolded((u) => new Set(u).add(path))}>know already?</TextAction>
           ) : (
             // Named by what each does to the move, not by the event, so a
             // negative event ("no offer by mid-December") never makes a
@@ -643,7 +658,8 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
       );
     };
 
-    const row = ({ a, path }: { a: Any; path: string }) => {
+    // `prev` is the id of the task or milestone drawn directly above.
+    const row = ({ a, path }: { a: Any; path: string }, prev?: string) => {
       if (isFork(a) || isChained(a)) return conditional({ a, path });
       if (awaiting(a)) {
         const chain = chainAfter(a, tasks);
@@ -668,7 +684,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
         return (
           <MarkedRow key={path} mark="•">
             <Line goalId={goalId} path={path}>
-              <span className="text-[14px] text-graphite">{(a.after ?? []).map(name).join(', ')} → </span>
+              <span className="text-[14px] text-graphite">{waitsOn(a.after ?? [], prev)}</span>
               <span>{a.action}</span>
             </Line>
           </MarkedRow>
@@ -706,12 +722,16 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
           {Array.from({ length: steps.length + 1 }, (_, k) => {
             const m = steps[k];
             const rows = rowsIn(k);
-            if (!m) return rows.map(row);
+            // What sits directly above a row: the row before it, or for the
+            // first, the milestone ruled off above its stretch.
+            const above = (i: number) => (i > 0 ? rows[i - 1].a.id : steps[k - 1]?.st.id);
+            const drawn = rows.map((r, i) => row(r, above(i)));
+            if (!m) return drawn;
             const stage = m.reached ? 'passed' : k === current ? 'current' : 'ahead';
             // Done tasks stay where they were, ticked and grey, so a passed
             // milestone keeps the moves that reached it above its line.
             return [
-              ...rows.map(row),
+              ...drawn,
               <MilestoneRule key={m.path} goalId={goalId} path={m.path} step={m.st} editable={editable} stage={stage} reachedOn={m.reached ? reachedOn(m.st) : undefined} />,
             ];
           })}
