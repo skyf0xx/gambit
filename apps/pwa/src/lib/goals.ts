@@ -20,10 +20,16 @@ export function newGoalId(title: string) {
   return `${slug(title)}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
-export async function createGoal(title: string): Promise<string> {
+/** Settings key for a goal's queued first message (see onboarding.ts). */
+export const PENDING_SEND = 'pendingSend';
+
+/** Creates a stub goal and opens it. A `firstMessage` is queued before the
+ * goal opens, so its chat finds it and sends it as the opening turn. */
+export async function createGoal(title: string, firstMessage?: string): Promise<string> {
   const id = newGoalId(title);
   const doc = stubGoal(title.slice(0, 200));
   await db.goals.put({ id, title: doc.goal, doc, schemaVersion: CURRENT_SCHEMA_VERSION, updatedAt: Date.now() });
+  if (firstMessage) await setSetting(PENDING_SEND, { goalId: id, text: firstMessage });
   await setActiveGoal(id);
   track('goal_created');
   return id;

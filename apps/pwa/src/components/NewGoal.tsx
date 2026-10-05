@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createGoal } from '../lib/goals';
+import { defineStarter } from '../lib/compose';
 import { InkButton, Leaf, inputCls } from './ui';
 
 export function NewGoalDialog({ onClose }: { onClose: () => void }) {
@@ -9,7 +10,8 @@ export function NewGoalDialog({ onClose }: { onClose: () => void }) {
   const go = async () => {
     setTouched(true);
     if (!title.trim()) return;
-    await createGoal(title.trim());
+    // Gambit starts defining it straight away, as on first run.
+    await createGoal(title.trim(), defineStarter(title));
     onClose();
   };
   return (

@@ -1,5 +1,5 @@
 import { getSetting, setSetting } from './db';
-import { createGoal } from './goals';
+import { createGoal, PENDING_SEND } from './goals';
 import { useUi } from './persist';
 
 // First run, goal first (brand/ux-onboarding.md §3): the person writes what
@@ -13,7 +13,6 @@ export interface Onboarding {
 }
 
 const KEY = 'onboarding';
-const PENDING = 'pendingSend';
 
 export const getOnboarding = async (): Promise<Onboarding> => (await getSetting<Onboarding>(KEY)) ?? { draft: '', step: 'goal' };
 export const saveOnboarding = (o: Onboarding) => setSetting(KEY, o);
@@ -30,8 +29,7 @@ export async function startFromDraft(): Promise<void> {
   const { draft } = await getOnboarding();
   const text = draft.trim();
   if (!text) return;
-  const id = await createGoal(titleFrom(text));
-  await setSetting(PENDING, { goalId: id, text });
+  await createGoal(titleFrom(text), text);
   await setSetting(KEY, null);
   useUi.getState().setChatOpen(true);
 }
@@ -41,9 +39,9 @@ const claimed = new Set<string>();
 /** The queued first message for this goal, handed to exactly one caller. */
 export async function takePendingSend(goalId: string): Promise<string | null> {
   if (claimed.has(goalId)) return null;
-  const p = await getSetting<{ goalId: string; text: string } | null>(PENDING);
+  const p = await getSetting<{ goalId: string; text: string } | null>(PENDING_SEND);
   if (!p || p.goalId !== goalId || claimed.has(goalId)) return null;
   claimed.add(goalId);
-  await setSetting(PENDING, null);
+  await setSetting(PENDING_SEND, null);
   return p.text;
 }
