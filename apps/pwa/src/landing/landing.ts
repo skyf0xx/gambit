@@ -1,13 +1,13 @@
-import { inject } from '@vercel/analytics';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/noto-serif';
 import '@fontsource/caveat/latin-500.css';
 import '../styles.css';
 import './landing.css';
 import { applyTheme } from '../lib/theme';
+import { trackView } from '../lib/analytics';
 
 applyTheme();
-inject();
+trackView();
 
 // Each block settles onto the desk as it scrolls into view. Without the
 // observer (or under reduced motion) everything is simply shown.

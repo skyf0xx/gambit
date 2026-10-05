@@ -1,7 +1,7 @@
 import { generateText, streamText, stepCountIs, type ModelMessage, type StopCondition, type ToolSet } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { googleWebSearchTool } from './websearch';
-import { summarizeChange, dueNow, routedText, methodText, type FlowSession, type RoutedUpdate } from '@gambit/core';
+import { summarizeChange, dueNow, routedText, methodText, isStub, type FlowSession, type RoutedUpdate } from '@gambit/core';
 import { db, type ChatRecord, type DisplayMsg } from './db';
 import { loadApiKey } from './crypto';
 import { getProvider, makeModel, GOOGLE_FALLBACK_MODEL, type ProviderKind } from './providers';
@@ -12,6 +12,7 @@ import { readRecord, restoreSnapshot, snapshot } from './goals';
 import { changedKeys, changedLines } from './changes';
 import { session } from './session';
 import { pendingEditsText, type PageEdit } from './edits';
+import { track } from './analytics';
 
 export type AgentEvent =
   | { type: 'text'; text: string }
@@ -291,6 +292,16 @@ export async function runTurn(opts: {
   fresh.display = keepLastTurns(display);
   if (fresh.display.length < display.length) fresh.trimmed = true;
   await db.chats.put(fresh);
+
+  // Usage counts: the skill and provider, which tools were refused, and
+  // which sections the turn wrote. Names of things only, never their text.
+  const skill = flow.active ?? 'none';
+  track('turn', { provider: prov.kind, skill, ok: !error, cancelled: signal.aborted, quick: !!quick, edits: sentEdits.length });
+  for (const e of entries) if (!e.ok) track('tool_refused', { tool: e.name, skill });
+  if (after?.status === 'ok') {
+    for (const key of changedKeys(before, after.data)) track('section_written', { key, skill });
+    if (isStub(before) && !isStub(after.data)) track('goal_defined');
+  }
 
   if (after?.status === 'ok') {
     const lines = changedLines(before, after.data);

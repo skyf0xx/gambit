@@ -1,6 +1,7 @@
 import { readGoal, stubGoal, summarizeChange, CURRENT_SCHEMA_VERSION } from '@gambit/core';
 import type { Goal } from './types';
 import { db, getSetting, setSetting, type GoalRecord, type SnapshotRecord } from './db';
+import { track } from './analytics';
 
 export type Read =
   | { status: 'ok'; data: Goal }
@@ -24,6 +25,7 @@ export async function createGoal(title: string): Promise<string> {
   const doc = stubGoal(title.slice(0, 200));
   await db.goals.put({ id, title: doc.goal, doc, schemaVersion: CURRENT_SCHEMA_VERSION, updatedAt: Date.now() });
   await setActiveGoal(id);
+  track('goal_created');
   return id;
 }
 

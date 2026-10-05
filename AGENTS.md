@@ -507,6 +507,13 @@ every goal write — same treatment, read them rather than duplicating them.
   elicitation checkpoint if it writes to the goal, and — if it writes a new
   key — a declared entry in `goalSchema` plus a matching entry in
   `packages/core/src/registry.mjs`.
+- Usage counts go to Umami Cloud through `track()` in
+  `apps/pwa/src/lib/analytics.ts`, which posts to `/u/api/send` (a
+  `vercel.json` rewrite), so no third-party script runs in the page and the
+  CSP stays `'self'`. An event carries only names and fixed words (a
+  provider kind, a skill or key name, a status), never goal text, chat
+  text, a person's name or the key. Only Vercel builds carry the website id
+  (`vite.config.ts`); other builds send nothing.
 - Deploy is Vercel: the root `vercel.json` sets build and routing. Its CSP
   header must match the CSP the build itself emits — a test enforces this,
   so a change to one requires the matching change to the other.

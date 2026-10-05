@@ -19,7 +19,6 @@
     "@fontsource-variable/noto-serif": "^5.3.0",
     "@fontsource/caveat": "^5.3.0",
     "@gambit/core": "*",
-    "@vercel/analytics": "^2.0.1",
     "ai": "^5.0.0",
     "dexie": "^4.0.0",
     "dexie-react-hooks": "^1.1.7",

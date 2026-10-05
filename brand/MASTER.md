@@ -4,7 +4,7 @@ The single entry point for the UX rethink: what Gambit is, where each decision l
 
 ## Context
 
-**Gambit** is a local-first PWA. You think through one hard goal with a candid AI strategist, and it keeps a written notebook of the plan: what done looks like, next moves, what could go wrong, who's involved, decisions. There's no backend, no account and no analytics, and the user brings their own model key.
+**Gambit** is a local-first PWA. You think through one hard goal with a candid AI strategist, and it keeps a written notebook of the plan: what done looks like, next moves, what could go wrong, who's involved, decisions. There's no backend and no account, usage is counted only anonymously, and the user brings their own model key.
 
 - **Brand line:** "The notebook that thinks back." The recurring question is "What's your next move?"
 - **For:** ambitious generalists aged 25–55 with one hard goal and nobody to plan it with. The personas are Rosa (salons), Kwame (a new business), Ines (fundraising), Joanne (a career change), Sam (a tenants' campaign) and Lena (moving the family abroad), plus Alex, the developer friend who sets it up for them. Most have never seen an API key.
@@ -12,8 +12,9 @@ The single entry point for the UX rethink: what Gambit is, where each decision l
 - **Look:** a real pad of paper, where the material carries the meaning. A grained ivory page (`#F8F5EE`) on a desk, typed ink (`#1F2733`) for what's settled, grainy pencil and a Caveat hand for what can change, and slips laid on top (an index card, a sticky note, torn paper) for what you can touch. One accent (`#B83A26`) is used extremely sparingly. Inter does almost all the work, with Noto Serif for the wordmark and goal title and Noto Sans Mono for keys. No badges, bubbles, status colours or props.
 
 **Fixed constraints**
-- No backend, no accounts, no analytics. Data stays in the browser.
-- A strict CSP. Network calls go only to the configured provider, and fonts and assets are self-hosted.
+- No backend, no accounts. Data stays in the browser.
+- Usage counts are anonymous and cookie-free (Umami Cloud, through a same-origin rewrite): event names and fixed words like a provider kind or skill name, never goal text, chat or the key. No third-party script runs in the page (`apps/pwa/src/lib/analytics.ts`).
+- A strict CSP. Network calls go only to the configured provider and the app's own origin, and fonts and assets are self-hosted.
 - A PWA that works mobile-first.
 - Skills and the goal schema change only as far as the user experience needs them to.
 

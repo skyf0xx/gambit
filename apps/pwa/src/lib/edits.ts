@@ -5,6 +5,7 @@ import { applyOp, type OpResult } from './goals';
 import type { LinePath } from './changes';
 import { today } from './dates';
 import { session } from './session';
+import { track } from './analytics';
 import type { Goal } from './types';
 
 // Edits the user makes on the page itself, outside the chat. Each one is
@@ -32,7 +33,20 @@ export function coalesce(queue: PageEdit[], edit: PageEdit): PageEdit[] {
   return merged.kind !== 'added' && merged.before === merged.after ? rest : [...rest, merged];
 }
 
+// Status words safe to count; anything else a status edit carries is
+// prose for the advisor.
+const STATUS_WORDS = new Set(['done', 'pending', 'dropped', 'proposed', 'replied']);
+
+/** A page edit through `applyOp`, counting a refusal: the page shows none
+ * yet, so the count is how often the user hits one. */
+async function applyPageOp(goalId: string, kind: string, op: Parameters<typeof applyOp>[1]): Promise<OpResult> {
+  const res = await applyOp(goalId, op);
+  if (!res.ok) track('page_edit_refused', { kind });
+  return res;
+}
+
 async function recordEdit(goalId: string, edit: PageEdit) {
+  track('page_edit', { kind: edit.kind, ...(edit.kind === 'status' && STATUS_WORDS.has(edit.after) ? { to: edit.after } : {}) });
   await db.transaction('rw', db.chats, async () => {
     const chat: ChatRecord = (await db.chats.get(goalId)) ?? { goalId, model: [], display: [] };
     chat.pendingEdits = coalesce(chat.pendingEdits ?? [], edit);
@@ -43,7 +57,7 @@ async function recordEdit(goalId: string, edit: PageEdit) {
 /** Rewrite one line's text. Refused (with the rule's message) if the text
  * breaks a write rule or the line changed since `expected` was read. */
 export async function editLine(goalId: string, path: LinePath, value: string, expected: string): Promise<OpResult> {
-  const res = await applyOp(goalId, (g) => coreEditLine(g, path, value, expected) as never);
+  const res = await applyPageOp(goalId, 'reword', (g) => coreEditLine(g, path, value, expected) as never);
   if (res.ok) await recordEdit(goalId, { path, kind: 'text', before: expected, after: lineText(res.goal, path) ?? value });
   return res;
 }
@@ -51,7 +65,7 @@ export async function editLine(goalId: string, path: LinePath, value: string, ex
 /** Add a pending move of the user's own to line `li` of the plan. */
 export async function addMove(goalId: string, li: number, value: string): Promise<OpResult> {
   let path = '';
-  const res = await applyOp(goalId, (g) => {
+  const res = await applyPageOp(goalId, 'add', (g) => {
     path = `plan.linesOfOperation.${li}.nextActions.${g.plan?.linesOfOperation[li]?.nextActions.length ?? 0}`;
     return addNextAction(g, li, value) as never;
   });
@@ -68,7 +82,7 @@ function statusAt(goal: Goal, path: LinePath): string | undefined {
  * status it must have now, if any), and queue the flip for the advisor. */
 export async function setLineStatus(goalId: string, path: LinePath, status: string, allow?: string): Promise<OpResult> {
   let before: string | undefined;
-  const res = await applyOp(goalId, (g) => {
+  const res = await applyPageOp(goalId, 'status', (g) => {
     before = statusAt(g, path) ?? 'pending';
     if (allow && before !== allow) return { ok: false, errors: [{ path, message: `target is not a ${allow} item` }] };
     return setStatus(g, path, status, today()) as never;
@@ -79,7 +93,7 @@ export async function setLineStatus(goalId: string, path: LinePath, status: stri
 
 /** They answered a message: stamp it replied today, and queue it. */
 export async function markTaskReplied(goalId: string, path: LinePath): Promise<OpResult> {
-  const res = await applyOp(goalId, (g) => markReplied(g, path, today()) as never);
+  const res = await applyPageOp(goalId, 'replied', (g) => markReplied(g, path, today()) as never);
   if (res.ok) await recordEdit(goalId, { path, kind: 'status', label: lineText(res.goal, path), before: 'no reply', after: 'replied' });
   return res;
 }
@@ -89,13 +103,14 @@ export async function markTaskReplied(goalId: string, path: LinePath): Promise<O
  * `null` takes a settle back: the task waits on its event again. */
 export async function settleFork(goalId: string, path: LinePath, happened: boolean | null): Promise<OpResult> {
   let before = 'waiting on its event';
-  const res = await applyOp(goalId, (g) => {
+  const res = await applyPageOp(goalId, 'fork', (g) => {
     const task = lineTask(g, path);
     if (happened === null) before = task?.status === 'dropped' ? 'not needed, dropped' : 'event happened';
     return resolveFork(g, path, happened) as never;
   });
   if (!res.ok) return res;
   if (happened === false) session.markDropped(goalId, path);
+  track('fork_settled', { as: happened === null ? 'undone' : happened ? 'live' : 'not_needed' });
   const after = happened === null ? 'waiting on its event again (undone)' : happened ? 'event happened, move is live' : 'not needed, dropped';
   await recordEdit(goalId, { path, kind: 'status', label: lineText(res.goal, path), before, after });
   return res;

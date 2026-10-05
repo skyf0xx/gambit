@@ -3,7 +3,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": "apps/pwa/dist",
   "framework": null,
-  "rewrites": [{ "source": "/app", "destination": "/app.html" }],
+  "rewrites": [
+    { "source": "/app", "destination": "/app.html" },
+    { "source": "/u/api/send", "destination": "https://cloud.umami.is/api/send" }
+  ],
   "redirects": [{ "source": "/landing", "destination": "/", "permanent": false }],
   "headers": [
     {

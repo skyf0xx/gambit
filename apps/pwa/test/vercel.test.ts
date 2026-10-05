@@ -25,3 +25,11 @@ describe('vercel.json CSP', () => {
     expect(cspHeader.value).toBe(csp(true));
   });
 });
+
+describe('vercel.json usage counts', () => {
+  it('sends them through a same-origin rewrite, so the CSP stays self', () => {
+    const vercelConfig = JSON.parse(readFileSync(resolve(root, 'vercel.json'), 'utf8'));
+    const rewrite = vercelConfig.rewrites.find((r: { source: string }) => r.source === '/u/api/send');
+    expect(rewrite?.destination).toBe('https://cloud.umami.is/api/send');
+  });
+});

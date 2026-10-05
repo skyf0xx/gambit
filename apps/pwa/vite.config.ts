@@ -21,6 +21,11 @@ export const BASE_CONNECT_SRC = [
   'https://openrouter.ai',
   'https://api.deepseek.com',
 ];
+// Gambit's own Umami Cloud site. Only Vercel builds of this repo count
+// usage; a self-hosted build sends nothing unless it sets UMAMI_WEBSITE_ID.
+const GAMBIT_UMAMI_ID = 'e95c25a6-54f3-4cd2-a063-b7d401c606d5';
+const umamiId = process.env.UMAMI_WEBSITE_ID ?? (process.env.VERCEL ? GAMBIT_UMAMI_ID : '');
+
 const extra = (process.env.VITE_EXTRA_CONNECT_SRC ?? '').split(/\s+/).filter(Boolean);
 const connectSrc = [...BASE_CONNECT_SRC, ...extra];
 
@@ -111,6 +116,7 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(appPkg.version),
     __CONNECT_SRC__: JSON.stringify(connectSrc),
+    __UMAMI_WEBSITE_ID__: JSON.stringify(umamiId),
   },
   // Font files must never be inlined as data: URIs — the CSP's img-src
   // allows data: but there is no font-src exception for it, so an inlined

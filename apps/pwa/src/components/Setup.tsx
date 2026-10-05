@@ -5,6 +5,7 @@ import {
   type KeyCheck, type ProviderKind, type ProviderSettings,
 } from '../lib/providers';
 import { saveApiKey, hasApiKey, clearApiKey } from '../lib/crypto';
+import { track } from '../lib/analytics';
 import { getOnboarding, saveOnboarding, startFromDraft, type Onboarding } from '../lib/onboarding';
 import { InkButton, TextAction, Field, inputCls } from './ui';
 import { HandMic } from './paper/HandMic';
@@ -101,6 +102,7 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
       const settings = { ...s, baseURL: s.baseURL || undefined };
       if (key) await saveApiKey(s.kind, cleanKey(key));
       await saveProvider(settings);
+      track('provider_saved', { provider: s.kind, newKey: !!key });
       setKey('');
       setSaved(true);
       onDone?.();
@@ -341,6 +343,7 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
     await beforeSave?.();
     await saveApiKey(s.kind, k);
     await saveProvider(s);
+    track('provider_saved', { provider: s.kind, newKey: true });
   }
 
   async function verify(s: ProviderSettings, k: string, label: string) {
