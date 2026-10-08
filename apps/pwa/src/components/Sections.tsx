@@ -13,6 +13,7 @@ import { TextAction, PencilWord } from './ui';
 import { PencilUnderline } from './paper/PencilUnderline';
 import { PencilRule } from './paper/PencilRule';
 import { pencilDate, byDate, withProseDates, daysUntil, today } from '../lib/dates';
+import { lineStretches } from '../lib/stretches';
 import { composeInChat } from '../lib/compose';
 
 /** Pencilled long-date form ("Friday 3 Oct"), never ISO — used for the log
@@ -588,22 +589,15 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     // plus a last stretch after the last rule. A task sits in the stretch
     // of the first milestone that lists it in `after`; a task no milestone
     // lists sits in the stretch the line is heading through.
-    const steps = l.criticalPath.map((st: Any, i: number) => ({ st, path: `${base}.criticalPath.${i}`, reached: milestoneReached(st, plan) }));
-    const current = steps.findIndex((m: Any) => !m.reached);
+    const { steps, current, heading, stretchOf, linked } = lineStretches(l, li, plan);
     // The day a milestone became true: the last day a task toward it was done.
     const reachedOn = (st: Any) => (st.after ?? []).map((id: string) => byId.get(id)?.doneOn).filter(Boolean).sort().pop();
-    const heading = current >= 0 ? current : steps.length;
-    const stretchOf = (a: Any) => {
-      const k = a.id ? steps.findIndex(({ st }: Any) => st.after?.includes(a.id)) : -1;
-      return k >= 0 ? k : heading;
-    };
     // A task a milestone lists stays in that milestone's stretch whatever
     // kind it is, so no milestone loses the moves that reach it: a fork
     // there is an "if … then …" row, and a waiting escalation whose message
     // sits elsewhere is one too. A waiting escalation beside its message
     // shows only in the message's "if no reply" line, and a fork no
     // milestone lists goes under "if things change".
-    const linked = (a: Any) => Boolean(a.id && steps.some(({ st }: Any) => st.after?.includes(a.id)));
     const messageOf = (a: Any) => tasks.find((t: Any) => t.id === a.if.noReply);
     const besideMessage = (a: Any) => { const msg = messageOf(a); return Boolean(msg) && stretchOf(msg) === stretchOf(a); };
     const inStretch = (a: Any) => (isFork(a) ? linked(a) : isChained(a) ? !besideMessage(a) : true);

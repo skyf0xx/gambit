@@ -18,7 +18,7 @@ import type { Goal } from '../../lib/types';
 //   Risks       — riskNotes, exposure
 //   Bets        — decisions, courses, intel (open questions), experiments, forecasts, systemsNotes
 //   Capacity    — capacity
-//   Doodles     — the whole plan as a pencil mind map. Shown once there's
+//   Doodles     — the plan drawn upward: the goal on top, each line climbing to it. Shown once there's
 //                 a plan to draw.
 //   Inside cover — always last: model and key,
 //                 keep-it-safe (export/backup), this device (clear chat,

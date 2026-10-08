@@ -3,3 +3,4 @@ node_modules/
 gambit-test-goal-full.png
 dist/
 .vercel
+.DS_Store

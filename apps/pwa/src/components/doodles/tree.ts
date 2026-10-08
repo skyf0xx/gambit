@@ -1,84 +1,133 @@
-import { currentFocusEntry, milestoneReached } from '@gambit/core';
+import { currentFocusEntry, taskState } from '@gambit/core';
 import type { Goal } from '../../lib/types';
+import { lineStretches } from '../../lib/stretches';
 
-// The goal record as a plain tree for the Doodles mind map — no DOM, no
-// layout. Positioning, drawing, pan and zoom are all markmap's job
-// (Doodles.tsx); this only decides what goes on the map and in what order.
+// The plan as Doodles draws it: the goal at the top and each line of
+// operation climbing toward it, earliest at the bottom. No DOM, no layout;
+// this only decides what goes in each column and in what order. Doodles.tsx
+// stacks the columns and pencils in the links.
+//
+// People appear only where the plan reaches them: a message carries the
+// name it goes to. Risks aren't drawn; the Risks page holds them.
 
-export interface DoodleItem {
+export type NodeState = 'done' | 'live' | 'blocked' | 'waiting' | 'proposed' | 'awaiting';
+
+export interface DoodleNode {
   path: string; // LinePath, for gambit:goto
   label: string;
-  kind: 'goal' | 'group' | 'line' | 'item' | 'person' | 'risk';
-  done?: boolean;
-  /** A milestone: shown with a diamond, filled once reached, never a tick. */
-  milestone?: boolean;
-  proposed?: boolean;
-  focus?: boolean; // the current focus line
-  children: DoodleItem[];
+  kind: 'task' | 'milestone' | 'fork';
+  state: NodeState;
+  /** A message's recipient, from `people` or `stakeholders`. */
+  to?: string;
+  when?: string;
+  /** A fork's or escalation's condition, said as "if …". */
+  condition?: string;
+  /** Waiting escalations of this message: "no reply in N days → move". */
+  chain?: { path: string; days: number; action: string }[];
+  focus?: boolean;
+}
+
+export interface DoodleColumn {
+  path: string;
+  label: string;
+  status?: string;
+  focus: boolean;
+  /** Bottom to top: the first is where the line started. */
+  nodes: DoodleNode[];
+  /** Forks no milestone lists: "if things change", drawn at the top. */
+  forks: DoodleNode[];
+}
+
+/** A dependency between lines: `from` must happen before `to`. */
+export interface DoodleLink {
+  from: string;
+  to: string;
+}
+
+export interface DoodleMap {
+  goal: string;
+  columns: DoodleColumn[];
+  links: DoodleLink[];
 }
 
 const norm = (s: string) => s.trim().toLowerCase();
 
-/** The goal as a tree: lines of operation (with their steps and next
- * actions), what done looks like, and the people involved (each with the
- * risks that depend on them). Null when there's no plan to draw yet. */
-export function buildDoodleTree(goal: Goal): DoodleItem | null {
-  const lines = goal.plan?.linesOfOperation ?? [];
-  if (lines.length === 0) return null;
+/** Null when there's no plan to draw yet. */
+export function buildDoodleMap(goal: Goal, day: string): DoodleMap | null {
+  const plan = goal.plan;
+  const lines = plan?.linesOfOperation ?? [];
+  if (!plan || lines.length === 0) return null;
 
   const focusText = currentFocusEntry(goal.log)?.focusLine;
   const isFocus = (text: string) => focusText != null && norm(text) === norm(focusText);
-  const children: DoodleItem[] = [];
 
-  lines.forEach((line, li) => {
+  // Every id in the plan, with its path and line, for links across lines.
+  const where = new Map<string, { path: string; li: number }>();
+  lines.forEach((l, li) => {
+    l.criticalPath.forEach((s, si) => s.id && where.set(s.id, { path: `plan.linesOfOperation.${li}.criticalPath.${si}`, li }));
+    l.nextActions.forEach((a, ai) => a.id && where.set(a.id, { path: `plan.linesOfOperation.${li}.nextActions.${ai}`, li }));
+  });
+  const links: DoodleLink[] = [];
+  const linkFrom = (after: string[] | undefined, li: number, path: string) => {
+    for (const id of after ?? []) {
+      const w = where.get(id);
+      if (w && w.li !== li) links.push({ from: w.path, to: path });
+    }
+  };
+
+  const columns = lines.map((l, li): DoodleColumn => {
     const base = `plan.linesOfOperation.${li}`;
-    const items: DoodleItem[] = [];
-    line.criticalPath.forEach((s, si) => {
-      items.push({ path: `${base}.criticalPath.${si}`, label: s.label, kind: 'item', milestone: true, done: milestoneReached(s, goal.plan), focus: isFocus(s.label), children: [] });
-    });
-    line.nextActions.forEach((a, ai) => {
-      if (a.status === 'dropped') return;
-      items.push({ path: `${base}.nextActions.${ai}`, label: a.action, kind: 'item', done: a.status === 'done', proposed: a.status === 'proposed', focus: isFocus(a.action), children: [] });
-    });
-    children.push({ path: base, label: line.label, kind: 'line', done: line.status === 'done', children: items });
+    const { steps, stretchOf, linked } = lineStretches(l, li, plan);
+    const tasks = l.nextActions.map((a, ai) => ({ a, path: `${base}.nextActions.${ai}`, state: taskState(a, plan, day) }));
+    const live = tasks.filter((t) => t.state !== 'dropped');
+    const isFork = (t: (typeof tasks)[number]) => t.state === 'waiting' && t.a.if != null && 'event' in t.a.if;
+    const isChained = (t: (typeof tasks)[number]) => t.state === 'waiting' && t.a.if != null && 'noReply' in t.a.if;
+    const messageOf = (t: (typeof tasks)[number]) => {
+      const id = t.a.if && 'noReply' in t.a.if ? t.a.if.noReply : undefined;
+      return live.find((m) => m.a.id === id);
+    };
+    // A waiting escalation beside its message hangs off that message; one
+    // whose message sits in another stretch keeps its own place.
+    const besideMessage = (t: (typeof tasks)[number]) => { const m = messageOf(t); return m != null && stretchOf(m.a) === stretchOf(t.a); };
+
+    const node = (t: (typeof tasks)[number]): DoodleNode => {
+      const { a, path } = t;
+      const awaiting = a.status === 'done' && a.to && !a.replied;
+      const cond = a.if;
+      let condition: string | undefined;
+      if (t.state === 'waiting' && cond) {
+        if ('event' in cond) condition = cond.event;
+        else { const m = messageOf(t); condition = `${m?.a.to ?? 'they'} ${m?.a.to ? "doesn't" : "don't"} reply in ${cond.days} days`; }
+      }
+      const chain = live
+        .filter((e) => isChained(e) && messageOf(e)?.path === path && besideMessage(e))
+        .map((e) => ({ path: e.path, days: (e.a.if as { days: number }).days, action: e.a.action }));
+      linkFrom(a.after, li, path);
+      return {
+        path,
+        label: a.action,
+        kind: condition ? 'fork' : 'task',
+        state: awaiting ? 'awaiting' : (t.state as NodeState),
+        to: a.to,
+        when: a.when,
+        condition,
+        chain: chain.length > 0 ? chain : undefined,
+        focus: isFocus(a.action),
+      };
+    };
+
+    const inStretch = (t: (typeof tasks)[number]) => (isFork(t) ? linked(t.a) : isChained(t) ? !besideMessage(t) : true);
+    const nodes: DoodleNode[] = [];
+    for (let k = 0; k <= steps.length; k++) {
+      for (const t of live) if (inStretch(t) && stretchOf(t.a) === k) nodes.push(node(t));
+      const m = steps[k];
+      if (!m) continue;
+      linkFrom(m.st.after, li, m.path);
+      nodes.push({ path: m.path, label: m.st.label, kind: 'milestone', state: m.reached ? 'done' : 'live', focus: isFocus(m.st.label) });
+    }
+    const forks = live.filter((t) => isFork(t) && !linked(t.a)).map(node);
+    return { path: base, label: l.label, status: l.status, focus: Boolean(l.focus), nodes, forks };
   });
 
-  if (goal.successCriteria.length > 0) {
-    const met = new Set(goal.criteriaStatus.filter((c) => c.status === 'met').map((c) => norm(c.text)));
-    children.push({
-      path: 'successCriteria.0',
-      label: 'Done looks like',
-      kind: 'group',
-      children: goal.successCriteria.map((c, i) => ({ path: `successCriteria.${i}`, label: c.text, kind: 'item' as const, done: met.has(norm(c.text)), focus: isFocus(c.text), children: [] })),
-    });
-  }
-
-  const risksOn = (name: string): DoodleItem[] =>
-    goal.riskNotes.flatMap((r, ri) => (r.dependsOn && norm(r.dependsOn) === norm(name) ? [{ path: `riskNotes.${ri}`, label: r.item, kind: 'risk' as const, children: [] }] : []));
-  const people: DoodleItem[] = [
-    ...goal.people.map((p, i) => ({ path: `people.${i}`, label: p.name, kind: 'person' as const, children: risksOn(p.name) })),
-    ...goal.stakeholders.map((s, i) => ({ path: `stakeholders.${i}`, label: s.name, kind: 'person' as const, children: risksOn(s.name) })),
-  ];
-  if (people.length > 0) children.push({ path: people[0].path, label: 'People', kind: 'group', children: people });
-
-  return { path: 'goal', label: goal.goal, kind: 'goal', children };
-}
-
-const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-
-/** markmap's node shape. Its `content` is inserted as HTML, so every label
- * (user- and model-written text) is escaped here. */
-export interface MarkmapNode {
-  content: string;
-  children: MarkmapNode[];
-}
-
-export function toMarkmap(item: DoodleItem): MarkmapNode {
-  const cls = ['doodle-node', `doodle-${item.kind}`, item.focus && 'doodle-focus', item.proposed && 'doodle-proposed'].filter(Boolean).join(' ');
-  const mark = item.milestone ? (item.done ? '◆ ' : '◇ ') : item.done ? '✓ ' : '';
-  const text = `${mark}${item.kind === 'risk' ? 'Risk: ' : ''}${item.label}`;
-  return {
-    content: `<span class="${cls}" data-goto="${escapeHtml(item.path)}">${escapeHtml(text)}</span>`,
-    children: item.children.map(toMarkmap),
-  };
+  return { goal: goal.goal, columns, links };
 }
