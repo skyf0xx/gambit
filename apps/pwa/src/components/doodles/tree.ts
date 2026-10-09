@@ -1,4 +1,4 @@
-import { currentFocusEntry, taskState } from '@gambit/core';
+import { afterThen, currentFocusEntry, taskState } from '@gambit/core';
 import type { Goal } from '../../lib/types';
 import { lineStretches } from '../../lib/stretches';
 
@@ -105,7 +105,9 @@ export function buildDoodleMap(goal: Goal, day: string): DoodleMap | null {
       linkFrom(a.after, li, path);
       return {
         path,
-        label: a.action,
+        // After "then" the move reads mid-sentence, so it starts in lower
+        // case unless it opens on a name.
+        label: condition ? afterThen(goal, a.action) : a.action,
         kind: condition ? 'fork' : 'task',
         state: awaiting ? 'awaiting' : (t.state as NodeState),
         to: a.to,

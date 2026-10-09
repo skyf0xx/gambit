@@ -2,15 +2,14 @@ import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from '
 import type { Goal } from '../../lib/types';
 import { byDate, timeLeft, today } from '../../lib/dates';
 import { hand, hashSeed, strokePath, type Point } from '../marks/stroke';
-import { PencilUnderline } from '../paper/PencilUnderline';
 import { buildDoodleMap, type DoodleColumn, type DoodleNode } from './tree';
 
 // The Doodles tab: the goal at the top and each line of operation climbing
 // toward it, read from the bottom up: where the line started, the moves
 // and milestones on the way, the next milestone nearest the goal. The
 // columns are plain HTML, so text wraps and every item is a button; one
-// SVG behind them pencils in the spines, the strokes up to the goal and
-// any task that waits on another line's. Too many columns for the width
+// SVG behind them pencils in the spines, each turning at the top into the
+// rule the line's name sits on, and any task that waits on another line's. Too many columns for the width
 // scroll sideways, one column per snap. Tapping an item dispatches
 // `gambit:goto` ({ detail: { path } }) so the page switches to the tab
 // holding it.
@@ -23,10 +22,8 @@ const STATUS_WORD: Record<string, string> = { at_risk: 'at risk', blocked: 'bloc
 
 export function Doodles({ goal }: { goal: Goal; goalId: string }) {
   const map = useMemo(() => buildDoodleMap(goal, today()), [goal]);
-  const goalRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const strokes = useStrokes(map, goalRef, scrollRef, contentRef);
+  const strokes = useStrokes(map, contentRef);
 
   if (!map) {
     return (
@@ -39,21 +36,20 @@ export function Doodles({ goal }: { goal: Goal; goalId: string }) {
   const deadline = goal.deadline ? timeLeft(goal.deadline) : null;
   return (
     <div className="w-full" aria-label={`The plan for "${goal.goal}", each line climbing to the goal`} role="group">
-      <div ref={goalRef} className="anim-rise mx-auto max-w-[32rem] px-4 text-center">
+      <div className="anim-rise mx-auto max-w-[32rem] px-4 text-center">
         <button type="button" onClick={() => goTo('goal')} className="font-serif text-[21px] font-semibold leading-[28px] text-ink">
           {map.goal}
         </button>
         {deadline && <div className="hand text-[19px] leading-6 text-graphite">{deadline}</div>}
       </div>
       <div
-        ref={scrollRef}
         className="doodle-scroll -mx-3 overflow-x-auto overflow-y-hidden"
         style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none' }}
       >
-        <div ref={contentRef} className="relative mx-auto flex w-max min-w-full justify-center gap-5 px-4 pt-12 pb-4">
+        <div ref={contentRef} className="relative mx-auto flex w-max min-w-full justify-center gap-5 px-4 pt-6 pb-4">
           <svg aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" style={{ filter: 'url(#graphite)' }}>
             {strokes.map((s, i) => (
-              <path key={`${s.key}:${i}`} d={s.d} fill="var(--graphite)" opacity={s.faint ? 0.5 : 0.85} className="anim-fade-in" />
+              <path key={`${s.key}:${i}`} d={s.d} fill={s.strong ? 'var(--ink)' : 'var(--graphite)'} opacity={s.faint ? 0.5 : 0.85} className="anim-fade-in" />
             ))}
           </svg>
           {map.columns.map((col, i) => <Column key={col.path} col={col} index={i} />)}
@@ -61,7 +57,7 @@ export function Doodles({ goal }: { goal: Goal; goalId: string }) {
       </div>
       <style>{`
         .doodle-scroll::-webkit-scrollbar { display: none; }
-        .doodle-col { flex: 1 0 min(78vw, 250px); max-width: 340px; scroll-snap-align: center; }
+        .doodle-col { flex: 1 0 auto; width: min(78vw, 250px); max-width: 340px; scroll-snap-align: center; }
         .doodle-label { box-decoration-break: clone; -webkit-box-decoration-break: clone; }
         .doodle-label.is-focus { background: var(--hi); }
         .doodle-label.is-proposed { background: var(--note); padding: 0 4px; }
@@ -80,10 +76,11 @@ function Column({ col, index }: { col: DoodleColumn; index: number }) {
       className="doodle-col anim-rise flex min-w-0 flex-col"
       style={{ animationDelay: `${index * 70}ms`, animationFillMode: 'backwards' } as CSSProperties}
     >
-      <h3 data-head={col.path} className="mx-auto text-center">
+      {/* The line's name sits centred on the rule its spine meets at the
+       * top, like the bar of a T. */}
+      <h3 data-head={col.path} className="px-2 pb-1 text-center">
         <button type="button" onClick={() => goTo(col.path)} className={`hand relative text-[23px] leading-7 ${col.status === 'done' ? 'text-graphite' : 'text-ink'}`}>
           {col.label}
-          {col.focus && <PencilUnderline seed={`doodle-head:${col.path}`} />}
         </button>
         {flag && <span className="hand ml-1.5 text-[19px] text-graphite">{flag}</span>}
       </h3>
@@ -165,7 +162,7 @@ function Marker({ node }: { node: DoodleNode }) {
   );
 }
 
-interface Stroke { key: string; d: string; faint?: boolean }
+interface Stroke { key: string; d: string; faint?: boolean; strong?: boolean }
 
 /** A hand-drawn stroke through the points of `f`, seeded by its key so it
  * holds still between renders. */
@@ -190,60 +187,57 @@ const bezier = (s: [number, number], c1: [number, number], c2: [number, number],
 };
 
 /** Measures the laid-out columns and pencils in what joins them: each
- * column's spine through its marks, a stroke from each line's name up to
- * the goal (converging on it when every column fits, straight up when
- * they scroll), and a fainter arrow for each task that waits on another
+ * column's spine through its marks, turning at the top into the rule under
+ * the line's name, and a fainter arrow for each task that waits on another
  * line's. Redrawn whenever the content changes size. */
 function useStrokes(
   map: ReturnType<typeof buildDoodleMap>,
-  goalRef: React.RefObject<HTMLDivElement | null>,
-  scrollRef: React.RefObject<HTMLDivElement | null>,
   contentRef: React.RefObject<HTMLDivElement | null>,
 ): Stroke[] {
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   useLayoutEffect(() => {
     const content = contentRef.current;
-    const scroller = scrollRef.current;
-    const goalEl = goalRef.current;
-    if (!map || !content || !scroller || !goalEl) return;
+    if (!map || !content) return;
     const draw = () => {
       const origin = content.getBoundingClientRect();
       const rel = (el: Element) => {
         const r = el.getBoundingClientRect();
-        return { l: r.left - origin.left, r: r.right - origin.left, t: r.top - origin.top, b: r.bottom - origin.top, cx: (r.left + r.right) / 2 - origin.left, cy: (r.top + r.bottom) / 2 - origin.top };
+        return { l: r.left - origin.left, r: r.right - origin.left, t: r.top - origin.top, b: r.bottom - origin.top, w: r.width, cx: (r.left + r.right) / 2 - origin.left, cy: (r.top + r.bottom) / 2 - origin.top };
       };
       const find = (attr: string, path: string) => content.querySelector(`[${attr}="${CSS.escape(path)}"]`);
       const out: Stroke[] = [];
-      const overflowing = scroller.scrollWidth > scroller.clientWidth + 1;
-      const g = goalEl.getBoundingClientRect();
-      const goalX = (g.left + g.right) / 2 - origin.left;
-      const n = map.columns.length;
 
-      map.columns.forEach((col, ci) => {
+      map.columns.forEach((col) => {
         const head = find('data-head', col.path);
         const colEl = find('data-col', col.path);
         if (!head || !colEl) return;
         const h = rel(head);
         const c = rel(colEl);
-        // The spine: up from the ground, mark to mark, to the line's name.
+        // The spine: up from the ground, mark to mark, then bending in from
+        // the marks to meet the rule under the line's name at its middle.
         const marks = col.nodes.map((nd) => find('data-mark', nd.path)).filter(Boolean).map((el) => rel(el!));
         const x = marks[0]?.cx ?? c.l + 10;
-        const stops = [...marks.map((m) => ({ lo: m.b + 3, hi: m.t - 3 })), { lo: h.b + 6, hi: h.b + 6 }];
+        const ruleY = h.b;
+        const stops = [...marks.map((m) => ({ lo: m.b + 3, hi: m.t - 3 })), { lo: ruleY, hi: ruleY }];
         let from = marks.length > 0 ? stops[0].hi : c.b - 4;
         stops.slice(marks.length > 0 ? 1 : 0).forEach((s, si) => {
           if (s.lo < from - 4) {
             const y0 = from, y1 = s.lo;
-            out.push({ key: `${col.path}:spine${si}`, d: pencil(`${col.path}:spine${si}`, (t) => [x, y0 + (y1 - y0) * t], 12) });
+            const key = `${col.path}:spine${si}`;
+            // The bend stays in the gap under the rule, clear of any text.
+            const bendY = s.lo === ruleY ? Math.min(y0, y1 + 26) : y1;
+            if (bendY < y0 - 2) out.push({ key, d: pencil(key, (t) => [x, y0 + (bendY - y0) * t], 12) });
+            if (bendY > y1) {
+              const f = bezier([x, bendY], [x, y1 + 6], [c.cx, bendY - 4], [c.cx, y1]);
+              out.push({ key: `${key}:bend`, d: pencil(`${key}:bend`, f, 16) });
+            }
           }
           from = s.hi;
         });
-        // Up from the name to the goal.
-        const start: [number, number] = [h.cx, h.t - 4];
-        const end: [number, number] = overflowing ? [h.cx, 6] : [goalX + (ci - (n - 1) / 2) * 12, 6];
-        const f = bezier(start, [start[0], start[1] - (start[1] - end[1]) * 0.6], [end[0], end[1] + (start[1] - end[1]) * 0.5], end);
-        const key = `${col.path}:goal`;
-        const pts = hand(f, { n: 18, wobble: 0.5, seed: hashSeed(key) });
-        out.push({ key, d: pencil(key, f) }, ...arrowhead(key, pts).map((d) => ({ key: `${key}:h`, d })));
+        // The rule the name sits on, across the column; darker on the
+        // focus line.
+        const key = `${col.path}:rule`;
+        out.push({ key, d: pencil(key, (t) => [c.l + 4 + (c.w - 8) * t, ruleY + 0.75 - t * 1.5], 24, col.focus ? 1.9 : 1.5), strong: col.focus });
       });
 
       // Across lines: from what must happen first to what waits on it.
@@ -269,9 +263,8 @@ function useStrokes(
     if (typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(draw);
     ro.observe(content);
-    ro.observe(goalEl);
     void document.fonts?.ready.then(draw);
     return () => ro.disconnect();
-  }, [map, goalRef, scrollRef, contentRef]);
+  }, [map, contentRef]);
   return strokes;
 }

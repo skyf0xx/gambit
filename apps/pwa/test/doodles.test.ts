@@ -73,10 +73,10 @@ describe('buildDoodleMap', () => {
     expect(tell.state).toBe('awaiting');
   });
 
-  it('puts a fork no milestone lists under "if things change", with its condition', () => {
+  it('puts a fork no milestone lists under "if things change", its move in lower case after "then"', () => {
     const [a] = buildDoodleMap(richGoal(), DAY)!.columns;
     expect(a.forks).toHaveLength(1);
-    expect(a.forks[0]).toMatchObject({ kind: 'fork', label: 'Rethink the approach', condition: 'no progress by November' });
+    expect(a.forks[0]).toMatchObject({ kind: 'fork', label: 'rethink the approach', condition: 'no progress by November' });
   });
 
   it('links a task to what it waits on in another line, not within its own', () => {
