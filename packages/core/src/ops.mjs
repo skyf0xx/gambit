@@ -2,8 +2,9 @@
 // document and returns a result object instead of throwing, so an agent tool
 // can hand structured errors straight back to the model.
 
-import { goalSchema, reconcileGoal, writeRules, focusLineOf, hasBranch, tasksOf, GOAL_MAX_WORDS, MEMORY_CAP, NEXT_ACTIONS_MAX, wordCount } from './schema.mjs';
+import { goalSchema, reconcileGoal, writeRules, focusLineOf, hasBranch, tasksOf, MEMORY_CAP, NEXT_ACTIONS_MAX, wordCount } from './schema.mjs';
 import { plainLanguage } from './readability.mjs';
+import { FR_STOPWORDS, goalMaxWords, unElide } from './lang.mjs';
 
 /** @typedef {import('zod').infer<typeof goalSchema>} Goal */
 /** @typedef {{ path: string, message: string }} Issue */
@@ -26,10 +27,10 @@ export const LOG_CAP = 30;
  * is checked against for repeats. */
 export const LOG_RECENT = 5;
 
-const STOPWORDS = new Set('the a an and or but of to in on at by for with from as is are was were be been it its this that these those not no nor so if then than into onto over under up out off has have had do does did will would can could should may might must just only also still yet now their there they them our your you his her him she he we who what when where which while'.split(' '));
+const STOPWORDS = new Set([...'the a an and or but of to in on at by for with from as is are was were be been it its this that these those not no nor so if then than into onto over under up out off has have had do does did will would can could should may might must just only also still yet now their there they them our your you his her him she he we who what when where which while'.split(' '), ...FR_STOPWORDS]);
 
 const contentWords = (s) => new Set(
-  s.toLowerCase().replace(/[^a-z0-9\s'-]/g, ' ').split(/\s+/).filter((w) => w.length > 2 && !STOPWORDS.has(w)),
+  s.toLowerCase().replace(/[^\p{L}\p{N}\s'’-]/gu, ' ').split(/\s+/).map(unElide).filter((w) => w.length > 2 && !STOPWORDS.has(w)),
 );
 
 /**
@@ -96,17 +97,17 @@ export function writeSection(goal, key, value, now = new Date().toISOString(), d
   if (!WRITABLE_KEYS.includes(key)) {
     return { ok: false, errors: [{ path: key, message: `not a writable key; expected one of: ${WRITABLE_KEYS.join(', ')}` }] };
   }
-  // The 10-word cap on the goal sentence is enforced here, on the write
+  // The goal sentence's word cap (10, or 12 in French) is enforced here, on the write
   // path, rather than in the schema itself — an existing goal written under
   // the old rule must still be readable. Split any parts or conditions
   // (the clause after a dash, etc.) into subGoals instead of packing them
   // into the goal sentence.
-  if (key === 'goal' && typeof value === 'string' && wordCount(value) > GOAL_MAX_WORDS) {
+  if (key === 'goal' && typeof value === 'string' && wordCount(value) > goalMaxWords(value)) {
     return {
       ok: false,
       errors: [{
         path: 'goal',
-        message: `goal must be ${GOAL_MAX_WORDS} words or fewer (got ${wordCount(value)}); move parts or conditions into subGoals instead`,
+        message: `goal must be ${goalMaxWords(value)} words or fewer (got ${wordCount(value)}); move parts or conditions into subGoals instead`,
       }],
     };
   }
@@ -172,8 +173,8 @@ const personKey = (name) => name.trim().toLowerCase();
 // then") says it twice, and an event's "by then" points at nothing above it.
 // Skill writes only, like the rest of planShape: a page tap on a plan
 // written before these rules still goes through.
-const RESTATED = /\b(by then|unless|otherwise|if (nothing|no|not|none)\b)/i;
-const VAGUE_WHEN = /\bby (then|that point|that time|that date|that stage)\b/i;
+const RESTATED = /(?<!\p{L})(by then|unless|otherwise|if (nothing|no|not|none)|d['’]ici là|sinon|à moins que|à défaut|si (rien|personne|pas|aucune?))(?!\p{L})/iu;
+const VAGUE_WHEN = /(?<!\p{L})(by (then|that point|that time|that date|that stage)|d['’]ici (là|ce moment-là|cette date|cette étape))(?!\p{L})/iu;
 
 function planShape(plan, goal) {
   const errors = [];
@@ -239,10 +240,11 @@ function planShape(plan, goal) {
 }
 
 // An event that is something not happening: "no offer by …", "nothing
-// signed", "hasn't set a date".
-const ABSENCE_EVENT = /^(no|nothing|not|none|hasn['’]t|haven['’]t|isn['’]t|aren['’]t|didn['’]t|doesn['’]t)\b/i;
+// signed", "hasn't set a date"; in French "pas d'offre …", "rien de
+// signé", or a "ne … pas" anywhere in it ("Paul n'a pas fixé de date").
+const ABSENCE_EVENT = /^(no|nothing|not|none|hasn['’]t|haven['’]t|isn['’]t|aren['’]t|didn['’]t|doesn['’]t)\b|^(pas\s+d|aucune?(?!\p{L})|rien(?!\p{L})|toujours pas(?!\p{L}))|(?<!\p{L})(ne\s+|n['’])\p{L}+\s+(toujours\s+|encore\s+)?(pas|rien|personne|aucune?)(?!\p{L})/iu;
 
-const plainKey = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const plainKey = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 
 const PROPER = new Set('monday tuesday wednesday thursday friday saturday sunday january february march april may june july august september october november december'.split(' '));
 

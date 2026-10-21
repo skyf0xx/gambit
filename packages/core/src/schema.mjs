@@ -9,6 +9,7 @@
 // no free text.
 
 import { z } from 'zod';
+import { BRANCH_MAX_WORDS_BY_LANG, GOAL_MAX_WORDS_BY_LANG, branchMaxWords } from './lang.mjs';
 
 export const dateString = z
   .string()
@@ -427,7 +428,8 @@ export const goalSchema = z.object({
 // path in ops.mjs's writeSection, not here, so old documents never fail
 // schema validation on read). Exported so the write path and its tests
 // share one number.
-export const GOAL_MAX_WORDS = 10;
+// English's cap; French gets a little more room (goalMaxWords, lang.mjs).
+export const GOAL_MAX_WORDS = GOAL_MAX_WORDS_BY_LANG.en;
 
 // Write-only rules: Zod conditions checked by writeSection (ops.mjs) on top
 // of goalSchema, but never on the read path — a goal saved before a rule
@@ -441,17 +443,20 @@ export const GOAL_MAX_WORDS = 10;
 // glance under the task it hangs on: one short phrase, a fact that
 // happened. Reading grade (readability.mjs) can't catch a run-on or
 // headline-speak line of short words, so these are rules of their own.
-export const BRANCH_MAX_WORDS = 8;
+// Each holds its English and French wording together (lang.mjs).
+export const BRANCH_MAX_WORDS = BRANCH_MAX_WORDS_BY_LANG.en;
 
 // Headline-speak for an absence ("reply names no chase"): short, but hard
 // to read cold. "Hasn't …" says the same thing as something that happened.
 const ABSENCE = /\b(names|shows|lists|mentions|gives|sets|includes|has)\s+no\b/i;
 
 const eventText = (text, ctx, path) => {
-  if (wordCount(text) > BRANCH_MAX_WORDS) {
-    ctx.addIssue({ code: 'custom', path, message: `${wordCount(text)} words; keep it to ${BRANCH_MAX_WORDS} or fewer: one short phrase, no second clause` });
+  const max = branchMaxWords(text);
+  if (wordCount(text) > max) {
+    ctx.addIssue({ code: 'custom', path, message: `${wordCount(text)} words; keep it to ${max} or fewer: one short phrase, no second clause` });
   }
-  if (/^if\b/i.test(text.trim())) ctx.addIssue({ code: 'custom', path, message: 'drop the leading "if"; the page adds it' });
+  const lead = text.trim().match(/^(if|si|s['’]ils?)\b/i);
+  if (lead) ctx.addIssue({ code: 'custom', path, message: `drop the leading "${lead[0]}"; the page adds it` });
   const absent = text.match(ABSENCE);
   if (absent) {
     ctx.addIssue({ code: 'custom', path, message: `"${absent[0]}" names something missing; say what happened instead ("hasn't set a date", not "sets no date")` });
@@ -460,11 +465,11 @@ const eventText = (text, ctx, path) => {
 };
 
 /** Whether a name means the user: an escalation goes to someone else. */
-export const isSelfName = (name) => /^(me|you|i|myself|yourself|self|user|the user)$/i.test(String(name ?? '').trim());
+export const isSelfName = (name) => /^(me|you|i|myself|yourself|self|user|the user|moi|toi|vous|je|moi-même|l['’]utilisateur|utilisateur)$/i.test(String(name ?? '').trim());
 
 // A conditional task is a fork: a move the user wouldn't make otherwise.
 // These words say the plan carries on unchanged, so it forks nothing.
-const NO_FORK = /\b(anyway|anyhow|regardless|still|carry on|keep (going|chasing|pushing|at it)|continue|as planned|no change)\b/i;
+const NO_FORK = /(?<!\p{L})(anyway|anyhow|regardless|still|carry on|keep (going|chasing|pushing|at it)|continue|as planned|no change|quand même|de toute (façon|manière)|malgré tout|toujours|continu(er|ons|ez)|poursuivre|comme prévu|sans changement|garder le cap)(?!\p{L})/iu;
 
 export const writeRules = {
   plan: plan.superRefine((p, ctx) => {

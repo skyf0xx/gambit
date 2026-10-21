@@ -1,6 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stubGoal, isStub, skillFlow, canLoad, canWrite, canRoute, routedText, writersOf, suggestSkills, dueNow, staleSections, methodStep, methodText, PHASES, taskState } from '../src/index.mjs';
+import { stubGoal, isStub, skillFlow, canLoad, canWrite, canRoute, routedText, writersOf, dueNow, methodText, PHASES, taskState } from '../src/index.mjs';
+import * as core from '../src/index.mjs';
+
+// Each due item also carries `say`, its todo as a message id for the page
+// to translate; the tests below read the English, and one test reads `say`.
+const bare = ({ say, ...item }) => item;
+const suggestSkills = (...a) => core.suggestSkills(...a).map(bare);
+const staleSections = (...a) => core.staleSections(...a).map(bare);
+const methodStep = (g) => bare(core.methodStep(g));
 
 const skills = [
   skillFlow('intake', { writes: 'goal, successCriteria, log', requires: 'any', phase: 'define' }),
@@ -301,4 +309,13 @@ test('suggestSkills flags milestones not linked to their moves', () => {
     plan: { linesOfOperation: [{ label: 'L', criticalPath: [{ label: 'A' }, { label: 'B' }], nextActions: [fork] }] },
   };
   assert.deepEqual(suggestSkills(g, '2026-10-20'), [{ skill: 'plan', why: '2 milestones not linked to the moves that reach them', todo: 'Link milestones to their moves' }]);
+});
+
+test('each due item says its todo as a message id with the values it fills in', () => {
+  const g = { ...stubGoal('g'), successCriteria: [{ text: 'Council agrees', kind: 'influence' }], deadline: null };
+  assert.deepEqual(core.suggestSkills(g, '2026-10-02')[0].say, { id: 'mapStakeholders' });
+  assert.deepEqual(core.suggestSkills(stubGoal('g'), '2026-10-02')[0].say, { id: 'define' });
+  const forecasts = [1, 2].map((i) => ({ statement: `s${i}`, probability: 50, resolvesBy: '2026-10-01', resolvesVia: 'v', resolved: false }));
+  const scored = core.suggestSkills({ ...g, forecasts }, '2026-10-02').find((d) => d.skill === 'forecast');
+  assert.deepEqual(scored.say, { id: 'scoreForecasts', count: 2 });
 });
