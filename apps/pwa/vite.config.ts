@@ -5,6 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { LANDING_LOCALES } from './scripts/landing-i18n.mjs';
 
 const root = resolve(__dirname, '../..');
 const appPkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8'));
@@ -75,9 +76,15 @@ function ogPlugin(): Plugin {
   return {
     name: 'gambit-og',
     transformIndexHtml: (_html, ctx) => {
-      // app.html is served at /app (vercel.json rewrite); index.html is the landing page.
-      const page = `${siteUrl}/${ctx.path.endsWith('app.html') ? 'app' : ''}`;
+      // app.html is served at /app (vercel.json rewrite); index.html is the
+      // landing page, and <locale>/index.html its translations
+      // (scripts/landing-i18n.mjs), each pointing search engines at the rest.
+      const app = ctx.path.endsWith('app.html');
+      const locale = /^\/([a-z]{2})\/index\.html$/.exec(ctx.path)?.[1];
+      const page = `${siteUrl}/${app ? 'app' : locale ? `${locale}/` : ''}`;
+      const alternates = app ? [] : [['en', `${siteUrl}/`], ...LANDING_LOCALES.map((l) => [l, `${siteUrl}/${l}/`]), ['x-default', `${siteUrl}/`]];
       return [
+        ...alternates.map(([hreflang, href]) => ({ tag: 'link', attrs: { rel: 'alternate', hreflang, href }, injectTo: 'head' as const })),
         { tag: 'meta', attrs: { property: 'og:image', content: `${siteUrl}/og-image.jpg` }, injectTo: 'head' },
         { tag: 'meta', attrs: { name: 'twitter:image', content: `${siteUrl}/og-image.jpg` }, injectTo: 'head' },
         { tag: 'meta', attrs: { property: 'og:url', content: page }, injectTo: 'head' },
@@ -123,8 +130,8 @@ export default defineConfig({
   // font would be blocked at runtime. 8KB default -> 0 disables inlining.
   build: {
     assetsInlineLimit: 0,
-    rollupOptions: { input: { landing: resolve(__dirname, 'index.html'), app: resolve(__dirname, 'app.html') } },
+    rollupOptions: { input: { landing: resolve(__dirname, 'index.html'), app: resolve(__dirname, 'app.html'), ...Object.fromEntries(LANDING_LOCALES.map((l) => [`landing-${l}`, resolve(__dirname, l, 'index.html')])) } },
   },
   server: { fs: { allow: [root] } },
-  test: { environment: 'node', include: ['test/**/*.test.{ts,tsx}'] },
+  test: { environment: 'node', include: ['test/**/*.test.{ts,tsx}'], setupFiles: ['test/setup.ts'] },
 });

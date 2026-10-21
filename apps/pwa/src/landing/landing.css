@@ -26,6 +26,16 @@ html, body { height: auto; }
   color: var(--ink);
   text-decoration: none;
 }
+/* The other language, pencilled at the masthead's far edge. */
+.lang-switch {
+  font-family: var(--font-hand);
+  font-size: 20px;
+  color: var(--graphite);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--graphite) 40%, transparent);
+  text-underline-offset: 3px;
+}
+.lang-switch:hover { color: var(--ink); }
 
 /* Buttons and links */
 .ink-button {

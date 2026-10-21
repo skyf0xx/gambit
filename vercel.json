@@ -7,7 +7,16 @@
     { "source": "/app", "destination": "/app.html" },
     { "source": "/u/api/send", "destination": "https://cloud.umami.is/api/send" }
   ],
-  "redirects": [{ "source": "/landing", "destination": "/", "permanent": false }],
+  "redirects": [
+    { "source": "/landing", "destination": "/", "permanent": false },
+    {
+      "source": "/",
+      "has": [{ "type": "header", "key": "accept-language", "value": "^fr.*" }],
+      "missing": [{ "type": "query", "key": "lang" }],
+      "destination": "/fr/",
+      "permanent": false
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -34,6 +43,10 @@
     },
     {
       "source": "/(index.html)?",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+    },
+    {
+      "source": "/fr/(index.html)?",
       "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
     },
     {
