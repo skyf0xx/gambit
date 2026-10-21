@@ -15,6 +15,27 @@
       "missing": [{ "type": "query", "key": "lang" }],
       "destination": "/fr/",
       "permanent": false
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "header", "key": "accept-language", "value": "^it.*" }],
+      "missing": [{ "type": "query", "key": "lang" }],
+      "destination": "/it/",
+      "permanent": false
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "header", "key": "accept-language", "value": "^es.*" }],
+      "missing": [{ "type": "query", "key": "lang" }],
+      "destination": "/es/",
+      "permanent": false
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "header", "key": "accept-language", "value": "^pt.*" }],
+      "missing": [{ "type": "query", "key": "lang" }],
+      "destination": "/pt/",
+      "permanent": false
     }
   ],
   "headers": [
@@ -46,7 +67,7 @@
       "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
     },
     {
-      "source": "/fr/(index.html)?",
+      "source": "/(fr|it|es|pt)/(index.html)?",
       "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
     },
     {

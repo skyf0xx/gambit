@@ -26,16 +26,22 @@ html, body { height: auto; }
   color: var(--ink);
   text-decoration: none;
 }
-/* The other language, pencilled at the masthead's far edge. */
+/* The other languages, pencilled at the masthead's far edge. */
 .lang-switch {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 2px 14px;
+}
+.lang-switch a {
   font-family: var(--font-hand);
-  font-size: 20px;
+  font-size: 19px;
   color: var(--graphite);
   text-decoration: underline;
   text-decoration-color: color-mix(in srgb, var(--graphite) 40%, transparent);
   text-underline-offset: 3px;
 }
-.lang-switch:hover { color: var(--ink); }
+.lang-switch a:hover { color: var(--ink); }
 
 /* Buttons and links */
 .ink-button {

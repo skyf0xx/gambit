@@ -6,6 +6,8 @@
 // any other page. test/landing.test.ts fails when a page is out of date or
 // a piece of English has no translation, so editing index.html means
 // running `npm run landing -w @gambit/pwa` and filling in what it lists.
+// The masthead's language switcher is generated too (langNav), on every
+// page including index.html, from the languages that have a map.
 //
 //   node scripts/landing-i18n.mjs          write every <locale>/index.html
 //   node scripts/landing-i18n.mjs --check  exit 1 if one is stale
@@ -21,6 +23,25 @@ export const LANDING_LOCALES = readdirSync(resolve(app, 'src/landing'))
   .map((f) => /^([a-z]{2})\.json$/.exec(f)?.[1])
   .filter((l) => l !== undefined);
 
+/** Each language in its own words, and the switcher's label in it. */
+const LANGUAGES = {
+  en: ['English', 'Language'],
+  fr: ['Français', 'Langue'],
+  it: ['Italiano', 'Lingua'],
+  es: ['Español', 'Idioma'],
+  pt: ['Português', 'Idioma'],
+};
+const NAV = /<nav class="lang-switch"[\s\S]*?<\/nav>/;
+
+/** The masthead's language switcher on one page: every other language,
+ * English as /?lang=en so the language redirect in vercel.json lets it be. */
+export function langNav(locale) {
+  const links = ['en', ...LANDING_LOCALES]
+    .filter((l) => l !== locale)
+    .map((l) => `      <a href="${l === 'en' ? '/?lang=en' : `/${l}/`}" hreflang="${l}" lang="${l}">${LANGUAGES[l][0]}</a>`);
+  return `<nav class="lang-switch" aria-label="${LANGUAGES[locale][1]}">\n${links.join('\n')}\n    </nav>`;
+}
+
 const norm = (s) => s.replace(/\s+/g, ' ').trim();
 const ATTRS = /\b(alt|content|data-label|aria-label)="([^"]*)"/g;
 // <meta content> values that are copy; the rest (image sizes, types) aren't.
@@ -29,7 +50,7 @@ const COPY_META = /<meta\s+(?:name|property)="(?:description|og:title|og:descrip
 /** Every piece of English copy on the page, in order, deduplicated. */
 export function pieces(html) {
   const out = new Set();
-  const body = html.replace(/<script[\s\S]*?<\/script>/g, '');
+  const body = html.replace(/<script[\s\S]*?<\/script>/g, '').replace(NAV, '');
   for (const m of body.matchAll(/>([^<]+)</g)) if (norm(m[1])) out.add(norm(m[1]));
   for (const tag of body.matchAll(/<[a-z][^>]*>/g)) {
     for (const [, name, value] of tag[0].matchAll(ATTRS)) {
@@ -56,17 +77,18 @@ export function localize(html, locale, map) {
     const [trail] = s.match(/\s*$/);
     return `${lead}${map[key]}${trail}`;
   };
-  const [head, ...rest] = html.split(/(?=<script type="module")/);
+  const nav = langNav(locale);
+  const [head, ...rest] = html.replace(NAV, '<!--lang-nav-->').split(/(?=<script type="module")/);
   let out = head
     .replace(/>([^<]+)</g, (_, text) => `>${say(text)}<`)
     .replace(/<[a-z][^>]*>/g, (tag) => tag.replace(ATTRS, (all, name, value) =>
       name === 'content' && !COPY_META.test(tag) ? all : `${name}="${say(value)}"`));
   out = [out, ...rest].join('')
+    .replace('<!--lang-nav-->', nav)
     .replace('<html lang="en">', `<html lang="${locale}">`)
     .replace(/href="\/app"/g, `href="/app?lang=${locale}"`)
     .replace(/src="\.\/src\//g, 'src="/src/')
-    .replace(/<a class="wordmark" href="\/">/, `<a class="wordmark" href="/${locale}/">`)
-    .replace(/<a class="lang-switch"[^>]*>[^<]*<\/a>/, '<a class="lang-switch" href="/?lang=en" hreflang="en" lang="en">English</a>');
+    .replace(/<a class="wordmark" href="\/">/, `<a class="wordmark" href="/${locale}/">`);
   return out;
 }
 
@@ -76,6 +98,13 @@ const build = (locale) => localize(readFileSync(resolve(app, 'index.html'), 'utf
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const check = process.argv.includes('--check');
   let stale = false;
+  const source = resolve(app, 'index.html');
+  const english = readFileSync(source, 'utf8');
+  const withNav = english.replace(NAV, langNav('en'));
+  if (withNav !== english) {
+    if (check) { stale = true; console.error('index.html lists the wrong languages; run npm run landing -w @gambit/pwa'); }
+    else { writeFileSync(source, withNav); console.log('updated the language switcher in index.html'); }
+  }
   for (const locale of LANDING_LOCALES) {
     const page = build(locale);
     if (check) {

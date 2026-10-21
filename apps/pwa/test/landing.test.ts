@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { build, LANDING_LOCALES, localize, pieces } from '../scripts/landing-i18n.mjs';
+import { build, langNav, LANDING_LOCALES, localize, pieces } from '../scripts/landing-i18n.mjs';
 
 const app = resolve(__dirname, '..');
 const english = readFileSync(resolve(app, 'index.html'), 'utf8');
@@ -9,6 +9,10 @@ const english = readFileSync(resolve(app, 'index.html'), 'utf8');
 describe('translated landing pages', () => {
   it('there is at least one', () => {
     expect(LANDING_LOCALES).toContain('fr');
+  });
+
+  it('index.html links every one of them (npm run landing -w @gambit/pwa)', () => {
+    expect(english).toContain(langNav('en'));
   });
 
   for (const locale of LANDING_LOCALES) {
@@ -34,6 +38,7 @@ describe('translated landing pages', () => {
         expect(page).not.toMatch(/href="\/app"/);
         expect(page).toContain(`href="/app?lang=${locale}"`);
         expect(page).toContain('href="/?lang=en"');
+        expect(page).toMatch(/<nav class="lang-switch"[^>]*>[\s\S]*English/);
       });
     });
   }
