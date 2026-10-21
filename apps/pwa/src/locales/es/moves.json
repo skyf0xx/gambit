@@ -1,0 +1,46 @@
+{
+  "loading": "Cargando…",
+  "schemaNewer": "Este objetivo fue guardado por una versión más reciente de Gambit (esquema v{version}). Actualiza la aplicación para abrirlo. No se ha modificado.",
+  "schemaInvalid": "Este objetivo no coincide con el esquema actual: {error}. Restáuralo desde una copia de seguridad o corrige el JSON.",
+  "topMove": "Tu próxima jugada",
+  "markDone": "Marcar como hecho",
+  "nextMovePrompt": "¿Cuál es tu próxima jugada?",
+  "nothingDue": "nada vence todavía",
+  "suggestionLabel": "Sugerencia de Gambit",
+  "suggests": "Gambit sugiere",
+  "suggestionSr": " (sugerencia)",
+  "keepIt": "Conservar",
+  "toss": "Descartar",
+  "tapForOptions": "toca para ver opciones",
+  "moreSuggestions": {
+    "one": "+{count} sugerencia más",
+    "other": "+{count} sugerencias más"
+  },
+  "postureLevel": "Nivel {level} de {total}",
+  "postureChangesIf": "Cambia si:",
+  "postureLastChecked": "Última revisión hace {days} días",
+  "postureName": "postura {label}",
+  "waitingOnYou": "Pendiente de ti: {list}.",
+  "waitQuestions": {
+    "one": "{count} pregunta por resolver",
+    "other": "{count} preguntas por resolver"
+  },
+  "waitIntel": {
+    "one": "{count} cosa por averiguar",
+    "other": "{count} cosas por averiguar"
+  },
+  "waitTests": {
+    "one": "{count} prueba por hacer",
+    "other": "{count} pruebas por hacer"
+  },
+  "waitBets": {
+    "one": "{count} pronóstico por revisar",
+    "other": "{count} pronósticos por revisar"
+  },
+  "notSetYet": "Aún sin definir.",
+  "reviewed": "revisado {date}",
+  "emptyDefault": "Todavía no hay nada aquí.",
+  "tabsLabel": "Secciones del cuaderno",
+  "settingsTab": "Ajustes y cuadernos",
+  "tabChanged": " (cambiado)"
+}

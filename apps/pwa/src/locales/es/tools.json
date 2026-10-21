@@ -1,0 +1,15 @@
+{
+  "loadSkill": "habilidad: {name}",
+  "finishSkill": "habilidad terminada",
+  "writeSection": "escribió {key}",
+  "setStatus": "{status}: {path}",
+  "appendLog": "entrada del historial",
+  "remember": "recordado ({kind})",
+  "forget": "olvidé un dato",
+  "readSkillFile": "leyó {file}",
+  "searched": "buscó: {query}",
+  "webSearch": "búsqueda web",
+  "getGoal": "leyó el objetivo",
+  "methods": "catálogo de métodos",
+  "routeUpdates": "actualizaciones enviadas"
+}

@@ -12,10 +12,10 @@
 // A value is a string, or a plural object picked by Intl.PluralRules:
 //   "left": { "one": "{count} day left", "other": "{count} days left" }
 
-export type Locale = 'en' | 'fr';
+export type Locale = 'en' | 'fr' | 'it' | 'es' | 'pt';
 
 /** Each language named in its own words, as the picker shows it. */
-export const LOCALES: Record<Locale, string> = { en: 'English', fr: 'Français' };
+export const LOCALES: Record<Locale, string> = { en: 'English', fr: 'Français', it: 'Italiano', es: 'Español', pt: 'Português' };
 
 const STORAGE_KEY = 'gambit:locale';
 
@@ -104,5 +104,6 @@ export function t(key: string, params?: Params): string {
 /** Whether a key exists in English, the source catalog. */
 export const hasKey = (key: string) => key in (catalogs.en ?? {});
 
-/** BCP 47 tag for Intl date and number formatting: en-GB keeps day-before-month. */
-export const intlLocale = () => (current === 'en' ? 'en-GB' : current);
+/** BCP 47 tag for Intl date and number formatting: en-GB keeps
+ * day-before-month, and Portuguese copy is written for Brazil. */
+export const intlLocale = () => ({ en: 'en-GB', pt: 'pt-BR' } as Partial<Record<Locale, string>>)[current] ?? current;

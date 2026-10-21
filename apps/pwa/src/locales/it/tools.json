@@ -1,0 +1,15 @@
+{
+  "loadSkill": "competenza: {name}",
+  "finishSkill": "competenza completata",
+  "writeSection": "scritto {key}",
+  "setStatus": "{status}: {path}",
+  "appendLog": "voce di cronologia",
+  "remember": "ricordato ({kind})",
+  "forget": "dimenticato un punto",
+  "readSkillFile": "letto {file}",
+  "searched": "cercato: {query}",
+  "webSearch": "ricerca web",
+  "getGoal": "lettura dell'obiettivo",
+  "methods": "catalogo dei metodi",
+  "routeUpdates": "aggiornamenti smistati"
+}

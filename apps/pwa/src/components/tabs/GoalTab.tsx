@@ -18,7 +18,7 @@ function GoalHeader({ g, goalId }: { g: Goal; goalId: string }) {
         data-line="goal"
         className="ink-bleed font-serif text-[29px] font-medium leading-[37px] text-ink"
       >
-        <EditableText goalId={goalId} path="goal" value={g.goal} maxWords={locale() === 'fr' ? GOAL_MAX_WORDS_BY_LANG.fr : goalMaxWords(g.goal)}>{g.goal}</EditableText>
+        <EditableText goalId={goalId} path="goal" value={g.goal} maxWords={locale() === 'en' ? goalMaxWords(g.goal) : GOAL_MAX_WORDS_BY_LANG[locale()]}>{g.goal}</EditableText>
         <FreshTag path="goal" />
       </h1>
       {stub ? (

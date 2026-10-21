@@ -1,0 +1,9 @@
+{
+  "dueToday": "vence hoy",
+  "late": { "one": "{count} día de retraso", "other": "{count} días de retraso" },
+  "daysLeft": { "one": "{count} día restante", "other": "{count} días restantes" },
+  "weeksLeft": { "one": "{count} semana restante", "other": "{count} semanas restantes" },
+  "today": "hoy",
+  "tomorrow": "mañana",
+  "inDays": { "one": "dentro de {count} día", "other": "dentro de {count} días" }
+}
