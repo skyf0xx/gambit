@@ -3,6 +3,8 @@
 // underneath", §10 "Card headings via `titleForKey`"). One entry per goal
 // key that can render as a section on the page.
 
+import { hasKey, t } from '../lib/i18n';
+
 export interface SectionTitle {
   /** Plain-language heading (Inter 20/28, weight 600). */
   title: string;
@@ -14,28 +16,14 @@ export interface SectionTitle {
   methodNote?: string;
 }
 
-const TITLES: Record<string, SectionTitle> = {
-  successCriteria: { title: 'What done looks like' },
-  log: { title: 'History' },
-  memory: { title: 'What Gambit remembers' },
-  plan: { title: 'All moves' },
-  people: { title: "Who's involved" },
-  stakeholders: { title: 'Who else has a say', method: 'stakeholders', methodNote: 'stakeholders: mapping who has power and what they want' },
-  systemsNotes: { title: 'Where the leverage is', method: 'systems', methodNote: 'systems: finding the one point that moves everything else' },
-  riskNotes: { title: 'What could go wrong', method: 'red team', methodNote: 'red team: arguing against your own plan' },
-  decisions: { title: 'Decisions', method: 'decide', methodNote: 'decide: a choice made, with what would reverse it' },
-  exposure: { title: 'What you’re exposed to', method: 'exposure', methodNote: 'exposure: your personal legal, financial and safety risk' },
-  capacity: { title: 'What you actually have' },
-  forecasts: { title: 'Predictions', method: 'forecast', methodNote: 'forecast: a dated prediction, checked later to see how well you called it' },
-  experiments: { title: 'Things to test', method: 'experiment', methodNote: 'experiment: the smallest test that could prove you wrong' },
-  intel: { title: 'Open questions' },
-  courses: { title: 'Ways to go' },
-  prep: { title: 'Talk prep' },
-  criteriaStatus: { title: 'Progress' },
-};
+const KEYS = ['successCriteria', 'log', 'memory', 'plan', 'people', 'stakeholders', 'systemsNotes', 'riskNotes', 'decisions', 'exposure', 'capacity', 'forecasts', 'experiments', 'intel', 'courses', 'prep', 'criteriaStatus'];
 
-export const hasSectionTitle = (key: string) => key in TITLES;
+// The words live in locales/<locale>/sections.json: "<key>" is the heading,
+// "<key>.method" and "<key>.methodNote" the pencilled gloss, when it has one.
+export const hasSectionTitle = (key: string) => KEYS.includes(key);
 
 export function sectionTitleFor(key: string): SectionTitle {
-  return TITLES[key] ?? { title: key };
+  if (!hasSectionTitle(key)) return { title: key };
+  const method = hasKey(`sections.${key}.method`) ? t(`sections.${key}.method`) : undefined;
+  return { title: t(`sections.${key}`), ...(method ? { method, methodNote: t(`sections.${key}.methodNote`) } : {}) };
 }

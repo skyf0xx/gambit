@@ -1,6 +1,7 @@
-import { isStub, GOAL_MAX_WORDS } from '@gambit/core';
+import { isStub, goalMaxWords, GOAL_MAX_WORDS_BY_LANG } from '@gambit/core';
 import type { Goal } from '../../lib/types';
 import { PencilWord } from '../ui';
+import { locale, t } from '../../lib/i18n';
 import { timeLeft, proseDates } from '../../lib/dates';
 import { Section, isEmptySection } from './SectionRenderer';
 import { FreshTag } from '../paper/FreshTag';
@@ -17,11 +18,11 @@ function GoalHeader({ g, goalId }: { g: Goal; goalId: string }) {
         data-line="goal"
         className="ink-bleed font-serif text-[29px] font-medium leading-[37px] text-ink"
       >
-        <EditableText goalId={goalId} path="goal" value={g.goal} maxWords={GOAL_MAX_WORDS}>{g.goal}</EditableText>
+        <EditableText goalId={goalId} path="goal" value={g.goal} maxWords={locale() === 'fr' ? GOAL_MAX_WORDS_BY_LANG.fr : goalMaxWords(g.goal)}>{g.goal}</EditableText>
         <FreshTag path="goal" />
       </h1>
       {stub ? (
-        <PencilWord>Not set yet.</PencilWord>
+        <PencilWord>{t('moves.notSetYet')}</PencilWord>
       ) : g.deadline ? (
         <PencilWord>{timeLeft(g.deadline)}<FreshTag path="deadline" /></PencilWord>
       ) : null}

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { TAB_LABELS, type TabId } from './tabDefs';
+import { t } from '../../lib/i18n';
 
 // The tab strip itself: paper folder-dividers sticking out of the page's
 // right edge, outside it, into the desk (brand/identity.md §03 "only slips
@@ -120,10 +121,10 @@ export function DividerTabs({
        * which would otherwise clip each tab's own negative margin-left
        * (how they tuck behind one another and behind the page edge). */}
       <div ref={scrollRef} className="tab-strip-scroll flex flex-col">
-        <div ref={listRef} role="tablist" aria-label="Notebook sections" aria-orientation="vertical" onKeyDown={onKeyDown} className="flex flex-col">
-          {tabs.map((t, i) => {
-            const isActive = t === active;
-            const changed = changedTabs.has(t) && !isActive;
+        <div ref={listRef} role="tablist" aria-label={t('moves.tabsLabel')} aria-orientation="vertical" onKeyDown={onKeyDown} className="flex flex-col">
+          {tabs.map((id, i) => {
+            const isActive = id === active;
+            const changed = changedTabs.has(id) && !isActive;
             // Depth rank: 0 = frontmost (active always ranks 0); otherwise
             // ranked by distance from the active tab so neighbours of the
             // active tab sit just behind it, not in strip order. Each rank
@@ -131,27 +132,27 @@ export function DividerTabs({
             const activeIdx = tabs.indexOf(active);
             const rank = isActive ? 0 : Math.abs(i - activeIdx);
             const depth = Math.min(rank, 4);
-            const isInsideCover = t === 'inside-cover';
+            const isInsideCover = id === 'inside-cover';
             return (
               <button
-                key={t}
-                data-tab={t}
+                key={id}
+                data-tab={id}
                 data-depth={depth}
                 role="tab"
-                id={`tab-${t}`}
+                id={`tab-${id}`}
                 aria-selected={isActive}
-                aria-controls={`tabpanel-${t}`}
-                aria-label={isInsideCover ? 'Settings and notebooks' : undefined}
+                aria-controls={`tabpanel-${id}`}
+                aria-label={isInsideCover ? t('moves.settingsTab') : undefined}
                 tabIndex={isActive ? 0 : -1}
-                onClick={() => onChange(t)}
+                onClick={() => onChange(id)}
                 style={{ zIndex: tabs.length - depth, marginTop: isInsideCover ? '12px' : undefined }}
                 className={`tab-leaf anim-press relative flex shrink-0 items-center justify-center font-sans text-[14px] font-medium text-ink ${
                   isActive ? 'tab-active' : 'tab-inactive'
-                } ${isInsideCover ? 'tab-inside-cover' : ''} ${t === 'cover' ? 'tab-cover' : ''} ${t === 'moves' ? 'tab-moves' : ''}`}
+                } ${isInsideCover ? 'tab-inside-cover' : ''} ${id === 'cover' ? 'tab-cover' : ''} ${id === 'moves' ? 'tab-moves' : ''}`}
               >
                 <span className="tab-leaf-fill" aria-hidden="true" />
                 <span className="tab-leaf-label">
-                  {t === 'moves' && (
+                  {id === 'moves' && (
                     <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true" className="shrink-0 text-graphite">
                       <path d="M10 2.5 17.5 10 10 17.5 2.5 10Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
                     </svg>
@@ -161,10 +162,10 @@ export function DividerTabs({
                       <path d="M2.5 5.5h15M2.5 10h15M2.5 14.5h15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                     </svg>
                   )}
-                  {TAB_LABELS[t]}
+                  {TAB_LABELS[id]}
                 </span>
                 {changed && <span aria-hidden="true" className="tab-leaf-dot pencil bg-graphite" />}
-                {changed && <span className="sr-only"> (changed)</span>}
+                {changed && <span className="sr-only">{t('moves.tabChanged')}</span>}
               </button>
             );
           })}

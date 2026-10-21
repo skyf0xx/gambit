@@ -6,6 +6,7 @@ import { db } from './lib/db';
 import { getActiveGoalId, migrateAll, setActiveGoal } from './lib/goals';
 import { getProvider, PROVIDERS } from './lib/providers';
 import { hasApiKey } from './lib/crypto';
+import { t } from './lib/i18n';
 import { initDurability, useUi } from './lib/persist';
 import { startFileSync, fileSyncState, reauthorizeFileSync } from './lib/portability';
 import { Setup } from './components/Setup';
@@ -26,7 +27,7 @@ function Banner({ children, onClose }: { children: React.ReactNode; onClose?: ()
     <div className="hand mx-auto flex max-w-xl items-center justify-between gap-3 px-4 pt-3 text-[16px] md:px-16">
       <div className="flex flex-wrap items-center gap-2">{children}</div>
       {onClose && (
-        <button onClick={onClose} aria-label="Dismiss" data-note="Dismiss" className="grid h-11 w-11 flex-none place-items-center text-graphite">
+        <button onClick={onClose} aria-label={t('app.dismiss')} data-note={t('app.dismiss')} className="grid h-11 w-11 flex-none place-items-center text-graphite">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
@@ -63,9 +64,9 @@ function Banners() {
   const [desktopHint, dismissDesktopHint] = useDesktopHint();
   return (
     <>
-      {desktopHint && <Banner onClose={dismissDesktopHint}>Gambit works best on desktop.</Banner>}
-      {needRefresh && <Banner>Update ready. <TextAction className="underline underline-offset-[3px]" onClick={() => void updateServiceWorker(true)}>Reload</TextAction></Banner>}
-      {sync === 'needs_permission' && <Banner>Backup paused. <TextAction className="underline underline-offset-[3px]" onClick={() => void reauthorizeFileSync()}>Resume</TextAction></Banner>}
+      {desktopHint && <Banner onClose={dismissDesktopHint}>{t('app.desktopHint')}</Banner>}
+      {needRefresh && <Banner>{t('app.updateReady')} <TextAction className="underline underline-offset-[3px]" onClick={() => void updateServiceWorker(true)}>{t('app.reload')}</TextAction></Banner>}
+      {sync === 'needs_permission' && <Banner>{t('app.backupPaused')} <TextAction className="underline underline-offset-[3px]" onClick={() => void reauthorizeFileSync()}>{t('app.resume')}</TextAction></Banner>}
     </>
   );
 }
@@ -127,7 +128,7 @@ function Main() {
         </main>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-          <TextAction className="underline underline-offset-[3px]" onClick={() => setCreating(true)}>Start a goal</TextAction>
+          <TextAction className="underline underline-offset-[3px]" onClick={() => setCreating(true)}>{t('app.startGoal')}</TextAction>
         </div>
       )}
       {creating && <NewGoalDialog onClose={() => { setCreating(false); setChatOpen(true); }} />}

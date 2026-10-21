@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { wordCount, lineText } from '@gambit/core';
+import { t } from '../../lib/i18n';
 import { editLine, useEditedPaths } from '../../lib/edits';
 import type { OpResult } from '../../lib/goals';
 import { useMarksContext } from '../marks/context';
@@ -67,7 +68,7 @@ export function InlineInput({ initial = '', original = '', maxWords, label, onSa
     if (res.ok) return onDone();
     busy.current = false;
     setSaving(false);
-    setError(res.errors[0]?.message ?? 'That edit could not be saved.');
+    setError(res.errors[0]?.message ?? t('page.edit.failed'));
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -99,7 +100,7 @@ export function InlineInput({ initial = '', original = '', maxWords, label, onSa
       />
       {error && <p role="alert" className="hand mt-0.5 text-[16px] leading-5 text-accent">{error}</p>}
       <span className="hand block text-[13px] leading-4 text-graphite">
-        enter to save · esc to cancel
+        {t('page.edit.hint')}
         {maxWords != null && <span className={`ml-2 ${over ? 'text-accent' : ''}`}>{words}/{maxWords}</span>}
       </span>
     </span>
@@ -120,8 +121,8 @@ function Pencil() {
 function EditedTag() {
   return (
     <>
-      <span aria-hidden="true" className="hand anim-write ml-2 inline-block text-[16px] font-normal text-graphite">edited</span>
-      <span className="sr-only"> (you edited this; Gambit sees it on your next message)</span>
+      <span aria-hidden="true" className="hand anim-write ml-2 inline-block text-[16px] font-normal text-graphite">{t('page.edit.tag')}</span>
+      <span className="sr-only"> {t('page.edit.srNote')}</span>
     </>
   );
 }
@@ -155,7 +156,7 @@ export function EditableText({ goalId, path, value, children, className = '', ma
           initial={stored}
           original={stored}
           maxWords={maxWords}
-          label={`Edit: ${value}`}
+          label={t('page.edit.label', { text: value })}
           onSave={(draft) => editLine(goalId, path, draft, stored)}
           onDone={() => { setEditing(false); setPressed(true); }}
           onCancel={() => setEditing(false)}
@@ -177,7 +178,7 @@ export function EditableText({ goalId, path, value, children, className = '', ma
       {edited && <EditedTag />}
       <button
         type="button"
-        aria-label={`Edit: ${value}`}
+        aria-label={t('page.edit.label', { text: value })}
         onClick={(e) => { e.stopPropagation(); setEditing(true); }}
         className={`${quiet && !shown ? '[@media(hover:none)]:hidden ' : ''}relative -my-2 -mr-2 ml-0 inline-flex cursor-pointer items-center bg-transparent p-2 align-middle text-graphite opacity-50 transition-opacity duration-150 focus-visible:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/edit:opacity-100`}
       >

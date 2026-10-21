@@ -1,0 +1,15 @@
+{
+  "loadSkill": "skill: {name}",
+  "finishSkill": "skill done",
+  "writeSection": "wrote {key}",
+  "setStatus": "{status}: {path}",
+  "appendLog": "log entry",
+  "remember": "remembered ({kind})",
+  "forget": "forgot one thing",
+  "readSkillFile": "read {file}",
+  "searched": "searched: {query}",
+  "webSearch": "web search",
+  "getGoal": "read goal",
+  "methods": "method catalog",
+  "routeUpdates": "routed updates"
+}

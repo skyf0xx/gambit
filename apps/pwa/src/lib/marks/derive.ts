@@ -1,6 +1,7 @@
 import { currentFocusEntry } from '@gambit/core';
 import type { LinePath } from '../changes';
 import type { Goal } from '../types';
+import { t } from '../i18n';
 import type { Mark } from './types';
 
 // Pure derivation of every line's mark from the goal record plus in-tab
@@ -105,7 +106,7 @@ export function deriveMarks(goal: Goal, goalId: string, sessionState: SessionSna
     const target = names.find((n) => norm(n.text) === norm(r.dependsOn!));
     if (!target) return;
     const from: LinePath = `riskNotes.${i}`;
-    const sr = `depends on ${r.dependsOn}`;
+    const sr = t('ui.dependsOn', { name: r.dependsOn });
     if (!arrowDrawn) {
       set(from, { kind: 'arrow', sr, to: target.path });
       arrows.push({ from, to: target.path });

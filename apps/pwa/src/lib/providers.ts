@@ -3,6 +3,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { LanguageModel } from 'ai';
 import { getSetting, setSetting } from './db';
+import { t } from './i18n';
 
 export type ProviderKind = 'google' | 'anthropic' | 'openai' | 'custom';
 
@@ -16,10 +17,10 @@ export interface ProviderSettings {
 }
 
 export const PROVIDERS: Record<ProviderKind, { label: string; defaultModel: string; baseURL?: string; help?: string }> = {
-  google: { label: 'Google AI Studio', defaultModel: 'gemini-flash-latest', baseURL: 'https://generativelanguage.googleapis.com/v1beta', help: 'Free to start.' },
+  google: { label: 'Google AI Studio', defaultModel: 'gemini-flash-latest', baseURL: 'https://generativelanguage.googleapis.com/v1beta', help: t('settings.provider.helpGoogle') },
   anthropic: { label: 'Anthropic', defaultModel: 'claude-sonnet-5', baseURL: 'https://api.anthropic.com/v1' },
   openai: { label: 'OpenAI', defaultModel: 'gpt-4.1', baseURL: 'https://api.openai.com/v1' },
-  custom: { label: 'Custom (OpenAI-compatible)', defaultModel: '', help: 'OpenRouter or any OpenAI-style API.' },
+  custom: { label: t('settings.provider.custom'), defaultModel: '', help: t('settings.provider.helpCustom') },
 };
 
 /** Where a Google key comes from, and the model tried when the default is busy (503). */
@@ -100,7 +101,7 @@ export function originAllowed(url: string): boolean {
 
 export function makeModel(s: ProviderSettings, apiKey: string): LanguageModel {
   const base = s.baseURL || PROVIDERS[s.kind].baseURL;
-  if (base && !originAllowed(base)) throw new Error(`${new URL(base).origin} is not allowed by this build's Content-Security-Policy`);
+  if (base && !originAllowed(base)) throw new Error(t('settings.errCsp', { origin: new URL(base).origin }));
   if (s.kind === 'google') {
     return createGoogleGenerativeAI({ apiKey, baseURL: s.baseURL || undefined })(s.model);
   }
@@ -111,6 +112,6 @@ export function makeModel(s: ProviderSettings, apiKey: string): LanguageModel {
       headers: { 'anthropic-dangerous-direct-browser-access': 'true' },
     })(s.model);
   }
-  if (!base) throw new Error('A base URL is required for a custom provider');
+  if (!base) throw new Error(t('settings.errNoBase'));
   return createOpenAICompatible({ name: s.kind, apiKey, baseURL: base })(s.model);
 }

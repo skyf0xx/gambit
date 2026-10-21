@@ -8,11 +8,12 @@ import './styles.css';
 import App from './App';
 import { applyTheme } from './lib/theme';
 import { track, trackView } from './lib/analytics';
+import { locale } from './lib/i18n';
 
 applyTheme();
 trackView();
 // Opened from the home screen, or in a browser tab.
-track('app_open', { standalone: window.matchMedia('(display-mode: standalone)').matches });
+track('app_open', { standalone: window.matchMedia('(display-mode: standalone)').matches, locale: locale() });
 window.addEventListener('appinstalled', () => track('pwa_installed'));
 
 createRoot(document.getElementById('root')!).render(

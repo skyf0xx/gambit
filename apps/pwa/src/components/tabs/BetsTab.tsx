@@ -1,8 +1,7 @@
 import type { Goal } from '../../lib/types';
 import { daysUntil } from '../../lib/dates';
 import { SectionList } from './SectionRenderer';
-
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+import { t } from '../../lib/i18n';
 
 /** What on this tab is waiting on the user: open questions, tests not yet
  * run, and predictions whose date has come. Empty when nothing is. */
@@ -12,10 +11,10 @@ function waitingOn(g: Goal): string[] {
   const tests = (g.experiments ?? []).filter((e) => !e.done).length;
   const bets = (g.forecasts ?? []).filter((f) => { const n = f.resolved ? null : daysUntil(f.resolvesBy); return n !== null && n <= 0; }).length;
   return [
-    questions && plural(questions, 'question to settle', 'questions to settle'),
-    asks && plural(asks, 'thing to find out', 'things to find out'),
-    tests && plural(tests, 'test to run', 'tests to run'),
-    bets && plural(bets, 'prediction to check', 'predictions to check'),
+    questions && t('moves.waitQuestions', { count: questions }),
+    asks && t('moves.waitIntel', { count: asks }),
+    tests && t('moves.waitTests', { count: tests }),
+    bets && t('moves.waitBets', { count: bets }),
   ].filter((s): s is string => !!s);
 }
 
@@ -27,7 +26,7 @@ export function BetsTab({ g, goalId }: { g: Goal; goalId: string }) {
   const waiting = waitingOn(g);
   return (
     <>
-      {waiting.length > 0 && <p className="text-[17px] font-medium leading-[27px] text-ink">Waiting on you: {waiting.join(', ')}.</p>}
+      {waiting.length > 0 && <p className="text-[17px] font-medium leading-[27px] text-ink">{t('moves.waitingOnYou', { list: waiting.join(', ') })}</p>}
       <SectionList goalId={goalId} g={g} keys={['decisions', 'courses', 'intel', 'experiments', 'forecasts', 'systemsNotes']} />
     </>
   );

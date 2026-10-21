@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { t } from '../lib/i18n';
 
 // Paper-system primitives (brand/identity.md §03-05). Materials, not
 // colours, carry meaning: ink is committed, pencil is changeable, a slip is
@@ -121,8 +122,8 @@ export function Leaf({ title, onClose, children, wide }: { title: string; onClos
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-serif text-[20px] font-medium text-ink">{title}</h2>
-          <TextAction onClick={onClose} aria-label="Close" className="text-graphite">
-            close
+          <TextAction onClick={onClose} aria-label={t('ui.closeAria')} className="text-graphite">
+            {t('ui.close')}
           </TextAction>
         </div>
         {children}

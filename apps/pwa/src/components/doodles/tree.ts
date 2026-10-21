@@ -1,6 +1,7 @@
 import { afterThen, currentFocusEntry, taskState } from '@gambit/core';
 import type { Goal } from '../../lib/types';
 import { lineStretches } from '../../lib/stretches';
+import { t } from '../../lib/i18n';
 
 // The plan as Doodles draws it: the goal at the top and each line of
 // operation climbing toward it, earliest at the bottom. No DOM, no layout;
@@ -90,14 +91,14 @@ export function buildDoodleMap(goal: Goal, day: string): DoodleMap | null {
     // whose message sits in another stretch keeps its own place.
     const besideMessage = (t: (typeof tasks)[number]) => { const m = messageOf(t); return m != null && stretchOf(m.a) === stretchOf(t.a); };
 
-    const node = (t: (typeof tasks)[number]): DoodleNode => {
-      const { a, path } = t;
+    const node = (tk: (typeof tasks)[number]): DoodleNode => {
+      const { a, path } = tk;
       const awaiting = a.status === 'done' && a.to && !a.replied;
       const cond = a.if;
       let condition: string | undefined;
-      if (t.state === 'waiting' && cond) {
+      if (tk.state === 'waiting' && cond) {
         if ('event' in cond) condition = cond.event;
-        else { const m = messageOf(t); condition = `${m?.a.to ?? 'they'} ${m?.a.to ? "doesn't" : "don't"} reply in ${cond.days} days`; }
+        else { const m = messageOf(tk); condition = m?.a.to ? t('ui.noReplyNamed', { name: m.a.to, count: cond.days }) : t('ui.noReplyThey', { count: cond.days }); }
       }
       const chain = live
         .filter((e) => isChained(e) && messageOf(e)?.path === path && besideMessage(e))
@@ -109,7 +110,7 @@ export function buildDoodleMap(goal: Goal, day: string): DoodleMap | null {
         // case unless it opens on a name.
         label: condition ? afterThen(goal, a.action) : a.action,
         kind: condition ? 'fork' : 'task',
-        state: awaiting ? 'awaiting' : (t.state as NodeState),
+        state: awaiting ? 'awaiting' : (tk.state as NodeState),
         to: a.to,
         when: a.when,
         condition,

@@ -13,6 +13,7 @@ import type { Reply } from '../lib/tools';
 import { HandMic } from './paper/HandMic';
 import { GambitAvatar } from './paper/GambitAvatar';
 import { dictationSupported, useDictation } from '../lib/dictation';
+import { t, hasKey } from '../lib/i18n';
 
 interface Draft { text: string; reply?: Reply; tools: { id: string; label: string; ok?: boolean }[] }
 
@@ -57,31 +58,9 @@ function insertNewline(el: HTMLTextAreaElement, set: (v: string) => void) {
  * desktop.html's "Pressure-testing" over the leaf while a turn runs.
  * Falls back to a capitalized skill name for anything not in the catalogue
  * (see AGENTS.md's skill table). */
-const SKILL_VERBS: Record<string, string> = {
-  onboard: 'Getting oriented',
-  intake: 'Getting oriented',
-  brief: 'Reading back',
-  status: 'Checking status',
-  strategy: 'Setting strategy',
-  systems: 'Finding the leverage point',
-  plan: 'Sequencing the plan',
-  decide: 'Working the decision',
-  experiment: 'Designing a test',
-  forecast: 'Sharpening the forecast',
-  threat: 'Red-teaming the plan',
-  premortem: 'Stipulating failure',
-  exposure: 'Assessing exposure',
-  capacity: 'Checking capacity',
-  stakeholders: 'Mapping stakeholders',
-  negotiate: 'Prepping the negotiation',
-  comms: 'Sharpening the message',
-  eval: 'Auditing progress',
-  review: 'Reviewing what happened',
-  elicit: 'Pressure-testing',
-};
-
 function skillVerb(name: string): string {
-  return SKILL_VERBS[name] ?? name.charAt(0).toUpperCase() + name.slice(1);
+  const key = `chat.skill.${name}`;
+  return hasKey(key) ? t(key) : name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 /** A tool-event label of the shape `skill: <name>` (see lib/tools.ts's
@@ -100,8 +79,8 @@ function SendButton({ ready, busy, onClick }: { ready: boolean; busy: boolean; o
   return (
     <button
       type="button"
-      aria-label={busy ? 'Stop' : 'Send'}
-      data-note={busy ? 'Stop' : 'Send'}
+      aria-label={busy ? t('chat.stop') : t('chat.send')}
+      data-note={busy ? t('chat.stop') : t('chat.send')}
       onClick={() => { setPressed(true); onClick(); }}
       onAnimationEnd={() => setPressed(false)}
       disabled={!ready && !busy}
@@ -126,13 +105,13 @@ function SendButton({ ready, busy, onClick }: { ready: boolean; busy: boolean; o
  * a slow pulse, since it's the one thing on the screen that's live. Only
  * rendered where the browser can dictate. */
 export function MicButton({ listening, onClick }: { listening: boolean; onClick: () => void }) {
-  const label = listening ? 'Stop dictating' : 'Dictate';
+  const label = listening ? t('chat.stopDictating') : t('chat.dictate');
   return (
     <button
       type="button"
       aria-label={label}
       aria-pressed={listening}
-      data-note={listening ? 'Stop dictating' : "Dictate · your browser's speech service writes it out"}
+      data-note={listening ? t('chat.stopDictating') : t('chat.dictateNote')}
       onClick={onClick}
       className="anim-press grid h-11 w-11 flex-none place-items-center"
     >
@@ -141,29 +120,27 @@ export function MicButton({ listening, onClick }: { listening: boolean; onClick:
   );
 }
 
-/** Plain-language names for goal keys, for the "wrote to your page" line. */
-const KEY_WORDS: Record<string, string> = {
-  successCriteria: 'what done looks like',
-  people: 'people',
-  posture: 'posture',
-  plan: 'the plan',
-  systemsNotes: 'systems notes',
-  riskNotes: 'risks',
-  decisions: 'decisions',
-  stakeholders: 'stakeholders',
-  exposure: 'exposure',
-  capacity: 'capacity',
-  forecasts: 'forecasts',
-  experiments: 'experiments',
-  criteriaStatus: 'progress',
+/** The summary lines are English, made by core's summarizeChange and kept in
+ * the saved chat, so they're read back into the page's language here:
+ * "+2 tasks", "3 status changes", "plan updated", "risk updated". Anything
+ * not recognised shows as it was stored. */
+const SUMMARY_LABELS: Record<string, string> = {
+  tasks: 'tasks', risk: 'risk', criteria: 'criteria', stakeholder: 'stakeholder', 'systems notes': 'systemsNotes',
+  goal: 'goal', 'sub goals': 'subGoals', deadline: 'deadline', people: 'people', posture: 'posture',
+  exposure: 'exposure', capacity: 'capacity', forecasts: 'forecasts', experiments: 'experiments',
+  decisions: 'decisions', intel: 'intel', courses: 'courses', prep: 'prep', memory: 'memory', log: 'log',
 };
 
 function plainSummary(items: string[]): string[] {
+  const label = (w: string) => (w in SUMMARY_LABELS ? t(`chat.summary.label.${SUMMARY_LABELS[w]}`) : null);
   return items.map((s) => {
-    for (const [key, word] of Object.entries(KEY_WORDS)) {
-      const re = new RegExp(`\\b${key}\\b`, 'i');
-      if (re.test(s)) return s.replace(re, word);
-    }
+    if (s === 'plan updated') return t('chat.summary.planUpdated');
+    let m = /^(\d+) status changes?$/.exec(s);
+    if (m) return t('chat.summary.statusChange', { count: Number(m[1]) });
+    m = /^([+-]\d+) (.+)$/.exec(s);
+    if (m && label(m[2])) return t('chat.summary.change', { delta: m[1], label: label(m[2])! });
+    m = /^(.+) updated$/.exec(s);
+    if (m && label(m[1])) return t('chat.summary.updated', { label: label(m[1])! });
     return s;
   });
 }
@@ -478,8 +455,6 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
     void send();
   }
 
-  const PLACEHOLDER = 'Reply to keep thinking…';
-
   const composer = (
     <div
       ref={composerRef}
@@ -501,8 +476,8 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
           onChange={(e) => { if (dictation.listening) dictation.cancel(); setVoiceNote(''); setInput(e.target.value); }}
           onFocus={() => { if (variant === 'mobile') onExpand(); }}
           onKeyDown={onInputKeyDown}
-          placeholder={dictation.listening ? 'listening…' : PLACEHOLDER}
-          aria-label="Message"
+          placeholder={dictation.listening ? t('chat.listening') : t('chat.placeholder')}
+          aria-label={t('chat.message')}
           enterKeyHint={TOUCH_FIRST() ? 'enter' : 'send'}
           autoCapitalize="sentences"
           className="min-w-0 flex-1 resize-none overflow-hidden border-0 bg-transparent py-2 font-sans text-[17px] leading-[27px] text-ink placeholder:font-hand placeholder:text-[23px] placeholder:text-graphite focus:outline-none"
@@ -548,18 +523,18 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
           {workingSkill ? (
             <span className="text-accent">{skillVerb(workingSkill)}</span>
           ) : (
-            <span className="hand anim-pulse text-[16px]">{display.length <= 1 ? 'reading what you wrote…' : 'thinking…'}</span>
+            <span className="hand anim-pulse text-[16px]">{display.length <= 1 ? t('chat.readingWhatYouWrote') : t('chat.thinking')}</span>
           )}
         </p>
       )}
       {display.length === 0 && !busy && (
         <div className="mx-auto mt-10 max-w-sm space-y-4 text-center">
-          <p className="text-[14px] text-graphite">{stub ? 'What do you want to achieve?' : 'Ask anything.'}</p>
+          <p className="text-[14px] text-graphite">{stub ? t('chat.startPrompt') : t('chat.askAnything')}</p>
           {/* A new goal's first move, the same red-ringed suggestion the
              Moves page shows, so it's in sight before the page is. */}
           {stub && (
             <TextAction circle={false} className="underline decoration-graphite/60 decoration-1" onClick={() => composeInChat(defineStarter(goalText ?? ''))}>
-              <RedRing seed="define"><span className="hand text-[19px] text-ink">Define the goal</span></RedRing>
+              <RedRing seed="define"><span className="hand text-[19px] text-ink">{t('chat.defineGoal')}</span></RedRing>
             </TextAction>
           )}
         </div>
@@ -595,20 +570,20 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
             )}
             {(m.summary?.length ?? 0) > 0 && (
               <p className="hand anim-write mt-6 flex flex-wrap items-center justify-center gap-2 text-center text-[16px]">
-                <span>wrote to your page: {plainSummary(m.summary!).join(' · ')}</span>
+                <span>{t('chat.wrote', { summary: plainSummary(m.summary!).join(' · ') })}</span>
                 {m.id === lastUndoable?.id && !m.undone && !busy && (
                   <TextAction className="!min-h-0 font-sans text-[14px] not-italic underline underline-offset-[3px]" onClick={() => void undoTurn(goalId, m.id)}>
-                    undo
+                    {t('chat.undo')}
                   </TextAction>
                 )}
-                {m.undone && <span>undone</span>}
+                {m.undone && <span>{t('chat.undone')}</span>}
               </p>
             )}
             {showsError(m) && (
               <Fleeting>
                 <p className="anim-fade-in text-[15px] text-accent">{m.error}</p>
                 {(m.summary?.length ?? 0) > 0 && (
-                  <p className="text-[14px] text-graphite">Some changes kept.</p>
+                  <p className="text-[14px] text-graphite">{t('chat.someKept')}</p>
                 )}
               </Fleeting>
             )}
@@ -623,7 +598,7 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
               <div className="min-w-0 flex-1 pt-0.5"><ReplyView reply={draft.reply} /></div>
             </div>
           ) : (
-            !workingSkill && <p className="hand anim-pulse text-center text-[16px]">{display.length <= 1 ? 'reading what you wrote…' : 'thinking…'}</p>
+            !workingSkill && <p className="hand anim-pulse text-center text-[16px]">{display.length <= 1 ? t('chat.readingWhatYouWrote') : t('chat.thinking')}</p>
           )}
           <Reasoning text={draft.text} tools={draft.tools.map((t) => t.label)} />
         </div>
@@ -640,7 +615,7 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
             className="hand !min-h-[32px] rounded-full border border-rule !bg-surface px-3 py-1 text-[16px] shadow-[0_1px_1px_var(--lift)]"
             onClick={() => scrollToBottom('smooth')}
           >
-            ↓ latest
+            {t('chat.latest')}
           </TextAction>
         </div>
       )}
@@ -683,7 +658,7 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Conversation"
+      aria-label={t('chat.conversation')}
       className={`fixed inset-x-0 bottom-0 z-30 flex flex-col ${closing ? 'anim-sheet-down' : 'anim-sheet-up'}`}
       style={{ top: 'calc(84px + env(safe-area-inset-top))' }}
     >
@@ -696,8 +671,8 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
           {header}
           <button
             onClick={requestClose}
-            aria-label="Back to your page"
-            data-note="Back to your page"
+            aria-label={t('chat.backToPage')}
+            data-note={t('chat.backToPage')}
             className="grid h-11 w-11 place-items-center text-graphite hover:text-ink"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

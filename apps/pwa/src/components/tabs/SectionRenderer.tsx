@@ -5,6 +5,7 @@ import { SectionBody, EMPTY_PROMPTS, EMPTY_STARTERS } from '../Sections';
 import { composeInChat } from '../../lib/compose';
 import { sectionTitleFor } from '../sectionTitles';
 import { proseDates } from '../../lib/dates';
+import { t } from '../../lib/i18n';
 import { SectionHeading } from '../paper/SectionHeading';
 
 // A single goal-key section: heading (+ method gloss) and body. Split out
@@ -25,7 +26,7 @@ export function Section({ goalId, k, data, aside }: { goalId: string; k: Section
     <section className="anim-fade-in space-y-3">
       <SectionHeading
         k={k}
-        after={aside ?? (reviewed && <PencilWord className="text-[22px]">{proseDates(`reviewed ${reviewed}`)}</PencilWord>)}
+        after={aside ?? (reviewed && <PencilWord className="text-[22px]">{proseDates(t('moves.reviewed', { date: reviewed }))}</PencilWord>)}
       >
         {/* The method behind a section is a hover note on its title, not a
          * second word beside it. */}
@@ -38,7 +39,7 @@ export function Section({ goalId, k, data, aside }: { goalId: string; k: Section
 
 export function EmptySection({ k, onTap }: { k: string; onTap?: () => void }) {
   const { title } = sectionTitleFor(k);
-  const prompt = EMPTY_PROMPTS[k] ?? 'Nothing here yet.';
+  const prompt = EMPTY_PROMPTS[k] ?? t('moves.emptyDefault');
   const starter = EMPTY_STARTERS[k];
   onTap ??= starter ? () => composeInChat(starter) : undefined;
   return (

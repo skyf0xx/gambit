@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { Goal } from '../../lib/types';
 import { byDate, timeLeft, today } from '../../lib/dates';
+import { t } from '../../lib/i18n';
 import { hand, hashSeed, strokePath, type Point } from '../marks/stroke';
 import { buildDoodleMap, type DoodleColumn, type DoodleNode } from './tree';
 
@@ -18,7 +19,11 @@ function goTo(path: string) {
   window.dispatchEvent(new CustomEvent('gambit:goto', { detail: { path } }));
 }
 
-const STATUS_WORD: Record<string, string> = { at_risk: 'at risk', blocked: 'blocked', done: 'done' };
+const STATUS_WORD: Record<string, () => string> = {
+  at_risk: () => t('ui.statusAtRisk'),
+  blocked: () => t('ui.statusBlocked'),
+  done: () => t('ui.statusDone'),
+};
 
 export function Doodles({ goal }: { goal: Goal; goalId: string }) {
   const map = useMemo(() => buildDoodleMap(goal, today()), [goal]);
@@ -28,14 +33,14 @@ export function Doodles({ goal }: { goal: Goal; goalId: string }) {
   if (!map) {
     return (
       <div className="flex min-h-[200px] items-center justify-center p-8">
-        <p className="hand text-[20px] text-graphite">Nothing to draw yet.</p>
+        <p className="hand text-[20px] text-graphite">{t('ui.doodleNothing')}</p>
       </div>
     );
   }
 
   const deadline = goal.deadline ? timeLeft(goal.deadline) : null;
   return (
-    <div className="w-full" aria-label={`The plan for "${goal.goal}", each line climbing to the goal`} role="group">
+    <div className="w-full" aria-label={t('ui.doodlePlan', { goal: goal.goal })} role="group">
       <div className="anim-rise mx-auto max-w-[32rem] px-4 text-center">
         <button type="button" onClick={() => goTo('goal')} className="font-serif text-[21px] font-semibold leading-[28px] text-ink">
           {map.goal}
@@ -68,7 +73,7 @@ export function Doodles({ goal }: { goal: Goal; goalId: string }) {
 }
 
 function Column({ col, index }: { col: DoodleColumn; index: number }) {
-  const flag = col.status ? STATUS_WORD[col.status] : undefined;
+  const flag = col.status ? STATUS_WORD[col.status]?.() : undefined;
   return (
     <section
       aria-label={col.label}
@@ -90,7 +95,7 @@ function Column({ col, index }: { col: DoodleColumn; index: number }) {
         {col.nodes.map((n) => <Item key={n.path} node={n} />)}
         {col.forks.length > 0 && (
           <li className="space-y-1.5 pb-1 pl-7">
-            <div className="hand text-[18px] leading-5 text-graphite">if things change</div>
+            <div className="hand text-[18px] leading-5 text-graphite">{t('ui.doodleIfChange')}</div>
             <ul className="space-y-3">{col.forks.map((n) => <Item key={n.path} node={n} spine={false} />)}</ul>
           </li>
         )}
@@ -101,7 +106,7 @@ function Column({ col, index }: { col: DoodleColumn; index: number }) {
 
 function Item({ node, spine = true }: { node: DoodleNode; spine?: boolean }) {
   const quiet = node.state === 'done' || node.kind === 'milestone' || node.kind === 'fork';
-  const meta = [node.to && `to ${node.to}`, node.state === 'awaiting' && 'waiting for a reply', node.when && node.state !== 'done' && byDate(node.when)].filter(Boolean).join(' · ');
+  const meta = [node.to && t('ui.doodleTo', { name: node.to }), node.state === 'awaiting' && t('ui.doodleAwaiting'), node.when && node.state !== 'done' && byDate(node.when)].filter(Boolean).join(' · ');
   const cls = ['doodle-label', node.focus && 'is-focus', node.state === 'proposed' && 'is-proposed'].filter(Boolean).join(' ');
   return (
     <li className="doodle-item flex min-h-11 items-start gap-2">
@@ -116,17 +121,17 @@ function Item({ node, spine = true }: { node: DoodleNode; spine?: boolean }) {
       >
         {node.condition && (
           <span className="block">
-            <span className="text-graphite">if </span>{node.condition}
+            <span className="text-graphite">{t('ui.doodleIf')} </span>{node.condition}
           </span>
         )}
-        {node.condition && <span className="text-graphite">then </span>}
+        {node.condition && <span className="text-graphite">{t('ui.doodleThen')} </span>}
         <span className={`doodle-text ${cls}`}>{node.label}</span>
         {meta && <span className="hand ml-1.5 text-[17px] leading-[22px] text-graphite">{meta}</span>}
-        {node.state === 'proposed' && <span className="sr-only"> (proposed)</span>}
-        {node.state === 'done' && <span className="sr-only">{node.kind === 'milestone' ? ' (reached)' : ' (done)'}</span>}
+        {node.state === 'proposed' && <span className="sr-only">{t('ui.doodleProposed')}</span>}
+        {node.state === 'done' && <span className="sr-only">{node.kind === 'milestone' ? t('ui.doodleReached') : t('ui.doodleDone')}</span>}
         {node.chain?.map((c) => (
           <span key={c.path} className="block text-[14px] leading-5 text-graphite">
-            no reply in {c.days} days → {c.action}
+            {t('ui.doodleChain', { count: c.days, action: c.action })}
           </span>
         ))}
       </button>

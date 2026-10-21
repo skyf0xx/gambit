@@ -1,6 +1,7 @@
 import { getSetting, setSetting } from './db';
 import { createGoal, PENDING_SEND } from './goals';
 import { useUi } from './persist';
+import { t } from './i18n';
 
 // First run, goal first (brand/ux-onboarding.md §3): the person writes what
 // they're after, gets a key, and their words go in as the first message.
@@ -21,7 +22,7 @@ export const saveOnboarding = (o: Onboarding) => setSetting(KEY, o);
 export function titleFrom(draft: string): string {
   const first = draft.trim().split(/(?<=[.!?])\s|\n/)[0] ?? '';
   const words = first.split(/\s+/).filter(Boolean).slice(0, 10).join(' ');
-  return words.replace(/[\s.,;:!?—–-]+$/, '') || 'My goal';
+  return words.replace(/[\s.,;:!?—–-]+$/, '') || t('app.defaultGoalTitle');
 }
 
 /** Create the goal from the draft and queue the draft as its first message. */

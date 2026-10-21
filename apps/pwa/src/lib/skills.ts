@@ -2,6 +2,7 @@ import guidedMd from '../../../../skills/_shared/GUIDED.md?raw';
 import methodsCsv from '../../vendor/BMAD/methods.csv?raw';
 import { skillFlow, type SkillFlow } from '@gambit/core';
 import { pageGlossary } from './glossary';
+import { LOCALES, locale } from './i18n';
 
 const packGlob = import.meta.glob('../../../../skills/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 const nativeGlob = import.meta.glob('../../skills/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
@@ -156,6 +157,12 @@ prep: [{with: S (a people or stakeholders name, verbatim), on?: date, ask: M, ba
 log entry (append_log): {date?, assessment?: on_track|at_risk|stalled|regressing, focus: ≤160 | null, focusLine?: ≤120 (strategy only: verbatim text of the one criterion, next action or step the focus lands on; the page highlights it), notes: [M] ≤3 — what happened or was decided in this exchange, never a restatement of the situation; source?: S}
 memory entry (remember / forget, any skill or none): {kind: fact|preference|constraint|rejected, text: M, date (set for you)} ≤20 entries; pass replaces: index to correct one in place`;
 
+/** The page is in one language; the user may write in another. */
+export function languageRule(l = locale()): string {
+  const name = LOCALES[l];
+  return `The page is in ${name}. Reply, and write everything that goes on the goal, in the language the user writes to you in; until they have written, use ${name}. Tool names, key names and fixed values (statuses, kinds, levels, sources) stay in English: the page puts those in the user's language itself. The page's words in "What the user sees" below are in ${name}, as the user reads them. The rules for goal text (word caps, plain words, one phrase per fork) hold in every language.`;
+}
+
 export const PREAMBLE = `You are Gambit, a strategic advisor running inside a local-first web app. The user's goal lives in an on-device store and is shown live on a dashboard beside this chat.
 
 # Surface
@@ -167,6 +174,9 @@ export const PREAMBLE = `You are Gambit, a strategic advisor running inside a lo
 - Every turn ends with exactly one reply(say, bottomLine, kind, options) call, after any writes. It is the only part of the turn the user sees by default, and stays under 80 words in all; see the guided-session rules below.
 - Shared docs referenced by skills (for example skills/_shared/HUMANIZE.md) are read with read_skill_file("_shared", "HUMANIZE.md").
 - Research: you have no live web access unless a web_search tool is present. Without it, say plainly that a claim is unverified instead of proceeding as if it had been checked.
+
+# Language
+${languageRule()}
 
 # Skills
 The skill index below lists every skill. When one applies, call load_skill(name) and follow it as a multi-turn guided session. It stays the active skill until you load another or call finish_skill. Do not load a skill for a passing remark that needs no skill. Hand off between skills silently.

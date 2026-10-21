@@ -1,0 +1,53 @@
+{
+  "heading": "suggestions",
+  "label": "Suggestions",
+  "starter": "Aide-moi à {todo}",
+  "defineStarter": "Aide-moi : {goal}",
+  "defineStarterEmpty": "Aide-moi à définir l’objectif",
+  "define": "Définir l’objectif",
+  "mapStakeholders": "Cartographier qui d’autre a voix au chapitre",
+  "setFocus": "Fixer le cap",
+  "pickRoute": "Choisir une piste",
+  "compareRoutes": "Comparer les pistes",
+  "makePlan": "Établir un plan",
+  "addFork": "Décider quoi faire si ça cale",
+  "redTeam": "Trouver les failles du plan",
+  "checkExposure": "Évaluer les risques personnels avant de rendre public",
+  "updateSection": "Mettre à jour « {section} »",
+  "scoreForecasts": {
+    "one": "Noter une prévision",
+    "other": "Noter {count} prévisions"
+  },
+  "recordExperiments": {
+    "one": "Noter le résultat d’un test",
+    "other": "Noter les résultats de {count} tests"
+  },
+  "catchUp": {
+    "one": "Rattraper un coup en retard",
+    "other": "Rattraper {count} coups en retard"
+  },
+  "escalate": "Porter l’affaire auprès de {name}",
+  "recordReply": "Noter ce que {name} a répondu",
+  "checkFork": "Vérifier : {event}",
+  "linkMilestones": "Relier les jalons à leurs coups",
+  "newWay": "Trouver une nouvelle voie pour : {label}",
+  "answerQuestions": {
+    "one": "Répondre à une question ouverte",
+    "other": "Répondre à {count} questions ouvertes"
+  },
+  "recordTalk": "Noter comment s’est passé l’échange avec {name}",
+  "recordTalks": "Noter comment se sont passés {count} échanges",
+  "reviewDecisions": {
+    "one": "Revoir une décision",
+    "other": "Revoir {count} décisions"
+  },
+  "settleDecisions": {
+    "one": "Trancher une décision ouverte",
+    "other": "Trancher {count} décisions ouvertes"
+  },
+  "premortem": "Trouver ce qui pourrait faire échouer le projet avant l’échéance",
+  "reviewFocus": "Revoir le cap",
+  "checkProgress": "Vérifier l’avancement",
+  "checkCapacity": "Vérifier les heures et l’argent réellement disponibles",
+  "recheckCapacity": "Revérifier les heures et l’argent disponibles"
+}

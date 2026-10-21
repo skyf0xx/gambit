@@ -1,6 +1,7 @@
 import type { Goal } from './types';
 import { taskState } from '@gambit/core';
 import { today } from './dates';
+import { t } from './i18n';
 
 // The goal's dates as an iCalendar file (RFC 5545): one all-day event per
 // date that still asks something of the user. Pure: no clock, no storage.
@@ -24,20 +25,20 @@ export function goalDates(goal: Goal): CalendarDate[] {
   const add = (path: string, date: unknown, summary: string) => {
     if (isoDate(date)) out.push({ path, date, summary });
   };
-  add('deadline', goal.deadline, `Deadline: ${goal.goal}`);
+  add('deadline', goal.deadline, t('settings.ics.deadline', { text: goal.goal }));
   goal.plan?.linesOfOperation?.forEach((l, li) =>
     l.nextActions?.forEach((a, ai) => {
       const path = `plan.linesOfOperation.${li}.nextActions.${ai}`;
       if (a.status !== 'pending') return;
-      if (a.if && 'event' in a.if && !a.if.happened) add(path, a.if.by, `Check: ${a.if.event}`);
+      if (a.if && 'event' in a.if && !a.if.happened) add(path, a.if.by, t('settings.ics.check', { text: a.if.event }));
       else if (taskState(a, goal.plan, today()) !== 'waiting') add(path, a.when, a.action);
     }),
   );
-  goal.forecasts?.forEach((f, i) => { if (!f.resolved) add(`forecasts.${i}`, f.resolvesBy, `Check: ${f.statement}`); });
-  goal.experiments?.forEach((e, i) => { if (!e.done) add(`experiments.${i}`, e.by, `Test result due: ${e.assumption}`); });
-  goal.decisions?.forEach((d, i) => { if (d.status !== 'open') add(`decisions.${i}`, d.reviewBy, `Revisit: ${d.choice ?? d.question ?? 'decision'}`); });
-  goal.intel?.forEach((q, i) => { if (q.status === 'open') add(`intel.${i}`, q.by, `Find out: ${q.question}`); });
-  goal.prep?.forEach((p, i) => { if (!p.done) add(`prep.${i}`, p.on, `Talk with ${p.with}`); });
+  goal.forecasts?.forEach((f, i) => { if (!f.resolved) add(`forecasts.${i}`, f.resolvesBy, t('settings.ics.check', { text: f.statement })); });
+  goal.experiments?.forEach((e, i) => { if (!e.done) add(`experiments.${i}`, e.by, t('settings.ics.test', { text: e.assumption })); });
+  goal.decisions?.forEach((d, i) => { if (d.status !== 'open') add(`decisions.${i}`, d.reviewBy, t('settings.ics.revisit', { text: d.choice ?? d.question ?? t('settings.ics.decision') })); });
+  goal.intel?.forEach((q, i) => { if (q.status === 'open') add(`intel.${i}`, q.by, t('settings.ics.findOut', { text: q.question })); });
+  goal.prep?.forEach((p, i) => { if (!p.done) add(`prep.${i}`, p.on, t('settings.ics.talkWith', { name: p.with })); });
   return out.sort((a, b) => a.date.localeCompare(b.date));
 }
 

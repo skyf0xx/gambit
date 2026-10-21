@@ -1,0 +1,9 @@
+{
+  "dueToday": "due today",
+  "late": { "one": "{count} day late", "other": "{count} days late" },
+  "daysLeft": { "one": "{count} day left", "other": "{count} days left" },
+  "weeksLeft": { "one": "{count} week left", "other": "{count} weeks left" },
+  "today": "today",
+  "tomorrow": "tomorrow",
+  "inDays": { "one": "in {count} day", "other": "in {count} days" }
+}

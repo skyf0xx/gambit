@@ -7,6 +7,8 @@ import { clearChat } from '../lib/agent';
 import { readDurability, requestPersistence, installRoute, installSteps, useUi, type Durability } from '../lib/persist';
 import { bindExportFile, commitImport, downloadExport, fileSyncState, fsAccessSupported, planImport, reauthorizeFileSync, unbindExportFile, type Choice, type ImportItem } from '../lib/portability';
 import { setTheme, useTheme, type Theme } from '../lib/theme';
+import { LOCALES, intlLocale, locale, setLocale, t, type Locale } from '../lib/i18n';
+import { track } from '../lib/analytics';
 import { fmtUsd } from '../lib/cost';
 import { getProvider, PROVIDERS, type ProviderSettings } from '../lib/providers';
 import { hasApiKey } from '../lib/crypto';
@@ -60,7 +62,7 @@ const Act = ({ className = '', danger = false, ...p }: React.ButtonHTMLAttribute
 function shortDay(ts: number): string {
   const d = new Date(ts);
   const sameYear = d.getFullYear() === new Date().getFullYear();
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) });
+  return d.toLocaleDateString(intlLocale(), { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) });
 }
 
 /** Provider and model, with the form opening under the row. */
@@ -72,10 +74,10 @@ function Model() {
   const noKey = !!p && !p.key;
   return (
     <Row
-      label={p ? PROVIDERS[p.s.kind]?.label ?? p.s.kind : 'Provider'}
-      value={!p ? 'Not set' : noKey ? 'no key saved' : p.s.model}
+      label={p ? PROVIDERS[p.s.kind]?.label ?? p.s.kind : t('settings.provider')}
+      value={!p ? t('settings.notSet') : noKey ? t('settings.noKeySaved') : p.s.model}
       warn={!p || noKey}
-      action={<Act aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Close' : 'Change'}</Act>}
+      action={<Act aria-expanded={open} onClick={() => setOpen(!open)}>{open ? t('settings.close') : t('settings.change')}</Act>}
     >
       {open && <ProviderForm onDone={() => { setOpen(false); void load(); }} />}
     </Row>
@@ -105,40 +107,40 @@ function Backup() {
   const stale = !last || Date.now() - last > 14 * 864e5;
 
   const installAction = installEvent
-    ? <InkButton onClick={() => void installEvent.prompt()}>Install</InkButton>
+    ? <InkButton onClick={() => void installEvent.prompt()}>{t('settings.install')}</InkButton>
     : d?.persisted === false && !declined
-      ? <Act onClick={guard(async () => { if (!(await requestPersistence())) setDeclined(true); })}>Allow</Act>
+      ? <Act onClick={guard(async () => { if (!(await requestPersistence())) setDeclined(true); })}>{t('settings.allow')}</Act>
       : null;
 
   return (
     <>
       {d && !kept && (
-        <Row label="Storage" value="Install to ensure your conversations are saved." action={installAction}>
+        <Row label={t('settings.storage')} value={t('settings.storageValue')} action={installAction}>
           {!installEvent && (route === 'ios' || route === 'mac-safari') ? <p className="text-[14px] text-graphite">{installSteps[route]}</p> : null}
         </Row>
       )}
 
       {fs && (
         <Row
-          label="Automatic backup"
-          value={sync === 'active' ? 'On' : sync === 'needs_permission' ? 'paused' : 'Off'}
+          label={t('settings.autoBackup')}
+          value={sync === 'active' ? t('settings.on') : sync === 'needs_permission' ? t('settings.paused') : t('settings.off')}
           warn={sync === 'needs_permission'}
           action={
-            sync === 'active' ? <Act onClick={guard(unbindExportFile)}>Turn off</Act>
-            : sync === 'needs_permission' ? <Act onClick={guard(reauthorizeFileSync)}>Resume</Act>
-            : <Act onClick={guard(bindExportFile)}>Turn on</Act>
+            sync === 'active' ? <Act onClick={guard(unbindExportFile)}>{t('settings.turnOff')}</Act>
+            : sync === 'needs_permission' ? <Act onClick={guard(reauthorizeFileSync)}>{t('settings.resume')}</Act>
+            : <Act onClick={guard(bindExportFile)}>{t('settings.turnOn')}</Act>
           }
         />
       )}
 
       <Row
-        label="Backup file"
-        value={last ? `Last saved ${shortDay(last)}` : 'never saved'}
+        label={t('settings.backupFile')}
+        value={last ? t('settings.lastSaved', { day: shortDay(last) }) : t('settings.neverSaved')}
         warn={sync !== 'active' && stale}
-        action={<Act onClick={guard(downloadExport)}>Download</Act>}
+        action={<Act onClick={guard(downloadExport)}>{t('settings.download')}</Act>}
       />
 
-      <Row label="Restore" value="From a backup file" action={<Act onClick={() => document.getElementById('import-file-input')?.click()}>Choose file</Act>}>
+      <Row label={t('settings.restore')} value={t('settings.restoreValue')} action={<Act onClick={() => document.getElementById('import-file-input')?.click()}>{t('settings.chooseFile')}</Act>}>
         {items && (
           <div className="space-y-2 text-[17px]">
             {items.map((it) => (
@@ -146,19 +148,19 @@ function Backup() {
                 <div className="min-w-0">
                   <div className="truncate">{it.title}</div>
                   {it.error && <div className="text-[14px] text-accent">{it.error}</div>}
-                  {it.conflict && !it.error && <div className="text-[14px] text-graphite">Already here</div>}
+                  {it.conflict && !it.error && <div className="text-[14px] text-graphite">{t('settings.alreadyHere')}</div>}
                 </div>
                 {!it.error && (
                   <select className="border-0 border-b border-card-rule bg-transparent px-1 py-1 text-[14px] text-ink focus:border-ink focus:outline-none" value={choices[it.id] ?? (it.conflict ? 'copy' : 'replace')} onChange={(e) => setChoices({ ...choices, [it.id]: e.target.value as Choice })}>
-                    {it.conflict ? <><option value="copy">Add as copy</option><option value="replace">Replace</option></> : <option value="replace">Add</option>}
-                    <option value="skip">Skip</option>
+                    {it.conflict ? <><option value="copy">{t('settings.addAsCopy')}</option><option value="replace">{t('settings.replace')}</option></> : <option value="replace">{t('settings.add')}</option>}
+                    <option value="skip">{t('settings.skip')}</option>
                   </select>
                 )}
               </div>
             ))}
             <div className="flex items-center gap-5 pt-1">
-              <InkButton onClick={guard(async () => { const r = await commitImport(items, choices); setItems(null); setMsg(`Added ${r.added}, replaced ${r.replaced}.`); })}>Restore</InkButton>
-              <Act onClick={() => setItems(null)}>Cancel</Act>
+              <InkButton onClick={guard(async () => { const r = await commitImport(items, choices); setItems(null); setMsg(t('settings.restored', { added: r.added, replaced: r.replaced })); })}>{t('settings.restore')}</InkButton>
+              <Act onClick={() => setItems(null)}>{t('settings.cancel')}</Act>
             </div>
           </div>
         )}
@@ -183,27 +185,45 @@ function Spend({ cost }: { cost: SettingsPageProps['cost'] }) {
   if (!cost || cost.turns === 0) return null;
   return (
     <Row
-      label="Cost, last 6 hours"
-      value={cost.dollars === null ? 'Unknown for this model' : fmtUsd(cost.dollars)}
-      action={<Act aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Hide' : 'Details'}</Act>}
+      label={t('settings.costLabel')}
+      value={cost.dollars === null ? t('settings.costUnknown') : fmtUsd(cost.dollars)}
+      action={<Act aria-expanded={open} onClick={() => setOpen(!open)}>{open ? t('settings.hide') : t('settings.details')}</Act>}
     >
       {open && <CostPanel />}
     </Row>
   );
 }
 
-const THEMES: { id: Theme; label: string }[] = [{ id: 'system', label: 'Auto' }, { id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' }];
+const THEMES: { id: Theme; label: string }[] = [{ id: 'system', label: t('settings.themeAuto') }, { id: 'light', label: t('settings.themeLight') }, { id: 'dark', label: t('settings.themeDark') }];
 
 /** The theme in use is in ink and circled; the others in graphite. */
 function ThemePicker() {
   const theme = useTheme();
   return (
-    <div role="radiogroup" aria-label="Theme" className="flex items-center gap-x-8 pl-1">
-      {THEMES.map((t) => {
-        const on = theme === t.id;
+    <div role="radiogroup" aria-label={t('settings.theme')} className="flex items-center gap-x-8 pl-1">
+      {THEMES.map((th) => {
+        const on = theme === th.id;
         return (
-          <TextAction key={t.id} circle={false} role="radio" aria-checked={on} data-selected={on} className={on ? '' : 'text-graphite! hover:text-ink!'} onClick={() => setTheme(t.id)}>
-            {t.label}
+          <TextAction key={th.id} circle={false} role="radio" aria-checked={on} data-selected={on} className={on ? '' : 'text-graphite! hover:text-ink!'} onClick={() => setTheme(th.id)}>
+            {th.label}
+          </TextAction>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Each language in its own words; the one in use is in ink. Picking
+ * another reloads the app into it. */
+function LanguagePicker() {
+  const current = locale();
+  return (
+    <div role="radiogroup" aria-label={t('language.label')} className="flex flex-wrap items-center gap-x-8 pl-1">
+      {(Object.keys(LOCALES) as Locale[]).map((l) => {
+        const on = current === l;
+        return (
+          <TextAction key={l} lang={l} circle={false} role="radio" aria-checked={on} data-selected={on} className={on ? '' : 'text-graphite! hover:text-ink!'} onClick={() => { if (!on) { track('language_set', { locale: l }); setLocale(l); } }}>
+            {LOCALES[l]}
           </TextAction>
         );
       })}
@@ -219,12 +239,12 @@ function Colophon() {
   return (
     <footer className="space-y-1 border-t border-rule pt-6">
       <div className="font-serif text-[17px] font-semibold leading-[25.5px] tracking-[-0.01em] text-ink">gambit</div>
-      <p className="text-[14px] leading-[22px] text-graphite">Version {__APP_VERSION__}</p>
+      <p className="text-[14px] leading-[22px] text-graphite">{t('settings.version', { version: __APP_VERSION__ })}</p>
       <p className="text-[14px] leading-[22px] text-graphite">
-        Uses skills adapted from the <a className={link} href="https://github.com/bmad-code-org/BMAD-METHOD" target="_blank" rel="noreferrer">BMAD Method</a> (<a className={link} href="/licenses/BMAD/LICENSE" target="_blank" rel="noreferrer">MIT</a>).
+        {t('settings.bmad.before')}<a className={link} href="https://github.com/bmad-code-org/BMAD-METHOD" target="_blank" rel="noreferrer">{t('settings.bmad.link')}</a>{t('settings.bmad.between')}<a className={link} href="/licenses/BMAD/LICENSE" target="_blank" rel="noreferrer">{t('settings.bmad.licence')}</a>{t('settings.bmad.after')}
       </p>
       <p className="pt-4 text-[14px] leading-[22px] text-graphite">
-        Find Gambit useful? <a className={link} href="https://github.com/skyf0xx/gambit" target="_blank" rel="noreferrer">Star us on GitHub</a> ★
+        {t('settings.star.before')}<a className={link} href="https://github.com/skyf0xx/gambit" target="_blank" rel="noreferrer">{t('settings.star.link')}</a>{t('settings.star.after')}
       </p>
     </footer>
   );
@@ -249,8 +269,8 @@ function CalendarDates({ goalId }: { goalId: string }) {
   const n = goal ? goalDates(goal).length : 0;
   if (!goal || n === 0) return null;
   return (
-    <Section title="Calendar">
-      <Row label="Add dates to calendar" value={`${n} ${n === 1 ? 'date' : 'dates'} from this goal`} action={<Act onClick={() => downloadIcs(goal, goalId)}>Download</Act>} />
+    <Section title={t('settings.sectionCalendar')}>
+      <Row label={t('settings.calendarAdd')} value={t('settings.calendarDates', { count: n })} action={<Act onClick={() => downloadIcs(goal, goalId)}>{t('settings.download')}</Act>} />
     </Section>
   );
 }
@@ -259,21 +279,22 @@ function CalendarDates({ goalId }: { goalId: string }) {
 export function SettingsPage({ goalId, cost }: SettingsPageProps) {
   return (
     <div className="space-y-6">
-      <Section title="AI model"><Model /></Section>
-      <Section title="Backup"><Backup /></Section>
+      <Section title={t('settings.sectionModel')}><Model /></Section>
+      <Section title={t('settings.sectionBackup')}><Backup /></Section>
       {goalId && <CalendarDates goalId={goalId} />}
-      <Section title="Chat">
+      <Section title={t('settings.sectionChat')}>
         <Spend cost={cost} />
         {goalId && (
-          <Row label="Chat history" value="Your goal is kept" action={<Act onClick={() => confirm('Clear the chat history? Your goal is kept.') && void clearChat(goalId)}>Clear</Act>} />
+          <Row label={t('settings.chatHistory')} value={t('settings.goalKept')} action={<Act onClick={() => confirm(t('settings.confirmClear')) && void clearChat(goalId)}>{t('settings.clear')}</Act>} />
         )}
       </Section>
-      <Section title="Theme"><ThemePicker /></Section>
-      <Section title="Delete">
+      <Section title={t('settings.theme')}><ThemePicker /></Section>
+      <Section title={t('language.label')}><LanguagePicker /></Section>
+      <Section title={t('settings.sectionDelete')}>
         {goalId && (
-          <Row label="This goal" value="And its chat" action={<Act danger onClick={() => confirm('Delete this goal and its chat? This cannot be undone.') && void deleteGoal(goalId)}>Delete</Act>} />
+          <Row label={t('settings.thisGoal')} value={t('settings.andItsChat')} action={<Act danger onClick={() => confirm(t('settings.confirmDelete')) && void deleteGoal(goalId)}>{t('settings.delete')}</Act>} />
         )}
-        <Row label="All data" value="Every goal and your key" action={<Act danger onClick={() => confirm('Erase all Gambit data on this device, including your key?') && void db.delete().then(() => location.reload())}>Erase</Act>} />
+        <Row label={t('settings.allData')} value={t('settings.allDataValue')} action={<Act danger onClick={() => confirm(t('settings.confirmErase')) && void db.delete().then(() => location.reload())}>{t('settings.erase')}</Act>} />
       </Section>
       <Colophon />
     </div>

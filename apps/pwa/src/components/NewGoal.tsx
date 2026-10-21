@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createGoal } from '../lib/goals';
 import { defineStarter } from '../lib/compose';
+import { t } from '../lib/i18n';
 import { InkButton, Leaf, inputCls } from './ui';
 
 export function NewGoalDialog({ onClose }: { onClose: () => void }) {
@@ -15,22 +16,22 @@ export function NewGoalDialog({ onClose }: { onClose: () => void }) {
     onClose();
   };
   return (
-    <Leaf title="New goal" onClose={onClose}>
+    <Leaf title={t('app.newGoal.title')} onClose={onClose}>
       <div className="anim-rise space-y-3">
         <input
           autoFocus
           className={inputCls}
           value={title}
           maxLength={200}
-          aria-label="Goal title"
+          aria-label={t('app.newGoal.titleLabel')}
           aria-invalid={empty}
           onChange={(e) => setTitle(e.target.value)}
           onBlur={() => setTouched(true)}
           onKeyDown={(e) => e.key === 'Enter' && void go()}
-          placeholder="e.g. Land a job offer"
+          placeholder={t('app.newGoal.placeholder')}
         />
-        {empty && <p className="anim-fade-in text-[14px] text-accent">Add a title.</p>}
-        <InkButton onClick={() => void go()} disabled={!title.trim()}>Create</InkButton>
+        {empty && <p className="anim-fade-in text-[14px] text-accent">{t('app.newGoal.needTitle')}</p>}
+        <InkButton onClick={() => void go()} disabled={!title.trim()}>{t('app.newGoal.create')}</InkButton>
       </div>
     </Leaf>
   );

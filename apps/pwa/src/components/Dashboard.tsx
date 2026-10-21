@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { readRecord } from '../lib/goals';
 import { PencilWord } from './ui';
+import { t } from '../lib/i18n';
 import { MarksProvider } from './marks/context';
 import { MarksLayer } from './marks/MarksLayer';
 import { Tabs } from './tabs/Tabs';
@@ -17,9 +18,9 @@ export function useGoalView(goalId: string) {
 
 export function Dashboard({ goalId, settings, onTabChange }: { goalId: string; settings: SettingsPageProps; onTabChange?: (t: TabId) => void }) {
   const read = useGoalView(goalId);
-  if (!read) return <div className="paper p-6"><PencilWord>Loading…</PencilWord></div>;
-  if (read.status === 'needs_app_update') return <div className="paper m-4 p-4 text-[17px] leading-[27px] text-accent">This goal was saved by a newer version of Gambit (schema v{read.version}). Update the app to open it. It has not been changed.</div>;
-  if (read.status === 'invalid') return <div className="paper m-4 p-4 text-[17px] leading-[27px] text-accent">This goal doesn't match the current schema: {read.error}. Restore it from a backup or fix the JSON.</div>;
+  if (!read) return <div className="paper p-6"><PencilWord>{t('moves.loading')}</PencilWord></div>;
+  if (read.status === 'needs_app_update') return <div className="paper m-4 p-4 text-[17px] leading-[27px] text-accent">{t('moves.schemaNewer', { version: read.version })}</div>;
+  if (read.status === 'invalid') return <div className="paper m-4 p-4 text-[17px] leading-[27px] text-accent">{t('moves.schemaInvalid', { error: read.error })}</div>;
   const g = read.data;
 
   return (

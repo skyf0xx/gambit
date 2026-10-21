@@ -1,4 +1,5 @@
 import type { LinePath } from '../../lib/changes';
+import { t } from '../../lib/i18n';
 import { useSession, type FreshWrites } from '../../lib/session';
 import { useMarksContext } from '../marks/context';
 
@@ -17,8 +18,8 @@ function useFreshForPage(): FreshWrites | null {
 function Tag() {
   return (
     <>
-      <span aria-hidden="true" className="hand anim-write ml-2 inline-block text-[16px] font-normal text-graphite">new</span>
-      <span className="sr-only"> (new from your last chat)</span>
+      <span aria-hidden="true" className="hand anim-write ml-2 inline-block text-[16px] font-normal text-graphite">{t('page.fresh.tag')}</span>
+      <span className="sr-only"> {t('page.fresh.srNote')}</span>
     </>
   );
 }

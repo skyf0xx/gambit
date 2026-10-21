@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Goal } from '../lib/types';
 import { proposals, keep, toss, isSelf } from '../lib/slips';
 import { byDate, proseDates } from '../lib/dates';
+import { t } from '../lib/i18n';
 import { TextAction, PencilWord } from './ui';
 import type { SlipItem } from '../lib/slips';
 import { FreshTag } from './paper/FreshTag';
@@ -55,7 +56,7 @@ function Note({ goalId, item }: { goalId: string; item: SlipItem }) {
 
   return (
     <aside
-      aria-label="Suggestion from Gambit"
+      aria-label={t('moves.suggestionLabel')}
       onClick={onNoteClick}
       className={`slip group/note motion-safe:transform-[rotate(1.6deg)] relative ml-auto mt-9 w-[82%] bg-note px-4 pb-3 pt-4 ${leaving === 'toss' ? 'anim-peel' : leaving === 'keep' ? 'anim-press' : ''}`}
       style={{
@@ -69,11 +70,11 @@ function Note({ goalId, item }: { goalId: string; item: SlipItem }) {
         clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 26px), calc(100% - 26px) 100%, 0 100%)',
       }}
     >
-      <div className="mb-1 text-[13px] leading-4.5 text-graphite">Gambit suggests</div>
+      <div className="mb-1 text-[13px] leading-4.5 text-graphite">{t('moves.suggests')}</div>
       <p data-line={item.path} className="text-[17px] leading-6.25 text-ink">
         {proseDates(item.action)}
         <FreshTag path={item.path} />
-        <span className="sr-only"> (suggestion)</span>
+        <span className="sr-only">{t('moves.suggestionSr')}</span>
       </p>
       {/* The why: what makes "keep or toss" an informed choice. */}
       {item.detail && <p className="mt-1 text-[14px] leading-5 text-graphite">{proseDates(item.detail)}</p>}
@@ -86,15 +87,15 @@ function Note({ goalId, item }: { goalId: string; item: SlipItem }) {
         className={`mt-2.5 flex gap-4 transition-opacity duration-150 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/note:opacity-100 [@media(hover:hover)]:group-focus-within/note:opacity-100 ${revealed ? 'opacity-100' : 'opacity-0 [@media(hover:none)]:pointer-events-none'}`}
       >
         <TextAction disabled={busy} onClick={() => void onKeep()}>
-          Keep it
+          {t('moves.keepIt')}
         </TextAction>
         <TextAction disabled={busy} onClick={() => void onToss()}>
-          Toss
+          {t('moves.toss')}
         </TextAction>
       </div>
       {!revealed && (
         <p aria-hidden="true" className="hand mt-0.5 text-[13px] opacity-60 [@media(hover:hover)]:hidden">
-          tap for options
+          {t('moves.tapForOptions')}
         </p>
       )}
     </aside>
@@ -123,7 +124,7 @@ function Pile({ items, goalId }: { items: SlipItem[]; goalId: string }) {
       ))}
       {more > 0 && (
         <TextAction className="self-start" onClick={() => setAll(true)}>
-          <PencilWord className="text-[18px] text-graphite">{`+${more} more ${more === 1 ? 'suggestion' : 'suggestions'}`}</PencilWord>
+          <PencilWord className="text-[18px] text-graphite">{t('moves.moreSuggestions', { count: more })}</PencilWord>
         </TextAction>
       )}
     </div>

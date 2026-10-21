@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMarksContext } from './context';
 import { session } from '../../lib/session';
+import { t } from '../../lib/i18n';
 import {
   arrowPoints,
   boxPoints,
@@ -467,11 +468,11 @@ export function noteForMark(mark: Mark): string | null {
     case 'arrow':
       return mark.sr;
     case 'question':
-      return 'still to decide';
+      return t('ui.markQuestion');
     case 'loop':
-      return 'new from your chat';
+      return t('ui.markLoop');
     case 'highlight':
-      return 'anything that doesn\'t help this can wait';
+      return t('ui.markHighlight');
     default:
       return null;
   }

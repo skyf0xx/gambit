@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { t } from './i18n';
 
 // Voice input through the browser's Web Speech API. The browser's own
 // speech service does the transcribing (in Chrome that is Google's servers;
@@ -29,11 +30,11 @@ function recognitionCtor(): (new () => Recognition) | null {
 export const dictationSupported = () => recognitionCtor() !== null;
 
 const MESSAGES: Record<string, string> = {
-  'not-allowed': 'Microphone blocked.',
-  'service-not-allowed': 'Dictation blocked here.',
-  'audio-capture': 'No microphone found.',
-  network: 'Dictation needs a connection.',
-  'language-not-supported': 'Language not supported.',
+  'not-allowed': 'chat.dictation.notAllowed',
+  'service-not-allowed': 'chat.dictation.serviceNotAllowed',
+  'audio-capture': 'chat.dictation.audioCapture',
+  network: 'chat.dictation.network',
+  'language-not-supported': 'chat.dictation.languageNotSupported',
 };
 
 /** Join the browser's result list into one transcript. Desktop Chrome
@@ -81,7 +82,7 @@ export function useDictation({ onText, onError }: { onText: (text: string) => vo
     r.onerror = (e) => {
       // Silence and our own abort end a session normally; say nothing.
       if (e.error === 'no-speech' || e.error === 'aborted') return;
-      cb.current.onError(MESSAGES[e.error] ?? 'Dictation stopped unexpectedly.');
+      cb.current.onError(t(MESSAGES[e.error] ?? 'chat.dictation.stopped'));
     };
     r.onend = () => { if (rec.current === r) rec.current = null; setListening(false); };
     rec.current = r;

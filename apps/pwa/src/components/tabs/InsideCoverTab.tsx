@@ -5,6 +5,7 @@ import { TextAction, PencilWord } from '../ui';
 import { LogsTab } from './LogsTab';
 import { MemoryList } from './MemoryList';
 import { useGoto } from '../gotoContext';
+import { t } from '../../lib/i18n';
 
 /** A page section folded behind a pencilled toggle, closed until tapped. */
 function Folded({ label, hideLabel, open, onToggle, children }: { label: string; hideLabel: string; open: boolean; onToggle: () => void; children: ReactNode }) {
@@ -36,12 +37,12 @@ export function InsideCoverTab({ g, ...props }: SettingsPageProps & { g?: Goal }
     <div className="space-y-12">
       <SettingsPage {...props} />
       {g && props.goalId && kept > 0 && (
-        <Folded label={`What Gambit remembers · ${kept}`} hideLabel="hide memory" open={showMemory} onToggle={() => setMemoryOpen((v) => !v)}>
+        <Folded label={t('settings.memoryFold', { count: kept })} hideLabel={t('settings.memoryHide')} open={showMemory} onToggle={() => setMemoryOpen((v) => !v)}>
           <MemoryList g={g} goalId={props.goalId} />
         </Folded>
       )}
       {g && entries > 0 && (
-        <Folded label={`History · ${entries} ${entries === 1 ? 'entry' : 'entries'}`} hideLabel="hide history" open={open} onToggle={() => setOpen((v) => !v)}>
+        <Folded label={t('settings.historyFold', { count: entries })} hideLabel={t('settings.historyHide')} open={open} onToggle={() => setOpen((v) => !v)}>
           <LogsTab g={g} />
         </Folded>
       )}

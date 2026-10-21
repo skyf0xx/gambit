@@ -4,6 +4,8 @@
 // pencilled date read short: "tomorrow", "in 3 days", "Fri 3 Oct" (en-GB
 // order: day before month).
 
+import { intlLocale, locale, t } from './i18n';
+
 const DAY_MS = 86_400_000;
 
 /** Today's local date as YYYY-MM-DD: the date the user's own day is on. */
@@ -32,30 +34,32 @@ export function daysUntil(d: string, now = new Date()): number | null {
 export function timeLeft(d: string, now = new Date()): string {
   const days = daysUntil(d, now);
   if (days === null) return pencilDate(d);
-  if (days === 0) return 'due today';
-  if (days < 0) {
-    const late = -days;
-    return `${late} day${late === 1 ? '' : 's'} late`;
-  }
-  if (days < 14) return `${days} day${days === 1 ? '' : 's'} left`;
-  const weeks = Math.round(days / 7);
-  return `${weeks} week${weeks === 1 ? '' : 's'} left`;
+  if (days === 0) return t('dates.dueToday');
+  if (days < 0) return t('dates.late', { count: -days });
+  if (days < 14) return t('dates.daysLeft', { count: days });
+  return t('dates.weeksLeft', { count: Math.round(days / 7) });
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+// English keeps its own short names ("Sep", never Intl's "Sept"); other
+// languages take theirs from Intl.
+const english = () => locale() === 'en';
+const intlDate = (t: Date, o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(intlLocale(), { ...o, timeZone: 'UTC' }).format(t);
+
 /** "Fri 3 Oct" — en-GB order, day then month, no year unless it isn't
- * this year. */
+ * this year. Other languages use their own order and names. */
 export function pencilDate(d: string | null | undefined, now = new Date()): string {
   if (!d) return '';
   const t = parseIsoDateUTC(d);
   if (!t) return d;
+  const year = t.getUTCFullYear();
+  const thisYear = now.getUTCFullYear();
+  if (!english()) return intlDate(t, { weekday: 'short', day: 'numeric', month: 'short', ...(year === thisYear ? {} : { year: 'numeric' }) });
   const weekday = WEEKDAYS[t.getUTCDay()];
   const day = t.getUTCDate();
   const month = MONTHS[t.getUTCMonth()];
-  const year = t.getUTCFullYear();
-  const thisYear = now.getUTCFullYear();
   return year === thisYear ? `${weekday} ${day} ${month}` : `${weekday} ${day} ${month} ${year}`;
 }
 
@@ -67,6 +71,7 @@ const ISO_IN_TEXT = /\b(\d{4})-(\d{2})-(\d{2})\b/g;
 export function proseDates(text: string, now = new Date()): string {
   return text.replace(ISO_IN_TEXT, (iso, y, m, d) => {
     if (+m < 1 || +m > 12 || +d < 1 || +d > 31) return iso;
+    if (!english()) return intlDate(new Date(Date.UTC(+y, +m - 1, +d, 12)), { day: 'numeric', month: 'short', ...(+y === now.getUTCFullYear() ? {} : { year: 'numeric' }) });
     const short = `${+d} ${MONTHS[+m - 1]}`;
     return +y === now.getUTCFullYear() ? short : `${short} ${y}`;
   });
@@ -95,8 +100,8 @@ export function byDate(d: string | null | undefined, now = new Date()): string {
   if (!d) return '';
   const days = daysUntil(d, now);
   if (days === null) return d;
-  if (days === 0) return 'today';
-  if (days === 1) return 'tomorrow';
-  if (days > 1 && days < 7) return `in ${days} days`;
+  if (days === 0) return t('dates.today');
+  if (days === 1) return t('dates.tomorrow');
+  if (days > 1 && days < 7) return t('dates.inDays', { count: days });
   return pencilDate(d, now);
 }

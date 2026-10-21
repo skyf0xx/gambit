@@ -6,6 +6,7 @@ import {
 } from '../lib/providers';
 import { saveApiKey, hasApiKey, clearApiKey } from '../lib/crypto';
 import { track } from '../lib/analytics';
+import { t } from '../lib/i18n';
 import { getOnboarding, saveOnboarding, startFromDraft, type Onboarding } from '../lib/onboarding';
 import { InkButton, TextAction, Field, inputCls } from './ui';
 import { HandMic } from './paper/HandMic';
@@ -14,9 +15,9 @@ import { TabPanel } from './tabs/TabPanel';
 import { TAB_LABELS, type TabId } from './tabs/tabDefs';
 
 const CHECK_TEXT: Record<Exclude<KeyCheck, 'ok'>, string> = {
-  bad: "That key didn't work. Copy it again and paste it here.",
-  offline: "You're offline. Connect and paste the key again.",
-  unreachable: "Couldn't reach the provider to check this key.",
+  bad: t('setup.checkBad'),
+  offline: t('setup.checkOffline'),
+  unreachable: t('setup.checkUnreachable'),
 };
 
 /** Provider, model and key entry. Used under "Other options" on first run and inside Settings. */
@@ -83,11 +84,11 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
     const fromKey = key ? settingsFromKey(key) : null;
     if (fromKey) adopt(fromKey);
     const s = fromKey ?? state;
-    if (!s.model.trim()) return setErr('Add a model (the default is fine).');
+    if (!s.model.trim()) return setErr(t('setup.errModel'));
     const base = s.baseURL || PROVIDERS[s.kind].baseURL;
-    if (s.kind === 'custom' && !base) return setErr('A custom provider needs a base URL.');
-    if (base && !originAllowed(base)) return setErr(`${new URL(base).origin} isn't in this build's allowed origins. Self-hosters can add it with VITE_EXTRA_CONNECT_SRC at build time.`);
-    if (!key && !saved) return setErr('Paste your API key to continue.');
+    if (s.kind === 'custom' && !base) return setErr(t('setup.errCustomBase'));
+    if (base && !originAllowed(base)) return setErr(t('setup.errOrigin', { origin: new URL(base).origin }));
+    if (!key && !saved) return setErr(t('setup.errPasteKey'));
     setBusy(true);
     try {
       if (key && !skipCheck) {
@@ -113,40 +114,40 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
 
   return (
     <div className="space-y-4">
-      <Field label="API key" hint="Only goes to your provider.">
-        <input className={`${inputCls} font-mono`} type="password" autoComplete="off" value={key} onChange={(e) => onKey(e.target.value)} placeholder={saved ? 'Saved' : 'Paste your key'} />
-        {detected && <span className="anim-fade-in block text-[14px] text-ink">{KEY_LABEL[detected]} key detected. Provider and model are set below.</span>}
+      <Field label={t('setup.apiKey')} hint={t('setup.apiKeyHint')}>
+        <input className={`${inputCls} font-mono`} type="password" autoComplete="off" value={key} onChange={(e) => onKey(e.target.value)} placeholder={saved ? t('setup.keySaved') : t('setup.keyPaste')} />
+        {detected && <span className="anim-fade-in block text-[14px] text-ink">{t('setup.keyDetected', { provider: KEY_LABEL[detected] })}</span>}
       </Field>
-      <Field label="Provider" hint={PROVIDERS[s.kind].help}>
+      <Field label={t('setup.provider')} hint={PROVIDERS[s.kind].help}>
         <select className={inputCls} value={s.kind} onChange={(e) => void change(e.target.value as ProviderKind)}>
           {(Object.keys(PROVIDERS) as ProviderKind[]).filter((k) => !(firstRun && k === 'google')).map((k) => <option key={k} value={k}>{PROVIDERS[k].label}</option>)}
         </select>
       </Field>
-      <Field label="Model id">
-        <input className={inputCls} value={s.model} onChange={(e) => setS({ ...s, model: e.target.value })} placeholder={s.kind === 'custom' ? 'e.g. deepseek-flash' : 'model id'} />
+      <Field label={t('setup.modelId')}>
+        <input className={inputCls} value={s.model} onChange={(e) => setS({ ...s, model: e.target.value })} placeholder={s.kind === 'custom' ? t('setup.modelPlaceholderCustom') : t('setup.modelPlaceholder')} />
       </Field>
       {s.kind === 'custom' || showBase ? (
-        <Field label={s.kind === 'custom' ? 'Base URL' : 'Proxy / base URL (optional)'} hint={s.kind === 'custom' ? `OpenRouter: ${OPENROUTER_BASE}` : 'For providers that block browsers.'}>
+        <Field label={s.kind === 'custom' ? t('setup.baseUrl') : t('setup.baseUrlProxy')} hint={s.kind === 'custom' ? t('setup.baseUrlHintCustom', { url: OPENROUTER_BASE }) : t('setup.baseUrlHintProxy')}>
           <input className={inputCls} value={s.baseURL ?? ''} onChange={(e) => setS({ ...s, baseURL: e.target.value })} placeholder={PROVIDERS[s.kind].baseURL ?? 'https://…/v1'} />
         </Field>
       ) : (
-        <TextAction className="text-[14px]! text-graphite! underline underline-offset-[3px]" onClick={() => setShowBase(true)}>Custom base URL</TextAction>
+        <TextAction className="text-[14px]! text-graphite! underline underline-offset-[3px]" onClick={() => setShowBase(true)}>{t('setup.customBase')}</TextAction>
       )}
       {(s.kind === 'anthropic' || s.kind === 'google') && !firstRun && (
         <label className="flex items-center gap-2 text-[14px] text-graphite">
           <input type="checkbox" checked={!!s.webSearch} onChange={(e) => setS({ ...s, webSearch: e.target.checked })} />
-          {s.kind === 'google' ? 'Web search (uses your Google quota)' : 'Web search (billed by Anthropic)'}
+          {s.kind === 'google' ? t('setup.webSearchGoogle') : t('setup.webSearchAnthropic')}
         </label>
       )}
       {err && (
         <p className="anim-fade-in text-[15px] text-accent">
           {err}{' '}
-          {unchecked && <TextAction className="text-[15px]! underline underline-offset-[3px]" onClick={() => void save(true)}>Use it anyway</TextAction>}
+          {unchecked && <TextAction className="text-[15px]! underline underline-offset-[3px]" onClick={() => void save(true)}>{t('setup.useAnyway')}</TextAction>}
         </p>
       )}
       <div className="flex items-center gap-4">
-        <InkButton disabled={busy} onClick={() => void save()}>{busy ? 'Checking…' : firstRun ? 'Continue' : 'Save'}</InkButton>
-        {saved && !firstRun && <TextAction className="text-graphite underline underline-offset-[3px]" onClick={async () => { await clearApiKey(s.kind); setSaved(false); }}>Remove key</TextAction>}
+        <InkButton disabled={busy} onClick={() => void save()}>{busy ? t('setup.checking') : firstRun ? t('setup.continue') : t('setup.save')}</InkButton>
+        {saved && !firstRun && <TextAction className="text-graphite underline underline-offset-[3px]" onClick={async () => { await clearApiKey(s.kind); setSaved(false); }}>{t('setup.removeKey')}</TextAction>}
       </div>
     </div>
   );
@@ -157,11 +158,11 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
 /** The pages ahead, named on their tabs. Each opens to one line saying what
  * will fill it, so the notebook can be looked through before it's started. */
 const PREVIEWS: Partial<Record<TabId, string>> = {
-  moves: 'Your best next moves.',
-  people: 'Who matters and what they want.',
-  risks: 'What could go wrong.',
-  bets: 'Your guesses, tested.',
-  doodles: 'The plan as a map.',
+  moves: t('setup.preview.moves'),
+  people: t('setup.preview.people'),
+  risks: t('setup.preview.risks'),
+  bets: t('setup.preview.bets'),
+  doodles: t('setup.preview.doodles'),
 };
 const SETUP_TABS: TabId[] = ['goal', 'moves', 'people', 'risks', 'bets', 'doodles', 'inside-cover'];
 
@@ -178,11 +179,11 @@ export function Setup({ hasGoals }: { hasGoals: boolean }) {
   const home: TabId = o.step === 'goal' ? 'goal' : 'inside-cover';
   const active = peek ?? home;
   // Settings appears once it's where they are: the key page.
-  const tabs = o.step === 'key' ? SETUP_TABS : SETUP_TABS.filter((t) => t !== 'inside-cover');
-  const pick = (t: TabId) => {
-    if (t === home) return setPeek(null);
-    if (t === 'goal' && !hasGoals) return update({ ...o, step: 'goal' });
-    setPeek(t);
+  const tabs = o.step === 'key' ? SETUP_TABS : SETUP_TABS.filter((x) => x !== 'inside-cover');
+  const pick = (x: TabId) => {
+    if (x === home) return setPeek(null);
+    if (x === 'goal' && !hasGoals) return update({ ...o, step: 'goal' });
+    setPeek(x);
   };
 
   return (
@@ -197,7 +198,7 @@ export function Setup({ hasGoals }: { hasGoals: boolean }) {
         <div className="flex flex-1 flex-col px-8.5 pt-10 md:px-16 md:pt-14" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
           {peek && PREVIEWS[peek] ? (
             <TabPanel tab={peek} active>
-              <Preview tab={peek} line={PREVIEWS[peek]!} back={o.step === 'goal' ? 'Start with your goal' : 'Back to your key'} onBack={() => setPeek(null)} />
+              <Preview tab={peek} line={PREVIEWS[peek]!} back={o.step === 'goal' ? t('setup.backToGoal') : t('setup.backToKey')} onBack={() => setPeek(null)} />
             </TabPanel>
           ) : o.step === 'goal' ? (
             <TabPanel tab="goal" active>
@@ -238,7 +239,7 @@ function Preview({ tab, line, back, onBack }: { tab: TabId; line: string; back: 
       <h1 className="ink-bleed font-serif text-[30px] leading-[38px] font-medium text-ink">{TAB_LABELS[tab]}</h1>
       <p className="mt-4 text-[17px] leading-[27px] text-graphite">{line}</p>
       <div aria-hidden="true" className="mt-8 h-48" style={{ background: 'repeating-linear-gradient(transparent 0 31px, var(--card-rule) 31px 32px)' }} />
-      <p className="hand mt-6 text-[20px]!">Fills in as we talk.</p>
+      <p className="hand mt-6 text-[20px]!">{t('setup.fillsIn')}</p>
       <TextAction className="mt-8 self-start underline underline-offset-[3px]" onClick={onBack}>{back}</TextAction>
     </div>
   );
@@ -269,12 +270,12 @@ function GoalStep({ draft, onDraft, onNext }: { draft: string; onDraft: (v: stri
       {/* Masthead: the brand and its promise, kept small so the question leads. */}
       <div className="anim-rise flex flex-wrap items-baseline gap-x-2.5">
         <span className="font-serif text-[19px] leading-[26px] font-semibold tracking-[-0.01em] text-ink">gambit</span>
-        <span className="text-[15px] leading-[26px] text-graphite">the notebook that thinks back</span>
+        <span className="text-[15px] leading-[26px] text-graphite">{t('setup.tagline')}</span>
       </div>
 
       <div className="anim-rise mt-16 md:mt-24">
         <h1 className="ink-bleed font-serif text-[30px] leading-[38px] font-medium text-balance text-ink">
-          <label htmlFor="first-goal">What are you trying to make happen?</label>
+          <label htmlFor="first-goal">{t('setup.goalQuestion')}</label>
         </h1>
         <textarea
           id="first-goal"
@@ -282,7 +283,7 @@ function GoalStep({ draft, onDraft, onNext }: { draft: string; onDraft: (v: stri
           value={draft}
           onChange={(e) => onDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && ready) next(); }}
-          placeholder={dictation.listening ? 'listening…' : 'Say it plainly, like you would to a friend.'}
+          placeholder={dictation.listening ? t('setup.listening') : t('setup.goalPlaceholder')}
           className="mt-12 block w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-sans text-[19px] leading-[32px] text-ink caret-accent placeholder:text-graphite focus:outline-none"
           style={{ background: 'repeating-linear-gradient(transparent 0 31px, var(--card-rule) 31px 32px)' }}
         />
@@ -300,13 +301,13 @@ function GoalStep({ draft, onDraft, onNext }: { draft: string; onDraft: (v: stri
             className={`anim-press group mt-4 flex min-h-11 items-center gap-2 text-[15px] ${dictation.listening ? 'text-accent' : 'text-graphite hover:text-ink'}`}
           >
             <HandMic size={20} className={dictation.listening ? 'anim-pulse' : 'pencil group-hover:text-ink'} />
-            {dictation.listening ? 'Stop listening' : 'Talk it out'}
+            {dictation.listening ? t('setup.stopListening') : t('setup.talkItOut')}
           </button>
         )}
-        <InkButton className={canDictate ? 'mt-8' : 'mt-12'} disabled={!ready} onClick={next}>Continue</InkButton>
+        <InkButton className={canDictate ? 'mt-8' : 'mt-12'} disabled={!ready} onClick={next}>{t('setup.continue')}</InkButton>
       </div>
 
-      <p className="hand mt-auto pt-16 text-[20px]! leading-[26px]!">Next, add your API key.</p>
+      <p className="hand mt-auto pt-16 text-[20px]! leading-[26px]!">{t('setup.nextAddKey')}</p>
     </div>
   );
 }
@@ -367,9 +368,9 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
     run.current++;
     if (k.length < 20) { setStatus({ kind: 'idle' }); return; }
     const p = keyProvider(k);
-    if (!p) { setStatus({ kind: 'error', text: "We don't recognise this key. For another provider, use a custom endpoint below." }); return; }
-    const t = setTimeout(() => void verify(settingsForKey(p), k, KEY_LABEL[p]), 350);
-    return () => clearTimeout(t);
+    if (!p) { setStatus({ kind: 'error', text: t('setup.errUnknownKey') }); return; }
+    const timer = setTimeout(() => void verify(settingsForKey(p), k, KEY_LABEL[p]), 350);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
@@ -408,32 +409,32 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
     <div className="flex flex-1 flex-col">
       {onBack && (
         <div className="-mt-3 mb-6 flex min-h-[44px] items-center">
-          <TextAction className="text-[15px]! text-graphite!" onClick={onBack}>← Back</TextAction>
+          <TextAction className="text-[15px]! text-graphite!" onClick={onBack}>{t('setup.back')}</TextAction>
         </div>
       )}
-      <h1 className="ink-bleed anim-rise font-serif text-[30px] leading-[38px] font-medium text-ink">Add your API key</h1>
+      <h1 className="ink-bleed anim-rise font-serif text-[30px] leading-[38px] font-medium text-ink">{t('setup.addKey')}</h1>
 
       <div className="anim-rise mt-10">
         <div className="flex items-end gap-3">
           <input
             ref={inputRef}
-            aria-label="API key"
+            aria-label={t('setup.apiKey')}
             className={`${inputCls} font-mono text-[16px]! placeholder:font-sans placeholder:text-[17px]`}
             value={key}
             onChange={(e) => setKey(e.target.value)}
-            placeholder="Paste your key"
+            placeholder={t('setup.keyPaste')}
             spellCheck={false}
             autoComplete="off"
             autoCapitalize="off"
           />
-          {canPaste && !key && <TextAction className="underline underline-offset-[3px]" onClick={() => void paste()}>Paste</TextAction>}
+          {canPaste && !key && <TextAction className="underline underline-offset-[3px]" onClick={() => void paste()}>{t('setup.paste')}</TextAction>}
         </div>
         <div className="mt-2.5 min-h-[20px] text-[14px] leading-[20px]" aria-live="polite">
-          {status.kind === 'checking' && <span className="text-graphite">{status.label ? `Checking your ${status.label} key…` : 'Checking…'}</span>}
+          {status.kind === 'checking' && <span className="text-graphite">{status.label ? t('setup.checkingKey', { provider: status.label }) : t('setup.checking')}</span>}
           {status.kind === 'ok' && (
             <span className="anim-fade-in flex items-center gap-1.5 text-ink">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
-              {status.label ? `${status.label} key works` : 'Key works'}
+              {status.label ? t('setup.keyWorks', { provider: status.label }) : t('setup.keyWorksPlain')}
             </span>
           )}
           {status.kind === 'error' && <span className="anim-fade-in text-accent">{status.text}</span>}
@@ -441,7 +442,7 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
       </div>
 
       <div className="anim-rise mt-8">
-        <p className="text-[14px] leading-5 text-graphite">Get one:</p>
+        <p className="text-[14px] leading-5 text-graphite">{t('setup.getOne')}</p>
         <div className="flex flex-wrap gap-x-5">
           {KEY_LINKS.map((l) => (
             <TextAction key={l.label} className="text-[15px]! underline underline-offset-[3px]" onClick={() => getKey(l.url)}>{l.label}</TextAction>
@@ -452,11 +453,11 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
       <div className="mt-auto flex flex-col gap-3 pt-16">
         {otherProvider ? (
           <div className="anim-rise">
-            <h2 className="mb-4 font-serif text-[20px] font-medium text-ink">Custom endpoint</h2>
+            <h2 className="mb-4 font-serif text-[20px] font-medium text-ink">{t('setup.customEndpoint')}</h2>
             <ProviderForm firstRun beforeSave={beforeSave} />
           </div>
         ) : (
-          <TextAction className="self-start text-[14px]! text-graphite! underline underline-offset-[3px]" onClick={() => setOtherProvider(true)}>Custom endpoint</TextAction>
+          <TextAction className="self-start text-[14px]! text-graphite! underline underline-offset-[3px]" onClick={() => setOtherProvider(true)}>{t('setup.customEndpoint')}</TextAction>
         )}
       </div>
     </div>

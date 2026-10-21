@@ -5,6 +5,7 @@ import { applyOp, readRecord } from './goals';
 import { db } from './db';
 import { today } from './dates';
 import { getSkillStore, skillText, skillFile, skillFlows, flowOf, elicitationMethods } from './skills';
+import { t } from './i18n';
 
 export interface ToolContext {
   goalId: string;
@@ -202,18 +203,18 @@ export function makeTools(ctx: ToolContext) {
 export function toolLabel(name: string, input: unknown): string {
   const i = (input ?? {}) as Record<string, string>;
   switch (name) {
-    case 'load_skill': return `skill: ${i.name}`;
-    case 'finish_skill': return 'skill done';
-    case 'write_section': return `wrote ${i.key}`;
-    case 'set_status': return `${i.status}: ${String(i.path).split('.').slice(-2).join('.')}`;
-    case 'append_log': return 'log entry';
-    case 'remember': return `remembered (${i.kind})`;
-    case 'forget': return 'forgot one thing';
-    case 'read_skill_file': return `read ${i.skill}/${i.path}`;
-    case 'web_search': return i.query ? `searched: ${i.query}` : 'web search';
-    case 'get_goal': return 'read goal';
-    case 'elicitation_methods': return 'method catalog';
-    case 'route_updates': return 'routed updates';
+    case 'load_skill': return t('tools.loadSkill', { name: i.name });
+    case 'finish_skill': return t('tools.finishSkill');
+    case 'write_section': return t('tools.writeSection', { key: i.key });
+    case 'set_status': return t('tools.setStatus', { status: i.status, path: String(i.path).split('.').slice(-2).join('.') });
+    case 'append_log': return t('tools.appendLog');
+    case 'remember': return t('tools.remember', { kind: i.kind });
+    case 'forget': return t('tools.forget');
+    case 'read_skill_file': return t('tools.readSkillFile', { file: `${i.skill}/${i.path}` });
+    case 'web_search': return i.query ? t('tools.searched', { query: i.query }) : t('tools.webSearch');
+    case 'get_goal': return t('tools.getGoal');
+    case 'elicitation_methods': return t('tools.methods');
+    case 'route_updates': return t('tools.routeUpdates');
     default: return name;
   }
 }

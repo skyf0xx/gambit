@@ -15,6 +15,7 @@ import { PencilRule } from './paper/PencilRule';
 import { pencilDate, byDate, withProseDates, daysUntil, today } from '../lib/dates';
 import { lineStretches } from '../lib/stretches';
 import { composeInChat } from '../lib/compose';
+import { hasKey, t } from '../lib/i18n';
 
 /** Pencilled long-date form ("Friday 3 Oct"), never ISO — used for the log
  * and anywhere a bare date (not a "by …" due date) is shown. */
@@ -25,58 +26,48 @@ export const titleForKey = (k: string) => {
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
 
+/** A schema status in the page's words ("at_risk" reads "at risk"); a value
+ * with no entry shows as stored. */
+const statusWord = (status: string) => (hasKey(`values.status.${status}`) ? t(`values.status.${status}`) : status);
+
 type Any = any; // section payloads are validated by the schema before they reach here
 
 export function hintFor(key: string, d: Any): string {
   const count = (a: Any[], f: (x: Any) => boolean) => a.filter(f).length;
   switch (key) {
-    case 'plan': { const l = d.linesOfOperation as Any[]; const off = count(l, (x) => x.status && x.status !== 'on_schedule' && x.status !== 'done'); return `${l.length} line${l.length === 1 ? '' : 's'}${off ? ` · ${off} need attention` : ''}`; }
-    case 'criteriaStatus': { const c: Record<string, number> = {}; for (const x of d) c[x.status] = (c[x.status] ?? 0) + 1; return Object.entries(c).map(([s, n]) => `${n} ${s.replace('_', ' ')}`).join(' · '); }
-    case 'people': return `${d.length} tracked · ${count(d, (p) => p.status === 'confirmed')} confirmed`;
-    case 'stakeholders': return `${d.length} tracked`;
-    case 'riskNotes': return `${count(d, (r) => !r.accepted)} open · ${count(d, (r) => r.accepted)} accepted`;
+    case 'plan': { const l = d.linesOfOperation as Any[]; const off = count(l, (x) => x.status && x.status !== 'on_schedule' && x.status !== 'done'); return `${t('page.hint.planLines', { count: l.length })}${off ? ` · ${t('page.hint.planAttention', { count: off })}` : ''}`; }
+    case 'criteriaStatus': { const c: Record<string, number> = {}; for (const x of d) c[x.status] = (c[x.status] ?? 0) + 1; return Object.entries(c).map(([s, n]) => `${n} ${statusWord(s)}`).join(' · '); }
+    case 'people': return t('page.hint.people', { count: d.length, confirmed: count(d, (p) => p.status === 'confirmed') });
+    case 'stakeholders': return t('page.hint.tracked', { count: d.length });
+    case 'riskNotes': return t('page.hint.openAccepted', { open: count(d, (r) => !r.accepted), accepted: count(d, (r) => r.accepted) });
     case 'decisions': return formatDate(d[d.length - 1]?.date);
-    case 'forecasts': return `${count(d, (f) => !f.resolved)} open · ${count(d, (f) => f.resolved)} scored`;
-    case 'experiments': return `${count(d, (e) => e.done)} done · ${count(d, (e) => !e.done)} running`;
-    case 'exposure': return `${count(d, (e) => e.status === 'open')} open · ${count(d, (e) => e.status === 'accepted')} accepted`;
-    case 'capacity': return [d.availableHrsPerWeek != null && `${d.availableHrsPerWeek} hrs/wk`, d.runway && `${d.runway} runway`].filter(Boolean).join(' · ');
-    case 'systemsNotes': return `${d.confidence} confidence`;
+    case 'forecasts': return t('page.hint.forecasts', { open: count(d, (f) => !f.resolved), scored: count(d, (f) => f.resolved) });
+    case 'experiments': return t('page.hint.experiments', { done: count(d, (e) => e.done), running: count(d, (e) => !e.done) });
+    case 'exposure': return t('page.hint.openAccepted', { open: count(d, (e) => e.status === 'open'), accepted: count(d, (e) => e.status === 'accepted') });
+    case 'capacity': return [d.availableHrsPerWeek != null && t('page.hint.hours', { count: d.availableHrsPerWeek }), d.runway && t('page.hint.runway', { runway: d.runway })].filter(Boolean).join(' · ');
+    case 'systemsNotes': return t('page.hint.confidence', { confidence: t(`values.confidence.${d.confidence}`) });
     default: return '';
   }
+}
+
+const EMPTY_KEYS = ['plan', 'people', 'stakeholders', 'systemsNotes', 'riskNotes', 'decisions', 'exposure', 'capacity', 'forecasts', 'experiments', 'criteriaStatus'];
+
+/** One record entry per empty section, read from the catalog on each access
+ * so the record follows the page's language. */
+function emptyCopy(kind: 'prompt' | 'starter'): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const k of EMPTY_KEYS) Object.defineProperty(out, k, { enumerable: true, get: () => t(`page.empty.${k}.${kind}`) });
+  return out;
 }
 
 // The tappable question each empty section shows in place of content
 // (brand/identity.md §05 "An empty section is one pencilled question you
 // can tap").
-export const EMPTY_PROMPTS: Record<string, string> = {
-  plan: "What's the first move?",
-  people: "Who's involved?",
-  stakeholders: 'Who else has a say?',
-  systemsNotes: "Where's the leverage?",
-  riskNotes: 'What could go wrong?',
-  decisions: 'Any choice to make?',
-  exposure: 'What do you risk personally?',
-  capacity: 'How much time and money?',
-  forecasts: 'What do you expect?',
-  experiments: 'What needs testing?',
-  criteriaStatus: "How's it going?",
-};
+export const EMPTY_PROMPTS: Record<string, string> = emptyCopy('prompt');
 
 // What tapping an empty section's question puts in the chat composer: the
 // start of the message that fills the section, for the user to finish.
-export const EMPTY_STARTERS: Record<string, string> = {
-  plan: "Let's plan the first moves.",
-  people: 'The people involved are ',
-  stakeholders: 'Help me map who else has a say in this.',
-  systemsNotes: 'Where is the leverage point in this?',
-  riskNotes: 'Red-team this plan: what could go wrong?',
-  decisions: "There's a choice I need to make: ",
-  exposure: 'What am I personally exposed to here?',
-  capacity: 'Here is what I actually have to work with: ',
-  forecasts: 'A prediction I want to make: ',
-  experiments: "An assumption I'm not sure about: ",
-  criteriaStatus: 'How is this actually going against done?',
-};
+export const EMPTY_STARTERS: Record<string, string> = emptyCopy('starter');
 
 /** The sr-only text equivalent for a mark, appended to a markable line. */
 function MarkSr({ path }: { path: string }) {
@@ -94,12 +85,12 @@ function ChangeNote({ goalId, path }: { goalId: string; path: string }) {
   const displayId = turn?.goalId === goalId ? turn.turnId : undefined;
   return (
     <div className="hand text-[16px] text-accent">
-      new, from your chat ·{' '}
+      {t('page.change.note')}{' '}
       <TextAction
         className="text-[16px] underline"
         onClick={() => { if (displayId) void undoTurn(goalId, displayId); }}
       >
-        undo
+        {t('page.undo')}
       </TextAction>
     </div>
   );
@@ -143,7 +134,7 @@ function Toggle({ goalId, path, status, editable, onTick, title, children }: { g
     <li title={title} className={`flex items-start text-[17px] leading-[27px] ${editable ? 'cursor-pointer' : ''}`} onClick={editable ? onRowClick : undefined}>
       <TextAction
         disabled={!editable}
-        title={editable ? `Mark ${next}` : undefined}
+        title={editable ? (next === 'done' ? t('page.mark.done') : t('page.mark.pending')) : undefined}
         className="w-11 shrink-0 justify-center"
         onClick={toggle}
       >
@@ -163,10 +154,7 @@ function Detail({ children }: { children?: ReactNode }) {
 /** A success criterion's `kind`, in plain words: the two groups "What done
  * looks like" is split into. `control` is something the user can cause
  * directly; `influence` hangs on someone else's decision. */
-const CRITERION_GROUPS = [
-  { kind: 'control', label: 'Up to you' },
-  { kind: 'influence', label: 'Up to someone else' },
-];
+const CRITERION_GROUPS = [{ kind: 'control' }, { kind: 'influence' }];
 
 /** One success criterion: an open ring — it isn't the user's to tick — which
  * becomes an ink tick once `eval` scores it met. The text and its note hang
@@ -256,7 +244,7 @@ function StatusGroups<T>({ k, list, isOpen, due, labels, pinned, render }: {
   list: T[];
   isOpen: (x: T) => boolean;
   due: (x: T) => string | undefined;
-  labels: [open: string, settled: string];
+  labels: [open: string, settled: string, fold: (count: number) => string];
   /** A settled item that still asks something of the user (a decision due
    * for review): it stays out of the fold. */
   pinned?: (x: T) => boolean;
@@ -289,7 +277,7 @@ function StatusGroups<T>({ k, list, isOpen, due, labels, pinned, render }: {
               {/* The fold's tap area is taller than its line; pull it back so
                * the gap above it matches the page's rhythm. */}
               <TextAction className="-my-2.5" aria-expanded={showSettled} onClick={() => setShowSettled((v) => !v)}>
-                <PencilWord className="text-[21px] text-graphite">{showSettled ? labels[1] : `${quiet.length} ${labels[1]}`}</PencilWord>
+                <PencilWord className="text-[21px] text-graphite">{showSettled ? labels[1] : labels[2](quiet.length)}</PencilWord>
               </TextAction>
             </h3>
           ) : (
@@ -345,8 +333,8 @@ function MilestoneRule({ goalId, path, step, editable, stage, reachedOn }: {
       </span>
       <div className="min-w-0 shrink pr-2">
         <Line goalId={goalId} path={path} className="font-medium" edit={editable && isEditableLine(path) ? { value: step.label, quiet: true } : undefined}><span>{step.label}</span></Line>
-        {stage === 'passed' && reachedOn && <span className="text-[14px] text-graphite">reached {pencilDate(reachedOn)}</span>}
-        <span className="sr-only">{stage === 'passed' ? ' (milestone, reached)' : stage === 'current' ? ' (milestone, next)' : ' (milestone, further on)'}</span>
+        {stage === 'passed' && reachedOn && <span className="text-[14px] text-graphite">{t('page.milestone.reached', { date: pencilDate(reachedOn) })}</span>}
+        <span className="sr-only">{stage === 'passed' ? t('page.milestone.srReached') : stage === 'current' ? t('page.milestone.srNext') : t('page.milestone.srAhead')}</span>
       </div>
       {stroke('r', 'min-w-[24px] flex-1')}
     </li>
@@ -360,14 +348,14 @@ function AddMove({ goalId, li }: { goalId: string; li: number }) {
   if (!open) {
     return (
       <TextAction className="-my-2 ml-11" onClick={() => setOpen(true)}>
-        <PencilWord className="text-[18px] text-graphite">+ add a move</PencilWord>
+        <PencilWord className="text-[18px] text-graphite">{t('page.addMove')}</PencilWord>
       </TextAction>
     );
   }
   return (
     <div data-editing="" className="ml-11 text-[17px] leading-[27px]">
       <InlineInput
-        label="New move"
+        label={t('page.newMove')}
         onSave={(draft) => addMove(goalId, li, draft)}
         onDone={() => setOpen(false)}
         onCancel={() => setOpen(false)}
@@ -391,7 +379,7 @@ function visibleActions(actions: Any[], goalId: string, base: string, dropped: M
 }
 
 /** Each escalation level in the page's words. */
-const LEVEL_WORD: Record<string, string> = { interests: 'ask', rights: 'formal', power: 'public' };
+const levelWord = (level: string) => t(`values.level.${level}`);
 
 /** The escalations that follow a message, in climbing order: the one that
  * escalates it, then the one that escalates that, and so on. */
@@ -399,7 +387,7 @@ function chainAfter(msg: Any, tasks: Any[]): Any[] {
   const out: Any[] = [];
   let cur = msg;
   for (let n = 0; cur?.id && n < tasks.length; n++) {
-    const next = tasks.find((t) => t.status === 'pending' && t.if && 'noReply' in t.if && t.if.noReply === cur.id);
+    const next = tasks.find((x) => x.status === 'pending' && x.if && 'noReply' in x.if && x.if.noReply === cur.id);
     if (!next) break;
     out.push(next);
     cur = next;
@@ -412,11 +400,11 @@ function chainAfter(msg: Any, tasks: Any[]): Any[] {
  * page means "then", so "to" names who a message goes to. */
 function ChainLine({ chain }: { chain: Any[] }) {
   if (!chain.length) return null;
-  const step = (t: Any, i: number) => `${i ? `then ${t.to}` : `${t.action} to ${t.to}`}${t.level === 'power' ? ' (public)' : ''}`;
+  const step = (x: Any, i: number) => t(i ? (x.level === 'power' ? 'page.chain.thenPublic' : 'page.chain.then') : (x.level === 'power' ? 'page.chain.firstPublic' : 'page.chain.first'), { action: x.action, to: x.to });
   return (
     <div className="text-[14px] leading-5 text-graphite">
-      <span className="text-ink">if no reply: </span>
-      {chain.map((t, i) => <span key={i}>{i ? ', ' : ''}{step(t, i)}</span>)}
+      <span className="text-ink">{t('page.chain.ifNoReply')}</span>
+      {chain.map((x, i) => <span key={i}>{i ? ', ' : ''}{step(x, i)}</span>)}
     </div>
   );
 }
@@ -470,7 +458,7 @@ export function defaultOpenLine(lines: Any[], focusLine: number | null): number 
  * "on schedule", "on track", "done" and "met" go unsaid — silence means
  * fine, and a tick already says done. */
 const ALARM = new Set(['at_risk', 'blocked', 'stalled', 'regressing']);
-const alarm = (status?: string) => (status && ALARM.has(status) ? status.replace('_', ' ') : undefined);
+const alarm = (status?: string) => (status && ALARM.has(status) ? statusWord(status) : undefined);
 
 /** How far along a tucked line is, as marks rather than words: a small ink
  * tick per thing done and an open ring per thing left — the same marker the
@@ -478,7 +466,7 @@ const alarm = (status?: string) => (status && ALARM.has(status) ? status.replace
  * it falls back to the count. */
 function ProgressMarks({ done, total }: { done: number; total: number }) {
   if (total === 0) return null;
-  const words = `${done} of ${total} done`;
+  const words = t('page.progress', { done, total });
   if (total > 12) return <PencilWord className="text-[17px]">{words}</PencilWord>;
   return (
     <span className="flex items-center gap-[3px]" title={words}>
@@ -598,18 +586,18 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
     // sits elsewhere is one too. A waiting escalation beside its message
     // shows only in the message's "if no reply" line, and a fork no
     // milestone lists goes under "if things change".
-    const messageOf = (a: Any) => tasks.find((t: Any) => t.id === a.if.noReply);
+    const messageOf = (a: Any) => tasks.find((x: Any) => x.id === a.if.noReply);
     const besideMessage = (a: Any) => { const msg = messageOf(a); return Boolean(msg) && stretchOf(msg) === stretchOf(a); };
     const inStretch = (a: Any) => (isFork(a) ? linked(a) : isChained(a) ? !besideMessage(a) : true);
     const rowsIn = (k: number) => visible.filter(({ a }) => inStretch(a) && stretchOf(a) === k);
     const forks = visible.filter(({ a }) => isFork(a) && !linked(a));
     const detailFor = rowsIn(heading).find(({ a, path }) => path !== top && stateOf(a) === 'live' && a.status === 'pending')?.path ?? null;
-    const unlocks = (a: Any) => (a.id ? tasks.filter((t: Any) => t.after?.includes(a.id) && t.status === 'pending').map((t: Any) => t.action) : []);
+    const unlocks = (a: Any) => (a.id ? tasks.filter((x: Any) => x.after?.includes(a.id) && x.status === 'pending').map((x: Any) => x.action) : []);
     // What a blocked task waits on. The one drawn directly above it is
     // "↑", so the page doesn't print the same move twice in a row.
     const waitsOn = (after: string[], prev?: string) => {
       const names = after.map((id) => (id === prev ? '↑' : name(id)));
-      return names.length === 1 && names[0] === '↑' ? '↑ then ' : `${names.join(', ')} → `;
+      return names.length === 1 && names[0] === '↑' ? t('page.waits.above') : `${names.join(', ')} → `;
     };
     const name = (id: string) => byId.get(id)?.action ?? l.criticalPath.find((st: Any) => st.id === id)?.label ?? id;
 
@@ -620,32 +608,32 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
       return (
         <MarkedRow key={path} mark="↳">
           <Line goalId={goalId} path={path}>
-            <span className="text-graphite">if </span>
+            <span className="text-graphite">{t('page.cond.if')}</span>
             {fork
               ? <span>{a.if.event}</span>
-              : <span>{msg?.to ?? 'they'} {msg?.to ? "doesn't" : "don't"} reply in {a.if.days} days</span>}
-            {fork && a.if.by && <span className="text-[14px] text-graphite"> · check {byDate(a.if.by)}</span>}
+              : <span>{msg?.to ? t('page.cond.noReplyNamed', { name: msg.to, count: a.if.days }) : t('page.cond.noReplyThey', { count: a.if.days })}</span>}
+            {fork && a.if.by && <span className="text-[14px] text-graphite">{t('page.cond.check', { date: byDate(a.if.by) })}</span>}
             <br />
-            <span className="text-graphite">then </span><span>{afterThen(goal, a.action)}</span>
-            {a.to && <span className="text-[14px] text-graphite"> · to {a.to}</span>}
+            <span className="text-graphite">{t('page.cond.then')}</span><span>{afterThen(goal, a.action)}</span>
+            {a.to && <span className="text-[14px] text-graphite">{t('page.cond.to', { name: a.to })}</span>}
           </Line>
           {editable && fork && (a.status === 'dropped' ? (
             <div className="flex gap-x-4 text-[14px] text-graphite">
-              <span>not needed</span>
-              <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, null)}>undo</TextAction>
+              <span>{t('page.cond.notNeeded')}</span>
+              <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, null)}>{t('page.undo')}</TextAction>
             </div>
           ) : folded(a, path) ? (
             // Weeks before its check date the fork is a reminder, not a
             // question; the buttons wait a tap away for news that comes early.
-            <TextAction className="-my-2 text-[14px] text-graphite underline" onClick={() => setUnfolded((u) => new Set(u).add(path))}>know already?</TextAction>
+            <TextAction className="-my-2 text-[14px] text-graphite underline" onClick={() => setUnfolded((u) => new Set(u).add(path))}>{t('page.cond.knowAlready')}</TextAction>
           ) : (
             // Named by what each does to the move, not by the event, so a
             // negative event ("no offer by mid-December") never makes a
             // double negative. Before the check date, "not needed" is the
             // quieter one: an absence can't be known until then.
             <div className="flex gap-x-4 text-[14px]">
-              <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, true)}>do this now</TextAction>
-              <TextAction className={`-my-2 underline ${early(a.if.by) ? 'text-graphite' : ''}`} onClick={() => void settleFork(goalId, path, false)}>not needed</TextAction>
+              <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, true)}>{t('page.cond.doNow')}</TextAction>
+              <TextAction className={`-my-2 underline ${early(a.if.by) ? 'text-graphite' : ''}`} onClick={() => void settleFork(goalId, path, false)}>{t('page.cond.notNeeded')}</TextAction>
             </div>
           ))}
         </MarkedRow>
@@ -665,11 +653,11 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
              * isn't finished until they answer. */}
             <div>
               <span>{a.action}</span>
-              <span className="text-[14px] text-graphite"> · to {a.to}{a.doneOn ? ` · sent ${pencilDate(a.doneOn)}` : ''} · waiting for a reply, day {waited}{wait ? ` of ${wait}` : ''}</span>
+              <span className="text-[14px] text-graphite">{t(a.doneOn ? (wait ? 'page.awaiting.sentOf' : 'page.awaiting.sent') : (wait ? 'page.awaiting.of' : 'page.awaiting.plain'), { name: a.to, date: a.doneOn ? pencilDate(a.doneOn) : '', day: waited, wait: wait ?? '' })}</span>
             </div>
             <ChainLine chain={chain} />
             {editable && (
-              <TextAction className="-my-2 text-[14px] underline" onClick={() => void markTaskReplied(goalId, path)}>they replied</TextAction>
+              <TextAction className="-my-2 text-[14px] underline" onClick={() => void markTaskReplied(goalId, path)}>{t('page.theyReplied')}</TextAction>
             )}
           </MarkedRow>
         );
@@ -684,7 +672,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
           </MarkedRow>
         );
       }
-      const meta = [!isSelf(a.who) && a.who, a.to && `to ${a.to}`, a.when && byDate(a.when)].filter(Boolean).join(' · ');
+      const meta = [!isSelf(a.who) && a.who, a.to && t('page.meta.to', { name: a.to }), a.when && byDate(a.when)].filter(Boolean).join(' · ');
       const opens = unlocks(a);
       return (
         <Toggle key={path} goalId={goalId} path={path} status={a.status} editable={editable} title={path === detailFor ? undefined : a.detail}>
@@ -697,11 +685,11 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
           </Line>
           {a.status !== 'done' && <ChainLine chain={chainAfter(a, tasks)} />}
           {opens.length > 0 && <div className="text-[14px] leading-5 text-graphite">→ {opens.join(', ')}</div>}
-          {a.replied && <div className="text-[14px] leading-5 text-graphite">replied {pencilDate(a.replied)}{a.reply ? `: “${a.reply}”` : ''}</div>}
+          {a.replied && <div className="text-[14px] leading-5 text-graphite">{a.reply ? t('page.repliedWith', { date: pencilDate(a.replied), reply: a.reply }) : t('page.replied', { date: pencilDate(a.replied) })}</div>}
           {a.if?.happened && a.status !== 'done' && (
             <div className="text-[14px] leading-5 text-graphite">
-              because {a.if.event}
-              {editable && <> · <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, null)}>undo</TextAction></>}
+              {t('page.because', { event: a.if.event })}
+              {editable && <> · <TextAction className="-my-2 underline" onClick={() => void settleFork(goalId, path, null)}>{t('page.undo')}</TextAction></>}
             </div>
           )}
           {path === detailFor && <Detail>{a.detail}</Detail>}
@@ -711,7 +699,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
 
     return (
       <>
-        {l.blocker && <p className="text-[14px] text-graphite">Blocked: {l.blocker}</p>}
+        {l.blocker && <p className="text-[14px] text-graphite">{t('page.blocked', { blocker: l.blocker })}</p>}
         <ol className="space-y-1.5">
           {Array.from({ length: steps.length + 1 }, (_, k) => {
             const m = steps[k];
@@ -733,7 +721,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
         {editable && l.nextActions.length < NEXT_ACTIONS_MAX && <AddMove goalId={goalId} li={li} />}
         {forks.length > 0 && (
           <div className="space-y-1">
-            <GroupLabel>if things change</GroupLabel>
+            <GroupLabel>{t('page.ifThingsChange')}</GroupLabel>
             <ul className="space-y-2">
               {forks.map(conditional)}
             </ul>
@@ -763,7 +751,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
       <div
         ref={stripRef}
         role="tablist"
-        aria-label="Lines of the plan"
+        aria-label={t('page.planLines')}
         onScroll={measure}
         className="-mx-3 flex overflow-x-auto py-1"
         style={{
@@ -793,7 +781,7 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
               {trouble && <span className="hand ml-0.5 text-[21px] leading-7 text-ink" aria-hidden="true">!</span>}
               {trouble && <span className="sr-only">{` (${trouble})`}</span>}
               {changed && <span aria-hidden="true" className="pencil ml-1 h-1.5 w-1.5 rounded-[50%] bg-graphite" />}
-              {changed && <span className="sr-only"> (changed)</span>}
+              {changed && <span className="sr-only"> {t('page.changedSr')}</span>}
             </button>
           );
         })}
@@ -813,11 +801,11 @@ function PlanStack({ lines, goalId, editable }: { lines: Any[]; goalId: string; 
 }
 
 const POWER_RANK: Record<string, number> = { high: 0, med: 1, low: 2 };
-const powerWord = (p: string) => `${p === 'med' ? 'medium' : p} power`;
+const powerWord = (p: string) => t(`values.power.${p}`);
 
 /** Where someone stands now and where they need to be, as one line. */
 function Stance({ s }: { s: Any }) {
-  return <>{s.stanceCurrent} <span aria-hidden="true">→</span><span className="sr-only">to</span> {s.stanceTarget}</>;
+  return <>{s.stanceCurrent} <span aria-hidden="true">→</span><span className="sr-only">{t('page.stance.to')}</span> {s.stanceTarget}</>;
 }
 
 /** One row on the People page: the name with one pencilled tag, then a
@@ -846,7 +834,7 @@ function PersonRow({ goalId, path, alias, name, tag, main, more }: { goalId: str
         {main}
         {extra.length > 0 && (
           <TextAction circle={false} className="-my-2.5 ml-1.5 align-baseline" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-            <PencilWord className="text-[18px] text-graphite">{open ? 'less' : 'more'}</PencilWord>
+            <PencilWord className="text-[18px] text-graphite">{open ? t('page.less') : t('page.more')}</PencilWord>
           </TextAction>
         )}
       </div>
@@ -875,11 +863,11 @@ export function PeopleBody({ goalId, people: storedPeople, stakeholders: storedS
         path={`people.${i}`}
         alias={j !== undefined ? `stakeholders.${j}` : undefined}
         name={p.name}
-        tag={p.status}
+        tag={statusWord(p.status)}
         main={<EditableText goalId={goalId} path={`people.${i}.doing`} value={p.doing}>{p.doing}</EditableText>}
         more={[
           s && <><Stance s={s} /> · {powerWord(s.power)}</>,
-          s && `via ${s.via}`,
+          s && t('page.via', { via: s.via }),
           p.detail,
           s?.detail,
         ]}
@@ -898,7 +886,7 @@ export function PeopleBody({ goalId, people: storedPeople, stakeholders: storedS
       name={s.name}
       tag={powerWord(s.power)}
       main={<Stance s={s} />}
-      more={[`via ${s.via}`, s.detail]}
+      more={[t('page.via', { via: s.via }), s.detail]}
     />
   ));
   return (
@@ -906,7 +894,7 @@ export function PeopleBody({ goalId, people: storedPeople, stakeholders: storedS
       {rows.length > 0 && <ul className="space-y-3">{rows}</ul>}
       {otherRows.length > 0 && (
         <div className="space-y-1.5">
-          {rows.length > 0 && <h3 className="text-[14px] leading-5 text-graphite">Also has a say</h3>}
+          {rows.length > 0 && <h3 className="text-[14px] leading-5 text-graphite">{t('page.alsoSay')}</h3>}
           <ul className="space-y-3">{otherRows}</ul>
         </div>
       )}
@@ -933,7 +921,7 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
         list={data as Any[]}
         isOpen={(q) => q.status === 'open'}
         due={(q) => q.by}
-        labels={['still to find out', 'found out']}
+        labels={[t('page.group.intel.open'), t('page.group.intel.settled'), (n) => t('page.group.intel.fold', { count: n })]}
         pinned={() => true}
         render={(q, i) => {
           const open = q.status === 'open';
@@ -944,12 +932,12 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
                 <Line goalId={goalId} path={`intel.${i}`} className={`font-medium ${open ? 'pencil' : ''}`}>
                   <span>{q.question}</span>
                 </Line>
-                {open ? <Facts rows={[['Why it matters', q.why], ['Find out by', q.via]]} /> : <Facts rows={[['Answer', q.answer], ['Why it matters', q.why]]} />}
+                {open ? <Facts rows={[[t('page.fact.why'), q.why], [t('page.fact.findOutBy'), q.via]]} /> : <Facts rows={[[t('page.fact.answer'), q.answer], [t('page.fact.why'), q.why]]} />}
                 {open && (
                   <ItemFooter
-                    when={q.by ? (isLate(q.by) ? `was due ${pencilDate(q.by)}` : byDate(q.by)) : undefined}
+                    when={q.by ? (isLate(q.by) ? t('page.wasDue', { date: pencilDate(q.by) }) : byDate(q.by)) : undefined}
                     late={isLate(q.by)}
-                    action={{ label: 'Tell me what you found', starter: `What I found out about "${q.question}": ` }}
+                    action={{ label: t('page.intel.action'), starter: t('page.intel.starter', { question: q.question }) }}
                   />
                 )}
               </div>
@@ -967,10 +955,10 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
           <li key={i}>
             <Line goalId={goalId} path={`courses.${i}`}>
               <span className="font-medium text-ink">{c.name}</span>
-              {c.chosen && <PencilWord className="ml-2">chosen</PencilWord>}
+              {c.chosen && <PencilWord className="ml-2">{t('values.status.chosen')}</PencilWord>}
             </Line>
             <div>{c.idea}</div>
-            <Facts rows={[['Could win because', c.wins], ['Could sink it', c.risks], ['Their reaction', c.counter]]} />
+            <Facts rows={[[t('page.fact.wins'), c.wins], [t('page.fact.risks'), c.risks], [t('page.fact.counter'), c.counter]]} />
           </li>
         ))}
       </ul>
@@ -984,7 +972,7 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
         list={data as Any[]}
         isOpen={(p) => !p.done}
         due={(p) => p.on}
-        labels={['coming up', 'held']}
+        labels={[t('page.group.prep.open'), t('page.group.prep.settled'), (n) => t('page.group.prep.fold', { count: n })]}
         pinned={() => true}
         render={(p, i) => (
           <li key={i} className="flex items-start gap-2.5">
@@ -995,14 +983,14 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
               </Line>
               <Facts
                 rows={[
-                  ['Ask for', p.ask],
-                  ['Walk away at', p.walkAway],
-                  ['If it fails', p.batna],
-                  ['Can give', p.concessions?.length ? p.concessions.join(', ') : undefined],
-                  ['How it went', p.done ? p.outcome : undefined],
+                  [t('page.fact.ask'), p.ask],
+                  [t('page.fact.walkAway'), p.walkAway],
+                  [t('page.fact.batna'), p.batna],
+                  [t('page.fact.concessions'), p.concessions?.length ? p.concessions.join(', ') : undefined],
+                  [t('page.fact.outcome'), p.done ? p.outcome : undefined],
                 ]}
               />
-              {!p.done && <ItemFooter when={p.on ? (isLate(p.on) ? `was ${pencilDate(p.on)}` : byDate(p.on)) : undefined} late={isLate(p.on)} action={{ label: 'Tell me how it went', starter: `How the talk with ${p.with} went: ` }} />}
+              {!p.done && <ItemFooter when={p.on ? (isLate(p.on) ? t('page.wasOn', { date: pencilDate(p.on) }) : byDate(p.on)) : undefined} late={isLate(p.on)} action={{ label: t('page.prep.action'), starter: t('page.prep.starter', { name: p.with }) }} />}
             </div>
           </li>
         )}
@@ -1038,16 +1026,16 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
               <Line goalId={goalId} path={`${k}.${i}`}>
                 <span className="font-medium text-ink">{p.name}</span>
               </Line>
-              <PencilWord className="shrink-0">{isPeople ? p.status : `${p.power === 'med' ? 'medium' : p.power} power`}</PencilWord>
+              <PencilWord className="shrink-0">{isPeople ? statusWord(p.status) : powerWord(p.power)}</PencilWord>
             </div>
             {isPeople ? (
               <div>{p.doing}</div>
             ) : (
               <>
                 <div>
-                  {p.stanceCurrent} <span aria-hidden="true">→</span><span className="sr-only">to</span> {p.stanceTarget}
+                  {p.stanceCurrent} <span aria-hidden="true">→</span><span className="sr-only">{t('page.stance.to')}</span> {p.stanceTarget}
                 </div>
-                <Detail>via {p.via}</Detail>
+                <Detail>{t('page.via', { via: p.via })}</Detail>
               </>
             )}
             <Detail>{p.detail}</Detail>
@@ -1064,7 +1052,7 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
           <li key={i}>
             <Line goalId={goalId} path={`riskNotes.${i}`} className={r.accepted ? 'text-graphite' : ''} edit={editable ? { value: r.item } : undefined}>
               <span>{r.item}</span>
-              <PencilWord className="ml-2">{r.accepted ? 'accepted' : 'open'}</PencilWord>
+              <PencilWord className="ml-2">{r.accepted ? t('values.status.accepted') : t('values.status.open')}</PencilWord>
             </Line>
             <Detail>{r.detail}</Detail>
           </li>
@@ -1083,7 +1071,7 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
         list={data as Any[]}
         isOpen={(d) => d.status === 'open'}
         due={(d) => d.reviewBy}
-        labels={['still to decide', 'decided']}
+        labels={[t('page.group.decisions.open'), t('page.group.decisions.settled'), (n) => t('page.group.decisions.fold', { count: n })]}
         pinned={(d) => isDue(d.reviewBy)}
         render={(d, i) => {
           const open = d.status === 'open';
@@ -1096,16 +1084,16 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
                 <Line goalId={goalId} path={`decisions.${i}`} edit={editable && open ? { value: d.question } : undefined}>
                   <span className="font-medium text-ink">{open ? d.question : d.choice}</span>
                 </Line>
-                {!open && <Facts rows={[['Why', d.because], ['Reverse if', d.reverseIf]]} />}
+                {!open && <Facts rows={[[t('page.fact.because'), d.because], [t('page.fact.reverseIf'), d.reverseIf]]} />}
                 <ItemFooter
                   when={
-                    open ? (d.reviewBy ? `settle ${byDate(d.reviewBy)}` : undefined)
-                    : [`decided ${formatDate(d.date)}`, d.reviewBy && `review ${byDate(d.reviewBy)}`].filter(Boolean).join(' · ')
+                    open ? (d.reviewBy ? t('page.settle', { date: byDate(d.reviewBy) }) : undefined)
+                    : [t('page.decided', { date: formatDate(d.date) }), d.reviewBy && t('page.review', { date: byDate(d.reviewBy) })].filter(Boolean).join(' · ')
                   }
                   late={isLate(d.reviewBy)}
                   action={
-                    open ? { label: 'Work it through', starter: `Help me decide: ${d.question}` }
-                    : reviewDue ? { label: 'Revisit it', starter: `Time to revisit this decision: ${d.choice}. ` }
+                    open ? { label: t('page.decision.workAction'), starter: t('page.decision.workStarter', { question: d.question }) }
+                    : reviewDue ? { label: t('page.decision.revisitAction'), starter: t('page.decision.revisitStarter', { choice: d.choice }) }
                     : undefined
                   }
                 />
@@ -1124,12 +1112,12 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
     const split = CRITERION_GROUPS.filter(({ kind }) => criteria.some(({ c }: Any) => c.kind === kind)).length > 1;
     return (
       <div className="space-y-4 text-[17px] leading-[27px]">
-        {CRITERION_GROUPS.map(({ kind, label }) => {
+        {CRITERION_GROUPS.map(({ kind }) => {
           const group = criteria.filter(({ c }: Any) => c.kind === kind);
           if (group.length === 0) return null;
           return (
             <div key={kind} className="space-y-1.5">
-              {split && <h3 className="text-[14px] leading-5 text-graphite">{label}</h3>}
+              {split && <h3 className="text-[14px] leading-5 text-graphite">{t(`values.kind.${kind}`)}</h3>}
               <ul className="space-y-3">
                 {group.map(({ c, path }: Any) => <Criterion key={path} goalId={goalId} path={path} c={c} editable={editable} />)}
               </ul>
@@ -1167,18 +1155,18 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
       <div className="space-y-5 text-[17px] leading-[27px]">
         <dl className="space-y-4">
           <div>
-            <dt className="text-[14px] leading-5 text-graphite">Hours a week</dt>
+            <dt className="text-[14px] leading-5 text-graphite">{t('page.capacity.hours')}</dt>
             <dd className="text-[30px] font-medium leading-[38px] tabular-nums text-ink">
-              {data.availableHrsPerWeek ?? <PencilWord>not counted yet</PencilWord>}
+              {data.availableHrsPerWeek ?? <PencilWord>{t('page.capacity.notCounted')}</PencilWord>}
             </dd>
           </div>
           <div>
-            <dt className="text-[14px] leading-5 text-graphite">Runway</dt>
+            <dt className="text-[14px] leading-5 text-graphite">{t('page.capacity.runway')}</dt>
             <dd>{data.runway}</dd>
           </div>
           {data.watch && (
             <div>
-              <dt className="text-[14px] leading-5 text-graphite">Watch for</dt>
+              <dt className="text-[14px] leading-5 text-graphite">{t('page.capacity.watch')}</dt>
               <dd>{data.watch}</dd>
             </div>
           )}
@@ -1197,7 +1185,7 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
         list={data as Any[]}
         isOpen={(e) => !e.done}
         due={(e) => e.by}
-        labels={['not tested yet', 'tested']}
+        labels={[t('page.group.experiments.open'), t('page.group.experiments.settled'), (n) => t('page.group.experiments.fold', { count: n })]}
         render={(e, i) => (
           <li key={i} className="flex items-start gap-2.5">
             <Marker path={`experiments.${i}`} open={!e.done} />
@@ -1206,15 +1194,15 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
                 <span>{e.assumption}</span>
               </Line>
               {e.done ? (
-                <Facts rows={[['Test', e.test], ['Result', e.result], ['So now', e.changedAsResult]]} />
+                <Facts rows={[[t('page.fact.test'), e.test], [t('page.fact.result'), e.result], [t('page.fact.soNow'), e.changedAsResult]]} />
               ) : (
-                <Facts rows={[['Test', e.test], ['Passes if', e.passIf]]} />
+                <Facts rows={[[t('page.fact.test'), e.test], [t('page.fact.passesIf'), e.passIf]]} />
               )}
               {!e.done && (
                 <ItemFooter
-                  when={isLate(e.by) ? `was due ${pencilDate(e.by)}` : byDate(e.by)}
+                  when={isLate(e.by) ? t('page.wasDue', { date: pencilDate(e.by) }) : byDate(e.by)}
                   late={isLate(e.by)}
-                  action={{ label: 'Tell me how it went', starter: `How the test went for "${e.assumption}": ` }}
+                  action={{ label: t('page.experiment.action'), starter: t('page.experiment.starter', { assumption: e.assumption }) }}
                 />
               )}
             </div>
@@ -1230,7 +1218,7 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
         list={data as Any[]}
         isOpen={(f) => !f.resolved}
         due={(f) => f.resolvesBy}
-        labels={['waiting to find out', 'found out']}
+        labels={[t('page.group.forecasts.open'), t('page.group.forecasts.settled'), (n) => t('page.group.forecasts.fold', { count: n })]}
         render={(f, i) => {
           const due = !f.resolved && isDue(f.resolvesBy);
           return (
@@ -1241,14 +1229,14 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
                   <span>{f.statement}</span>
                 </Line>
                 {f.resolved && (
-                  <Facts rows={[['You said', `${f.probability}% likely`], ['Outcome', f.outcome === 'yes' ? 'It happened' : f.outcome === 'no' ? 'It didn’t happen' : undefined], ['Your call was', f.verdict]]} />
+                  <Facts rows={[[t('page.fact.youSaid'), t('page.likely', { probability: f.probability })], [t('page.fact.outcomeIs'), f.outcome === 'yes' || f.outcome === 'no' ? t(`values.outcome.${f.outcome}`) : undefined], [t('page.fact.verdict'), f.verdict]]} />
                 )}
                 {!f.resolved && (
                   // How likely, when and how it'll be known: one pencilled line.
                   <ItemFooter
-                    when={[`${f.probability}% likely`, isLate(f.resolvesBy) ? `was due ${pencilDate(f.resolvesBy)}` : `know ${byDate(f.resolvesBy)}${f.resolvesVia ? ` via ${f.resolvesVia}` : ''}`].join(' · ')}
+                    when={[t('page.likely', { probability: f.probability }), isLate(f.resolvesBy) ? t('page.wasDue', { date: pencilDate(f.resolvesBy) }) : f.resolvesVia ? t('page.forecast.knowVia', { date: byDate(f.resolvesBy), via: f.resolvesVia }) : t('page.forecast.know', { date: byDate(f.resolvesBy) })].join(' · ')}
                     late={isLate(f.resolvesBy)}
-                    action={due ? { label: 'Did it happen?', starter: `Checking this prediction: "${f.statement}". It ` } : undefined}
+                    action={due ? { label: t('page.forecast.action'), starter: t('page.forecast.starter', { statement: f.statement }) } : undefined}
                   />
                 )}
               </div>
@@ -1266,8 +1254,8 @@ export function SectionBody({ k, data: stored, goalId, editable }: { k: keyof Go
           <li key={i}>
             <Line goalId={goalId} path={`${k}.${i}`}>
               <span>{e.item ?? JSON.stringify(e)}</span>
-              {e.status && <PencilWord className="ml-2">{e.status}</PencilWord>}
-              {e.mustHandleBefore && <span className="ml-2 text-[14px] text-graphite">before {e.mustHandleBefore}</span>}
+              {e.status && <PencilWord className="ml-2">{statusWord(e.status)}</PencilWord>}
+              {e.mustHandleBefore && <span className="ml-2 text-[14px] text-graphite">{t('page.before', { what: e.mustHandleBefore })}</span>}
             </Line>
             <Detail>{e.why}</Detail>
           </li>

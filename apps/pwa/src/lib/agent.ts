@@ -13,6 +13,7 @@ import { changedKeys, changedLines } from './changes';
 import { session } from './session';
 import { pendingEditsText, type PageEdit } from './edits';
 import { track } from './analytics';
+import { t } from './i18n';
 
 export type AgentEvent =
   | { type: 'text'; text: string }
@@ -142,15 +143,15 @@ export async function runTurn(opts: {
 }): Promise<void> {
   const { goalId, text, signal, onEvent, quick } = opts;
   const prov = await getProvider();
-  if (!prov) throw new Error('Choose a provider in Settings.');
+  if (!prov) throw new Error(t('chat.error.noProvider'));
   const apiKey = await loadApiKey(prov.kind);
-  if (!apiKey) throw new Error('Add your key in Settings.');
+  if (!apiKey) throw new Error(t('chat.error.noKey'));
   const model = makeModel(prov, apiKey);
 
   const rec = await db.goals.get(goalId);
-  if (!rec) throw new Error('Goal not found');
+  if (!rec) throw new Error(t('chat.error.goalNotFound'));
   const read = await readRecord(rec);
-  if (read.status !== 'ok') throw new Error(read.status === 'needs_app_update' ? 'This goal needs a newer app version.' : `Goal is unreadable: ${read.error}`);
+  if (read.status !== 'ok') throw new Error(read.status === 'needs_app_update' ? t('chat.error.needsUpdate') : t('chat.error.unreadable', { error: read.error }));
 
   const chat: ChatRecord = (await db.chats.get(goalId)) ?? { goalId, model: [], display: [] };
   const snapshotId = await snapshot(goalId, 'turn');
@@ -252,7 +253,7 @@ export async function runTurn(opts: {
       raw = e;
     }
     if (!raw) { error = undefined; break; }
-    error = signal.aborted ? 'Cancelled.' : errorText(raw, prov.kind);
+    error = signal.aborted ? t('chat.error.cancelled') : errorText(raw, prov.kind);
     const busy = (raw as { statusCode?: number })?.statusCode === 503;
     if (!busy || signal.aborted || out || reply || entries.length || i === models.length - 1) break;
   }
@@ -335,18 +336,18 @@ export function errorText(e: unknown, kind?: ProviderKind): string {
   if (inner) e = inner;
   const err = e as { message?: string; statusCode?: number; responseBody?: string };
   if (typeof navigator !== 'undefined' && !navigator.onLine)
-    return "You're offline.";
+    return t('chat.error.offline');
   const google = kind === 'google';
   if (err?.statusCode === 401 || err?.statusCode === 403 || (google && err?.statusCode === 400 && /api key/i.test(err.message ?? '')))
-    return 'Check your key in Settings.';
+    return t('chat.error.checkKey');
   if (err?.statusCode === 429)
     return google
-      ? "Google's free limit is used up, so add credit or switch provider."
-      : 'Too many requests, so try again in a minute.';
+      ? t('chat.error.googleLimit')
+      : t('chat.error.tooMany');
   if (err?.statusCode === 503 || err?.statusCode === 529)
     return google
-      ? 'Google is busy, so try again in a minute.'
-      : 'The provider is busy, so try again in a minute.';
+      ? t('chat.error.googleBusy')
+      : t('chat.error.providerBusy');
   return err?.message ?? String(e);
 }
 

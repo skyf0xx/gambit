@@ -1,6 +1,7 @@
 import type { GoalRecord } from '../../lib/db';
 import { GambitAvatar } from '../paper/GambitAvatar';
 import { TextAction } from '../ui';
+import { t } from '../../lib/i18n';
 
 export interface CoverProps {
   goals?: GoalRecord[];
@@ -25,7 +26,7 @@ export function CoverTab({ goals = [], activeId, onOpenGoal, onNewGoal }: CoverP
       <div className="mx-auto flex max-w-sm flex-col items-center text-center">
         <GambitAvatar size={112} />
         <p className="mt-5 font-serif text-[28px] font-semibold leading-[34px] tracking-tight">gambit</p>
-        <ul className="mt-12 w-full space-y-1" aria-label="Goals">
+        <ul className="mt-12 w-full space-y-1" aria-label={t('settings.goals')}>
           {goals.map((g) => {
             const on = g.id === activeId;
             return (
@@ -44,7 +45,7 @@ export function CoverTab({ goals = [], activeId, onOpenGoal, onNewGoal }: CoverP
         </ul>
         {onNewGoal && (
           <TextAction circle={false} onClick={onNewGoal} className="cover-goal cover-goal-off mt-8 underline">
-            New goal
+            {t('settings.newGoal')}
           </TextAction>
         )}
       </div>

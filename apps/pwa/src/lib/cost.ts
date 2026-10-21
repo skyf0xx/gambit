@@ -1,4 +1,5 @@
 import { db, getSetting, type UsageRecord } from './db';
+import { t } from './i18n';
 
 // Rough public list prices in USD per million tokens. Estimates only; the
 // user can override them in Settings.
@@ -57,4 +58,4 @@ export async function sessionCost(since: number): Promise<SessionCost> {
   return s;
 }
 
-export const fmtUsd = (n: number | null) => (n === null ? 'n/a' : n < 0.01 ? '<$0.01' : `$${n.toFixed(2)}`);
+export const fmtUsd = (n: number | null) => (n === null ? t('app.cost.na') : n < 0.01 ? '<$0.01' : `$${n.toFixed(2)}`);

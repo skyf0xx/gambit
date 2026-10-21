@@ -1,4 +1,5 @@
 import { useUi, isStandalone, installRoute, installSteps } from '../../lib/persist';
+import { t } from '../../lib/i18n';
 import { TextAction } from '../ui';
 
 /** The one install prompt on the page: a pencilled note under the goal,
@@ -14,15 +15,15 @@ export function KeepNotebook() {
   return (
     <aside className="hand anim-fade-in space-y-1 text-[16px] leading-6 text-graphite">
       <p>
-        Install to ensure your conversations are saved.
+        {t('page.keep.note')}
       </p>
       <p className="flex flex-wrap items-center gap-x-4">
         {route === 'prompt' ? (
-          <TextAction className="underline" onClick={() => void installEvent!.prompt()}>Install</TextAction>
+          <TextAction className="underline" onClick={() => void installEvent!.prompt()}>{t('page.keep.install')}</TextAction>
         ) : (
           <span className="text-ink">{installSteps[route]}</span>
         )}
-        <TextAction className="text-graphite underline" onClick={dismissInstall}>Not now</TextAction>
+        <TextAction className="text-graphite underline" onClick={dismissInstall}>{t('page.keep.notNow')}</TextAction>
       </p>
     </aside>
   );

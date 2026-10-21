@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getSetting, setSetting } from './db';
+import { t } from './i18n';
 
 export interface Durability {
   persisted: boolean | null;
@@ -27,8 +28,8 @@ export const installRoute = (hasEvent: boolean): InstallRoute =>
   hasEvent ? 'prompt' : isIos() ? 'ios' : isMacSafari() ? 'mac-safari' : 'none';
 
 export const installSteps: Record<Exclude<InstallRoute, 'prompt' | 'none'>, string> = {
-  ios: 'Share → Add to Home Screen.',
-  'mac-safari': 'File → Add to Dock.',
+  ios: t('settings.installIos'),
+  'mac-safari': t('settings.installMacSafari'),
 };
 
 /** Ask once at first run; the result is reported honestly in Settings. */

@@ -1,6 +1,7 @@
 import { CURRENT_SCHEMA_VERSION, readGoal } from '@gambit/core';
 import { db, getSetting, setSetting } from './db';
 import { newGoalId, snapshot } from './goals';
+import { t } from './i18n';
 
 export interface ExportFile {
   app: 'gambit';
@@ -46,14 +47,14 @@ export interface ImportItem {
 /** Validate (and migrate if older) every goal in an untrusted file. Nothing is written. */
 export async function planImport(text: string): Promise<ImportItem[]> {
   let parsed: Partial<ExportFile>;
-  try { parsed = JSON.parse(text); } catch { throw new Error('Not a valid file.'); }
-  if (parsed?.app !== 'gambit' || !Array.isArray(parsed.goals)) throw new Error('Not a Gambit backup.');
+  try { parsed = JSON.parse(text); } catch { throw new Error(t('settings.errNotValidFile')); }
+  if (parsed?.app !== 'gambit' || !Array.isArray(parsed.goals)) throw new Error(t('settings.errNotBackup'));
   const existing = new Set((await db.goals.toArray()).map((g) => g.id));
   return parsed.goals.map((g, i) => {
     const id = typeof g?.id === 'string' && g.id ? g.id : `imported-${i}`;
     const r = readGoal(g?.doc);
     if (r.status === 'ok') return { id, title: r.data.goal, doc: r.data, conflict: existing.has(id) };
-    const error = r.status === 'needs_app_update' ? `saved by a newer app (schema v${r.version}); update the app first` : r.error;
+    const error = r.status === 'needs_app_update' ? t('settings.errNewerApp', { version: r.version }) : r.error;
     return { id, title: String(g?.title ?? id), conflict: existing.has(id), error };
   });
 }
@@ -93,7 +94,7 @@ export const fsAccessSupported = () => 'showSaveFilePicker' in window;
 
 export async function bindExportFile(): Promise<void> {
   const picker = (window as unknown as { showSaveFilePicker: (o: unknown) => Promise<Handle> }).showSaveFilePicker;
-  const handle = await picker({ suggestedName: 'gambit-goals.json', types: [{ description: 'Gambit goals', accept: { 'application/json': ['.json'] } }] });
+  const handle = await picker({ suggestedName: 'gambit-goals.json', types: [{ description: t('settings.pickerDescription'), accept: { 'application/json': ['.json'] } }] });
   await setSetting('fileHandle', handle);
   await writeThrough();
 }

@@ -1,4 +1,5 @@
 import type { Goal } from '../../lib/types';
+import { t } from '../../lib/i18n';
 
 // Divider-tab grouping for the notebook page. Reuses packages/core's
 // registry groups as a starting point (see AGENTS.md's "goal contract" and
@@ -47,17 +48,8 @@ export type TabId = 'cover' | 'goal' | 'moves' | 'people' | 'risks' | 'bets' | '
 
 export const TAB_ORDER: TabId[] = ['cover', 'goal', 'moves', 'people', 'risks', 'bets', 'capacity', 'doodles', 'inside-cover'];
 
-export const TAB_LABELS: Record<TabId, string> = {
-  cover: 'Cover',
-  goal: 'Goal',
-  moves: 'Moves',
-  people: 'People',
-  risks: 'Risks',
-  bets: 'Bets',
-  capacity: 'Capacity',
-  doodles: 'Doodles',
-  'inside-cover': 'Settings',
-};
+/** Each tab's name in the page's language (locales/<locale>/tabs.json). */
+export const TAB_LABELS = Object.fromEntries(TAB_ORDER.map((id) => [id, t(`tabs.${id}`)])) as Record<TabId, string>;
 
 // Section keys (goal-schema top-level keys rendered by Sections.tsx)
 // belonging to each non-Moves, non-Goal, non-Inside-cover tab. Goal and

@@ -1,6 +1,7 @@
 import { REVIEW_DAYS } from '@gambit/core';
 import type { Goal } from '../lib/types';
 import { daysUntil } from '../lib/dates';
+import { t } from '../lib/i18n';
 
 /** How hard the effort is pushing right now (strategy's `posture`), read as
  * the end of the "All moves" label — "All moves - quiet posture" — since it
@@ -14,9 +15,9 @@ export function PostureLine({ goal }: { goal: Goal }) {
   const meaning = p.levels.find((l) => l.level === p.current.level)?.meaning;
   const age = -(daysUntil(p.lastReviewed) ?? 0);
   const note = [
-    meaning ?? `Level ${p.current.level} of ${p.levels.length}`,
-    p.triggers.length > 0 && ['Changes if:', ...p.triggers.map((t) => `– ${t}`)].join('\n'),
-    age >= REVIEW_DAYS.strategy && `Last checked ${age} days ago`,
+    meaning ?? t('moves.postureLevel', { level: p.current.level, total: p.levels.length }),
+    p.triggers.length > 0 && [t('moves.postureChangesIf'), ...p.triggers.map((trigger) => `– ${trigger}`)].join('\n'),
+    age >= REVIEW_DAYS.strategy && t('moves.postureLastChecked', { days: age }),
   ]
     .filter(Boolean)
     .join('\n\n');
@@ -24,7 +25,7 @@ export function PostureLine({ goal }: { goal: Goal }) {
     <span data-line="posture" className="text-[14px] leading-5 text-graphite">
       {' - '}
       <span tabIndex={0} data-note={note} className="italic">
-        {p.current.label.toLowerCase()} posture
+        {t('moves.postureName', { label: p.current.label.toLowerCase() })}
       </span>
     </span>
   );

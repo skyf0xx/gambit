@@ -2,6 +2,7 @@ import { useState, type MouseEvent } from 'react';
 import type { Goal } from '../lib/types';
 import { nextMove, markDone, isSelf } from '../lib/slips';
 import { byDate, proseDates } from '../lib/dates';
+import { t } from '../lib/i18n';
 import { TextAction, PencilWord } from './ui';
 import { HandBox } from './paper/HandBox';
 import { FreshTag } from './paper/FreshTag';
@@ -78,11 +79,11 @@ export function IndexCard({ goal, goalId }: { goal: Goal; goalId: string }) {
         style={{ clipPath: 'polygon(3% 8%, 0 25%, 4% 50%, 1% 78%, 4% 100%, 97% 94%, 100% 70%, 96% 45%, 100% 20%, 97% 0)' }}
       />
 
-      <div className="h-6.5 text-[14px] leading-5 text-graphite">Your top move</div>
+      <div className="h-6.5 text-[14px] leading-5 text-graphite">{t('moves.topMove')}</div>
 
       {move ? (
         <div className="flex cursor-pointer items-start" onClick={onRowClick}>
-          <TextAction title="Mark done" aria-label="Mark done" className="-ml-3 w-11 shrink-0 justify-center" onClick={() => void onDone()}>
+          <TextAction title={t('moves.markDone')} aria-label={t('moves.markDone')} className="-ml-3 w-11 shrink-0 justify-center" onClick={() => void onDone()}>
             {/* The 44px tap area centres the box 8px below the centre of the
              * 28px first text line beside it; lift it back onto that line. */}
             <HandBox seed={move.path} checked={ticked} className="-top-2" />
@@ -102,9 +103,9 @@ export function IndexCard({ goal, goalId }: { goal: Goal; goalId: string }) {
         </div>
       ) : (
         <>
-          <p className="text-[20px] font-medium leading-7 text-ink">What&rsquo;s your next move?</p>
+          <p className="text-[20px] font-medium leading-7 text-ink">{t('moves.nextMovePrompt')}</p>
           <p className="leading-7">
-            <PencilWord>nothing due yet</PencilWord>
+            <PencilWord>{t('moves.nothingDue')}</PencilWord>
           </p>
         </>
       )}
