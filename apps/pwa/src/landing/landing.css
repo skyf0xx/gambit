@@ -31,17 +31,52 @@ html, body { height: auto; }
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 2px 14px;
+  align-items: center;
+  gap: 4px 16px;
 }
-.lang-switch a {
+.lang-switch a,
+.lang-current {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
   font-family: var(--font-hand);
   font-size: 19px;
   color: var(--graphite);
+  text-decoration: none;
+}
+.lang-switch a .lang-name {
   text-decoration: underline;
   text-decoration-color: color-mix(in srgb, var(--graphite) 40%, transparent);
   text-underline-offset: 3px;
 }
 .lang-switch a:hover { color: var(--ink); }
+.lang-current { color: var(--ink); }
+.lang-switch .flag {
+  display: inline-flex;
+  width: 21px;
+  height: 14px;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--rule);
+  opacity: .9;
+}
+.lang-switch .flag svg { width: 100%; height: 100%; display: block; }
+.lang-switch a:hover .flag,
+.lang-current .flag { opacity: 1; }
+/* On a phone the flags stand alone; each still says its language to a
+   screen reader and on hover. */
+@media (max-width: 560px) {
+  .lang-switch { gap: 4px 12px; }
+  .lang-switch .lang-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
 
 /* Buttons and links */
 .ink-button {

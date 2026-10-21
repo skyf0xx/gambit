@@ -15,6 +15,7 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BR, ES, FR, GB, IT } from 'country-flag-icons/string/3x2';
 
 const app = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -31,15 +32,26 @@ const LANGUAGES = {
   es: ['Español', 'Idioma'],
   pt: ['Português', 'Idioma'],
 };
+
+// A small flag beside each language's name, from country-flag-icons,
+// inlined when the page is built (emoji flags show as bare letters on
+// Windows, and nothing loads from elsewhere at runtime). The flag only
+// helps the eye; the name says the language, so Portuguese can sit under
+// Brazil's flag and English under the UK's.
+const FLAGS = { en: GB, fr: FR, it: IT, es: ES, pt: BR };
 const NAV = /<nav class="lang-switch"[\s\S]*?<\/nav>/;
 
-/** The masthead's language switcher on one page: every other language,
- * English as /?lang=en so the language redirect in vercel.json lets it be. */
+/** The masthead's language switcher on one page: every language, flag and
+ * name, the page's own marked as current; English as /?lang=en so the
+ * language redirect in vercel.json lets it be. */
 export function langNav(locale) {
-  const links = ['en', ...LANDING_LOCALES]
-    .filter((l) => l !== locale)
-    .map((l) => `      <a href="${l === 'en' ? '/?lang=en' : `/${l}/`}" hreflang="${l}" lang="${l}">${LANGUAGES[l][0]}</a>`);
-  return `<nav class="lang-switch" aria-label="${LANGUAGES[locale][1]}">\n${links.join('\n')}\n    </nav>`;
+  const items = ['en', ...LANDING_LOCALES].map((l) => {
+    const inner = `<span class="flag" aria-hidden="true">${FLAGS[l]}</span><span class="lang-name">${LANGUAGES[l][0]}</span>`;
+    return l === locale
+      ? `      <span class="lang-current" lang="${l}" aria-current="page" title="${LANGUAGES[l][0]}">${inner}</span>`
+      : `      <a href="${l === 'en' ? '/?lang=en' : `/${l}/`}" hreflang="${l}" lang="${l}" title="${LANGUAGES[l][0]}">${inner}</a>`;
+  });
+  return `<nav class="lang-switch" aria-label="${LANGUAGES[locale][1]}">\n${items.join('\n')}\n    </nav>`;
 }
 
 const norm = (s) => s.replace(/\s+/g, ' ').trim();
