@@ -236,7 +236,7 @@ ever disagree. The record holds the goal, success criteria, deadline, an
 optional `people` array and `posture` object, the current plan, and a
 running log.
 
-The goal sentence itself is capped at **10 words** (12 for French text) on every new write —
+The goal sentence itself is capped at **10 words** (12 in French, Italian, Spanish or Portuguese) on every new write —
 plain, one idea, no dash-joined clauses. This is enforced on the write path
 (`writeSection` in `packages/core/src/ops.mjs`), not in the schema itself,
 so an existing goal written before this rule still reads fine; the owning
@@ -350,7 +350,7 @@ plain todo plus, optionally:
 - `if: {event, by?, happened?}`: a fork, a move made only if the event
   happens. `waiting` until `happened`; a fork that didn't happen is
   dropped. The event is one phrase of at most 8 words (`BRANCH_MAX_WORDS`;
-  10 in French),
+  10 in the other languages),
   with no leading "if", no colon, semicolon or second sentence, and no
   absence in headline form ("names no", "sets no": say "hasn't set"
   instead), and no "by then" (the date goes in `by`); `writeSection` saves it starting in lower case unless its first
@@ -467,8 +467,10 @@ treat a stalled influence criterion as a failure of execution.
 Goal text is held to a grade-7 Flesch-Kincaid reading level, enforced on
 the write path (`plainLanguage` in `packages/core/src/readability.mjs`, run
 by `writeSection` and `append_log`) and, like the goal word cap, never on
-read. French text is scored by Kandel & Moles' reading ease instead, at
-`READING_EASE_MIN_FR` or above. Only strings of 12+ words are scored — the formula is noise on short
+read. Text in another language is scored by a reading-ease formula fitted
+to it instead (`EASE` in `readability.mjs`): Kandel & Moles for French,
+Gulpease for Italian, Fernández Huerta for Spanish, and Flesch as adapted
+by Martins for Brazilian Portuguese. Only strings of 12+ words are scored — the formula is noise on short
 labels — and capitalized names and acronyms past a sentence's first word
 are left out of the count.
 
@@ -479,7 +481,8 @@ record.
 
 ## Languages
 
-The app runs in English or French. On first open the page takes the
+The app runs in English, French, Italian, Spanish or Brazilian
+Portuguese. On first open the page takes the
 first supported language in the browser's list (`detectLocale`). A
 landing page's `/app?lang=fr` link or the Settings picker sets it for
 good: the choice is kept in localStorage, and changing it reloads the app
@@ -496,8 +499,8 @@ catalog labels, so the model names things the way the user sees them.
 Core never translates. A due item carries `say: { id, ...params }`
 beside its English `todo`, and the page renders `due.<id>` from it. The
 write rules read the language of the text itself (`textLang`,
-`packages/core/src/lang.mjs`), not the page's: wording rules hold their
-English and French forms side by side, and only the numbers (reading
+`packages/core/src/lang.mjs`), not the page's: wording rules hold every
+language's forms side by side (`WORDING`), and only the numbers (reading
 ease, word caps) differ by language.
 
 The landing page has one source, `apps/pwa/index.html`.
@@ -506,13 +509,15 @@ from it and `src/landing/<locale>.json`, a map of each piece of English
 copy to its translation. After editing the landing page, run
 `npm run landing -w @gambit/pwa` and fill in what it lists;
 `test/landing.test.ts` fails while a page is stale or a piece has no
-translation. `vercel.json` redirects `/` to `/fr/` for a browser whose
-first language is French, unless the URL carries `?lang=`.
+translation. The masthead's language switcher is generated on every page,
+`index.html` included. `vercel.json` redirects `/` to `/<locale>/` for a
+browser whose first language is one of them, unless the URL carries
+`?lang=`.
 
 Adding a language: a `locales/<locale>/` folder with every namespace, an
 entry in `LOCALES` (`i18n.ts`), a `src/landing/<locale>.json`, a redirect
-in `vercel.json`, and, in `lang.mjs`, its markers, stopwords, word caps,
-and a reading-ease formula in `readability.mjs`.
+in `vercel.json`, and, in `lang.mjs`, its markers, letters, stopwords, word caps and
+`WORDING`, and an `EASE` entry in `readability.mjs`.
 
 ## Guided-session rules
 
