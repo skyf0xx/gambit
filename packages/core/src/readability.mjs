@@ -9,9 +9,9 @@
 // word) are left out of the count: "Mediterranean Shipping" is a name the
 // writer can't simplify, not a hard word.
 //
-// French text (textLang, lang.mjs) is scored by Kandel & Moles' reading
-// ease instead, Flesch's formula refitted to French: higher reads easier,
-// and READING_EASE_MIN_FR stands where grade 7 does in English.
+// Text in another language (textLang, lang.mjs) is scored by a reading-ease
+// formula fitted to that language instead (EASE): higher reads easier, and
+// each one's min stands where grade 7 does in English.
 
 import { z } from 'zod';
 import { syllable } from 'syllable';
@@ -20,9 +20,11 @@ import { textLang, unElide } from './lang.mjs';
 
 export const READING_GRADE_MAX = 7;
 export const READING_MIN_WORDS = 12;
-export const READING_EASE_MIN_FR = 60;
 
 const segment = (text, granularity, lang = 'en') => [...new Intl.Segmenter(lang, { granularity }).segment(text)];
+
+const VOWEL = 'aeiouyàâäéèêëîïôöùûüœæáíóúãõìò';
+const VOWELS = new RegExp(`[${VOWEL}]+`, 'g');
 
 /**
  * French syllables: each run of vowels is one, less a silent final "e" or
@@ -31,17 +33,37 @@ const segment = (text, granularity, lang = 'en') => [...new Intl.Segmenter(lang,
  */
 export function syllableFr(word) {
   const w = unElide(word.toLowerCase()).replace(/[^\p{L}]/gu, '');
-  const groups = w.match(/[aeiouyàâäéèêëîïôöùûüœæ]+/g)?.length ?? 0;
-  const silent = groups > 1 && /[^aeiouyàâäéèêëîïôöùûüœæ]es?$/.test(w) ? 1 : 0;
+  const groups = w.match(VOWELS)?.length ?? 0;
+  const silent = groups > 1 && new RegExp(`[^${VOWEL}]es?$`).test(w) ? 1 : 0;
   return Math.max(1, groups - silent);
 }
 
-/** Sentences, scorable words and their syllables. Names and acronyms (a
- * capital past a sentence's first word) are left out. */
+/**
+ * Italian, Spanish and Portuguese syllables: each run of vowels is one,
+ * split where two strong vowels meet ("le-o", "cre-er") or an accented i or
+ * u stands beside another vowel ("dí-a", "sa-ú-de"), which is a hiatus.
+ * Portuguese nasal pairs ("ção", "mãe") stay one.
+ */
+export function syllableRomance(word) {
+  const w = unElide(word.toLowerCase()).replace(/[^\p{L}]/gu, '');
+  let count = 0;
+  for (const run of w.match(VOWELS) ?? []) {
+    count++;
+    for (let i = 1; i < run.length; i++) {
+      const strong = (c) => /[aeoáéóàèòâêô]/.test(c);
+      if ((strong(run[i - 1]) && strong(run[i])) || /[íúì]/.test(run[i - 1] + run[i])) count++;
+    }
+  }
+  return Math.max(1, count);
+}
+
+/** Sentences, scorable words, their syllables and letters. Names and
+ * acronyms (a capital past a sentence's first word) are left out. */
 function counts(text, lang) {
   let sentences = 0;
   let words = 0;
   let syllables = 0;
+  let letters = 0;
   for (const { segment: s } of segment(text, 'sentence', lang)) {
     const tokens = segment(s, 'word', lang).filter((t) => t.isWordLike).map((t) => t.segment);
     if (tokens.length === 0) continue;
@@ -49,10 +71,11 @@ function counts(text, lang) {
     tokens.forEach((w, i) => {
       if (i > 0 && /\p{Lu}/u.test(w)) return;
       words++;
-      syllables += lang === 'fr' ? syllableFr(w) : syllable(w);
+      letters += w.replace(/[^\p{L}]/gu, '').length;
+      syllables += lang === 'en' ? syllable(w) : lang === 'fr' ? syllableFr(w) : syllableRomance(w);
     });
   }
-  return { sentences, words, syllables };
+  return { sentences, words, syllables, letters };
 }
 
 /** Flesch-Kincaid grade, or null when there are too few scorable words. */
@@ -62,20 +85,39 @@ export function readingGrade(text) {
   return fleschKincaid({ sentence: sentences, word: words, syllable: syllables });
 }
 
-/** Kandel & Moles reading ease for French, or null when there are too few
- * scorable words. 100 is very easy; below 50 is hard. */
-export function readingEaseFr(text) {
-  const { sentences, words, syllables } = counts(text, 'fr');
-  if (words < READING_MIN_WORDS) return null;
-  return 207 - 1.015 * (words / sentences) - 73.6 * (syllables / words);
+/**
+ * Reading ease per language: the formula's name, the score a line needs,
+ * and the formula from sentence, word, syllable and letter counts.
+ *   fr  Kandel & Moles (1958), Flesch refitted to French
+ *   it  Gulpease (1988), letters per word rather than syllables
+ *   es  Fernández Huerta (1959), Flesch refitted to Spanish
+ *   pt  Flesch as adapted by Martins et al. (1996) for Brazilian Portuguese
+ */
+export const EASE = {
+  fr: { name: 'Kandel-Moles', min: 60, score: ({ sentences, words, syllables }) => 207 - 1.015 * (words / sentences) - 73.6 * (syllables / words) },
+  it: { name: 'Gulpease', min: 50, score: ({ sentences, words, letters }) => 89 + (300 * sentences - 10 * letters) / words },
+  es: { name: 'Fernández-Huerta', min: 55, score: ({ sentences, words, syllables }) => 206.84 - 60 * (syllables / words) - 1.02 * (words / sentences) },
+  pt: { name: 'Flesch-Martins', min: 45, score: ({ sentences, words, syllables }) => 248.835 - 1.015 * (words / sentences) - 84.6 * (syllables / words) },
+};
+export const READING_EASE_MIN_FR = EASE.fr.min;
+
+/** Reading ease in a language EASE knows, or null when there are too few
+ * scorable words. Higher reads easier. */
+export function readingEase(text, lang) {
+  const c = counts(text, lang);
+  return c.words < READING_MIN_WORDS ? null : EASE[lang].score(c);
 }
+
+export const readingEaseFr = (text) => readingEase(text, 'fr');
 
 /** Why a string reads too hard for the page, or null when it reads plainly. */
 export function readingIssue(text) {
-  if (textLang(text) === 'fr') {
-    const ease = readingEaseFr(text);
-    return ease !== null && ease < READING_EASE_MIN_FR
-      ? `reads at ease ${ease.toFixed(0)} (Kandel-Moles, French); keep it at ${READING_EASE_MIN_FR} or above: shorter sentences, plainer words`
+  const lang = textLang(text);
+  if (lang !== 'en') {
+    const ease = readingEase(text, lang);
+    const { name, min } = EASE[lang];
+    return ease !== null && ease < min
+      ? `reads at ease ${ease.toFixed(0)} (${name}, ${lang}); keep it at ${min} or above: shorter sentences, plainer words`
       : null;
   }
   const grade = readingGrade(text);

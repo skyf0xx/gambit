@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stubGoal, writeSection, sameLine, textLang, goalMaxWords, readingIssue, readingEaseFr, syllableFr, READING_EASE_MIN_FR, isSelfName } from '../src/index.mjs';
+import { stubGoal, writeSection, sameLine, textLang, goalMaxWords, readingIssue, readingEaseFr, syllableFr, syllableRomance, READING_EASE_MIN_FR, isSelfName } from '../src/index.mjs';
 
 const fork = (action, event) => ({
   linesOfOperation: [{
@@ -73,4 +73,54 @@ test('an English line with a French-looking word stays English', () => {
   assert.equal(textLang('Open a café'), 'en');
   assert.equal(textLang('Win the Café de Paris contract'), 'en');
   assert.equal(textLang('Reply to Zoë, plus Rémi'), 'en');
+});
+
+test('textLang tells Italian, Spanish and Portuguese apart', () => {
+  assert.equal(textLang('Scrivere al comune per fissare una data con il sindaco'), 'it');
+  assert.equal(textLang('Escribir al ayuntamiento para fijar una fecha con el alcalde'), 'es');
+  assert.equal(textLang('Escrever para a prefeitura para marcar uma data com o prefeito'), 'pt');
+});
+
+test('Italian, Spanish and Portuguese goals get 12 words', () => {
+  for (const goal of [
+    'Aprire un secondo negozio vicino al cantiere prima della fine del mese',
+    'Abrir una segunda tienda cerca de la obra antes del verano',
+    'Abrir uma segunda loja perto da obra antes do fim do mês',
+  ]) assert.equal(writeSection(stubGoal('g'), 'goal', goal).ok, true, goal);
+});
+
+test('each language scores its own reading ease: plain passes, dense fails', () => {
+  const cases = {
+    it: ['Se il comune non risponde, scriviamo al prefetto con una copia al giornale locale.', "L'implementazione operativa necessita di un coordinamento interistituzionale preliminare approfondito e formalizzato dalle amministrazioni competenti."],
+    es: ['Si el ayuntamiento no responde, escribimos al alcalde con una copia al periódico local.', 'La implementación operativa requiere una coordinación interinstitucional preliminar exhaustiva y debidamente formalizada por las administraciones competentes.'],
+    pt: ['Se a prefeitura não responder, escrevemos ao prefeito com uma cópia para o jornal local.', 'A implementação operacional requer uma coordenação interinstitucional preliminar exaustiva e devidamente formalizada pelas administrações competentes.'],
+  };
+  for (const [lang, [plain, dense]] of Object.entries(cases)) {
+    assert.equal(readingIssue(plain), null, plain);
+    assert.match(readingIssue(dense), new RegExp(`, ${lang}\\)`), dense);
+  }
+  assert.equal(syllableRomance('día'), 2);
+  assert.equal(syllableRomance('coordinação'), 5);
+});
+
+test('a fork that carries on anyway, or restates its condition, is refused in every language', () => {
+  for (const action of ['scrivere comunque al comune', 'escribir de todos modos al alcalde', 'escrever mesmo assim ao prefeito']) {
+    assert.ok(errorsFor(fork(action, 'nessuna risposta')).some((m) => /forks nothing/.test(m)), action);
+  }
+  for (const action of ['chiamare il prefetto altrimenti', 'llamar al alcalde para entonces', 'ligar ao prefeito até lá']) {
+    assert.ok(errorsFor(fork(action, 'il comune rifiuta')).some((m) => /restates the condition/.test(m)), action);
+  }
+  for (const lead of ['se il comune rifiuta', 'si el alcalde dice que no']) {
+    assert.ok(errorsFor(fork('chiamare il prefetto', lead)).some((m) => /leading/.test(m)), lead);
+  }
+});
+
+test('two forks waiting on something not happening ask one question, in Italian too', () => {
+  const plan = fork('chiamare il prefetto', 'nessuna offerta entro dicembre');
+  plan.linesOfOperation[0].nextActions.push({ action: 'cercare un altro locale', who: 'io', if: { event: 'il sindaco non ha fissato la data' } });
+  assert.ok(errorsFor(plan).some((m) => /asks the same question/.test(m)));
+});
+
+test('a message never goes to the user, in any language', () => {
+  for (const n of ['io', "l'utente", 'yo', 'usted', 'eu', 'você']) assert.equal(isSelfName(n), true, n);
 });
