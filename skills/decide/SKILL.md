@@ -100,6 +100,21 @@ tool is present) before going further; without one, say plainly the assumption i
 unchecked. Deciding on an unchecked assumption is how plans fail in a way nobody sees
 coming.
 
+### 3b. Keep the Judgment Clean
+
+Before scoring, apply the decision hygiene in Kahneman, Sibony & Sunstein's *Noise*
+(2021):
+
+- **Outside view first.** Before the details of this case, ask how cases like it usually
+  go: how often do grant bids like this win, how long do councils like this one take.
+  Start from that base rate, then adjust for what is special here. Without a base rate,
+  every case looks like the exception.
+- **Judge the parts apart.** Step 4 scores each option against each criterion separately.
+  Keep it that way, and form the overall view only after the parts are scored. An early
+  overall impression bends every part to fit it.
+- **Independent reads.** When other people in `people` will weigh in, get each one's view
+  before they hear the others' or yours. Views shared first become anchors.
+
 ### 4. Test Against the Goal
 
 Score each option against the success criteria in the goal — not against how appealing

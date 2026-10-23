@@ -126,6 +126,14 @@ SCHWERPUNKT RECOMMENDATION:
   If low: {what would increase confidence}
 ```
 
+Then rank it. Donella Meadows (*Thinking in Systems*, 2008) lists twelve places to
+intervene in a system, from weakest to strongest: changing a number is near the bottom,
+changing the rules, the goal or who gets which information is near the top. Read with
+read_skill_file('systems', 'leverage-points.md') and place the Schwerpunkt on that list.
+If it sits in the bottom third, look one level up for a move that changes the structure
+instead of a quantity, and recommend that when it is within the user's reach. Say the
+level in the rationale ("changes who gets the information", not "adjust the numbers").
+
 ---
 
 ### 6. Lines of Effort

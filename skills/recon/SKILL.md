@@ -68,6 +68,19 @@ QUESTION: [what must be known, phrased so it has an answer]
 `via` is a person or a place, never "research". `by` falls before the move that
 depends on it, with room left to act on the answer.
 
+When the answer is a person's own behaviour (a customer, a member, a user, a buyer), ask
+it the way Rob Fitzpatrick sets out in *The Mom Test* (2013): about their life and what
+they have already done, never about the user's idea.
+
+- Ask about the past and specifics: "When did this last happen? What did you do about
+  it?", never "Would you use...?" or "Is this a good idea?"
+- Compliments, opinions and promises about the future aren't answers. "I'd definitely buy
+  that" settles nothing; what they spent, tried or put up with does.
+- A real answer often costs them something: time, an introduction, money up front. Ask
+  for the next step. A warm yes that commits to nothing is a no.
+
+Record the answer as what they did, not what they said they would do.
+
 ### 4. Answer What You Can Now
 
 If a `web_search` tool is present, search for each question it can settle and cite the

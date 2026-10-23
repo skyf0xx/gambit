@@ -76,6 +76,7 @@ freely: *Schwerpunkt — the one thing worth concentrating on right now.* Don't 
 it every session.
 
 ```
+DIAGNOSIS: [one sentence — what is actually hard here]
 FOCUS: [one sentence — the thing to concentrate on]
 WHY: [one sentence — the leverage this creates]
 INSTEAD OF: [what this deliberately deprioritises — naming the cost makes the choice real]
@@ -86,6 +87,32 @@ Diffusion across many priorities is the default failure mode. Naming one focus i
 A Schwerpunkt is a state to reach, not a task to perform: "send the email" is the mechanism, and the focus is the change in the world it must cause. Recency is not leverage either: the most recent action is vivid, not necessarily the best place to concentrate. A line that just closed is the reason to pick a new focus, never the focus itself. Read with read_skill_file('strategy', 'focus-traps.md') before naming a focus that is action-shaped, built on the user's latest move, or set right after a line closed.
 
 If people are involved (see the `people` key), say plainly what this focus means for them: who you need to talk to, recruit, redirect, or stand down. You do the advising; this skill does not send messages.
+
+### 4a. Check It Is a Strategy
+
+Before putting the focus to the user, hold it against Richard Rumelt's kernel
+(*Good Strategy/Bad Strategy*, 2011). A strategy has three parts, and a focus missing one
+is a wish:
+
+- **Diagnosis**: what is actually hard here, named plainly. "We need more members" is a
+  goal; "people sign up at events and never hear from us again" is a diagnosis.
+- **Guiding policy**: the approach that deals with that difficulty, and rules some moves
+  out. The focus is this policy made concrete.
+- **Coherent action**: the plan's moves back each other up rather than pulling apart.
+
+Then check for Rumelt's marks of bad strategy:
+
+- **Fluff**: big words where a plain claim should be ("leverage our community"). Rewrite
+  until it says something checkable.
+- **Dodging the challenge**: no diagnosis, or one that skips the hard part the user would
+  rather not name.
+- **A goal posing as strategy**: the focus restates the goal or a target ("grow revenue
+  20%") with no approach for getting there.
+- **A wish list**: several things to do that answer no single difficulty, or an objective
+  as hard as the goal itself.
+
+If the focus fails, fix it before step 4b. Lead the read with the diagnosis when it isn't
+obvious, so the user sees what problem the focus solves.
 
 ### 4b. Test the Focus Before Committing It
 

@@ -94,6 +94,20 @@ it and do not present it as a motivation problem. A plan that needs twenty hours
 from someone who has six is not a discipline failure; it's an arithmetic error, and it
 resolves by changing the plan.
 
+When the plan is short, find the constraint before cutting anything (Eliyahu Goldratt,
+*The Goal*, 1984). One thing limits how fast the whole effort moves: usually one
+person's hours, one approval, or one skill only the user has. Work it in Goldratt's five
+steps:
+
+1. **Identify** it: the step everything else waits on.
+2. **Exploit** it: spend none of its hours on work something else could do.
+3. **Subordinate** the rest to it: other work runs at its pace, not faster.
+4. **Elevate** it: only then add hours, money or people to it.
+5. **Repeat**: once it stops being the limit, find the next one.
+
+An hour saved anywhere but the constraint saves nothing. What this finds feeds options 1
+and 3 in step 7.
+
 ### 4. Check Posture Against Capacity
 
 If the `posture` key is set:

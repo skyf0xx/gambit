@@ -101,6 +101,19 @@ GAP: [expected X, got Y]
 something that changes future behaviour. A knowable-but-missed cause points at a gap in
 the process, not just bad luck.
 
+Then keep the outcome apart from the decision (Annie Duke, *Thinking in Bets*, 2018). A
+bad result doesn't prove a bad call, and a good one doesn't prove a good call; judging a
+decision by how it turned out is what Duke calls resulting. For each gap that traces to a
+choice, ask what was known when it was made, and whether the choice was sound on that:
+
+```
+DECISION vs OUTCOME
+  [choice] — sound call | poor call — good luck | bad luck
+```
+
+A sound call that met bad luck goes under Sustain, not Improve. A poor call that got lucky
+goes under Improve even though it worked: it won't keep working.
+
 Check the predicted risks explicitly:
 
 ```
