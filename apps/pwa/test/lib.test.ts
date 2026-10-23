@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { WRITABLE_KEYS, PHASES, DOMAINS, stubGoal, writersOf } from '@gambit/core';
-import { PREAMBLE, SECTION_SHAPES, buildStore, bundledFiles, domainPackOf, guidedRules, methods, skillFile, skillFlows, skillIndexText, elicitationMethods } from '../src/lib/skills';
+import { PREAMBLE, SECTION_SHAPES, KEY_SHAPES, buildStore, bundledFiles, domainPackOf, packDescriptions, guidedRules, methods, skillFile, skillFlows, skillIndexText, skillShapes, elicitationMethods } from '../src/lib/skills';
 import { compactToolResults, trimHistory, keepLastTurns, flowText, CHAT_TURNS, HISTORY_CHAR_BUDGET } from '../src/lib/agent';
 import type { ModelMessage } from 'ai';
 import type { DisplayMsg } from '../src/lib/db';
@@ -20,7 +20,18 @@ describe('skills and preamble', () => {
     expect(guidedRules).toContain('Guided, not just capable');
     expect(guidedRules).not.toContain('gambit check');
     expect(PREAMBLE).toContain('write_section');
-    for (const k of WRITABLE_KEYS) expect(SECTION_SHAPES, k).toContain(`${k}:`);
+    expect(Object.keys(KEY_SHAPES).sort()).toEqual([...WRITABLE_KEYS].sort());
+    for (const k of WRITABLE_KEYS) expect(KEY_SHAPES[k], k).toMatch(new RegExp(`^${k}\\??:`));
+    expect(PREAMBLE).toContain(SECTION_SHAPES);
+    expect(PREAMBLE).not.toContain(KEY_SHAPES.plan);
+  });
+  it('gives a skill the shapes of the keys it writes and reads, and a read-only skill every shape', () => {
+    const capacity = skillShapes(store, 'capacity');
+    expect(capacity).toContain(KEY_SHAPES.capacity);
+    expect(capacity).not.toContain(KEY_SHAPES.plan);
+    expect(skillShapes(store, 'strategy')).toContain(KEY_SHAPES.systemsNotes);
+    for (const k of WRITABLE_KEYS) expect(skillShapes(store, 'brief'), k).toContain(KEY_SHAPES[k]);
+    expect(skillShapes(store, 'nope')).toBe('');
   });
   it('serves shared files and rejects traversal', () => {
     expect(skillFile(store, '_shared', 'HUMANIZE.md')).toBeTruthy();
@@ -50,7 +61,15 @@ describe('skills and preamble', () => {
       expect(DOMAINS, name).toContain(pack);
     }
     expect(store.index.filter((s) => s.flow.pack).map((s) => s.name).sort()).toEqual(Object.keys(domainPackOf).sort());
-    expect(skillIndexText(store)).toContain('- pricing [business pack: loads only on a goal whose domains include business]: ');
+    expect(Object.keys(packDescriptions).sort()).toEqual([...DOMAINS].sort());
+    const untagged = skillIndexText(store);
+    expect(untagged).not.toContain('- pricing');
+    expect(untagged).toContain('- business pack (distribution, positioning, pricing): For a goal that succeeds when someone pays');
+    const tagged = skillIndexText(store, ['business']);
+    expect(tagged).toContain('- pricing [business pack]: ');
+    expect(tagged).not.toContain('- business pack (');
+    expect(tagged).toContain('- activism pack (');
+    expect(tagged.length).toBeLessThan(skillIndexText(store, DOMAINS).length);
     const goal = { ...stubGoal('g'), domains: ['business'] };
     expect(flowText(store, {}, goal, '2026-10-02')).toContain('Packs on this goal: business (distribution, positioning, pricing).');
     expect(flowText(store, {}, stubGoal('g'), '2026-10-02')).not.toContain('Packs on this goal');

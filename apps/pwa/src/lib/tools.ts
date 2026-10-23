@@ -4,7 +4,7 @@ import { writeSection, appendLog, setStatus, remember, forget, canLoad, canWrite
 import { applyOp, readRecord } from './goals';
 import { db } from './db';
 import { today } from './dates';
-import { getSkillStore, skillText, skillFile, skillFlows, flowOf, elicitationMethods } from './skills';
+import { getSkillStore, skillText, skillFile, skillFlows, skillShapes, flowOf, elicitationMethods } from './skills';
 import { t } from './i18n';
 
 export interface ToolContext {
@@ -88,7 +88,8 @@ export function makeTools(ctx: ToolContext) {
           session.fresh.push(name);
           ctx.onSkillLoaded(name);
         }
-        return { ok: true, skill: name, ...(warning ? { warning } : {}), text: s.text, supportingFiles: s.extras };
+        const shapes = flow.checkpoint ? '' : skillShapes(store, name);
+        return { ok: true, skill: name, ...(warning ? { warning } : {}), text: s.text, ...(shapes ? { shapes } : {}), supportingFiles: s.extras };
       },
     }),
     finish_skill: tool({
@@ -103,7 +104,7 @@ export function makeTools(ctx: ToolContext) {
           const resumed = session.caller;
           session.active = resumed;
           session.caller = undefined;
-          return { ok: true, finished: done, resumed, text: skillText(store, resumed)?.text };
+          return { ok: true, finished: done, resumed, text: skillText(store, resumed)?.text, shapes: skillShapes(store, resumed) };
         }
         session.active = undefined;
         session.caller = undefined;

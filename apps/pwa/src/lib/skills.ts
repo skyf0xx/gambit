@@ -7,6 +7,7 @@ import { LOCALES, locale } from './i18n';
 const packGlob = import.meta.glob('../../../../skills/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 const nativeGlob = import.meta.glob('../../skills/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 const domainGlob = import.meta.glob('../../../../domain-skills/*/*/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+const packGlobInfo = import.meta.glob('../../../../domain-skills/*/PACK.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
 const rel = (k: string) => k.slice(k.lastIndexOf('/skills/') + 1);
 /** domain-skills/<pack>/<skill>/... is served as skills/<skill>/...: a pack
@@ -22,6 +23,11 @@ export const domainPackOf: Record<string, string> = Object.fromEntries(
   Object.keys(domainGlob).map((k) => k.slice(k.lastIndexOf('/domain-skills/') + '/domain-skills/'.length).split('/')).map(([pack, skill]) => [skill, pack]),
 );
 /** PWA-native skills ship with the app. */
+/** Each domain pack's one-line description, from domain-skills/<pack>/PACK.md:
+ * what the skill index shows of a pack the goal isn't marked with. */
+export const packDescriptions: Record<string, string> = Object.fromEntries(
+  Object.entries(packGlobInfo).map(([k, v]) => [k.split('/').at(-2)!, parseFrontmatter(v).meta.description ?? '']),
+);
 export const nativeFiles: Record<string, string> = Object.fromEntries(Object.entries(nativeGlob).map(([k, v]) => [rel(k), v]));
 
 export function parseFrontmatter(md: string): { meta: Record<string, string>; body: string } {
@@ -145,27 +151,37 @@ export function elicitationMethods(args: { command: string; categories?: string[
 
 export const guidedRules = guidedMd.trim();
 
-export const SECTION_SHAPES = `Section shapes. Caps are hard: S = 40 chars, M = 120, D = 280 for optional detail. Date fields are YYYY-MM-DD; inside a sentence, write a date the way it is said ("19 Mar 2027"), never YYYY-MM-DD.
-goal: string, 10 words max — one plain idea, no dash-joined clauses. A write over 10 words is rejected; put parts or conditions in subGoals instead.
-subGoals?: [string] ≤5 entries, each ≤12 words / 100 chars — the parts or conditions of the aim itself (e.g. "without burning out"), not success criteria. Optional; omit if the goal has no distinct parts.
-successCriteria: [{text ≤120, kind: control|influence, lineOfOperation?: S, detail?: D}] (at least 1) — what "done" looks like, measurable. Distinct from subGoals: a criterion is checked off; a sub-goal is a condition on the aim.
-deadline: date | null
-people: [{name: S, status: confirmed|tentative|lead, doing: M, detail?}] — anyone the user deals with directly; writing someone here takes them off stakeholders
-domains: [business|activism] — the domain packs this goal draws on; empty for a goal of no listed kind. Not shown on the page.
-posture: null | {current: {level: int ≥1, label: S}, levels: [{level, label: S, meaning?: M}], triggers: [M] ≤10, lastReviewed: date}
-plan: {linesOfOperation: [{label: S, focus?: true (the one line holding the Schwerpunkt; at most one), criticalPath: [{id: short-id, label: S (a milestone: a point the line passes, not a task), detail?, after: [task ids] ≥1 (the tasks that reach it; the page draws a line under them and writes the milestone beneath)}] ≤6 (no status: a milestone is reached once every task in its after is done or dropped, at least one done, and un-reached if one is unticked; ids shared with the tasks, so a task may list a milestone's id in its after and waits until it is reached), nextActions: [{id?: short-id (lower-case, digits, dashes; give one to any task another points at), action: M (a plain todo), who: S, when?: date (due by), status, doneOn?: date (stamped for you when it is done; keep it as is; for a message, the day it went out), detail?: D (required when proposed: why this, why now), after?: [id] ≤3 (tasks it waits on), if?: {noReply: id, days: int 1-90} (an escalation: due when that message went out and got no reply in days) | {event: ≤8 words (a fact outside the user's control, no leading "if"), by?: date (when to check), happened?: true} (a fork: a move made only if the event happens, never one the plan makes anyway; the page shows "if [event] then [move]", so the move never restates its condition and the event never says "by then"), to?: S (a message's recipient: a people or stakeholders name, verbatim, never the user), level?: interests|rights|power (an escalation's step: ask, formal channels, go public; never lower than the message it follows), replied?: date (they answered), reply?: M (what they said)}] ≤10, status?: on_schedule|at_risk|blocked|done, blocker?: M}]} (at least 1 line; the focus line, else the first, needs at least one task with if); a next action's status = pending|done|dropped, or proposed (a move you suggest that the user hasn't agreed to yet; they keep or toss it)
-systemsNotes: null | {schwerpunkt: M, rationale?: M, confidence: high|moderate|low, topFindings: [{label: M, detail?, items?}] ≤5, lastReviewed: date}
-riskNotes: [{item: M, detail?: M, source: threat|premortem|backfire, accepted: boolean, dependsOn?: S (a people or stakeholders name, verbatim)}]
-criteriaStatus: [{text ≤120, kind, lineOfOperation?, status: met|on_track|at_risk|stalled|regressing, detail?}]
-stakeholders: [{name: S, power: high|med|low, stanceCurrent: S, stanceTarget: S, via: M, detail?}] — everyone else with a say; a name already in people is refused
-exposure: [{item: M, status: open|accepted, mustHandleBefore?: S, acceptedDate?: date, why?: M}]
-capacity: null | {availableHrsPerWeek: number ≥0 | null, runway: S, watch?: M, detail?, lastReviewed: date}
-forecasts: [{statement: M, probability: int 0-100, resolvesBy: date, resolvesVia: S, resolved: boolean, outcome?: yes|no, verdict?: M, detail?}]
-experiments: [{assumption: M, test: M, passIf: M, by: date, done: boolean, result?: M, changedAsResult?: M, detail?}]
-decisions: [{date, status?: open|decided (default decided), question?: M, choice?: M, because?: M, reverseIf?: M, reviewBy?: date}]; open needs question, decided needs choice and reverseIf
-intel: [{question: M, why?: M, by?: date, via: S (how to find out), status: open|answered, answer?: M}] ≤8 — open questions whose answer would change the plan
-courses: [{name: S, idea: M, wins?: M (why it could win), risks?: M, counter?: M (their likely reaction, and our answer), chosen?: true}] ≤3; at most one chosen
-prep: [{with: S (a people or stakeholders name, verbatim), on?: date, ask: M, batna: M, walkAway: M, concessions: [S] ≤5, done: boolean, outcome?: M}] ≤5 — one entry per conversation to prepare
+const SHAPE_RULES = `Section shapes. Caps are hard: S = 40 chars, M = 120, D = 280 for optional detail. Date fields are YYYY-MM-DD; inside a sentence, write a date the way it is said ("19 Mar 2027"), never YYYY-MM-DD.`;
+
+/** Each writable key's shape. Only the active skill's keys reach the model
+ * (skillShapes): it can write no others, and the goal state reads as is. */
+export const KEY_SHAPES: Record<string, string> = {
+  goal: `goal: string, 10 words max — one plain idea, no dash-joined clauses. A write over 10 words is rejected; put parts or conditions in subGoals instead.`,
+  subGoals: `subGoals?: [string] ≤5 entries, each ≤12 words / 100 chars — the parts or conditions of the aim itself (e.g. "without burning out"), not success criteria. Optional; omit if the goal has no distinct parts.`,
+  successCriteria: `successCriteria: [{text ≤120, kind: control|influence, lineOfOperation?: S, detail?: D}] (at least 1) — what "done" looks like, measurable. Distinct from subGoals: a criterion is checked off; a sub-goal is a condition on the aim.`,
+  deadline: `deadline: date | null`,
+  people: `people: [{name: S, status: confirmed|tentative|lead, doing: M, detail?}] — anyone the user deals with directly; writing someone here takes them off stakeholders`,
+  domains: `domains: [business|activism] — the domain packs this goal draws on; empty for a goal of no listed kind. Not shown on the page.`,
+  posture: `posture: null | {current: {level: int ≥1, label: S}, levels: [{level, label: S, meaning?: M}], triggers: [M] ≤10, lastReviewed: date}`,
+  plan: `plan: {linesOfOperation: [{label: S, focus?: true (the one line holding the Schwerpunkt; at most one), criticalPath: [{id: short-id, label: S (a milestone: a point the line passes, not a task), detail?, after: [task ids] ≥1 (the tasks that reach it; the page draws a line under them and writes the milestone beneath)}] ≤6 (no status: a milestone is reached once every task in its after is done or dropped, at least one done, and un-reached if one is unticked; ids shared with the tasks, so a task may list a milestone's id in its after and waits until it is reached), nextActions: [{id?: short-id (lower-case, digits, dashes; give one to any task another points at), action: M (a plain todo), who: S, when?: date (due by), status, doneOn?: date (stamped for you when it is done; keep it as is; for a message, the day it went out), detail?: D (required when proposed: why this, why now), after?: [id] ≤3 (tasks it waits on), if?: {noReply: id, days: int 1-90} (an escalation: due when that message went out and got no reply in days) | {event: ≤8 words (a fact outside the user's control, no leading "if"), by?: date (when to check), happened?: true} (a fork: a move made only if the event happens, never one the plan makes anyway; the page shows "if [event] then [move]", so the move never restates its condition and the event never says "by then"), to?: S (a message's recipient: a people or stakeholders name, verbatim, never the user), level?: interests|rights|power (an escalation's step: ask, formal channels, go public; never lower than the message it follows), replied?: date (they answered), reply?: M (what they said)}] ≤10, status?: on_schedule|at_risk|blocked|done, blocker?: M}]} (at least 1 line; the focus line, else the first, needs at least one task with if); a next action's status = pending|done|dropped, or proposed (a move you suggest that the user hasn't agreed to yet; they keep or toss it)`,
+  systemsNotes: `systemsNotes: null | {schwerpunkt: M, rationale?: M, confidence: high|moderate|low, topFindings: [{label: M, detail?, items?}] ≤5, lastReviewed: date}`,
+  riskNotes: `riskNotes: [{item: M, detail?: M, source: threat|premortem|backfire, accepted: boolean, dependsOn?: S (a people or stakeholders name, verbatim)}]`,
+  criteriaStatus: `criteriaStatus: [{text ≤120, kind, lineOfOperation?, status: met|on_track|at_risk|stalled|regressing, detail?}]`,
+  stakeholders: `stakeholders: [{name: S, power: high|med|low, stanceCurrent: S, stanceTarget: S, via: M, detail?}] — everyone else with a say; a name already in people is refused`,
+  exposure: `exposure: [{item: M, status: open|accepted, mustHandleBefore?: S, acceptedDate?: date, why?: M}]`,
+  capacity: `capacity: null | {availableHrsPerWeek: number ≥0 | null, runway: S, watch?: M, detail?, lastReviewed: date}`,
+  forecasts: `forecasts: [{statement: M, probability: int 0-100, resolvesBy: date, resolvesVia: S, resolved: boolean, outcome?: yes|no, verdict?: M, detail?}]`,
+  experiments: `experiments: [{assumption: M, test: M, passIf: M, by: date, done: boolean, result?: M, changedAsResult?: M, detail?}]`,
+  decisions: `decisions: [{date, status?: open|decided (default decided), question?: M, choice?: M, because?: M, reverseIf?: M, reviewBy?: date}]; open needs question, decided needs choice and reverseIf`,
+  intel: `intel: [{question: M, why?: M, by?: date, via: S (how to find out), status: open|answered, answer?: M}] ≤8 — open questions whose answer would change the plan`,
+  courses: `courses: [{name: S, idea: M, wins?: M (why it could win), risks?: M, counter?: M (their likely reaction, and our answer), chosen?: true}] ≤3; at most one chosen`,
+  prep: `prep: [{with: S (a people or stakeholders name, verbatim), on?: date, ask: M, batna: M, walkAway: M, concessions: [S] ≤5, done: boolean, outcome?: M}] ≤5 — one entry per conversation to prepare`,
+};
+
+/** The shapes every turn needs: the caps, the log entry and memory, which
+ * nearly every skill writes. */
+export const SECTION_SHAPES = `${SHAPE_RULES}
+The shapes of the keys a skill writes come with it when it loads.
 log entry (append_log): {date?, assessment?: on_track|at_risk|stalled|regressing, focus: ≤160 | null, focusLine?: ≤120 (strategy only: verbatim text of the one criterion, next action or step the focus lands on; the page highlights it), notes: [M] ≤3 — what happened or was decided in this exchange, never a restatement of the situation; source?: S}
 memory entry (remember / forget, any skill or none): {kind: fact|preference|constraint|rejected, text: M, date (set for you)} ≤20 entries; pass replaces: index to correct one in place`;
 
@@ -213,7 +229,33 @@ ${pageGlossary()}
 
 ${guidedRules}`;
 
-export function skillIndexText(store: SkillStore): string {
-  const line = (s: SkillStore['index'][number]) => `- ${s.name}${s.flow.pack ? ` [${s.flow.pack} pack: loads only on a goal whose domains include ${s.flow.pack}]` : ''}: ${s.description}`;
-  return `# Skill index\n${store.index.map(line).join('\n')}`;
+/**
+ * The shapes of the keys a skill writes, and of those its section is built
+ * from. A skill that writes no section of its own (brief, sitrep, onboard)
+ * reads the whole goal, so it gets every shape.
+ */
+export function skillShapes(store: SkillStore, name: string): string {
+  const flow = flowOf(store, name);
+  if (!flow) return '';
+  const own = [...flow.writes, ...flow.reads].filter((k) => k in KEY_SHAPES);
+  const keys = flow.writes.some((k) => k in KEY_SHAPES) ? [...new Set(own)] : Object.keys(KEY_SHAPES);
+  return keys.length ? `Shapes of the keys ${name} works with:\n${keys.map((k) => KEY_SHAPES[k]).join('\n')}` : '';
+}
+
+/**
+ * The skill index for one goal: every core skill, and the skills of each
+ * pack the goal is marked with. A pack it isn't marked with is one line,
+ * so a pack that fits can still be offered without every pack's skills
+ * in every prompt.
+ */
+export function skillIndexText(store: SkillStore, domains: readonly string[] = []): string {
+  const on = new Set(domains);
+  const lines = store.index
+    .filter((s) => !s.flow.pack || on.has(s.flow.pack))
+    .map((s) => `- ${s.name}${s.flow.pack ? ` [${s.flow.pack} pack]` : ''}: ${s.description}`);
+  const off = Object.keys(packDescriptions).filter((p) => !on.has(p)).sort().map((p) => {
+    const skills = store.index.filter((s) => s.flow.pack === p).map((s) => s.name).join(', ');
+    return `- ${p} pack (${skills}): ${packDescriptions[p]} Not on this goal: if it fits, ask the user in one line, then load intake to mark the goal ${p}.`;
+  });
+  return `# Skill index\n${[...lines, ...(off.length ? ['', 'Domain packs this goal is not marked with:', ...off] : [])].join('\n')}`;
 }

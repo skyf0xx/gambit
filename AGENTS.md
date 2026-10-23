@@ -96,8 +96,16 @@ other skill, but its frontmatter carries `pack: <pack>`, and `canLoad`
 refuses it unless the goal's `domains` holds that pack. `intake` sets
 `domains` from what the goal is; when a pack load is refused on an
 untagged goal, the model asks the user in one line and `intake`'s tag mode
-writes `domains` alone. The skill index marks pack skills, and the state
-block lists the packs on the goal with their skills.
+writes `domains` alone. The skill index is built per goal: it lists the
+skills of the packs the goal is marked with, and shows each other pack as
+one line, its `domain-skills/<pack>/PACK.md` description. The state block
+lists the packs on the goal with their skills.
+
+The prompt keeps only the caps and the `log` and `memory` shapes for every
+turn. Each key's shape (`KEY_SHAPES`, `apps/pwa/src/lib/skills.ts`) comes
+with the skill that writes or reads it, when that skill loads
+(`skillShapes`); a skill that writes no section of its own, like `brief`,
+gets every shape.
 
 | Pack | Skill | Purpose |
 |---|---|---|

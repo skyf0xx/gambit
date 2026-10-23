@@ -5,7 +5,7 @@ import { summarizeChange, dueNow, routedText, methodText, isStub, type FlowSessi
 import { db, type ChatRecord, type DisplayMsg } from './db';
 import { loadApiKey } from './crypto';
 import { getProvider, makeModel, GOOGLE_FALLBACK_MODEL, type ProviderKind } from './providers';
-import { PREAMBLE, getSkillStore, skillIndexText, skillText, flowOf, skillFlows, type SkillStore } from './skills';
+import { PREAMBLE, getSkillStore, skillIndexText, skillShapes, skillText, flowOf, skillFlows, type SkillStore } from './skills';
 import { makeTools, goalStateJson, toolLabel, replySchema, type Reply } from './tools';
 import { today } from './dates';
 import { readRecord, restoreSnapshot, snapshot } from './goals';
@@ -163,7 +163,8 @@ export async function runTurn(opts: {
   await db.chats.put(chat);
 
   const store = await getSkillStore();
-  const stable = `${PREAMBLE}\n\n${skillIndexText(store)}`;
+  // Stable within a goal: the index changes only when intake marks a pack.
+  const stable = `${PREAMBLE}\n\n${skillIndexText(store, before.domains)}`;
   // Routed updates sitrep showed last turn are answered by this message, so
   // each routed skill is cleared to write in the turn it loads: this one only.
   const confirmed = chat.routed;
@@ -172,7 +173,9 @@ export async function runTurn(opts: {
     const s = name ? skillText(store, name) : null;
     return s ? `# ${title}: ${name}\n${s.text}` : '';
   };
-  const skillBlock = [block('Active skill', flow.active), block('Calling skill, resumed on finish_skill', flow.caller)].filter(Boolean).join('\n\n');
+  // A checkpoint writes with its caller's rights, so it takes the caller's shapes.
+  const shaped = flow.active && flowOf(store, flow.active)?.checkpoint ? flow.caller : flow.active;
+  const skillBlock = [block('Active skill', flow.active), block('Calling skill, resumed on finish_skill', flow.caller), shaped ? skillShapes(store, shaped) : ''].filter(Boolean).join('\n\n');
   const webSearch = (prov.kind === 'anthropic' || prov.kind === 'google') && !!prov.webSearch;
   const { messages: history, trimmed } = trimHistory(chat.model);
   const day = today();
