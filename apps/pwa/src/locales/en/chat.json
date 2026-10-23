@@ -95,5 +95,7 @@
   "dictation.audioCapture": "No microphone found.",
   "dictation.network": "Dictation needs a connection.",
   "dictation.languageNotSupported": "Language not supported.",
-  "dictation.stopped": "Dictation stopped unexpectedly."
+  "dictation.stopped": "Dictation stopped unexpectedly.",
+  "error.dailyLimit": "Daily limit reached. Continue tomorrow, or add your own key to keep going now.",
+  "addOwnKey": "Add your own key"
 }

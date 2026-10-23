@@ -95,5 +95,7 @@
   "dictation.audioCapture": "Aucun micro trouvé.",
   "dictation.network": "La dictée nécessite une connexion.",
   "dictation.languageNotSupported": "Langue non prise en charge.",
-  "dictation.stopped": "La dictée s’est arrêtée de façon inattendue."
+  "dictation.stopped": "La dictée s’est arrêtée de façon inattendue.",
+  "error.dailyLimit": "Limite du jour atteinte. Reprenez demain, ou ajoutez votre propre clé pour continuer maintenant.",
+  "addOwnKey": "Ajouter votre clé"
 }

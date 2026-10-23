@@ -31,6 +31,8 @@ export interface DisplayMsg {
   snapshotId?: number;
   undone?: boolean;
   error?: string;
+  /** The turn failed on a free key's daily cap: the notice offers the user's own key. */
+  limit?: 'daily';
 }
 export interface ChatRecord {
   goalId: string;

@@ -58,8 +58,8 @@
   "free.retry": "Réessayer",
   "connect": "Connectez un modèle d'IA",
   "byok.title": "J'ai une clé API",
-  "byok.line": "Les meilleures réponses. Google, Anthropic, OpenAI et d'autres.",
-  "free.title": "Obtenir une clé gratuite",
-  "free.line": "Prête en une minute, sans carte. Plus lent, avec des limites par jour.",
+  "byok.line": "Les meilleurs résultats, avec les modèles les plus intelligents.",
+  "free.title": "Obtenir une clé de démo gratuite",
+  "free.line": "Facile à configurer, mais plus lent, avec des limites par jour.",
   "free.button": "Se connecter avec OpenRouter"
 }

@@ -66,10 +66,25 @@ function shortDay(ts: number): string {
   return d.toLocaleDateString(intlLocale(), { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) });
 }
 
+const ADD_KEY = 'gambit:add-key';
+let addKeyAsked = false;
+
+/** Turn to Settings with the model form open, to add a key. */
+export function openKeySettings() {
+  addKeyAsked = true;
+  window.dispatchEvent(new Event('gambit:menu'));
+  window.dispatchEvent(new Event(ADD_KEY));
+}
+
 /** Provider and model, with the form opening under the row. */
 function Model() {
   const [p, setP] = useState<{ s: ProviderSettings; key: boolean } | null>(null);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(() => { const asked = addKeyAsked; addKeyAsked = false; return asked; });
+  useEffect(() => {
+    const onAsk = () => { addKeyAsked = false; setOpen(true); };
+    window.addEventListener(ADD_KEY, onAsk);
+    return () => window.removeEventListener(ADD_KEY, onAsk);
+  }, []);
   const load = async () => { const s = await getProvider(); setP(s ? { s, key: await hasApiKey(s.kind) } : null); };
   useEffect(() => { void load(); }, []);
   const noKey = !!p && !p.key;

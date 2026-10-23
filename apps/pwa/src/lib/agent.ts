@@ -207,6 +207,7 @@ export async function runTurn(opts: {
   const entries: NonNullable<DisplayMsg['tools']> = [];
   const labels = new Map<string, string>();
   let error: string | undefined;
+  let daily = false;
   let newMessages: ModelMessage[] = [];
   let usage = { input: 0, cached: 0, output: 0 };
 
@@ -259,6 +260,7 @@ export async function runTurn(opts: {
     }
     if (!raw) { error = undefined; break; }
     error = signal.aborted ? t('chat.error.cancelled') : errorText(raw, prov.kind);
+    daily = !signal.aborted && dailyLimit(raw);
     const busy = (raw as { statusCode?: number })?.statusCode === 503;
     if (!busy || signal.aborted || out || reply || entries.length || i === models.length - 1) break;
   }
@@ -293,7 +295,7 @@ export async function runTurn(opts: {
   if (!error) fresh.pendingEdits = (fresh.pendingEdits ?? []).filter((e) => !sentEdits.some((s) => JSON.stringify(s) === JSON.stringify(e)));
   const display: DisplayMsg[] = [
     ...fresh.display,
-    { id: displayId, role: 'assistant', text: out, reply, tools: entries, summary, snapshotId: summary.length || error ? snapshotId : undefined, error },
+    { id: displayId, role: 'assistant', text: out, reply, tools: entries, summary, snapshotId: summary.length || error ? snapshotId : undefined, error, ...(error && daily ? { limit: 'daily' as const } : {}) },
   ];
   fresh.display = keepLastTurns(display);
   if (fresh.display.length < display.length) fresh.trimmed = true;
@@ -335,6 +337,14 @@ function pathValue(root: Record<string, unknown>, path: string): unknown {
   }, root);
 }
 
+/** OpenRouter's free models stop for the day after a set number of
+ * requests: a 429 naming the daily cap ("free-models-per-day"), unlike the
+ * per-minute one, which a retry soon clears. */
+export function dailyLimit(e: unknown): boolean {
+  const err = ((e as { lastError?: unknown })?.lastError ?? e) as { statusCode?: number; message?: string; responseBody?: string };
+  return err?.statusCode === 429 && /per-day|per day|daily/i.test(`${err.message ?? ''} ${err.responseBody ?? ''}`);
+}
+
 export function errorText(e: unknown, kind?: ProviderKind): string {
   // A retried call wraps the provider's own error ("Failed after 2 attempts").
   const inner = (e as { lastError?: unknown })?.lastError;
@@ -345,6 +355,8 @@ export function errorText(e: unknown, kind?: ProviderKind): string {
   const google = kind === 'google';
   if (err?.statusCode === 401 || err?.statusCode === 403 || (google && err?.statusCode === 400 && /api key/i.test(err.message ?? '')))
     return t('chat.error.checkKey');
+  if (dailyLimit(err))
+    return t('chat.error.dailyLimit');
   if (err?.statusCode === 429)
     return google
       ? t('chat.error.googleLimit')

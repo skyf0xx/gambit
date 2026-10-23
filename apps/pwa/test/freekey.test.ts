@@ -51,3 +51,18 @@ describe('FREE_SETTINGS', () => {
     expect(OPENROUTER_FREE_MODEL).toMatch(/:free$/);
   });
 });
+
+describe('dailyLimit', () => {
+  it("tells OpenRouter's daily cap from a per-minute one", async () => {
+    const { dailyLimit, errorText } = await import('../src/lib/agent');
+    vi.stubGlobal('navigator', { onLine: true });
+    const day = { statusCode: 429, message: 'Rate limit exceeded: free-models-per-day. Add 10 credits to unlock 1000 free model requests per day' };
+    const minute = { statusCode: 429, message: 'Rate limit exceeded: free-models-per-min.' };
+    expect(dailyLimit(day)).toBe(true);
+    expect(dailyLimit({ lastError: day })).toBe(true);
+    expect(dailyLimit(minute)).toBe(false);
+    expect(errorText(day, 'custom')).toMatch(/^Daily limit reached/);
+    expect(errorText(minute, 'custom')).toMatch(/^Too many requests/);
+    vi.unstubAllGlobals();
+  });
+});

@@ -95,5 +95,7 @@
   "dictation.audioCapture": "Nenhum microfone encontrado.",
   "dictation.network": "O ditado precisa de conexão.",
   "dictation.languageNotSupported": "Idioma não suportado.",
-  "dictation.stopped": "O ditado parou inesperadamente."
+  "dictation.stopped": "O ditado parou inesperadamente.",
+  "error.dailyLimit": "Limite diário atingido. Continue amanhã, ou adicione sua própria chave para seguir agora.",
+  "addOwnKey": "Adicionar sua chave"
 }

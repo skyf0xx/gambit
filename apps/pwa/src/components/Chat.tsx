@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../lib/db';
 import { runTurn, undoTurn } from '../lib/agent';
 import { TextAction } from './ui';
+import { openKeySettings } from './Settings';
 import { useTornEdge } from './marks/torn';
 import { COMPOSE_EVENT, composeInChat, defineStarter } from '../lib/compose';
 import { RedRing } from './marks/RedRing';
@@ -579,7 +580,13 @@ export function Chat({ goalId, stub, variant, open, onCollapse, onExpand }: Chat
                 {m.undone && <span>{t('chat.undone')}</span>}
               </p>
             )}
-            {showsError(m) && (
+            {showsError(m) && m.limit === 'daily' && m.id === display[display.length - 1]?.id ? (
+              /* A daily cap won't clear with a retry, so this one stays, with the way past it. */
+              <div role="alert" className="anim-fade-in">
+                <p className="text-[15px] text-accent">{m.error}</p>
+                <TextAction className="text-[15px]! underline underline-offset-[3px]" onClick={openKeySettings}>{t('chat.addOwnKey')}</TextAction>
+              </div>
+            ) : showsError(m) && (
               <Fleeting>
                 <p className="anim-fade-in text-[15px] text-accent">{m.error}</p>
                 {(m.summary?.length ?? 0) > 0 && (
