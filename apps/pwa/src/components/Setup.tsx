@@ -404,8 +404,13 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
     try { await startFreeKey(); } catch { setFree('failed'); }
   }
 
-  // Checked on paste or typing, once the key is long enough to be one.
+  // Checked on paste or typing, once the key is long enough to be one. Only
+  // a change to the field cancels a check in flight: a rerun with the same
+  // text (StrictMode's mount) mustn't drop the free key being fetched.
+  const lastKey = useRef(key);
   useEffect(() => {
+    if (key === lastKey.current) return;
+    lastKey.current = key;
     const k = cleanKey(key);
     run.current++;
     if (k.length < 20) { setStatus({ kind: 'idle' }); return; }
