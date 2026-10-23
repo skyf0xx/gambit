@@ -48,15 +48,18 @@
   "keyWorksPlain": "La clave funciona",
   "getOne": "Consigue una:",
   "back": "← Volver",
-  "addKey": "Añade tu clave API",
   "paste": "Pegar",
   "customEndpoint": "Punto de enlace personalizado",
-  "bestQuality": "Con tu propia clave tienes las mejores respuestas.",
-  "free.cta": "¿Sin clave? Consigue una gratis",
-  "free.note": "A través de OpenRouter. Los modelos gratis son más lentos y tienen límites diarios. Añade tu clave en Ajustes cuando quieras.",
+  "free.note": "Cambia a tu propia clave en Ajustes cuando quieras.",
   "free.leaving": "Abriendo OpenRouter…",
   "free.signingIn": "Obteniendo tu clave gratis…",
   "free.cancelled": "El inicio de sesión no terminó.",
   "free.failed": "OpenRouter no envió una clave.",
-  "free.retry": "Reintentar"
+  "free.retry": "Reintentar",
+  "connect": "Conecta un modelo de IA",
+  "byok.title": "Tengo una clave API",
+  "byok.line": "Las mejores respuestas. Google, Anthropic, OpenAI y más.",
+  "free.title": "Consigue una clave gratis",
+  "free.line": "Lista en un minuto, sin tarjeta. Más lenta, con límites diarios.",
+  "free.button": "Entrar con OpenRouter"
 }

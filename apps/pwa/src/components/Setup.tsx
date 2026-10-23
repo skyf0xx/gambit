@@ -452,6 +452,24 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
     return () => { window.removeEventListener('focus', onBack); document.removeEventListener('visibilitychange', onBack); };
   }, [opened]);
 
+  // Two ways in, one open at a time. Back from OpenRouter, the free one is
+  // open already; back from getting a key, the key one.
+  const [choice, setChoice] = useState<'key' | 'free' | null>(() => (freeKeyPending() ? 'free' : opened ? 'key' : null));
+  const pickChoice = (c: 'key' | 'free') => setChoice((cur) => (cur === c ? null : c));
+
+  const statusLine = (
+    <div className="mt-2.5 min-h-[20px] text-[14px] leading-[20px]" aria-live="polite">
+      {status.kind === 'checking' && <span className="anim-fade-in text-graphite">{status.text ?? (status.label ? t('setup.checkingKey', { provider: status.label }) : t('setup.checking'))}</span>}
+      {status.kind === 'ok' && (
+        <span className="anim-fade-in flex items-center gap-1.5 text-ink">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
+          {status.label ? t('setup.keyWorks', { provider: status.label }) : t('setup.keyWorksPlain')}
+        </span>
+      )}
+      {status.kind === 'error' && <span className="anim-fade-in text-accent">{status.text}</span>}
+    </div>
+  );
+
   return (
     <div className={`flex flex-1 flex-col motion-safe:transition-opacity motion-safe:duration-300 ${free === 'leaving' ? 'opacity-40' : ''}`}>
       {onBack && (
@@ -459,68 +477,73 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
           <TextAction className="text-[15px]! text-graphite!" onClick={onBack}>{t('setup.back')}</TextAction>
         </div>
       )}
-      <h1 className="ink-bleed anim-rise font-serif text-[30px] leading-[38px] font-medium text-ink">{t('setup.addKey')}</h1>
-      <p className="anim-rise mt-3 text-[15px] leading-[22px] text-graphite">{t('setup.bestQuality')}</p>
+      <h1 className="ink-bleed anim-rise font-serif text-[30px] leading-[38px] font-medium text-ink">{t('setup.connect')}</h1>
 
-      <div className="anim-rise mt-10">
-        <div className="flex items-end gap-3">
-          <input
-            ref={inputRef}
-            aria-label={t('setup.apiKey')}
-            className={`${inputCls} font-mono text-[16px]! placeholder:font-sans placeholder:text-[17px]`}
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-            placeholder={t('setup.keyPaste')}
-            spellCheck={false}
-            autoComplete="off"
-            autoCapitalize="off"
-          />
-          {canPaste && !key && <TextAction className="underline underline-offset-[3px]" onClick={() => void paste()}>{t('setup.paste')}</TextAction>}
-        </div>
-        <div className="mt-2.5 min-h-[20px] text-[14px] leading-[20px]" aria-live="polite">
-          {status.kind === 'checking' && <span className="anim-fade-in text-graphite">{status.text ?? (status.label ? t('setup.checkingKey', { provider: status.label }) : t('setup.checking'))}</span>}
-          {status.kind === 'ok' && (
-            <span className="anim-fade-in flex items-center gap-1.5 text-ink">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
-              {status.label ? t('setup.keyWorks', { provider: status.label }) : t('setup.keyWorksPlain')}
-            </span>
-          )}
-          {status.kind === 'error' && <span className="anim-fade-in text-accent">{status.text}</span>}
-        </div>
-      </div>
-
-      <div className="anim-rise mt-8">
-        <p className="text-[14px] leading-5 text-graphite">{t('setup.getOne')}</p>
-        <div className="flex flex-wrap gap-x-5">
-          {KEY_LINKS.map((l) => (
-            <TextAction key={l.label} className="text-[15px]! underline underline-offset-[3px]" onClick={() => getKey(l.url)}>{l.label}</TextAction>
-          ))}
-        </div>
-      </div>
-
-      <div className="anim-rise mt-8">
-        {free === 'leaving' ? (
-          <p className="anim-fade-in text-[15px] leading-[22px] text-graphite">{t('setup.free.leaving')}</p>
-        ) : free === 'cancelled' || free === 'failed' ? (
-          <p className="anim-fade-in text-[15px] leading-[22px] text-accent">
-            {free === 'cancelled' ? t('setup.free.cancelled') : t('setup.free.failed')}{' '}
-            <TextAction className="text-[15px]! underline underline-offset-[3px]" onClick={() => void getFreeKey()}>{t('setup.free.retry')}</TextAction>
-          </p>
-        ) : (
-          <TextAction className="text-[15px]! underline underline-offset-[3px]" onClick={() => void getFreeKey()}>{t('setup.free.cta')}</TextAction>
-        )}
-        <p className="text-[14px] leading-5 text-graphite">{t('setup.free.note')}</p>
-      </div>
-
-      <div className="mt-auto flex flex-col gap-3 pt-16">
-        {otherProvider ? (
-          <div className="anim-rise">
-            <h2 className="mb-4 font-serif text-[20px] font-medium text-ink">{t('setup.customEndpoint')}</h2>
-            <ProviderForm firstRun beforeSave={beforeSave} />
+      <div className="anim-rise mt-10 border-b border-card-rule">
+        <Choice open={choice === 'key'} onToggle={() => pickChoice('key')} title={t('setup.byok.title')} line={t('setup.byok.line')}>
+          <div className="flex items-end gap-3">
+            <input
+              ref={inputRef}
+              aria-label={t('setup.apiKey')}
+              className={`${inputCls} font-mono text-[16px]! placeholder:font-sans placeholder:text-[17px]`}
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              placeholder={t('setup.keyPaste')}
+              spellCheck={false}
+              autoComplete="off"
+              autoCapitalize="off"
+            />
+            {canPaste && !key && <TextAction className="underline underline-offset-[3px]" onClick={() => void paste()}>{t('setup.paste')}</TextAction>}
           </div>
-        ) : (
-          <TextAction className="self-start text-[14px]! text-graphite! underline underline-offset-[3px]" onClick={() => setOtherProvider(true)}>{t('setup.customEndpoint')}</TextAction>
-        )}
+          {choice === 'key' && statusLine}
+          <p className="mt-6 text-[14px] leading-5 text-graphite">{t('setup.getOne')}</p>
+          <div className="flex flex-wrap gap-x-5">
+            {KEY_LINKS.map((l) => (
+              <TextAction key={l.label} className="text-[15px]! underline underline-offset-[3px]" onClick={() => getKey(l.url)}>{l.label}</TextAction>
+            ))}
+          </div>
+          <div className="mt-4">
+            {otherProvider ? (
+              <div className="anim-rise mt-4">
+                <h2 className="mb-4 font-serif text-[20px] font-medium text-ink">{t('setup.customEndpoint')}</h2>
+                <ProviderForm firstRun beforeSave={beforeSave} />
+              </div>
+            ) : (
+              <TextAction className="text-[14px]! text-graphite! underline underline-offset-[3px]" onClick={() => setOtherProvider(true)}>{t('setup.customEndpoint')}</TextAction>
+            )}
+          </div>
+        </Choice>
+
+        <Choice open={choice === 'free'} onToggle={() => pickChoice('free')} title={t('setup.free.title')} line={t('setup.free.line')}>
+          <InkButton disabled={free === 'leaving'} onClick={() => void getFreeKey()}>
+            {free === 'leaving' ? t('setup.free.leaving') : free === 'idle' ? t('setup.free.button') : t('setup.free.retry')}
+          </InkButton>
+          {free === 'cancelled' || free === 'failed' ? (
+            <p role="status" className="anim-fade-in mt-2.5 text-[14px] leading-[20px] text-accent">{free === 'cancelled' ? t('setup.free.cancelled') : t('setup.free.failed')}</p>
+          ) : choice === 'free' && statusLine}
+          <p className="mt-4 text-[14px] leading-5 text-graphite">{t('setup.free.note')}</p>
+        </Choice>
+      </div>
+    </div>
+  );
+}
+
+/** One way in: a row to pick, and what it needs folded open beneath it. */
+function Choice({ open, onToggle, title, line, children }: { open: boolean; onToggle: () => void; title: string; line: string; children: React.ReactNode }) {
+  return (
+    <div className="border-t border-card-rule">
+      <button type="button" aria-expanded={open} onClick={onToggle} className="anim-press group flex w-full items-start gap-3 py-4 text-left">
+        <span aria-hidden="true" className={`mt-[8px] h-3 w-3 flex-none rounded-full border-[1.5px] border-ink motion-safe:transition-colors ${open ? 'bg-ink' : 'bg-transparent'}`} />
+        <span className="flex-1">
+          <span className="block text-[18px] leading-[26px] font-medium text-ink">{title}</span>
+          <span className="block text-[15px] leading-[22px] text-graphite group-hover:text-ink">{line}</span>
+        </span>
+      </button>
+      {/* Rows 0fr → 1fr, so the panel opens to its own height. */}
+      <div className="grid motion-safe:transition-[grid-template-rows] motion-safe:duration-300 motion-safe:ease-out" style={{ gridTemplateRows: open ? '1fr' : '0fr' }}>
+        <div className="min-h-0 overflow-hidden" inert={!open}>
+          <div className={`pb-6 pl-6 motion-safe:transition-opacity motion-safe:duration-300 ${open ? 'opacity-100' : 'opacity-0'}`}>{children}</div>
+        </div>
       </div>
     </div>
   );

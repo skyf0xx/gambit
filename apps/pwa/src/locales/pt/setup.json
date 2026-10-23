@@ -48,15 +48,18 @@
   "keyWorksPlain": "Chave funciona",
   "getOne": "Obtenha uma:",
   "back": "← Voltar",
-  "addKey": "Adicione sua chave de API",
   "paste": "Colar",
   "customEndpoint": "Endpoint personalizado",
-  "bestQuality": "Com sua própria chave você tem as melhores respostas.",
-  "free.cta": "Sem chave? Pegue uma grátis",
-  "free.note": "Pelo OpenRouter. Modelos grátis são mais lentos e têm limites diários. Adicione sua chave em Ajustes quando quiser.",
+  "free.note": "Troque para sua própria chave em Ajustes quando quiser.",
   "free.leaving": "Abrindo o OpenRouter…",
   "free.signingIn": "Buscando sua chave grátis…",
   "free.cancelled": "O login não terminou.",
   "free.failed": "O OpenRouter não enviou uma chave.",
-  "free.retry": "Tentar de novo"
+  "free.retry": "Tentar de novo",
+  "connect": "Conecte um modelo de IA",
+  "byok.title": "Tenho uma chave de API",
+  "byok.line": "As melhores respostas. Google, Anthropic, OpenAI e mais.",
+  "free.title": "Pegue uma chave grátis",
+  "free.line": "Pronta em um minuto, sem cartão. Mais lenta, com limites diários.",
+  "free.button": "Entrar com o OpenRouter"
 }
