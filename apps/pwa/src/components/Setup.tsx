@@ -6,6 +6,7 @@ import {
 } from '../lib/providers';
 import { saveApiKey, hasApiKey, clearApiKey } from '../lib/crypto';
 import { track } from '../lib/analytics';
+import { startFreeKey, takeFreeKeyReturn, exchangeCode, freeKeyPending, FREE_SETTINGS } from '../lib/freekey';
 import { t } from '../lib/i18n';
 import { getOnboarding, saveOnboarding, startFromDraft, type Onboarding } from '../lib/onboarding';
 import { InkButton, TextAction, Field, inputCls } from './ui';
@@ -169,6 +170,9 @@ const SETUP_TABS: TabId[] = ['goal', 'moves', 'people', 'risks', 'bets', 'doodle
 export function Setup({ hasGoals }: { hasGoals: boolean }) {
   const [o, setO] = useState<Onboarding | null>(null);
   const [peek, setPeek] = useState<TabId | null>(null);
+  // Back from OpenRouter's sign-in: the page fades back in as it was, so the
+  // trip reads as one step rather than a fresh start.
+  const [returning] = useState(freeKeyPending);
   useEffect(() => { void getOnboarding().then((v) => setO(hasGoals ? { ...v, step: 'key' } : v)); }, [hasGoals]);
   if (!o) return null;
   const update = (next: Onboarding) => { setPeek(null); setO(next); void saveOnboarding(next); };
@@ -191,7 +195,7 @@ export function Setup({ hasGoals }: { hasGoals: boolean }) {
       {/* The same page sheet as the notebook (Dashboard.tsx): margin rule,
           tabs off the right edge into the desk. */}
       <div
-        className="setup-sheet paper relative mx-auto mr-9 flex min-h-dvh max-w-xl flex-col rounded-t-[3px] md:mr-auto md:min-h-[calc(100dvh-2rem)] md:shadow-[0_1px_1px_var(--lift),0_8px_30px_-8px_var(--lift-far)]"
+        className={`setup-sheet paper relative ${returning ? 'setup-return anim-fade-in' : ''} mx-auto mr-9 flex min-h-dvh max-w-xl flex-col rounded-t-[3px] md:mr-auto md:min-h-[calc(100dvh-2rem)] md:shadow-[0_1px_1px_var(--lift),0_8px_30px_-8px_var(--lift-far)]`}
         style={{ borderLeft: '2px solid var(--margin-rule)' }}
       >
         <DividerTabs tabs={tabs} active={active} onChange={pick} changedTabs={new Set()} />
@@ -217,6 +221,7 @@ export function Setup({ hasGoals }: { hasGoals: boolean }) {
            takes over once it lands. */
         .setup-sheet .tab-leaf { animation: setup-tab-in 520ms cubic-bezier(0.34, 1.4, 0.64, 1) backwards; }
         ${SETUP_TABS.map((_, i) => `.setup-sheet .tab-leaf:nth-child(${i + 1}) { animation-delay: ${250 + i * 70}ms; }`).join('\n        ')}
+        .setup-sheet.setup-return .tab-leaf { animation: none; }
         @keyframes setup-tab-in {
           from { transform: translateX(-34px); opacity: 0; }
           to { transform: translateX(0); opacity: 1; }
@@ -325,7 +330,7 @@ const KEY_LINKS: { label: string; url: string }[] = [
 
 type Status =
   | { kind: 'idle' }
-  | { kind: 'checking'; label?: string }
+  | { kind: 'checking'; label?: string; text?: string }
   | { kind: 'ok'; label?: string }
   | { kind: 'error'; text: string };
 
@@ -340,15 +345,14 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
   // since coming back on a phone can reload the app.
   const [opened, setOpened] = useState(() => { try { return sessionStorage.getItem(OPENED) === '1'; } catch { return false; } });
 
-  async function commit(s: ProviderSettings, k: string) {
+  async function commit(s: ProviderSettings, k: string, source?: string) {
     await beforeSave?.();
     await saveApiKey(s.kind, k);
     await saveProvider(s);
-    track('provider_saved', { provider: s.kind, newKey: true });
+    track('provider_saved', { provider: s.kind, newKey: true, ...(source ? { source } : {}) });
   }
 
-  async function verify(s: ProviderSettings, k: string, label: string) {
-    const id = ++run.current;
+  async function verify(s: ProviderSettings, k: string, label: string, source?: string, id = ++run.current) {
     setStatus({ kind: 'checking', label });
     const r = await checkKey(s, k);
     if (id !== run.current) return;
@@ -359,7 +363,45 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
     setStatus({ kind: 'ok', label });
     // A beat to read "key works" before the notebook opens.
     await new Promise((res) => setTimeout(res, 700));
-    if (id === run.current) await commit(s, k);
+    if (id === run.current) await commit(s, k, source);
+  }
+
+  // The free key: off to OpenRouter's sign-in, and back with a code to trade.
+  const [free, setFree] = useState<'idle' | 'leaving' | 'cancelled' | 'failed'>('idle');
+  const tookReturn = useRef(false);
+  useEffect(() => {
+    const back = async () => {
+      const r = takeFreeKeyReturn();
+      if (!r) return setFree('idle');
+      if (r.kind === 'cancelled') {
+        track('free_key', { step: 'cancelled' });
+        return setFree('cancelled');
+      }
+      const id = ++run.current;
+      setStatus({ kind: 'checking', text: t('setup.free.signingIn') });
+      const k = await exchangeCode(r.code, r.verifier);
+      if (id !== run.current) return;
+      if (!k) {
+        track('free_key', { step: 'failed' });
+        setStatus({ kind: 'idle' });
+        return setFree('failed');
+      }
+      await verify(FREE_SETTINGS, k, KEY_LABEL.openrouter, 'openrouter_oauth', id);
+    };
+    if (!tookReturn.current) { tookReturn.current = true; void back(); }
+    // The back button from OpenRouter can restore this page from the cache.
+    const onShow = (e: PageTransitionEvent) => { if (e.persisted) void back(); };
+    window.addEventListener('pageshow', onShow);
+    return () => window.removeEventListener('pageshow', onShow);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function getFreeKey() {
+    setFree('leaving');
+    track('free_key', { step: 'start' });
+    // A beat for the page to fade before it goes.
+    await new Promise((res) => setTimeout(res, 250));
+    try { await startFreeKey(); } catch { setFree('failed'); }
   }
 
   // Checked on paste or typing, once the key is long enough to be one.
@@ -406,13 +448,14 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
   }, [opened]);
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className={`flex flex-1 flex-col motion-safe:transition-opacity motion-safe:duration-300 ${free === 'leaving' ? 'opacity-40' : ''}`}>
       {onBack && (
         <div className="-mt-3 mb-6 flex min-h-[44px] items-center">
           <TextAction className="text-[15px]! text-graphite!" onClick={onBack}>{t('setup.back')}</TextAction>
         </div>
       )}
       <h1 className="ink-bleed anim-rise font-serif text-[30px] leading-[38px] font-medium text-ink">{t('setup.addKey')}</h1>
+      <p className="anim-rise mt-3 text-[15px] leading-[22px] text-graphite">{t('setup.bestQuality')}</p>
 
       <div className="anim-rise mt-10">
         <div className="flex items-end gap-3">
@@ -430,7 +473,7 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
           {canPaste && !key && <TextAction className="underline underline-offset-[3px]" onClick={() => void paste()}>{t('setup.paste')}</TextAction>}
         </div>
         <div className="mt-2.5 min-h-[20px] text-[14px] leading-[20px]" aria-live="polite">
-          {status.kind === 'checking' && <span className="text-graphite">{status.label ? t('setup.checkingKey', { provider: status.label }) : t('setup.checking')}</span>}
+          {status.kind === 'checking' && <span className="anim-fade-in text-graphite">{status.text ?? (status.label ? t('setup.checkingKey', { provider: status.label }) : t('setup.checking'))}</span>}
           {status.kind === 'ok' && (
             <span className="anim-fade-in flex items-center gap-1.5 text-ink">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
@@ -448,6 +491,20 @@ function KeyStep({ beforeSave, onBack }: { beforeSave?: () => Promise<void>; onB
             <TextAction key={l.label} className="text-[15px]! underline underline-offset-[3px]" onClick={() => getKey(l.url)}>{l.label}</TextAction>
           ))}
         </div>
+      </div>
+
+      <div className="anim-rise mt-8">
+        {free === 'leaving' ? (
+          <p className="anim-fade-in text-[15px] leading-[22px] text-graphite">{t('setup.free.leaving')}</p>
+        ) : free === 'cancelled' || free === 'failed' ? (
+          <p className="anim-fade-in text-[15px] leading-[22px] text-accent">
+            {free === 'cancelled' ? t('setup.free.cancelled') : t('setup.free.failed')}{' '}
+            <TextAction className="text-[15px]! underline underline-offset-[3px]" onClick={() => void getFreeKey()}>{t('setup.free.retry')}</TextAction>
+          </p>
+        ) : (
+          <TextAction className="text-[15px]! underline underline-offset-[3px]" onClick={() => void getFreeKey()}>{t('setup.free.cta')}</TextAction>
+        )}
+        <p className="text-[14px] leading-5 text-graphite">{t('setup.free.note')}</p>
       </div>
 
       <div className="mt-auto flex flex-col gap-3 pt-16">

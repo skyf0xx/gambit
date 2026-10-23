@@ -50,5 +50,13 @@
   "back": "← Retour",
   "addKey": "Ajoutez votre clé API",
   "paste": "Coller",
-  "customEndpoint": "Point de terminaison personnalisé"
+  "customEndpoint": "Point de terminaison personnalisé",
+  "bestQuality": "Votre propre clé donne les meilleures réponses.",
+  "free.cta": "Pas de clé ? Obtenez-en une gratuite",
+  "free.note": "Via OpenRouter. Les modèles gratuits sont plus lents et limités chaque jour. Ajoutez votre clé dans les Réglages quand vous voulez.",
+  "free.leaving": "Ouverture d'OpenRouter…",
+  "free.signingIn": "Récupération de votre clé gratuite…",
+  "free.cancelled": "La connexion n'a pas abouti.",
+  "free.failed": "OpenRouter n'a pas envoyé de clé.",
+  "free.retry": "Réessayer"
 }

@@ -50,5 +50,13 @@
   "back": "← Volver",
   "addKey": "Añade tu clave API",
   "paste": "Pegar",
-  "customEndpoint": "Punto de enlace personalizado"
+  "customEndpoint": "Punto de enlace personalizado",
+  "bestQuality": "Con tu propia clave tienes las mejores respuestas.",
+  "free.cta": "¿Sin clave? Consigue una gratis",
+  "free.note": "A través de OpenRouter. Los modelos gratis son más lentos y tienen límites diarios. Añade tu clave en Ajustes cuando quieras.",
+  "free.leaving": "Abriendo OpenRouter…",
+  "free.signingIn": "Obteniendo tu clave gratis…",
+  "free.cancelled": "El inicio de sesión no terminó.",
+  "free.failed": "OpenRouter no envió una clave.",
+  "free.retry": "Reintentar"
 }

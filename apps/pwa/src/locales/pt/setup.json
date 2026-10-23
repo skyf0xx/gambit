@@ -50,5 +50,13 @@
   "back": "← Voltar",
   "addKey": "Adicione sua chave de API",
   "paste": "Colar",
-  "customEndpoint": "Endpoint personalizado"
+  "customEndpoint": "Endpoint personalizado",
+  "bestQuality": "Com sua própria chave você tem as melhores respostas.",
+  "free.cta": "Sem chave? Pegue uma grátis",
+  "free.note": "Pelo OpenRouter. Modelos grátis são mais lentos e têm limites diários. Adicione sua chave em Ajustes quando quiser.",
+  "free.leaving": "Abrindo o OpenRouter…",
+  "free.signingIn": "Buscando sua chave grátis…",
+  "free.cancelled": "O login não terminou.",
+  "free.failed": "O OpenRouter não enviou uma chave.",
+  "free.retry": "Tentar de novo"
 }

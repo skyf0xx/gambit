@@ -28,6 +28,9 @@ export const GOOGLE_KEY_URL = 'https://aistudio.google.com/api-keys';
 export const GOOGLE_FALLBACK_MODEL = 'gemini-3.5-flash-lite';
 export const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 export const DEEPSEEK_BASE = 'https://api.deepseek.com/v1';
+/** The model a free OpenRouter key starts on: free, with reliable tool calls
+ * and tool_choice, which Gambit's multi-step turns and forced reply need. */
+export const OPENROUTER_FREE_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b:free';
 
 /** A key as copied, minus what tends to come with it: surrounding quotes or
  * backticks, a "Key:" style label, stray spaces and line breaks. */

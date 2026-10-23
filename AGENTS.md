@@ -5,7 +5,10 @@ set of prompt-based skills against a single goal, shown live on a dashboard
 beside the chat. No backend, no accounts — goals, chat history, and the
 user's own model API key live in the browser (IndexedDB). The user brings
 their own key — Google AI Studio (the default), Anthropic, OpenAI, or any
-OpenAI-compatible endpoint (OpenRouter included).
+OpenAI-compatible endpoint (OpenRouter included). Someone with no key can
+get a free one on the setup screen: OpenRouter's PKCE sign-in returns a key
+that saves like a pasted one, on a `:free` model
+(`apps/pwa/src/lib/freekey.ts`).
 
 This file is for coding agents working ON this repo, not the product's own
 system prompt — the app's runtime instructions to the model live in

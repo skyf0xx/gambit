@@ -50,5 +50,13 @@
   "back": "← Back",
   "addKey": "Add your API key",
   "paste": "Paste",
-  "customEndpoint": "Custom endpoint"
+  "customEndpoint": "Custom endpoint",
+  "bestQuality": "Your own key gives the best answers.",
+  "free.cta": "No key? Get a free one",
+  "free.note": "Through OpenRouter. Free models are slower and have daily limits. Add your own key in Settings any time.",
+  "free.leaving": "Opening OpenRouter…",
+  "free.signingIn": "Getting your free key…",
+  "free.cancelled": "Sign-in didn't finish.",
+  "free.failed": "OpenRouter didn't send a key.",
+  "free.retry": "Try again"
 }
