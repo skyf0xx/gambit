@@ -99,7 +99,7 @@ export function keepLastTurns<T extends { role: string }>(messages: T[], turns =
  * may write, the routed updates the user just confirmed, where the goal
  * sits in the method, and what the goal says is due, most pressing first.
  */
-export function flowText(store: SkillStore, session: Pick<FlowSession, 'active' | 'caller'>, goal: Parameters<typeof dueNow>[0], day: string, confirmed?: RoutedUpdate[]): string {
+export function flowText(store: SkillStore, session: Pick<FlowSession, 'active' | 'caller'>, goal: Parameters<typeof dueNow>[0] & { domains?: string[] }, day: string, confirmed?: RoutedUpdate[]): string {
   const active = session.active ? flowOf(store, session.active) : undefined;
   const writes = (n?: string) => (n && flowOf(store, n)?.writes.join(', ')) || 'nothing';
   const lines = [
@@ -110,6 +110,8 @@ export function flowText(store: SkillStore, session: Pick<FlowSession, 'active' 
   const routed = routedText(confirmed);
   if (routed) lines.push(routed);
   lines.push(methodText(goal));
+  const packs = (goal.domains ?? []).map((d) => `${d} (${store.index.filter((i) => i.flow.pack === d).map((i) => i.name).join(', ')})`);
+  if (packs.length) lines.push(`Packs on this goal: ${packs.join('; ')}. Load one of these when its trigger fits, ahead of the core skill it deepens.`);
   const due = dueNow(goal, day, skillFlows(store));
   if (due.length) lines.push(`Due now: ${due.map((s) => `${s.skill} (${s.why})`).join('; ')}.`);
   const next = active?.checkpoint ? undefined : active?.next;

@@ -6,10 +6,21 @@ import { LOCALES, locale } from './i18n';
 
 const packGlob = import.meta.glob('../../../../skills/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 const nativeGlob = import.meta.glob('../../skills/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+const domainGlob = import.meta.glob('../../../../domain-skills/*/*/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
 const rel = (k: string) => k.slice(k.lastIndexOf('/skills/') + 1);
+/** domain-skills/<pack>/<skill>/... is served as skills/<skill>/...: a pack
+ * skill loads like any other, and its frontmatter `pack` gates it. */
+const domainRel = (k: string) => `skills/${k.slice(k.lastIndexOf('/domain-skills/') + '/domain-skills/'.length).split('/').slice(1).join('/')}`;
 
-export const bundledFiles: Record<string, string> = Object.fromEntries(Object.entries(packGlob).map(([k, v]) => [rel(k), v]));
+export const bundledFiles: Record<string, string> = Object.fromEntries([
+  ...Object.entries(packGlob).map(([k, v]) => [rel(k), v]),
+  ...Object.entries(domainGlob).map(([k, v]) => [domainRel(k), v]),
+]);
+/** Where each domain pack skill's files came from, `positioning` → `business`. */
+export const domainPackOf: Record<string, string> = Object.fromEntries(
+  Object.keys(domainGlob).map((k) => k.slice(k.lastIndexOf('/domain-skills/') + '/domain-skills/'.length).split('/')).map(([pack, skill]) => [skill, pack]),
+);
 /** PWA-native skills ship with the app. */
 export const nativeFiles: Record<string, string> = Object.fromEntries(Object.entries(nativeGlob).map(([k, v]) => [rel(k), v]));
 
@@ -140,10 +151,11 @@ subGoals?: [string] ≤5 entries, each ≤12 words / 100 chars — the parts or 
 successCriteria: [{text ≤120, kind: control|influence, lineOfOperation?: S, detail?: D}] (at least 1) — what "done" looks like, measurable. Distinct from subGoals: a criterion is checked off; a sub-goal is a condition on the aim.
 deadline: date | null
 people: [{name: S, status: confirmed|tentative|lead, doing: M, detail?}] — anyone the user deals with directly; writing someone here takes them off stakeholders
+domains: [business|activism] — the domain packs this goal draws on; empty for a goal of no listed kind. Not shown on the page.
 posture: null | {current: {level: int ≥1, label: S}, levels: [{level, label: S, meaning?: M}], triggers: [M] ≤10, lastReviewed: date}
 plan: {linesOfOperation: [{label: S, focus?: true (the one line holding the Schwerpunkt; at most one), criticalPath: [{id: short-id, label: S (a milestone: a point the line passes, not a task), detail?, after: [task ids] ≥1 (the tasks that reach it; the page draws a line under them and writes the milestone beneath)}] ≤6 (no status: a milestone is reached once every task in its after is done or dropped, at least one done, and un-reached if one is unticked; ids shared with the tasks, so a task may list a milestone's id in its after and waits until it is reached), nextActions: [{id?: short-id (lower-case, digits, dashes; give one to any task another points at), action: M (a plain todo), who: S, when?: date (due by), status, doneOn?: date (stamped for you when it is done; keep it as is; for a message, the day it went out), detail?: D (required when proposed: why this, why now), after?: [id] ≤3 (tasks it waits on), if?: {noReply: id, days: int 1-90} (an escalation: due when that message went out and got no reply in days) | {event: ≤8 words (a fact outside the user's control, no leading "if"), by?: date (when to check), happened?: true} (a fork: a move made only if the event happens, never one the plan makes anyway; the page shows "if [event] then [move]", so the move never restates its condition and the event never says "by then"), to?: S (a message's recipient: a people or stakeholders name, verbatim, never the user), level?: interests|rights|power (an escalation's step: ask, formal channels, go public; never lower than the message it follows), replied?: date (they answered), reply?: M (what they said)}] ≤10, status?: on_schedule|at_risk|blocked|done, blocker?: M}]} (at least 1 line; the focus line, else the first, needs at least one task with if); a next action's status = pending|done|dropped, or proposed (a move you suggest that the user hasn't agreed to yet; they keep or toss it)
 systemsNotes: null | {schwerpunkt: M, rationale?: M, confidence: high|moderate|low, topFindings: [{label: M, detail?, items?}] ≤5, lastReviewed: date}
-riskNotes: [{item: M, detail?: M, source: threat|premortem, accepted: boolean, dependsOn?: S (a people or stakeholders name, verbatim)}]
+riskNotes: [{item: M, detail?: M, source: threat|premortem|backfire, accepted: boolean, dependsOn?: S (a people or stakeholders name, verbatim)}]
 criteriaStatus: [{text ≤120, kind, lineOfOperation?, status: met|on_track|at_risk|stalled|regressing, detail?}]
 stakeholders: [{name: S, power: high|med|low, stanceCurrent: S, stanceTarget: S, via: M, detail?}] — everyone else with a say; a name already in people is refused
 exposure: [{item: M, status: open|accepted, mustHandleBefore?: S, acceptedDate?: date, why?: M}]
@@ -202,5 +214,6 @@ ${pageGlossary()}
 ${guidedRules}`;
 
 export function skillIndexText(store: SkillStore): string {
-  return `# Skill index\n${store.index.map((s) => `- ${s.name}: ${s.description}`).join('\n')}`;
+  const line = (s: SkillStore['index'][number]) => `- ${s.name}${s.flow.pack ? ` [${s.flow.pack} pack: loads only on a goal whose domains include ${s.flow.pack}]` : ''}: ${s.description}`;
+  return `# Skill index\n${store.index.map(line).join('\n')}`;
 }

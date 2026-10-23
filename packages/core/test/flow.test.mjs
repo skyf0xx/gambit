@@ -48,6 +48,20 @@ test('canLoad holds a goal-requiring skill back from a stub', () => {
   assert.equal(canLoad(skills[3], defined).ok, true);
 });
 
+test('canLoad holds a pack skill back from a goal not marked with its pack', () => {
+  const pricing = skillFlow('pricing', { writes: 'decisions, log', phase: 'develop', pack: 'business' });
+  assert.equal(pricing.pack, 'business');
+  assert.deepEqual(pricing.errors, []);
+  const r = canLoad(pricing, defined);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /business pack.*load intake to add "business" to domains/);
+  assert.equal(canLoad(pricing, { ...defined, domains: ['business'] }).ok, true);
+  assert.match(canLoad(pricing, stubGoal('g')).error, /not defined yet/);
+  assert.match(skillFlow('x', { phase: 'run', pack: 'cooking' }).errors[0], /^pack: must be one of business/);
+  assert.match(skillFlow('x', { phase: 'run', pack: 'business', requires: 'any' }).errors[0], /requires: goal/);
+  assert.equal('pack' in skillFlow('x', { phase: 'run' }), false);
+});
+
 test('canWrite needs an active skill that declares the key', () => {
   assert.match(canWrite({ fresh: [] }, 'plan', 'set_status', skills).error, /no skill is active.*plan or review/);
   assert.match(canWrite({ active: 'brief', fresh: [] }, 'plan', 'set_status', skills).error, /brief does not write plan/);
@@ -60,6 +74,11 @@ test('canWrite holds a write_section back in the turn its skill loaded', () => {
   assert.match(canWrite(s, 'plan', 'write_section', skills).error, /confirm/);
   assert.equal(canWrite(s, 'plan', 'set_status', skills).ok, true);
   assert.equal(canWrite(s, 'log', 'append_log', skills).ok, true);
+  // A domains write records the yes the user gave before the load.
+  const intake = skillFlow('intake', { writes: 'goal, domains, log', requires: 'any', phase: 'define' });
+  const fresh = { active: 'intake', fresh: ['intake'] };
+  assert.equal(canWrite(fresh, 'domains', 'write_section', [intake]).ok, true);
+  assert.match(canWrite(fresh, 'goal', 'write_section', [intake]).error, /confirm/);
 });
 
 test('a checkpoint keeps its caller\'s write rights', () => {

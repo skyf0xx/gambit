@@ -81,7 +81,7 @@ export function changedLines(before: Goal, after: Goal): ChangedLine[] {
 
 // Keys that change on nearly every turn (log) or aren't drawn on the page
 // (schemaVersion), so they'd flag a tab with nothing new to see.
-const IGNORED_KEYS = new Set(['schemaVersion', 'log']);
+const IGNORED_KEYS = new Set(['schemaVersion', 'log', 'domains']);
 
 // The page draws only part of a key; a change elsewhere in it (posture's
 // lastReviewed, bumped on every strategy pass) has nothing new to see.

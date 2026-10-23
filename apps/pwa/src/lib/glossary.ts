@@ -17,6 +17,7 @@ const UNTITLED: Record<string, string | null> = {
   goal: 'the big title at the top',
   deadline: 'the time left, under the title',
   subGoals: 'the short bullet list under the title (the parts of the goal)',
+  domains: null,
   posture: `the words after the "${sectionTitleFor('plan').title}" label, e.g. "${sectionTitleFor('plan').title} - quiet posture" (its pencil note: what the level means, what would change it)`,
 };
 

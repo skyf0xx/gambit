@@ -1,19 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { WRITABLE_KEYS, PHASES, stubGoal, writersOf } from '@gambit/core';
-import { PREAMBLE, SECTION_SHAPES, buildStore, bundledFiles, guidedRules, methods, skillFile, skillFlows, elicitationMethods } from '../src/lib/skills';
+import { WRITABLE_KEYS, PHASES, DOMAINS, stubGoal, writersOf } from '@gambit/core';
+import { PREAMBLE, SECTION_SHAPES, buildStore, bundledFiles, domainPackOf, guidedRules, methods, skillFile, skillFlows, skillIndexText, elicitationMethods } from '../src/lib/skills';
 import { compactToolResults, trimHistory, keepLastTurns, flowText, CHAT_TURNS, HISTORY_CHAR_BUDGET } from '../src/lib/agent';
 import type { ModelMessage } from 'ai';
 import type { DisplayMsg } from '../src/lib/db';
 
 describe('skills and preamble', () => {
   const store = buildStore(bundledFiles, 'test');
-  it('indexes the 20 pack skills plus the two native ones, excluding _shared', () => {
+  it('indexes the 20 core skills, the two native ones and the domain packs, excluding _shared', () => {
     const names = store.index.map((s) => s.name);
     expect(names).toContain('plan');
     expect(names).toContain('intake');
     expect(names).toContain('elicit');
     expect(names).not.toContain('_shared');
-    expect(names.length).toBe(22);
+    expect(names.length).toBe(22 + Object.keys(domainPackOf).length);
     expect(store.index.every((s) => s.description.length > 20)).toBe(true);
   });
   it('carries the guided-session rules from skills/_shared/GUIDED.md', () => {
@@ -38,6 +38,22 @@ describe('skills and preamble', () => {
     expect(flows.filter((f) => f.requires === 'any').map((f) => f.name).sort()).toEqual(['elicit', 'intake', 'onboard']);
     expect(flows.filter((f) => f.phase === 'any').map((f) => f.name).sort()).toEqual(['brief', 'elicit', 'onboard']);
     for (const p of PHASES) expect(flows.some((f) => f.phase === p), p).toBe(true);
+  });
+  it('gates each domain pack skill by the pack its directory names', () => {
+    expect(Object.entries(domainPackOf).sort()).toEqual([
+      ['backfire', 'activism'], ['demands', 'activism'], ['distribution', 'business'], ['message', 'activism'],
+      ['organizing', 'activism'], ['pillars', 'activism'], ['positioning', 'business'], ['pricing', 'business'], ['tactics', 'activism'],
+    ]);
+    for (const [name, pack] of Object.entries(domainPackOf)) {
+      const flow = store.index.find((s) => s.name === name)!.flow;
+      expect(flow.pack, name).toBe(pack);
+      expect(DOMAINS, name).toContain(pack);
+    }
+    expect(store.index.filter((s) => s.flow.pack).map((s) => s.name).sort()).toEqual(Object.keys(domainPackOf).sort());
+    expect(skillIndexText(store)).toContain('- pricing [business pack: loads only on a goal whose domains include business]: ');
+    const goal = { ...stubGoal('g'), domains: ['business'] };
+    expect(flowText(store, {}, goal, '2026-10-02')).toContain('Packs on this goal: business (distribution, positioning, pricing).');
+    expect(flowText(store, {}, stubGoal('g'), '2026-10-02')).not.toContain('Packs on this goal');
   });
   it('states the active skill and what is due in the turn state', () => {
     const goal = stubGoal('g');

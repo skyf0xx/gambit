@@ -6,6 +6,16 @@ import { rendererForSection, groupForSection, GROUP_ORDER, SECTION_GROUPS } from
 const step = () => ({ label: 's' });
 const goalWithPlan = (line) => ({ ...stubGoal('g'), plan: { linesOfOperation: [{ label: 'L', criticalPath: [], nextActions: [], ...line }] } });
 
+test('domains lists known packs once each, and an older goal reads with none', () => {
+  const g = stubGoal('g');
+  assert.deepEqual(g.domains, []);
+  assert.equal(goalSchema.safeParse({ ...g, domains: ['business'] }).success, true);
+  assert.equal(goalSchema.safeParse({ ...g, domains: ['business', 'business'] }).success, false);
+  assert.equal(goalSchema.safeParse({ ...g, domains: ['cooking'] }).success, false);
+  const { domains: _, ...older } = g;
+  assert.deepEqual(goalSchema.parse(older).domains, []);
+});
+
 test('stubGoal is valid and seeded from title', () => {
   const g = stubGoal('Ship it');
   assert.equal(goalSchema.safeParse(g).success, true);

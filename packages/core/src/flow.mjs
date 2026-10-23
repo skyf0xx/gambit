@@ -13,6 +13,8 @@
 //               to it when finished
 //   phase:      its place in the method (PHASES), or "any" for a skill
 //               outside the cycle (onboard, brief, elicit)
+//   pack:       the domain pack a skill under domain-skills/ belongs to
+//               (DOMAINS); it loads only on a goal whose `domains` holds it
 //
 // The agent tools call canLoad / canWrite and return a refusal as a tool
 // error, so the model corrects itself in the same turn. suggestSkills reads
@@ -33,7 +35,7 @@
 // loads (FlowSession.cleared), so the whole batch lands in that one turn.
 
 import { WRITABLE_KEYS, currentFocusEntry } from './ops.mjs';
-import { STUB_CRITERION, focusLineOf, hasBranch, tasksOf, taskState, milestonesOf } from './schema.mjs';
+import { DOMAINS, STUB_CRITERION, focusLineOf, hasBranch, tasksOf, taskState, milestonesOf } from './schema.mjs';
 
 export const FLOW_KEYS = [...WRITABLE_KEYS, 'log'];
 const REQUIRES = ['goal', 'any'];
@@ -55,7 +57,7 @@ export function isStub(goal) {
 
 const list = (s) => (s ?? '').split(',').map((x) => x.trim()).filter(Boolean);
 
-/** @typedef {{ name: string, writes: string[], reads: string[], requires: string, next: string[], phase: string, checkpoint: boolean, errors: string[] }} SkillFlow */
+/** @typedef {{ name: string, writes: string[], reads: string[], requires: string, next: string[], phase: string, pack?: string, checkpoint: boolean, errors: string[] }} SkillFlow */
 /** @typedef {{ skill: string, update: string }} RoutedUpdate */
 /**
  * @typedef {{ active?: string, caller?: string, fresh: string[], cleared?: string[], routed?: RoutedUpdate[] }} FlowSession
@@ -77,14 +79,17 @@ export function skillFlow(name, meta) {
   const next = list(meta.next);
   const requires = meta.requires ?? 'goal';
   const phase = meta.phase ?? '';
+  const pack = meta.pack || undefined;
   const errors = [
     ...writes.filter((k) => !FLOW_KEYS.includes(k)).map((k) => `writes: "${k}" is not a goal key`),
     ...reads.filter((k) => !WRITABLE_KEYS.includes(k)).map((k) => `reads: "${k}" is not a writable goal key`),
     ...(reads.length && !WRITABLE_KEYS.includes(writes[0]) ? ['reads: needs a section of its own as the first key in writes'] : []),
     ...(REQUIRES.includes(requires) ? [] : [`requires: must be one of ${REQUIRES.join(', ')}`]),
     ...(SKILL_PHASES.includes(phase) ? [] : [`phase: must be one of ${SKILL_PHASES.join(', ')}`]),
+    ...(pack === undefined || DOMAINS.includes(pack) ? [] : [`pack: must be one of ${DOMAINS.join(', ')}`]),
+    ...(pack && requires !== 'goal' ? ['pack: a pack skill needs requires: goal, since the goal says which packs apply'] : []),
   ];
-  return { name, writes, reads, requires, next, phase, checkpoint: meta.checkpoint === 'true', errors };
+  return { name, writes, reads, requires, next, phase, ...(pack ? { pack } : {}), checkpoint: meta.checkpoint === 'true', errors };
 }
 
 /**
@@ -107,6 +112,9 @@ export function writersOf(key, skills) {
 export function canLoad(skill, goal) {
   if (skill.requires === 'goal' && isStub(goal)) {
     return { ok: false, error: `the goal is not defined yet, so ${skill.name} has nothing to work on; load intake first` };
+  }
+  if (skill.pack && !(goal.domains ?? []).includes(skill.pack)) {
+    return { ok: false, error: `${skill.name} is in the ${skill.pack} pack, and this goal isn't marked ${skill.pack}. If it is one, ask the user in one line, then load intake to add "${skill.pack}" to domains; otherwise use the core skills` };
   }
   const step = methodStep(goal);
   if (step.skill && step.skill !== skill.name && PHASES.indexOf(skill.phase) > PHASES.indexOf(step.phase)) {
@@ -184,8 +192,10 @@ export function canWrite(session, key, op, skills) {
   // Elicit before committing: a skill shows the user its read and writes
   // only after they answer, so never in the turn it was loaded. Status
   // flips and log entries record what the user just said, so they pass,
-  // and so does a skill whose routed update the user just confirmed.
-  if (op === 'write_section' && session.fresh.includes(granting.name) && !session.cleared?.includes(granting.name)) {
+  // and so does a skill whose routed update the user just confirmed. So
+  // does `domains`: a refused pack load asks the user first, and the write
+  // records their yes.
+  if (op === 'write_section' && key !== 'domains' && session.fresh.includes(granting.name) && !session.cleared?.includes(granting.name)) {
     return { ok: false, error: `${granting.name} was loaded this turn; show the user your read as a confirm reply and write after they answer` };
   }
   return { ok: true };

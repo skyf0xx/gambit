@@ -504,7 +504,8 @@ function taskStats(plan) {
 export function summarizeChange(before, after) {
   const out = [];
   for (const key of Object.keys(goalSchema.shape)) {
-    if (key === 'schemaVersion' || key === 'updated') continue;
+    // domains isn't drawn on the page, so its change has nothing to show.
+    if (key === 'schemaVersion' || key === 'updated' || key === 'domains') continue;
     const a = before[key];
     const b = after[key];
     if (JSON.stringify(a) === JSON.stringify(b)) continue;

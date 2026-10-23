@@ -29,12 +29,13 @@ packages/core/        shared logic, framework-agnostic
   src/rules.mjs, index.mjs
 
 skills/               skill catalogue, bundled into the app at build time
+domain-skills/        domain packs (business, activism), bundled the same way, gated per goal
   _shared/GUIDED.md    the guided-session rules (see below)
   _shared/HUMANIZE.md  writing-voice rules
   _shared/NO_HISTORY.md current-state-only rule for every goal write
 ```
 
-Skills under `skills/` ship with the app via build + redeploy — there is no
+Skills under `skills/` and `domain-skills/` ship with the app via build + redeploy — there is no
 runtime updater. A new or changed skill goes out on the next Vercel deploy.
 
 ## The skill catalogue
@@ -85,6 +86,43 @@ execution sequence, grouped by what kind of move it makes.
 |---|---|
 | `eval` | independent audit of progress against the goal |
 | `review` | after-action review of a completed event — expected vs actual |
+
+## Domain packs
+
+A pack is a few deeper skills for one kind of goal, living in
+`domain-skills/<pack>/<skill>/SKILL.md` (see `ROADMAP.md` for the inclusion
+bar). The app serves each one as `skills/<skill>/`, so it loads like any
+other skill, but its frontmatter carries `pack: <pack>`, and `canLoad`
+refuses it unless the goal's `domains` holds that pack. `intake` sets
+`domains` from what the goal is; when a pack load is refused on an
+untagged goal, the model asks the user in one line and `intake`'s tag mode
+writes `domains` alone. The skill index marks pack skills, and the state
+block lists the packs on the goal with their skills.
+
+| Pack | Skill | Purpose |
+|---|---|---|
+| `business` | `positioning` | who it's for, against what alternative, and why — Dunford |
+| `business` | `pricing` | willingness to pay, leaders/fillers/killers, price and model — Ramanujam |
+| `business` | `distribution` | product-market fit check, then Bullseye channel tests — Ellis, Weinberg & Mares |
+| `activism` | `demands` | a problem cut to one winnable demand, a named target, and what counts as a win |
+| `activism` | `pillars` | the groups the target's power rests on, and which one to move a step |
+| `activism` | `tactics` | actions by the pillar they hit: protest, non-cooperation, intervention; dilemma actions |
+| `activism` | `organizing` | organizing over mobilizing: the chart, organic leaders, the one-to-one, structure tests |
+| `activism` | `message` | the core frame for the persuadable middle, and the messengers who carry it |
+| `activism` | `backfire` | the five ways outrage is dampened, a counter for each, and action preparation |
+
+The activism pack holds to nonviolent means, for any cause: its skills
+don't plan violence, threats, or the targeting of private people. Its
+depth lives in each skill's reference files (`issue-test.md`, `methods.md`,
+`structure.md` and the rest), read with `read_skill_file` at the step that
+needs them.
+
+Pack skills own no key. Each writes into keys the core already has
+(`decisions`, `intel`, `experiments`, `courses`, `stakeholders`,
+`riskNotes`, `log`), keeping the other entries; `riskNotes` takes
+`source: backfire` beside `threat` and `premortem`. A new
+pack needs its name in `DOMAINS` (`packages/core/src/schema.mjs`) and a
+line in `intake`'s step 5 saying which goals carry it.
 
 `intake` and `elicit` (`apps/pwa/skills/`) are PWA-native: `intake` runs
 first-contact goal setup in place of a CLI's file-creation step, and
@@ -176,11 +214,13 @@ Each skill declares its place in the flow in its `SKILL.md` frontmatter:
   (`elicit`)
 - `phase` — its place in the method (`define`, `understand`, `direct`,
   `develop`, `plan`, `stress`, `run`), or `any` for a skill outside it
+- `pack` — a domain pack skill's pack (`DOMAINS`); it needs `requires: goal`
 
 The gates:
 
 - `load_skill` refuses a `requires: goal` skill while the goal is a stub
-  and points to `intake`. A skill further on in the method than the goal
+  and points to `intake`, and a pack skill on a goal whose `domains` lacks
+  its pack. A skill further on in the method than the goal
   has reached still loads, with a warning naming the skipped phase; the
   model says so in one line and offers that phase's skill first.
 - `write_section`, `set_status` and `append_log` need an active skill whose
@@ -189,8 +229,8 @@ The gates:
   record what the user just said, whatever skill is active.
 - `write_section` is refused in the turn its skill was loaded: the skill
   shows its read as a `confirm` reply and writes after the user answers
-  (GUIDED.md's elicit-before-committing). Status flips and log entries
-  record what the user just said, so they pass.
+  (GUIDED.md's elicit-before-committing). Status flips, log entries and a
+  `domains` write record what the user just said, so they pass.
 - A checkpoint skill keeps its caller's write rights; `finish_skill` from it
   hands back to the caller. From any other skill, `finish_skill` ends it.
 - `route_updates` is accepted only while `sitrep` is active. It checks
@@ -252,7 +292,7 @@ Each key has one owning skill, which replaces its own key's value in place
 rather than accumulating. Which skills may write a key is the `writes`
 frontmatter above; the owners are:
 
-- `goal`, `subGoals`, `successCriteria`, `deadline`, `people` ← `intake`
+- `goal`, `subGoals`, `successCriteria`, `deadline`, `people`, `domains` ← `intake`
 - `posture` ← `strategy`
 - `plan` ← `plan`
 - `systemsNotes` ← `systems`

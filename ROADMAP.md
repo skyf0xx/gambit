@@ -46,37 +46,36 @@ One rule, conditioned on license status:
   ten-step positioning sequence as a native `SKILL.md` the same way
   `negotiate` implements BATNA without reproducing *Getting to Yes*.
 
-Every native domain skill carries a `## Source` section naming the work,
-the author, and — where the skill adapts rather than follows exactly —
-what changed and why.
+A domain skill that adapts one named method closely (the business pack)
+carries a `## Source` section naming the work and what changed. A pack
+drawn from a whole field of practice (activism) carries the practice
+itself in reference files instead: the bar is that an expert would
+recognise every step, not that each one is footnoted.
 
 ## Storage and loading
 
 Domain skills are not peers of `skills/strategy` or `skills/plan`. They
 live outside `skills/` entirely, bundled with the app the same way the core
-catalogue is, so the app never treats fifteen packs as part of the
-always-on core surface:
+catalogue is, so the app never treats the packs as part of the always-on
+core surface:
 
-- **`domain-skills/<pack>/`** — top-level, sibling to `skills/`. Each pack
-  holds its own skill files, and, for a vendored-verbatim pack, an
-  `ATTRIBUTION.md` in the BMAD shape.
-- **`domain-skills/registry.json`** — a manifest mapping goal-shape triggers
-  to skill file paths. This is the gating mechanism, mechanically checkable
-  rather than inferred: a skill loads only when the active goal matches a
-  trigger the manifest declares. The app's rule: consult the registry
-  against the active goal before assuming no pack applies, and load only
-  the matched file, never the directory wholesale.
+- **`domain-skills/<pack>/<skill>/SKILL.md`**, top-level, sibling to
+  `skills/`. A vendored-verbatim pack also holds an `ATTRIBUTION.md` in the
+  BMAD shape.
+- **`pack: <pack>`** in each skill's frontmatter, beside its other flow
+  fields, so the gate is checked in code rather than inferred.
+- **`domains`** on the goal: the packs it draws on, a list, so a mixed goal
+  ("build a business that funds my activism") carries more than one.
+  `intake` sets it from what the goal is, and only asks when it's unclear.
+  `load_skill` refuses a pack skill whose pack the goal doesn't carry, and
+  the refusal tells the model to ask the user and tag the goal, so a pack
+  that should fire on an untagged goal is caught the first time the model
+  reaches for it.
 
-What counts as a match is the harder half of this. A `domain` field on
-the goal, set at onboard, is the simplest thing for the registry to
-check, but it requires classifying every goal into a taxonomy up front —
-awkward for a mixed goal like "build a business that funds my activism." A
-looser text-match against the goal statement avoids forcing a taxonomy but
-risks both failure directions: false-fire on a coincidental keyword, or
-silent non-fire on a goal that's business-shaped without using business
-words. The failure to design against is the fundraising skill firing on a
-park-cleanup goal — but a pack that never fires because nothing ever
-matches its trigger is the same defect, just quieter.
+The two failures this designs against are the fundraising skill firing on
+a park-cleanup goal, which the gate stops, and a pack that never fires,
+which the skill index (it lists every pack skill with its pack) and the
+state block (it names the packs on the goal and their skills) work against.
 
 ## Key ownership
 
@@ -198,6 +197,27 @@ A pack of three strong skills beats fifteen adequate ones — the inclusion
 bar exists to keep the count down. Below some threshold, the gating
 machinery isn't worth it: a domain that only yields two skills passing all
 three tests ships as loose skills, not a pack.
+
+## Status
+
+Done:
+
+- The flagged core candidates are in the core: Rumelt's kernel in
+  `strategy`, Meadows' leverage points in `systems`, decision hygiene from
+  *Noise* in `decide`, Duke's resulting check in `review`, *The Mom Test* in
+  `recon`, and Goldratt's five focusing steps in `capacity`.
+- The business pack: `positioning` (Dunford), `pricing` (Ramanujam) and
+  `distribution` (Traction's Bullseye with the Ellis survey). Customer
+  discovery is served by `recon`; jobs to be done, fundraising terms and
+  operating cadence wait on demand.
+
+- The activism pack: `demands`, `pillars`, `tactics`, `organizing`,
+  `message` and `backfire`, with the depth in reference files beside
+  each skill. It covers the civic rows above except commons governance.
+
+Next: a health and performance pack. It needs recurring tasks in the plan
+first, since a habit, a training progression or a practice loop repeats on
+a cadence and the plan holds one-off tasks only.
 
 ## Sequencing
 

@@ -221,7 +221,7 @@ const systemsNotes = z.object({
 const riskNote = z.object({
   item: mediumLabel,
   detail: mediumLabel.optional(),
-  source: z.enum(['threat', 'premortem']),
+  source: z.enum(['threat', 'premortem', 'backfire']),
   accepted: z.boolean(),
   dependsOn: shortLabel.optional(),
 });
@@ -394,6 +394,13 @@ const subGoal = z
   .max(100)
   .refine((s) => s.trim().split(/\s+/).filter(Boolean).length <= 12, 'must be 12 words or fewer');
 
+// The domain packs a goal draws on (domain-skills/<pack>/): set by intake,
+// checked by canLoad (flow.mjs) before a pack's skill loads. A goal can be
+// more than one kind ("a business that funds my activism"), so it is a list.
+export const DOMAINS = ['business', 'activism'];
+
+const domains = z.array(z.enum(DOMAINS)).max(DOMAINS.length).refine((ds) => new Set(ds).size === ds.length, 'each domain once');
+
 export const goalSchema = z.object({
   schemaVersion: z.literal(5),
   goal: z.string().min(1).max(200),
@@ -401,6 +408,7 @@ export const goalSchema = z.object({
   successCriteria: z.array(successCriterion).min(1),
   deadline: dateString.nullable(),
   people: z.array(person),
+  domains: domains.default([]),
   posture: posture.nullable(),
   plan: plan.nullable(),
   systemsNotes: systemsNotes.nullable(),
@@ -574,6 +582,7 @@ export function stubGoal(title) {
     successCriteria: [{ text: STUB_CRITERION, kind: 'control' }],
     deadline: null,
     people: [],
+    domains: [],
     posture: null,
     plan: null,
     systemsNotes: null,
