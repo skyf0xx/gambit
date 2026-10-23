@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { BR, ES, FR, GB, IT } from 'country-flag-icons/react/3x2';
 import { db, getSetting } from '../lib/db';
 import { deleteGoal, readRecord } from '../lib/goals';
 import { downloadIcs, goalDates } from '../lib/calendar';
@@ -213,16 +214,23 @@ function ThemePicker() {
   );
 }
 
-/** Each language in its own words; the one in use is in ink. Picking
- * another reloads the app into it. */
+// The landing page's flags (landing-i18n.mjs): they only help the eye, and
+// the name says the language, so Portuguese sits under Brazil's flag and
+// English under the UK's.
+const FLAGS: Record<Locale, typeof GB> = { en: GB, fr: FR, it: IT, es: ES, pt: BR };
+
+/** Each language in its own words, behind its flag; the one in use is in
+ * ink. Picking another reloads the app into it. */
 function LanguagePicker() {
   const current = locale();
   return (
     <div role="radiogroup" aria-label={t('language.label')} className="flex flex-wrap items-center gap-x-8 pl-1">
       {(Object.keys(LOCALES) as Locale[]).map((l) => {
         const on = current === l;
+        const Flag = FLAGS[l];
         return (
-          <TextAction key={l} lang={l} circle={false} role="radio" aria-checked={on} data-selected={on} className={on ? '' : 'text-graphite! hover:text-ink!'} onClick={() => { if (!on) { track('language_set', { locale: l }); setLocale(l); } }}>
+          <TextAction key={l} lang={l} circle={false} role="radio" aria-checked={on} data-selected={on} className={`inline-flex items-center gap-1.5 ${on ? '' : 'text-graphite! hover:text-ink!'}`} onClick={() => { if (!on) { track('language_set', { locale: l }); setLocale(l); } }}>
+            <Flag aria-hidden="true" className={`h-[14px] w-[21px] shrink-0 rounded-[2px] ring-1 ring-rule ${on ? '' : 'opacity-90'}`} />
             {LOCALES[l]}
           </TextAction>
         );
