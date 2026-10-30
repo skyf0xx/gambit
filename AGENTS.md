@@ -614,3 +614,9 @@ every goal write — same treatment, read them rather than duplicating them.
 - Deploy is Vercel: the root `vercel.json` sets build and routing. Its CSP
   header must match the CSP the build itself emits — a test enforces this,
   so a change to one requires the matching change to the other.
+- `ollama.com` refuses browser preflights, so Ollama Cloud is reached through
+  a same-origin rewrite: a custom provider with base URL
+  `https://<site>/ollama/v1`. That key and chat pass through the Vercel
+  deployment; every other provider is called directly from the browser. On a
+  Vercel build, saving an `ollama.com` address rewrites it to that URL and
+  asks the user to confirm (`viaOllamaProxy`, `apps/pwa/src/lib/providers.ts`).

@@ -26,6 +26,14 @@ describe('vercel.json CSP', () => {
   });
 });
 
+describe('vercel.json Ollama proxy', () => {
+  it('reaches only the v1 API, since ollama.com refuses browser preflights', () => {
+    const vercelConfig = JSON.parse(readFileSync(resolve(root, 'vercel.json'), 'utf8'));
+    const rewrite = vercelConfig.rewrites.find((r: { source: string }) => r.source === '/ollama/v1/:path*');
+    expect(rewrite?.destination).toBe('https://ollama.com/v1/:path*');
+  });
+});
+
 describe('vercel.json usage counts', () => {
   it('sends them through a same-origin rewrite, so the CSP stays self', () => {
     const vercelConfig = JSON.parse(readFileSync(resolve(root, 'vercel.json'), 'utf8'));

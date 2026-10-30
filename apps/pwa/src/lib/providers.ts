@@ -102,6 +102,13 @@ export function originAllowed(url: string): boolean {
   }
 }
 
+/** ollama.com refuses browser preflights, so a Vercel build reaches it through
+ * vercel.json's rewrite. Its API names models without the local app's `-cloud`. */
+export function viaOllamaProxy(s: ProviderSettings, origin: string, available = __OLLAMA_PROXY__): ProviderSettings | null {
+  if (!available || s.kind !== 'custom' || !/^(https?:\/\/)?(www\.)?ollama\.com(\/|$)/i.test((s.baseURL ?? '').trim())) return null;
+  return { ...s, baseURL: `${origin}/ollama/v1`, model: s.model.trim().replace(/-cloud$/, '') };
+}
+
 export function makeModel(s: ProviderSettings, apiKey: string): LanguageModel {
   const base = s.baseURL || PROVIDERS[s.kind].baseURL;
   if (base && !originAllowed(base)) throw new Error(t('settings.errCsp', { origin: new URL(base).origin }));

@@ -5,7 +5,8 @@
   "framework": null,
   "rewrites": [
     { "source": "/app", "destination": "/app.html" },
-    { "source": "/u/api/send", "destination": "https://cloud.umami.is/api/send" }
+    { "source": "/u/api/send", "destination": "https://cloud.umami.is/api/send" },
+    { "source": "/ollama/v1/:path*", "destination": "https://ollama.com/v1/:path*" }
   ],
   "redirects": [
     { "source": "/landing", "destination": "/", "permanent": false },

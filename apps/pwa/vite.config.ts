@@ -123,6 +123,7 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(appPkg.version),
     __CONNECT_SRC__: JSON.stringify(connectSrc),
+    __OLLAMA_PROXY__: JSON.stringify(!!process.env.VERCEL),
     __UMAMI_WEBSITE_ID__: JSON.stringify(umamiId),
   },
   // Font files must never be inlined as data: URIs — the CSP's img-src

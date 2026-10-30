@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { dictationSupported, useDictation } from '../lib/dictation';
 import {
-  getProvider, saveProvider, checkKey, keyProvider, settingsForKey, cleanKey, PROVIDERS, GOOGLE_KEY_URL, OPENROUTER_BASE, KEY_LABEL, originAllowed,
+  getProvider, saveProvider, checkKey, keyProvider, settingsForKey, cleanKey, PROVIDERS, GOOGLE_KEY_URL, OPENROUTER_BASE, KEY_LABEL, viaOllamaProxy, originAllowed,
   type KeyCheck, type ProviderKind, type ProviderSettings,
 } from '../lib/providers';
 import { saveApiKey, hasApiKey, clearApiKey } from '../lib/crypto';
@@ -28,6 +28,7 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
   const [key, setKey] = useState('');
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState('');
+  const [proxied, setProxied] = useState(false);
   const [busy, setBusy] = useState(false);
   // An unreachable check (a custom endpoint without browser CORS on its
   // model list, say) can be overridden; a rejected key can't.
@@ -50,6 +51,7 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
     setKey('');
     setDetected(null);
     setErr('');
+    setProxied(false);
     setUnchecked(false);
   };
 
@@ -80,11 +82,19 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
 
   async function save(skipCheck = false) {
     setErr('');
+    setProxied(false);
     setUnchecked(false);
     // Whatever the form shows, a recognised key saves under its own provider.
     const fromKey = key ? settingsFromKey(key) : null;
     if (fromKey) adopt(fromKey);
     const s = fromKey ?? state;
+    // Stops short of saving: the user should see their key will pass through this site.
+    const ollama = viaOllamaProxy(s, location.origin);
+    if (ollama) {
+      adopt(ollama);
+      setProxied(true);
+      return;
+    }
     if (!s.model.trim()) return setErr(t('setup.errModel'));
     const base = s.baseURL || PROVIDERS[s.kind].baseURL;
     if (s.kind === 'custom' && !base) return setErr(t('setup.errCustomBase'));
@@ -140,6 +150,7 @@ export function ProviderForm({ onDone, beforeSave, firstRun }: { onDone?: () => 
           {s.kind === 'google' ? t('setup.webSearchGoogle') : t('setup.webSearchAnthropic')}
         </label>
       )}
+      {proxied && <p className="anim-fade-in text-[15px] text-ink">{t('setup.ollamaProxied')}</p>}
       {err && (
         <p className="anim-fade-in text-[15px] text-accent">
           {err}{' '}
